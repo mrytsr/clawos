@@ -702,11 +702,11 @@
             <!-- 嵌入式上传按钮 -->
             <form method="post" action="{{ url_for('upload_file', path=get_relative_path(current_dir)) }}" enctype="multipart/form-data" id="uploadForm">
                 <input type="file" name="file" id="fileInputInline" onchange="handleFileSelect(event)" style="display: none;">
-                <div class="upload-btn-inline" onclick="document.getElementById('fileInputInline').click()" title="上传文件">+</div>
+                <div class="upload-btn-inline" onclick="openCreateMenuDrawer()" title="创建">+</div>
             </form>
 
             <div class="breadcrumb-left">
-                <a href="{{ url_for('trash') }}" style="color: #dc3545; text-decoration: none; margin-right: 8px;" title="回收站">🗑️</a>
+                <a href="#" onclick="openTrashDrawer(); return false;" style="color: #dc3545; text-decoration: none; margin-right: 8px;" title="回收站">🗑️</a>
                 <span style="color: #ddd; margin-right: 8px;">|</span>
                 <a href="{{ url_for('browse') }}" style="color: #ffc107; margin-right: 8px;" title="根目录">🏠</a>
                 {% if breadcrumbs %}
@@ -920,6 +920,37 @@
         </div>
     </div>
 
+    <div id="createMenuBackdrop" class="drawer-backdrop" onclick="closeCreateMenuDrawer()"></div>
+    <div id="createMenuDrawer" class="drawer">
+        <div class="drawer-handle"></div>
+        <div class="drawer-header">
+            <div class="drawer-title">创建</div>
+            <button class="drawer-close-btn" onclick="closeCreateMenuDrawer()">&times;</button>
+        </div>
+        <div class="drawer-content">
+            <div class="modal-item" onclick="createMenuUpload()">📤 上传</div>
+            <div class="modal-item" onclick="createMenuNewFolder()">📁 新建文件夹</div>
+            <div class="modal-item" onclick="createMenuNewFile()">📄 新建文件</div>
+        </div>
+    </div>
+
+    <div id="dialogBackdrop" class="drawer-backdrop" onclick="closeDialogDrawer()"></div>
+    <div id="dialogDrawer" class="drawer">
+        <div class="drawer-handle"></div>
+        <div class="drawer-header">
+            <div class="drawer-title" id="dialogTitle">提示</div>
+            <button class="drawer-close-btn" onclick="closeDialogDrawer()">&times;</button>
+        </div>
+        <div class="drawer-content">
+            <p id="dialogMessage" style="margin: 0 0 12px 0; color: #666; font-size: var(--global-font-size, 14px);"></p>
+            <input type="text" id="dialogInput" style="width: 100%; padding: 12px; margin-bottom: 16px; border: 1px solid #ddd; border-radius: 8px; font-size: var(--global-font-size, 14px); box-sizing: border-box;">
+            <div class="modal-buttons" style="padding: 0; border: none; background: none; gap: 12px; display:flex;">
+                <button style="flex: 1; padding: 12px; border-radius: 8px; border: 1px solid #d0d7de; background: #f6f8fa; cursor: pointer;" onclick="closeDialogDrawer()">取消</button>
+                <button id="dialogConfirmBtn" style="flex: 1; padding: 12px; border-radius: 8px; border: 1px solid transparent; background: #2da44e; color: #fff; cursor: pointer;" onclick="confirmDialogDrawer()">确认</button>
+            </div>
+        </div>
+    </div>
+
     <!-- 删除确认抽屉 -->
     <div id="confirmBackdrop" class="drawer-backdrop" onclick="closeConfirmModal()"></div>
     <div id="confirmModal" class="drawer">
@@ -1106,15 +1137,36 @@
         <div class="drawer-handle"></div>
         <div class="drawer-header">
             <div class="drawer-title">🔍 搜索文件</div>
-            <button class="drawer-close-btn" onclick="closeSearchModal()">&times;</button>
+            <div style="display:flex;gap:8px;">
+                <button style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px;" onclick="resetSearch()" title="重置">🔄</button>
+                <button class="drawer-close-btn" onclick="closeSearchModal()">&times;</button>
+            </div>
         </div>
-        <div class="drawer-content" style="padding: 16px;">
-            <div style="display: flex; gap: 10px; margin-bottom: 16px;">
-                <input type="text" id="searchInput" style="flex: 1; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: var(--global-font-size, 14px);" placeholder="输入文件名搜索..." onkeyup="handleSearchKeyup(event)">
-                <button class="modal-btn modal-btn-confirm" style="padding: 12px 20px;" onclick="doSearch()">搜索</button>
+        <div class="drawer-content" style="padding:0;">
+            <div style="padding: 16px;">
+                <div style="display: flex; gap: 10px; margin-bottom: 16px;">
+                    <input type="text" id="searchInput" style="flex: 1; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: var(--global-font-size, 14px);" placeholder="输入文件名搜索..." onkeyup="handleSearchKeyup(event)">
+                    <button class="modal-btn modal-btn-confirm" style="padding: 12px 20px;" onclick="doSearch()">搜索</button>
+                </div>
+                <div id="searchResults" style="overflow-y: auto;"></div>
             </div>
-            <div id="searchResults" style="max-height: 400px; overflow-y: auto;">
+        </div>
+    </div>
+
+    <!-- 回收站抽屉 -->
+    <div id="trashBackdrop" class="drawer-backdrop" onclick="closeTrashDrawer()"></div>
+    <div id="trashDrawer" class="drawer">
+        <div class="drawer-handle"></div>
+        <div class="drawer-header">
+            <div class="drawer-title">🗑️ 回收站</div>
+            <div style="display:flex;gap:8px;">
+                <button style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px;" onclick="loadTrashList()" title="刷新">🔄</button>
+                <button style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px;" onclick="clearTrash()" title="清空">🧹</button>
+                <button class="drawer-close-btn" onclick="closeTrashDrawer()">&times;</button>
             </div>
+        </div>
+        <div class="drawer-content" style="padding:0;">
+            <div id="trashListContainer" style="padding: 16px;"></div>
         </div>
     </div>
     <!-- 进程管理抽屉 -->

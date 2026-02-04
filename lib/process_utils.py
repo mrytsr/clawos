@@ -1,6 +1,3 @@
-# 系统监控模块 - 进程管理
-
-from flask import jsonify
 import subprocess
 import time
 
@@ -31,7 +28,7 @@ def get_process_ports():
                                 port_map[prog_pid].append(port)
                         except (ValueError, IndexError):
                             pass
-    except:
+    except Exception:
         pass
     return port_map
 
@@ -59,17 +56,17 @@ def list_processes():
 
     port_map = get_process_ports()
     processes = []
-    
+
     for proc in psutil.process_iter(['pid', 'name', 'cmdline', 'cpu_percent', 'memory_percent', 'create_time', 'status']):
         try:
             info = proc.info
             cmdline = info.get('cmdline')
             cmd = ' '.join(cmdline) if cmdline else info.get('name', '')
-            
+
             uptime = get_process_uptime(info.get('create_time'))
             pid = info['pid']
             ports = port_map.get(pid, [])
-            
+
             processes.append({
                 'pid': pid,
                 'name': info.get('name', '?'),
@@ -83,8 +80,7 @@ def list_processes():
             })
         except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
             pass
-    
-    # 按有端口优先，然后按 PID 降序
+
     processes.sort(key=lambda x: (not x['has_ports'], x['pid']))
     return {'success': True, 'processes': processes}
 
@@ -112,7 +108,6 @@ def kill_process(pid):
 
 def get_process_ports_detail(pid):
     """获取进程占用的端口详情"""
-    import re
     ports = []
     try:
         result = subprocess.run(['netstat', '-tlnp'], capture_output=True, text=True)

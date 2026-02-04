@@ -1,8 +1,5 @@
-# 系统监控模块 - Systemd 服务管理
-
-from flask import jsonify
-import subprocess
 import re
+import subprocess
 from datetime import datetime
 
 
@@ -14,35 +11,33 @@ def list_systemd_services():
             capture_output=True, text=True
         )
         services = []
-        
+
         lines = result.stdout.strip().split('\n')
         for line in lines:
             if not line or line.startswith('UNIT ') or line.startswith('LOAD '):
                 continue
             if line.startswith('●'):
                 continue
-            
+
             match = re.match(r'^(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(.*)$', line)
             if match:
                 unit, load_state, active_state, sub_state, description = match.groups()
-                
+
                 if unit in ['UNIT', 'LOAD', 'ACTIVE', 'SUB']:
                     continue
-                
+
                 if load_state in ['not-found', 'masked']:
                     continue
-                
-                # 获取是否启用开机自启
+
                 try:
                     enabled_result = subprocess.run(
                         ['systemctl', '--user', 'is-enabled', unit],
                         capture_output=True, text=True, timeout=2
                     )
                     enabled = 'enabled' in enabled_result.stdout.lower()
-                except:
+                except Exception:
                     enabled = False
-                
-                # 获取服务激活时间
+
                 active_since = None
                 try:
                     status_result = subprocess.run(
@@ -56,12 +51,12 @@ def list_systemd_services():
                                 time_clean = time_part.replace(' CST', '').replace(' UTC', '')
                                 dt = datetime.strptime(time_clean, '%a %Y-%m-%d %H:%M:%S')
                                 active_since = dt.isoformat()
-                            except:
+                            except Exception:
                                 pass
                             break
-                except:
+                except Exception:
                     pass
-                
+
                 services.append({
                     'name': unit,
                     'load': load_state,
@@ -72,7 +67,7 @@ def list_systemd_services():
                     'description': description,
                     'active_since': active_since
                 })
-        
+
         return {'success': True, 'services': services}
     except Exception as e:
         return {'success': False, 'message': str(e)}
@@ -84,10 +79,9 @@ def control_systemd_service(service, action):
     try:
         if action in ['start', 'stop', 'restart']:
             subprocess.run(['systemctl', '--user', action, service], capture_output=True, text=True)
-            
-            # 等待服务就绪（重启/start 场景）
+
             if action in ['start', 'restart']:
-                for _ in range(10):  # 最多等待 5 秒
+                for _ in range(10):
                     time.sleep(0.5)
                     result = subprocess.run(
                         ['systemctl', '--user', 'is-active', service],
@@ -95,10 +89,10 @@ def control_systemd_service(service, action):
                     )
                     if 'active' in result.stdout.lower():
                         break
-                        
+
         elif action in ['enable', 'disable']:
             subprocess.run(['systemctl', '--user', action, service], capture_output=True, text=True)
-        
+
         return {'success': True, 'message': f'{service} {action} 成功'}
     except Exception as e:
         return {'success': False, 'message': str(e)}

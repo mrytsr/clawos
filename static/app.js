@@ -24,8 +24,9 @@ function doSearch() {
     fetch('/api/search?q=' + encodeURIComponent(keyword))
         .then(r => r.json())
         .then(data => {
-            if (data.results && data.results.length > 0) {
-                resultsContainer.innerHTML = data.results.map(item => 
+            const results = data && data.success && data.data ? data.data.results : null;
+            if (results && results.length > 0) {
+                resultsContainer.innerHTML = results.map(item => 
                     `<div class="search-result-item" onclick="window.location.href='/browse/${item.path}'">
                         <span style="font-size:20px;margin-right:10px;">${item.icon}</span>
                         <div style="flex:1;">
@@ -40,6 +41,186 @@ function doSearch() {
         })
         .catch(() => { resultsContainer.innerHTML = '<div style="text-align:center;padding:40px;color:#cf222e;">搜索失败</div>'; });
 }
+
+// 回收站抽屉
+window.openTrashDrawer = function(callbacks) {
+    Drawer.open('trashDrawer', callbacks);
+    loadTrashList();
+};
+window.closeTrashDrawer = function(callbacks) {
+    Drawer.close('trashDrawer', Object.assign({}, callbacks || {}, {
+        afterClose: function() {
+            const container = document.getElementById('trashListContainer');
+            if (container) container.innerHTML = '';
+            if (callbacks && typeof callbacks.afterClose === 'function') callbacks.afterClose();
+        }
+    }));
+};
+
+window.loadTrashList = function() {
+    const container = document.getElementById('trashListContainer');
+    if (container) container.innerHTML = '<div style="text-align:center;padding:40px;color:#666;">🔄 加载中...</div>';
+    fetch('/api/trash/list', { headers: authHeaders() })
+        .then(r => r.json())
+        .then(data => {
+            const items = data && data.success && data.data ? data.data.items : null;
+            if (!container) return;
+            if (!items || items.length === 0) {
+                container.innerHTML = '<div style="text-align:center;padding:40px;color:#666;">回收站是空的</div>';
+                return;
+            }
+            container.innerHTML = items.map(item => {
+                const rawName = item.name || '';
+                const rawDisplayName = item.display_name || item.name || '';
+                const name = escapeHtml(rawName);
+                const displayName = escapeHtml(rawDisplayName);
+                const deletedAt = escapeHtml(item.deleted_at || '');
+                const typeIcon = item.is_dir ? '📁' : '📄';
+                return (
+                    `<div style="padding:12px;border:1px solid #eee;border-radius:10px;margin-bottom:10px;background:#fff;display:flex;gap:12px;align-items:flex-start;">` +
+                        `<div style="font-size:18px;line-height:1;">${typeIcon}</div>` +
+                        `<div style="flex:1;min-width:0;">` +
+                            `<div style="font-weight:600;word-break:break-word;white-space:pre-wrap;">${displayName}</div>` +
+                            `<div style="margin-top:4px;color:#666;font-size:12px;">删除时间: ${deletedAt}</div>` +
+                            `<div style="margin-top:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">` +
+                                `<button class="modal-btn modal-btn-confirm" style="padding:8px 12px;border-radius:8px;" data-trash-name="${encodeURIComponent(rawName)}" data-trash-default="${encodeURIComponent(rawDisplayName)}" onclick="restoreTrashItemFromButton(this)">还原</button>` +
+                                `<span style="color:#999;font-size:12px;font-family:monospace;word-break:break-word;">${name}</span>` +
+                            `</div>` +
+                        `</div>` +
+                    `</div>`
+                );
+            }).join('');
+        })
+        .catch(() => {
+            if (container) container.innerHTML = '<div style="text-align:center;padding:40px;color:#cf222e;">加载失败</div>';
+        });
+};
+
+window.restoreTrashItemFromButton = function(btn) {
+    if (!btn || !btn.dataset) return;
+    const rawName = decodeURIComponent(btn.dataset.trashName || '');
+    const suggested = decodeURIComponent(btn.dataset.trashDefault || '');
+    showPromptDrawer(
+        '还原',
+        '输入还原路径（相对于根目录）',
+        '例如：docs/a.txt',
+        suggested,
+        '还原',
+        function(targetPath) {
+            if (!targetPath) return;
+            fetch('/api/trash/restore/' + encodeURIComponent(rawName), {
+                method: 'POST',
+                headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders()),
+                body: JSON.stringify({ target_path: targetPath })
+            })
+                .then(r => r.json())
+                .then(data => {
+                    if (data && data.success) {
+                        showToast('还原成功', 'success');
+                        loadTrashList();
+                    } else {
+                        showToast((data && data.error && data.error.message) || '还原失败', 'error');
+                    }
+                })
+                .catch(() => showToast('还原失败', 'error'));
+        }
+    );
+};
+
+window.clearTrash = function() {
+    showConfirmDrawer(
+        '清空回收站',
+        '确定要清空回收站吗？此操作不可恢复。',
+        '清空',
+        function() {
+            fetch('/api/trash/clear', { method: 'POST', headers: authHeaders() })
+                .then(r => r.json())
+                .then(data => {
+                    if (data && data.success) {
+                        showToast('回收站已清空', 'success');
+                        loadTrashList();
+                    } else {
+                        showToast((data && data.error && data.error.message) || '清空失败', 'error');
+                    }
+                })
+                .catch(() => showToast('清空失败', 'error'));
+        },
+        true
+    );
+};
+
+// 创建菜单抽屉（加号）
+window.openCreateMenuDrawer = function(callbacks) {
+    Drawer.open('createMenuDrawer', callbacks);
+};
+window.closeCreateMenuDrawer = function(callbacks) {
+    Drawer.close('createMenuDrawer', callbacks);
+};
+window.createMenuUpload = function() {
+    closeCreateMenuDrawer();
+    const input = document.getElementById('fileInputInline');
+    if (input) input.click();
+};
+window.createMenuNewFolder = function() {
+    closeCreateMenuDrawer();
+    showPromptDrawer(
+        '新建文件夹',
+        '请输入文件夹名称',
+        '例如：assets',
+        '',
+        '创建',
+        function(name) {
+            if (!name) return;
+            const currentPath = document.getElementById('currentBrowsePath') ? document.getElementById('currentBrowsePath').value : '';
+            const url = currentPath ? '/mkdir/' + encodeURIComponent(currentPath) : '/mkdir';
+            fetch(url, {
+                method: 'POST',
+                headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders()),
+                body: JSON.stringify({ name: name })
+            })
+                .then(r => r.json())
+                .then(data => {
+                    if (data && data.success) {
+                        showToast('创建成功', 'success');
+                        refreshFileList();
+                    } else {
+                        showToast((data && (data.message || (data.error && data.error.message))) || '创建失败', 'error');
+                    }
+                })
+                .catch(() => showToast('创建失败', 'error'));
+        }
+    );
+};
+window.createMenuNewFile = function() {
+    closeCreateMenuDrawer();
+    showPromptDrawer(
+        '新建文件',
+        '请输入文件名',
+        '例如：README.md',
+        '',
+        '创建',
+        function(name) {
+            if (!name) return;
+            const currentPath = document.getElementById('currentBrowsePath') ? document.getElementById('currentBrowsePath').value : '';
+            const url = currentPath ? '/touch/' + encodeURIComponent(currentPath) : '/touch';
+            fetch(url, {
+                method: 'POST',
+                headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders()),
+                body: JSON.stringify({ name: name })
+            })
+                .then(r => r.json())
+                .then(data => {
+                    if (data && data.success) {
+                        showToast('创建成功', 'success');
+                        refreshFileList();
+                    } else {
+                        showToast((data && (data.message || (data.error && data.error.message))) || '创建失败', 'error');
+                    }
+                })
+                .catch(() => showToast('创建失败', 'error'));
+        }
+    );
+};
 
 // 执行操作
 function performDelete() {

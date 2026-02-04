@@ -3,6 +3,10 @@
 
 ///<reference path="../globals.d.ts" />
 
+function apiData(resp) {
+    return resp && resp.success ? resp.data : null;
+}
+
 // 进程管理
 window.loadProcessList = function() {
     const container = document.getElementById('processListContainer');
@@ -10,11 +14,12 @@ window.loadProcessList = function() {
     fetch('/api/process/list', { headers: authHeaders() })
         .then(r => r.json())
         .then(data => {
-            if (data.success) {
+            const payload = apiData(data);
+            if (payload) {
                 const container = document.getElementById('processListContainer');
-                if (container && data.processes) {
+                if (container && payload.processes) {
                     let html = '<table style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr style="background:#f6f8fa;"><th style="padding:8px;text-align:left;">PID</th><th style="padding:8px;text-align:left;">名称</th><th style="padding:8px;text-align:left;">CPU</th><th style="padding:8px;text-align:left;">内存</th><th style="padding:8px;text-align:left;">端口</th></tr></thead><tbody>';
-                    data.processes.slice(0,50).forEach(p => {
+                    payload.processes.slice(0,50).forEach(p => {
                         html += `<tr style="border-bottom:1px solid #eee;"><td style="padding:8px;">${p.pid}</td><td style="padding:8px;font-family:monospace;">${p.name || '?'}</td><td style="padding:8px;">${p.cpu}%</td><td style="padding:8px;">${p.memory}%</td><td style="padding:8px;">${p.ports ? p.ports.join(', ') : '-'}</td></tr>`;
                     });
                     html += '</tbody></table>';
@@ -31,11 +36,12 @@ window.loadSystemPackageList = function() {
     fetch('/api/system-packages/list', { headers: authHeaders() })
         .then(r => r.json())
         .then(data => {
-            if (data.success) {
+            const payload = apiData(data);
+            if (payload) {
                 const container = document.getElementById('systemPackageListContainer');
-                if (container && data.packages) {
+                if (container && payload.packages) {
                     let html = '<table style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr style="background:#f6f8fa;"><th style="padding:8px;text-align:left;">包名</th><th style="padding:8px;text-align:left;">版本</th></tr></thead><tbody>';
-                    data.packages.slice(0,100).forEach(p => {
+                    payload.packages.slice(0,100).forEach(p => {
                         html += `<tr style="border-bottom:1px solid #eee;"><td style="padding:8px;">${p.name}</td><td style="padding:8px;">${p.version}</td></tr>`;
                     });
                     html += '</tbody></table>';
@@ -52,11 +58,12 @@ window.loadPipList = function() {
     fetch('/api/pip/list', { headers: authHeaders() })
         .then(r => r.json())
         .then(data => {
-            if (data.success) {
+            const payload = apiData(data);
+            if (payload) {
                 const container = document.getElementById('pipListContainer');
-                if (container && data.packages) {
+                if (container && payload.packages) {
                     let html = '<table style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr style="background:#f6f8fa;"><th style="padding:8px;text-align:left;">包名</th><th style="padding:8px;text-align:left;">版本</th></tr></thead><tbody>';
-                    data.packages.slice(0,100).forEach(p => {
+                    payload.packages.slice(0,100).forEach(p => {
                         html += `<tr style="border-bottom:1px solid #eee;"><td style="padding:8px;">${p.name}</td><td style="padding:8px;">${p.version}</td></tr>`;
                     });
                     html += '</tbody></table>';
@@ -73,11 +80,12 @@ window.loadNpmList = function() {
     fetch('/api/npm/list', { headers: authHeaders() })
         .then(r => r.json())
         .then(data => {
-            if (data.success) {
+            const payload = apiData(data);
+            if (payload) {
                 const container = document.getElementById('npmListContainer');
-                if (container && data.packages) {
+                if (container && payload.packages) {
                     let html = '<table style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr style="background:#f6f8fa;"><th style="padding:8px;text-align:left;">包名</th><th style="padding:8px;text-align:left;">版本</th></tr></thead><tbody>';
-                    data.packages.slice(0,100).forEach(p => {
+                    payload.packages.slice(0,100).forEach(p => {
                         html += `<tr style="border-bottom:1px solid #eee;"><td style="padding:8px;">${p.name}</td><td style="padding:8px;">${p.version}</td></tr>`;
                     });
                     html += '</tbody></table>';
@@ -99,9 +107,10 @@ window.loadDockerTabs = function(tab) {
         fetch('/api/docker/images', { headers: authHeaders() })
             .then(r => r.json())
             .then(data => {
-                if (data.success && imagesContainer && data.images) {
+                const payload = apiData(data);
+                if (payload && imagesContainer && payload.images) {
                     let html = '<table style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr style="background:#f6f8fa;"><th style="padding:8px;text-align:left;">镜像</th><th style="padding:8px;text-align:left;">ID</th><th style="padding:8px;text-align:left;">大小</th><th style="padding:8px;text-align:left;">创建时间</th></tr></thead><tbody>';
-                    data.images.forEach(img => {
+                    payload.images.forEach(img => {
                         html += `<tr style="border-bottom:1px solid #eee;"><td style="padding:8px;font-family:monospace;">${img.repository || img.tag || '?'}</td><td style="padding:8px;font-family:monospace;font-size:12px;">${img.id?.substring(0,12)}</td><td style="padding:8px;">${img.size}</td><td style="padding:8px;">${img.created}</td></tr>`;
                     });
                     html += '</tbody></table>';
@@ -115,9 +124,10 @@ window.loadDockerTabs = function(tab) {
         fetch('/api/docker/containers', { headers: authHeaders() })
             .then(r => r.json())
             .then(data => {
-                if (data.success && containersContainer && data.containers) {
+                const payload = apiData(data);
+                if (payload && containersContainer && payload.containers) {
                     let html = '<table style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr style="background:#f6f8fa;"><th style="padding:8px;text-align:left;">容器</th><th style="padding:8px;text-align:left;">状态</th><th style="padding:8px;text-align:left;">镜像</th></tr></thead><tbody>';
-                    data.containers.forEach(c => {
+                    payload.containers.forEach(c => {
                         html += `<tr style="border-bottom:1px solid #eee;"><td style="padding:8px;font-family:monospace;">${c.names || c.id?.substring(0,12)}</td><td style="padding:8px;color:${c.state==='running'?'#07c160':'#cf222e'}">${c.state}</td><td style="padding:8px;">${c.image}</td></tr>`;
                     });
                     html += '</tbody></table>';
@@ -134,11 +144,12 @@ window.loadSystemdList = function() {
     fetch('/api/systemd/list', { headers: authHeaders() })
         .then(r => r.json())
         .then(data => {
-            if (data.success) {
+            const payload = apiData(data);
+            if (payload) {
                 const container = document.getElementById('systemdListContainer');
-                if (container && data.services) {
+                if (container && payload.services) {
                     let html = '<table style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr style="background:#f6f8fa;"><th style="padding:8px;text-align:left;">服务</th><th style="padding:8px;text-align:left;">状态</th><th style="padding:8px;text-align:left;">自启</th><th style="padding:8px;text-align:left;">操作</th></tr></thead><tbody>';
-                    data.services.slice(0,50).forEach(s => {
+                    payload.services.slice(0,50).forEach(s => {
                         const isRunning = s.active?.includes('active');
                         const timeAgo = formatTimeAgo(s.active_since);
                         html += `<tr style="border-bottom:1px solid #eee;">
@@ -189,26 +200,27 @@ function formatTimeAgo(isoTime) {
 }
 
 window.controlSystemdService = function(service, action) {
-    if (!confirm(`确定要${action === 'start' ? '启动' : action === 'stop' ? '停止' : '重启'} ${service.replace('.service', '')} 吗？`)) {
-        return;
-    }
-    fetch('/api/systemd/control', {
-        method: 'POST',
-        headers: Object.assign({'Content-Type': 'application/json'}, authHeaders()),
-        body: JSON.stringify({service: service, action: action})
-    })
-    .then(r => r.json())
-    .then(data => {
-        if (data.success) {
-            showToast(`${service.replace('.service', '')} ${action} 成功`, 'success');
-            loadSystemdList();
-        } else {
-            showToast(`操作失败: ${data.message}`, 'error');
-        }
-    })
-    .catch(() => {
-        showToast('操作失败', 'error');
-    });
+    const verb = action === 'start' ? '启动' : action === 'stop' ? '停止' : '重启';
+    showConfirmDrawer('确认操作', `确定要${verb} ${service.replace('.service', '')} 吗？`, verb, function() {
+        fetch('/api/systemd/control', {
+            method: 'POST',
+            headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders()),
+            body: JSON.stringify({ service: service, action: action })
+        })
+            .then(r => r.json())
+            .then(data => {
+                const payload = apiData(data);
+                if (payload) {
+                    showToast(`${service.replace('.service', '')} ${action} 成功`, 'success');
+                    loadSystemdList();
+                } else {
+                    showToast(`操作失败: ${(data && data.error && data.error.message) || '未知错误'}`, 'error');
+                }
+            })
+            .catch(() => {
+                showToast('操作失败', 'error');
+            });
+    }, true);
 };
 
 // 磁盘管理
@@ -218,11 +230,12 @@ window.loadDiskList = function() {
     fetch('/api/disk/list', { headers: authHeaders() })
         .then(r => r.json())
         .then(data => {
-            if (data.success) {
+            const payload = apiData(data);
+            if (payload) {
                 const container = document.getElementById('diskListContainer');
-                if (container && data.disks) {
+                if (container && payload.disks) {
                     let html = '<table style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr style="background:#f6f8fa;"><th style="padding:8px;text-align:left;">设备</th><th style="padding:8px;text-align:left;">总计</th><th style="padding:8px;text-align:left;">已用</th><th style="padding:8px;text-align:left;">可用</th><th style="padding:8px;text-align:left;">挂载点</th></tr></thead><tbody>';
-                    data.disks.forEach(d => {
+                    payload.disks.forEach(d => {
                         html += `<tr style="border-bottom:1px solid #eee;"><td style="padding:8px;">${d.device}</td><td style="padding:8px;">${d.total}</td><td style="padding:8px;">${d.used}</td><td style="padding:8px;">${d.available}</td><td style="padding:8px;">${d.mountpoint}</td></tr>`;
                     });
                     html += '</tbody></table>';
@@ -239,11 +252,12 @@ window.loadNetworkList = function() {
     fetch('/api/network/list', { headers: authHeaders() })
         .then(r => r.json())
         .then(data => {
-            if (data.success) {
+            const payload = apiData(data);
+            if (payload) {
                 const container = document.getElementById('networkListContainer');
-                if (container && data.interfaces) {
+                if (container && payload.interfaces) {
                     let html = '<table style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr style="background:#f6f8fa;"><th style="padding:8px;text-align:left;">接口</th><th style="padding:8px;text-align:left;">状态</th><th style="padding:8px;text-align:left;">IPV4</th><th style="padding:8px;text-align:left;">MAC</th></tr></thead><tbody>';
-                    data.interfaces.forEach(i => {
+                    payload.interfaces.forEach(i => {
                         html += `<tr style="border-bottom:1px solid #eee;"><td style="padding:8px;">${i.name}</td><td style="padding:8px;color:${i.state === 'UP' ? '#07c160' : '#cf222e'}">${i.state}</td><td style="padding:8px;">${i.ipv4 || '-'}</td><td style="padding:8px;">${i.mac || '-'}</td></tr>`;
                     });
                     html += '</tbody></table>';
@@ -260,11 +274,12 @@ window.loadGitList = function() {
     fetch('/api/git/list', { headers: authHeaders() })
         .then(r => r.json())
         .then(data => {
-            if (data.success && data.repos) {
+            const payload = apiData(data);
+            if (payload && payload.repos) {
                 const container = document.getElementById('gitListContainer');
                 if (container) {
                     let html = '';
-                    data.repos.forEach(repo => {
+                    payload.repos.forEach(repo => {
                         const branch = repo.status ? repo.status.branch : '-';
                         html += `<div style="margin-bottom:16px;">
                             <div style="background:#f6f8fa;padding:8px 12px;border-radius:6px 6px 0 0;display:flex;justify-content:space-between;align-items:center;border:1px solid #d0d7de;border-bottom:none;">

@@ -624,7 +624,7 @@
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.4);
+    background: rgba(0, 0, 0, 0.45);
     opacity: 0;
     visibility: hidden;
     transition: opacity 0.3s, visibility 0.3s;
@@ -695,6 +695,16 @@
 /* 底部弹窗样式覆盖（用于没有拖拽手柄的弹窗） */
 .bottom-sheet .drawer-handle {
     display: none;
+}
+
+@media (max-width: 768px) {
+    #searchModal,
+    #trashDrawer {
+        top: 0;
+        bottom: 0;
+        max-height: 100vh;
+        border-radius: 0;
+    }
 }
 
 #searchModal .modal-body {

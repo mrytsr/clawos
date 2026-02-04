@@ -52,9 +52,10 @@ function loadBotHistory() {
         .then(r => r.json())
         .then(data => {
             const container = document.getElementById('botHistory');
-            if (container && data.history) {
+            const history = data && data.success && data.data ? data.data.history : null;
+            if (container && history) {
                 let html = '';
-                data.history.slice(-50).forEach(item => {
+                history.slice(-50).forEach(item => {
                     html += `<div class="bot-msg ${item.type}"><div class="bot-msg-content">${escapeHtml(item.text)}</div><div class="bot-msg-time">${item.time}</div></div>`;
                 });
                 container.innerHTML = html;
@@ -77,15 +78,16 @@ function botConnect() {
 }
 
 function botClear() {
-    if (!confirm('确定要清空对话记录吗？')) return;
-    fetch('/api/clear', { method: 'POST', headers: { 'Authorization': 'Basic ' + btoa('admin:admin') } })
-        .then(r => r.json())
-        .then(data => {
-            if (data.success) {
-                showToast('已清空', 'success');
-                loadBotHistory();
-            }
-        });
+    showConfirmDrawer('清空记录', '确定要清空对话记录吗？', '清空', function() {
+        fetch('/api/clear', { method: 'POST', headers: { 'Authorization': 'Basic ' + btoa('admin:admin') } })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('已清空', 'success');
+                    loadBotHistory();
+                }
+            });
+    }, true);
 }
 
 function botSend() {

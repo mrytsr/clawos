@@ -4,7 +4,7 @@
   "description": "一个基于 Flask + SocketIO 的单文件 Linux 网页管理器。支持文件管理、Web 终端、代码编辑和 AI 助手集成。",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "node --test",
     "lint": "eslint static/js/**/*.js static/*.js --ignore-pattern **/*.min.js",
     "lint:fix": "eslint static/js/**/*.js static/*.js --fix --ignore-pattern **/*.min.js"
   },
@@ -12,6 +12,9 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "eslint": "^9.39.2"
+    "eslint": "^9.39.2",
+    "pixelmatch": "^7.1.0",
+    "playwright": "^1.51.1",
+    "pngjs": "^7.0.0"
   }
 }

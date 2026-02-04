@@ -1,21 +1,51 @@
 // ============ 统一抽屉控制器 ============
+function dispatchDrawerEvent(modalId, eventName, detail) {
+    var el = document.getElementById(modalId);
+    if (!el || typeof el.dispatchEvent !== 'function') return;
+    var ev = null;
+    try {
+        ev = new CustomEvent(eventName, { detail: detail });
+    } catch (e) {
+        try {
+            ev = document.createEvent('CustomEvent');
+            ev.initCustomEvent(eventName, false, false, detail);
+        } catch (e2) {
+            ev = null;
+        }
+    }
+    if (ev) el.dispatchEvent(ev);
+}
+
 const Drawer = {
-    open: function(modalId) {
+    open: function(modalId, opts) {
         var m = document.getElementById(modalId);
         var b = document.getElementById(modalId.replace('Modal', 'Backdrop').replace('Drawer', 'Backdrop'));
         if (m) m.classList.add('open');
         if (b) b.classList.add('open');
+        if (opts && typeof opts.onOpen === 'function') opts.onOpen();
+        dispatchDrawerEvent(modalId, 'drawer:open');
     },
-    close: function(modalId) {
+    close: function(modalId, opts) {
         var m = document.getElementById(modalId);
         var b = document.getElementById(modalId.replace('Modal', 'Backdrop').replace('Drawer', 'Backdrop'));
         if (m) m.classList.remove('open');
         if (b) b.classList.remove('open');
+        if (opts && typeof opts.onClose === 'function') opts.onClose();
+        dispatchDrawerEvent(modalId, 'drawer:close');
+        var afterClose = opts && typeof opts.afterClose === 'function' ? opts.afterClose : null;
+        if (afterClose) {
+            setTimeout(function() {
+                afterClose();
+                dispatchDrawerEvent(modalId, 'drawer:after-close');
+            }, 300);
+        } else {
+            setTimeout(function() { dispatchDrawerEvent(modalId, 'drawer:after-close'); }, 300);
+        }
     },
-    closeAll: function() {
-        document.querySelectorAll('.drawer, .drawer-backdrop, .right-drawer, .right-drawer-backdrop').forEach(function(el) {
-            el.classList.remove('open');
-        });
+    closeAll: function(opts) {
+        var openDrawers = Array.prototype.slice.call(document.querySelectorAll('.drawer.open, .right-drawer.open')).map(function(el) { return el.id; }).filter(Boolean);
+        openDrawers.forEach(function(id) { Drawer.close(id, opts); });
+        document.querySelectorAll('.drawer-backdrop.open, .right-drawer-backdrop.open').forEach(function(el) { el.classList.remove('open'); });
     }
 };
 
@@ -28,6 +58,94 @@ function authHeaders() {
 (function() {
     Drawer.closeAll();
 })();
+
+document.addEventListener('keydown', function(e) {
+    if (e && e.key === 'Escape') Drawer.closeAll();
+});
+
+window.openDialogDrawer = function(opts) {
+    var o = opts || {};
+    window.__dialogDrawerState = { onConfirm: typeof o.onConfirm === 'function' ? o.onConfirm : null };
+
+    var titleEl = document.getElementById('dialogTitle');
+    var msgEl = document.getElementById('dialogMessage');
+    var inputEl = document.getElementById('dialogInput');
+    var btnEl = document.getElementById('dialogConfirmBtn');
+
+    if (titleEl) titleEl.textContent = o.title || '提示';
+    if (msgEl) msgEl.textContent = o.message || '';
+
+    var needsInput = !!o.input;
+    if (inputEl) {
+        inputEl.style.display = needsInput ? 'block' : 'none';
+        inputEl.value = o.defaultValue || '';
+        inputEl.placeholder = o.placeholder || '';
+        inputEl.onkeydown = function(ev) {
+            if (ev && ev.key === 'Enter') confirmDialogDrawer();
+        };
+    }
+
+    if (btnEl) {
+        btnEl.textContent = o.confirmText || '确认';
+        if (o.danger) {
+            btnEl.style.background = '#dc3545';
+        } else {
+            btnEl.style.background = '#2da44e';
+        }
+    }
+
+    Drawer.open('dialogDrawer', {
+        onOpen: function() {
+            if (needsInput && inputEl) inputEl.focus();
+        }
+    });
+};
+
+window.closeDialogDrawer = function() {
+    Drawer.close('dialogDrawer', {
+        afterClose: function() {
+            var inputEl = document.getElementById('dialogInput');
+            if (inputEl) {
+                inputEl.value = '';
+                inputEl.onkeydown = null;
+            }
+            window.__dialogDrawerState = null;
+        }
+    });
+};
+
+window.confirmDialogDrawer = function() {
+    var state = window.__dialogDrawerState;
+    var inputEl = document.getElementById('dialogInput');
+    var value = inputEl && inputEl.style.display !== 'none' ? (inputEl.value || '').trim() : null;
+    var handler = state && typeof state.onConfirm === 'function' ? state.onConfirm : null;
+    closeDialogDrawer();
+    if (handler) handler(value);
+};
+
+window.showPromptDrawer = function(title, message, placeholder, defaultValue, confirmText, onConfirm, danger) {
+    openDialogDrawer({
+        title: title,
+        message: message,
+        input: true,
+        placeholder: placeholder,
+        defaultValue: defaultValue,
+        confirmText: confirmText,
+        onConfirm: onConfirm,
+        danger: !!danger
+    });
+};
+
+window.showConfirmDrawer = function(title, message, confirmText, onConfirm, danger) {
+    openDialogDrawer({
+        title: title,
+        message: message,
+        input: false,
+        confirmText: confirmText,
+        onConfirm: onConfirm,
+        danger: !!danger
+    });
+};
 
 // ============ 全局函数预加载 ============
 /* global XMLHttpRequest, XLSX, mammoth, setTimeout, setInterval, prompt, alert */
@@ -89,12 +207,14 @@ window.closeConfirmModal = function() { Drawer.close('confirmModal'); };
 window.closeRenameModal = function() { Drawer.close('renameModal'); };
 window.closeMoveModal = function() { Drawer.close('moveModal'); };
 window.closeSearchModal = function() { 
-    var m = document.getElementById('searchModal'); 
-    var b = document.getElementById('searchBackdrop'); 
-    if (m) { m.classList.remove('open'); m.classList.remove('bottom-sheet'); }
-    if (b) b.classList.remove('open'); 
-    document.getElementById('searchResults').innerHTML = ''; 
-    document.getElementById('searchInput').value = ''; 
+    Drawer.close('searchModal', {
+        afterClose: function() {
+            var results = document.getElementById('searchResults');
+            var input = document.getElementById('searchInput');
+            if (results) results.innerHTML = '';
+            if (input) input.value = '';
+        }
+    });
 };
 window.closeDetailsModal = function() { 
     var m = document.getElementById('detailsModal'); 
@@ -125,8 +245,8 @@ window.openMainMenuModal = function() {
         fetch('/api/menu', { headers: { 'Authorization': 'Basic ' + btoa('admin:admin') } })
             .then(function(r) { return r.json(); })
             .then(function(data) {
-                if (data.items) {
-                    c.innerHTML = data.items.map(function(item) {
+                if (data && data.success && data.data && data.data.items) {
+                    c.innerHTML = data.data.items.map(function(item) {
                         return '<div class="modal-item menu-item" data-action="' + item.action + '"><span style="margin-right:12px;">' + item.icon + '</span>' + item.text + '</div>';
                     }).join('');
                     c.querySelectorAll('.menu-item[data-action]').forEach(function(el) {
@@ -151,11 +271,15 @@ window.openBotModal = function() {
 };
 window.toggleBotSettings = function() { var s = document.getElementById('botSettings'); if (s) { s.style.display = s.style.display === 'none' ? 'block' : 'none'; } };
 window.openSearchModal = function() { 
-    var m = document.getElementById('searchModal'); 
-    var b = document.getElementById('searchBackdrop'); 
-    if (m) { m.classList.add('open'); m.classList.add('bottom-sheet'); }
-    if (b) b.classList.add('open'); 
-    document.getElementById('searchInput').focus(); 
+    Drawer.open('searchModal');
+    var input = document.getElementById('searchInput');
+    if (input) input.focus();
+};
+window.resetSearch = function() {
+    var results = document.getElementById('searchResults');
+    var input = document.getElementById('searchInput');
+    if (results) results.innerHTML = '';
+    if (input) { input.value = ''; input.focus(); }
 };
 window.openConfigModal = function() { var m = document.getElementById('configModal'); var b = document.getElementById('configBackdrop'); if (m) m.classList.add('open'); if (b) b.classList.add('open'); };
 
@@ -208,9 +332,47 @@ window.showMoveModal = function() {
 // 批量操作
 window.clearSelection = function() { document.querySelectorAll('.file-checkbox').forEach(function(c) { c.checked = false; }); document.getElementById('batchActionBar').style.display = 'none'; };
 window.batchDownload = function() { document.querySelectorAll('.file-checkbox:checked').forEach(function(c) { window.location.href = '/download/' + encodeURIComponent(c.dataset.path); }); };
-window.batchDelete = function() { var paths = []; document.querySelectorAll('.file-checkbox:checked').forEach(function(c) { paths.push(c.dataset.path); }); if (paths.length === 0) { return showToast('请选择要删除的文件', 'warning'); } document.getElementById('batchActionBar').style.display = 'none'; fetch('/api/batch/delete', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({paths: paths}) }).then(function(r) { return r.json(); }).then(function(d) { if (d.success) { showToast(d.message, 'success'); refreshFileList(); } else { showToast(d.message, 'error'); } }).catch(function() { showToast('删除失败', 'error'); }); };
-window.batchCopy = function() { var paths = []; document.querySelectorAll('.file-checkbox:checked').forEach(function(c) { paths.push(c.dataset.path); }); if (paths.length === 0) { return showToast('请选择要复制的文件', 'warning'); } document.getElementById('batchActionBar').style.display = 'none'; var target = prompt('请输入目标路径（相对于根目录）:'); if (!target) { return; } fetch('/api/batch/copy', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({paths: paths, target: target}) }).then(function(r) { return r.json(); }).then(function(d) { if (d.success) { showToast(d.message, 'success'); refreshFileList(); } else { showToast(d.message, 'error'); } }).catch(function() { showToast('复制失败', 'error'); }); };
-window.batchMove = function() { var paths = []; document.querySelectorAll('.file-checkbox:checked').forEach(function(c) { paths.push(c.dataset.path); }); if (paths.length === 0) { return showToast('请选择要移动的文件', 'warning'); } document.getElementById('batchActionBar').style.display = 'none'; var target = prompt('请输入目标路径（相对于根目录）:'); if (!target) { return; } fetch('/api/batch/move', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({paths: paths, target: target}) }).then(function(r) { return r.json(); }).then(function(d) { if (d.success) { showToast(d.message, 'success'); refreshFileList(); } else { showToast(d.message, 'error'); } }).catch(function() { showToast('移动失败', 'error'); }); };
+window.batchDelete = function() { var paths = []; document.querySelectorAll('.file-checkbox:checked').forEach(function(c) { paths.push(c.dataset.path); }); if (paths.length === 0) { return showToast('请选择要删除的文件', 'warning'); } document.getElementById('batchActionBar').style.display = 'none'; fetch('/api/batch/delete', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({paths: paths}) }).then(function(r) { return r.json(); }).then(function(d) { if (d && d.success) { showToast((d.data && d.data.message) || '删除成功', 'success'); refreshFileList(); } else { showToast((d && d.error && d.error.message) || '删除失败', 'error'); } }).catch(function() { showToast('删除失败', 'error'); }); };
+window.batchCopy = function() {
+    var paths = [];
+    document.querySelectorAll('.file-checkbox:checked').forEach(function(c) { paths.push(c.dataset.path); });
+    if (paths.length === 0) { return showToast('请选择要复制的文件', 'warning'); }
+    document.getElementById('batchActionBar').style.display = 'none';
+    showPromptDrawer('批量复制', '请输入目标路径（相对于根目录）', '例如：backup', '', '复制', function(target) {
+        if (!target) { return; }
+        fetch('/api/batch/copy', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ paths: paths, target: target })
+        })
+            .then(function(r) { return r.json(); })
+            .then(function(d) {
+                if (d && d.success) { showToast((d.data && d.data.message) || '复制成功', 'success'); refreshFileList(); }
+                else { showToast((d && d.error && d.error.message) || '复制失败', 'error'); }
+            })
+            .catch(function() { showToast('复制失败', 'error'); });
+    });
+};
+window.batchMove = function() {
+    var paths = [];
+    document.querySelectorAll('.file-checkbox:checked').forEach(function(c) { paths.push(c.dataset.path); });
+    if (paths.length === 0) { return showToast('请选择要移动的文件', 'warning'); }
+    document.getElementById('batchActionBar').style.display = 'none';
+    showPromptDrawer('批量移动', '请输入目标路径（相对于根目录）', '例如：docs', '', '移动', function(target) {
+        if (!target) { return; }
+        fetch('/api/batch/move', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ paths: paths, target: target })
+        })
+            .then(function(r) { return r.json(); })
+            .then(function(d) {
+                if (d && d.success) { showToast((d.data && d.data.message) || '移动成功', 'success'); refreshFileList(); }
+                else { showToast((d && d.error && d.error.message) || '移动失败', 'error'); }
+            })
+            .catch(function() { showToast('移动失败', 'error'); });
+    });
+};
 
 // 拖拽
 window.startDrag = function(e) {

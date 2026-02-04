@@ -1,11 +1,9 @@
-# 核心模块 - 文件浏览器核心逻辑
-
 import os
 from datetime import datetime
-from utils import get_file_icon, format_size
+
+from lib import path_utils
 
 
-# 配置
 HIDDEN_FOLDERS = {'__pycache__', '.git', '_trash'}
 IMAGE_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp'}
 MARKDOWN_EXTENSIONS = {'.md', '.markdown'}
@@ -55,8 +53,8 @@ def list_directory(directory):
                 items.append({
                     'name': item,
                     'path': item_path,
-                    'icon': get_file_icon(ext),
-                    'size': format_size(info['size']),
+                    'icon': path_utils.get_file_icon(ext),
+                    'size': path_utils.format_size(info['size']),
                     'modified': info['modified'],
                     'is_dir': False,
                     'is_image': is_image,
@@ -72,13 +70,13 @@ def get_file_details(path, root_dir):
     """获取文件/文件夹详情"""
     full_path = os.path.join(root_dir, path)
     full_path = os.path.normpath(full_path)
-    
+
     if not full_path.startswith(os.path.normpath(root_dir)):
         return {'success': False, 'message': '无效路径'}
-    
+
     if not os.path.exists(full_path):
         return {'success': False, 'message': '文件不存在'}
-    
+
     try:
         try:
             import pwd
@@ -86,22 +84,22 @@ def get_file_details(path, root_dir):
             pwd = None
         stat = os.stat(full_path)
         is_dir = os.path.isdir(full_path)
-        
+
         perms = oct(stat.st_mode)[-3:]
-        
+
         try:
             if pwd is None:
                 owner = str(stat.st_uid)
             else:
                 owner = pwd.getpwuid(stat.st_uid).pw_name
-        except:
+        except Exception:
             owner = str(stat.st_uid)
-        
+
         import time
         ctime = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(stat.st_ctime))
         mtime = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(stat.st_mtime))
         atime = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(stat.st_atime))
-        
+
         size = stat.st_size
         if size < 1024:
             size_human = f'{size} B'
@@ -111,7 +109,7 @@ def get_file_details(path, root_dir):
             size_human = f'{size / 1024 / 1024:.1f} MB'
         else:
             size_human = f'{size / 1024 / 1024 / 1024:.1f} GB'
-        
+
         return {
             'success': True,
             'info': {
@@ -135,12 +133,12 @@ def search_files(root_dir, keyword, hidden_folders=HIDDEN_FOLDERS):
     """搜索文件"""
     if not keyword.strip():
         return {'results': []}
-    
+
     results = []
     try:
         for root, dirs, files in os.walk(root_dir):
             dirs[:] = [d for d in dirs if d not in hidden_folders and not d.startswith('.')]
-            
+
             for name in files:
                 if name.startswith('.'):
                     continue
@@ -149,21 +147,21 @@ def search_files(root_dir, keyword, hidden_folders=HIDDEN_FOLDERS):
                     rel_path = full_path[len(root_dir):].lstrip('/')
                     ext = os.path.splitext(name)[1].lower()
                     stat = os.stat(full_path)
-                    
+
                     results.append({
                         'name': name,
                         'path': rel_path,
                         'is_dir': False,
-                        'size': format_size(stat.st_size),
+                        'size': path_utils.format_size(stat.st_size),
                         'modified': datetime.fromtimestamp(stat.st_mtime).strftime('%Y-%m-%d %H:%M'),
-                        'icon': get_file_icon(ext)
+                        'icon': path_utils.get_file_icon(ext)
                     })
-            
+
             for name in dirs:
                 if keyword.lower() in name.lower():
                     full_path = os.path.join(root, name)
                     rel_path = full_path[len(root_dir):].lstrip('/')
-                    
+
                     results.append({
                         'name': name,
                         'path': rel_path,
@@ -174,6 +172,6 @@ def search_files(root_dir, keyword, hidden_folders=HIDDEN_FOLDERS):
                     })
     except Exception as e:
         return {'error': str(e)}
-    
+
     results.sort(key=lambda x: (not x['is_dir'], x['name']))
     return {'results': results[:100]}

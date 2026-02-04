@@ -1,6 +1,3 @@
-# 系统监控模块 - Docker 管理
-
-from flask import jsonify
 import subprocess
 
 
@@ -56,7 +53,7 @@ def remove_docker_image(image_id):
     """删除Docker镜像"""
     try:
         subprocess.run(['docker', 'rmi', image_id], capture_output=True, text=True)
-        return {'success': True, 'message': f'镜像已删除'}
+        return {'success': True, 'message': '镜像已删除'}
     except Exception as e:
         return {'success': False, 'message': str(e)}
 
@@ -69,7 +66,7 @@ def remove_docker_container(container_id, force=False):
             cmd.append('-f')
         cmd.append(container_id)
         subprocess.run(cmd, capture_output=True, text=True)
-        return {'success': True, 'message': f'容器已删除'}
+        return {'success': True, 'message': '容器已删除'}
     except Exception as e:
         return {'success': False, 'message': str(e)}
 
@@ -78,7 +75,7 @@ def stop_docker_container(container_id):
     """停止Docker容器"""
     try:
         subprocess.run(['docker', 'stop', container_id], capture_output=True, text=True)
-        return {'success': True, 'message': f'容器已停止'}
+        return {'success': True, 'message': '容器已停止'}
     except Exception as e:
         return {'success': False, 'message': str(e)}
 
@@ -87,6 +84,6 @@ def start_docker_container(container_id):
     """启动Docker容器"""
     try:
         subprocess.run(['docker', 'start', container_id], capture_output=True, text=True)
-        return {'success': True, 'message': f'容器已启动'}
+        return {'success': True, 'message': '容器已启动'}
     except Exception as e:
         return {'success': False, 'message': str(e)}

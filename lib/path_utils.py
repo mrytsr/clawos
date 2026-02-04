@@ -1,17 +1,19 @@
-# 路径工具函数
-
 import os
+
 
 def get_relative_path(path, root_dir):
     """获取相对于ROOT_DIR的路径"""
+    if path is None:
+        return ''
+    path = str(path).replace('\\', '/')
+    root_dir = str(root_dir).replace('\\', '/')
     if path.startswith(root_dir):
         rel_path = path[len(root_dir):]
-        if rel_path.startswith('/'):
-            rel_path = rel_path[1:]
+        rel_path = rel_path.lstrip('/').lstrip('\\')
         if rel_path == '' or rel_path == '.':
             return ''
         return rel_path
-    return path.lstrip('/')
+    return path.lstrip('/').lstrip('\\')
 
 
 def get_breadcrumbs(current_path, root_dir):

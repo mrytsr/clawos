@@ -1,27 +1,27 @@
-import subprocess
 import os
+import subprocess
 
-# Git 仓库路径列表（需要监控的仓库）
+
 GIT_REPOS = [
     '/home/tjx/.openclaw/workspace/clawos',
     '/home/tjx/.openclaw/workspace/xiandan',
     '/home/tjx/.openclaw/workspace',
 ]
 
+
 def get_git_log(repo_path, max_count=20):
     """获取指定仓库的 git log"""
     try:
         if not os.path.exists(os.path.join(repo_path, '.git')):
             return None
-        
+
         cmd = ['git', 'log', '--oneline', '-n', str(max_count)]
         result = subprocess.run(cmd, capture_output=True, text=True, cwd=repo_path, timeout=10)
-        
+
         if result.returncode == 0:
             logs = []
             for line in result.stdout.strip().split('\n'):
                 if line.strip():
-                    # 解析: "hash message"
                     parts = line.split(' ', 1)
                     if len(parts) >= 2:
                         logs.append({
@@ -34,22 +34,25 @@ def get_git_log(repo_path, max_count=20):
         print(f"Error getting git log from {repo_path}: {e}")
         return None
 
+
 def get_git_status(repo_path):
     """获取仓库的 git 状态"""
     try:
         if not os.path.exists(os.path.join(repo_path, '.git')):
             return None
-        
-        # 获取当前分支
-        branch_result = subprocess.run(['git', 'rev-parse', '--abbrev-ref', 'HEAD'], 
-                                       capture_output=True, text=True, cwd=repo_path, timeout=5)
+
+        branch_result = subprocess.run(
+            ['git', 'rev-parse', '--abbrev-ref', 'HEAD'],
+            capture_output=True, text=True, cwd=repo_path, timeout=5
+        )
         branch = branch_result.stdout.strip() if branch_result.returncode == 0 else 'unknown'
-        
-        # 获取远程分支数量
-        remote_result = subprocess.run(['git', 'branch', '-r'], 
-                                       capture_output=True, text=True, cwd=repo_path, timeout=5)
+
+        remote_result = subprocess.run(
+            ['git', 'branch', '-r'],
+            capture_output=True, text=True, cwd=repo_path, timeout=5
+        )
         remote_count = len([b for b in remote_result.stdout.strip().split('\n') if b.strip()])
-        
+
         return {
             'branch': branch,
             'remote_count': remote_count
@@ -58,6 +61,7 @@ def get_git_status(repo_path):
         print(f"Error getting git status from {repo_path}: {e}")
         return None
 
+
 def get_all_git_repos_info():
     """获取所有配置的仓库的 git 信息"""
     result = []
@@ -65,7 +69,7 @@ def get_all_git_repos_info():
         repo_name = os.path.basename(repo_path)
         log = get_git_log(repo_path)
         status = get_git_status(repo_path)
-        
+
         info = {
             'name': repo_name,
             'path': repo_path,

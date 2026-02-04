@@ -1,6 +1,3 @@
-# 系统监控模块 - 网络管理
-
-from flask import jsonify
 import subprocess
 
 
@@ -10,7 +7,7 @@ def list_network():
         result = subprocess.run(['ifconfig'], capture_output=True, text=True)
         interfaces = []
         current_iface = None
-        
+
         for line in result.stdout.strip().split('\n'):
             if line and not line.startswith('\t') and not line.startswith(' '):
                 if ':' in line:
@@ -42,7 +39,7 @@ def list_network():
                     current_iface['mac'] = parts[1] if len(parts) > 1 else ''
                 elif 'broadcast' in line:
                     current_iface['broadcast'] = parts[1] if len(parts) > 1 else ''
-        
+
         return {'success': True, 'interfaces': interfaces}
     except Exception as e:
         return {'success': False, 'message': str(e)}

@@ -239,8 +239,8 @@ window.showDetails = function(path, name) {
     fetch('/api/file/info?path=' + encodeURIComponent(path))
         .then(r => r.json())
         .then(data => {
-            if (data.success && content) {
-                const info = data.info;
+            if (data && data.success && content) {
+                const info = data.data;
                 content.innerHTML = `
                     <div style="padding: 16px 0;">
                         <div style="font-size: 18px; font-weight: bold; margin-bottom: 16px; word-break: break-all;">${escapeHtml(name)}</div>
@@ -256,6 +256,9 @@ window.showDetails = function(path, name) {
                         </table>
                     </div>
                 `;
+            } else if (content) {
+                const msg = data && data.error && data.error.message ? data.error.message : '❌ 获取详情失败';
+                content.innerHTML = '<div style="text-align:center;padding:40px;color:#cf222e;">' + escapeHtml(msg) + '</div>';
             }
         })
         .catch(() => {
