@@ -1,0 +1,134 @@
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ filename }} - Markdown查看器</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown-light.min.css">
+    <style>
+        .markdown-body {
+            box-sizing: border-box;
+            min-width: 200px;
+            max-width: 100%;
+            margin: 0;
+            padding: 20px;
+        }
+        @media (max-width: 767px) {
+            .markdown-body {
+                padding: 10px;
+            }
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 0.5rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        .header-buttons {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+        .back-btn, .edit-btn, .download-btn {
+            padding: 0.3rem 0.6rem;
+            background-color: rgba(255,255,255,0.2);
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            font-size: 0.85rem;
+        }
+        .back-btn:hover, .edit-btn:hover, .download-btn:hover {
+            background-color: rgba(255,255,255,0.3);
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/default.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+</head>
+<body>
+    <div class="header">
+        <a href="{{ url_for('browse', path=get_relative_path(current_dir)) }}" class="back-btn">←</a>
+        <h1 style="margin: 0; font-size: 1rem; flex-grow: 1; text-align: center;">{{ filename }}</h1>
+        <div class="header-buttons">
+            <button class="edit-btn" onclick="toggleSourceMode()" id="sourceBtn">📄 源码</button>
+            <a href="{{ url_for('edit_file', path=file_path) }}" class="edit-btn">✏️ 编辑</a>
+            <a href="{{ url_for('download_file', path=file_path) }}" class="download-btn">📥</a>
+        </div>
+    </div>
+    
+    <!-- 渲染模式 -->
+    <article class="markdown-body" id="renderView">
+        {{ content|safe }}
+    </article>
+    
+    <!-- 源码模式（带行号） -->
+    <div id="sourceView" style="display:none;">
+        <pre style="margin:0;padding:16px;background:#f6f8fa;white-space:pre-wrap;word-wrap:break-word;font-family:monospace;font-size:13px;line-height:1.5;" id="sourceCode"></pre>
+    </div>
+</body>
+<script>
+    let rawContent = {{ content|tojson }};
+    let isSourceMode = false;
+    
+    function toggleSourceMode() {
+        isSourceMode = !isSourceMode;
+        document.getElementById('renderView').style.display = isSourceMode ? 'none' : 'block';
+        document.getElementById('sourceView').style.display = isSourceMode ? 'block' : 'none';
+        document.getElementById('sourceBtn').style.background = isSourceMode ? 'rgba(255,255,255,0.4)' : '';
+        
+        if (isSourceMode && !document.getElementById('sourceCode').innerHTML) {
+            // 第一次切换到源码模式，添加行号
+            const lines = rawContent.split('\n');
+            const linesWithNumbers = lines.map((line, i) => {
+                const lineNum = i + 1;
+                return '<span class="line-number" onclick="copyLineRef(this)" data-line="' + lineNum + '">' + lineNum + '</span>' + escapeHtml(line);
+            }).join('\n');
+            document.getElementById('sourceCode').innerHTML = linesWithNumbers;
+        }
+    }
+    
+    function escapeHtml(text) {
+        return text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+    }
+    
+    function copyLineRef(element) {
+        const line = element.dataset.line;
+        const textToCopy = `{{ file_path }}:${line}`;
+        navigator.clipboard.writeText(textToCopy).then(() => {
+            element.style.color = '#0969da';
+            element.style.background = '#ddf4ff';
+            setTimeout(() => {
+                element.style.color = '';
+                element.style.background = '';
+            }, 200);
+        });
+    }
+</script>
+<style>
+.line-number {
+    display: inline-block;
+    min-width: 40px;
+    padding-right: 10px;
+    text-align: right;
+    color: #6e7781;
+    background: #f6f8fa;
+    cursor: pointer;
+    user-select: none;
+    border-right: 1px solid #d0d7de;
+    margin-right: 10px;
+}
+.line-number:hover {
+    color: #0969da;
+    background: #ddf4ff;
+}
+</style>
+</html>

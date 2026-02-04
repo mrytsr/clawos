@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ filename }} - 查看器</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css">
+    <style>
+        body { margin: 0; padding: 0; background: #282a36; }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white; padding: 0.4rem 0.5rem; position: sticky; top: 0; z-index: 100;
+            display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.3rem;
+        }
+        .header-buttons { display: flex; gap: 0.3rem; flex-wrap: wrap; }
+        .back-btn, .btn {
+            padding: 0.3rem 0.5rem; background-color: rgba(255,255,255,0.2); color: white;
+            text-decoration: none; border-radius: 4px; font-size: 0.8rem; border: none; cursor: pointer;
+        }
+        .back-btn:hover, .btn:hover { background-color: rgba(255,255,255,0.3); }
+        #editor { height: calc(100vh - 50px); font-size: var(--global-font-size, 14px); }
+        .CodeMirror { height: 100%; }
+        .CodeMirror-readonly { background: #282a36; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <a href="{{ url_for('browse', path=get_relative_path(current_dir)) }}" class="back-btn">←</a>
+        <h1 style="margin: 0; font-size: 0.95rem; flex-grow: 1; text-align: center; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ filename }}</h1>
+        <div class="header-buttons">
+            <a href="{{ url_for('edit_file', path=file_path) }}" class="btn">✏️ 编辑</a>
+            <a href="{{ url_for('download_file', path=file_path) }}" class="btn">📥 下载</a>
+        </div>
+    </div>
+    <textarea id="code">{{ content }}</textarea>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/mode/loadmode.min.js"></script>
+    <script>
+        const filePath = '{{ file_path }}';
+        const extension = '{{ extension }}'.toLowerCase();
+        
+        // 根据扩展名获取模式
+        function getMode(ext) {
+            const modes = {
+                '.py': 'python',
+                '.js': 'javascript',
+                '.ts': 'javascript',
+                '.html': 'htmlmixed',
+                '.htm': 'htmlmixed',
+                '.css': 'css',
+                '.xml': 'xml',
+                '.yaml': 'yaml',
+                '.yml': 'yaml',
+                '.md': 'markdown',
+                '.sh': 'shell',
+                '.json': { name: 'javascript', json: true },
+                '.ini': 'properties',
+                '.conf': 'properties',
+                '.env': 'shell',
+                '.Dockerfile': 'dockerfile',
+                '.txt': null
+            };
+            return modes[ext] || null;
+        }
+        
+        // 初始化 CodeMirror
+        CodeMirror.modeURL = 'https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/%N/%N.min.js';
+        const mode = getMode(extension);
+        if (mode) {
+            CodeMirror.requireMode(mode, function() {
+                const editor = CodeMirror.fromTextArea(document.getElementById('code'), {
+                    mode: mode,
+                    theme: 'dracula',
+                    lineNumbers: true,
+                    lineWrapping: false,
+                    readOnly: true,
+                    cursorBlinkRate: -1,
+                    indentUnit: 4,
+                    tabSize: 4
+                });
+                
+                // 点击行号复制
+                editor.on('gutterClick', function(cm, line) {
+                    const textToCopy = filePath + ':' + line;
+                    navigator.clipboard.writeText(textToCopy).then(function() {
+                        // 视觉反馈
+                        const lineElement = cm.getLineHandle(line).guttersEl || 
+                                            cm.display.gutters.children[1].children[line - 1];
+                        if (lineElement) {
+                            lineElement.style.background = '#ddf4ff';
+                            setTimeout(function() {
+                                lineElement.style.background = '';
+                            }, 200);
+                        }
+                    });
+                });
+            });
+        } else {
+            // 无语法高亮，只读模式
+            const editor = CodeMirror.fromTextArea(document.getElementById('code'), {
+                mode: null,
+                theme: 'dracula',
+                lineNumbers: true,
+                lineWrapping: false,
+                readOnly: true,
+                cursorBlinkRate: -1
+            });
+            
+            editor.on('gutterClick', function(cm, line) {
+                const textToCopy = filePath + ':' + line;
+                navigator.clipboard.writeText(textToCopy).then(function() {
+                    const lineElement = cm.display.gutters.children[1].children[line - 1];
+                    if (lineElement) {
+                        lineElement.style.background = '#ddf4ff';
+                        setTimeout(function() {
+                            lineElement.style.background = '';
+                        }, 200);
+                    }
+                });
+            });
+        }
+    </script>
+</body>
+</html>

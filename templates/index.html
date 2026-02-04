@@ -1,0 +1,1307 @@
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>clawd资源管理器</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/default.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <script src="{{ url_for('static', filename='js/clipboard.min.js') }}"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.min.js"></script>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <!-- 全局函数预加载（必须在最前） -->
+    <script src="{{ url_for('static', filename='js/globals.js') }}"></script>
+    <!-- 功能模块 -->
+    <script src="{{ url_for('static', filename='js/utils.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/terminal.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/preview.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/bot.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/file_browser.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/system_monitor.js') }}"></script>
+    <!-- 主入口 -->
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+</head>
+<style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+            line-height: 1.5;
+            color: #24292f;
+            background-color: #ffffff;
+            padding: 20px;
+        }
+        :root {
+            --global-font-size: var(--global-font-size, 14px);
+        }
+        .container {
+            max-width: 980px;
+            margin: 0 auto;
+            border: 1px solid #d0d7de;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+        
+        /* 顶部栏 (面包屑) */
+        .breadcrumb {
+            padding: 16px;
+            background-color: #f6f8fa;
+            border-bottom: 1px solid #d0d7de;
+            font-size: var(--global-font-size, 14px);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .breadcrumb-left {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            overflow: hidden;
+            flex: 1;
+        }
+        .breadcrumb a {
+            color: #0969da;
+            text-decoration: none;
+        }
+        .breadcrumb a:hover {
+            text-decoration: underline;
+        }
+        .crumb-sep {
+            color: #57606a;
+        }
+        .up-btn {
+            padding: 3px 8px;
+            background-color: #f6f8fa;
+            border: 1px solid #d0d7de;
+            border-radius: 6px;
+            color: #24292f;
+            text-decoration: none;
+            font-size: var(--global-font-size, 12px);
+            font-weight: 500;
+        }
+        .up-btn:hover {
+            background-color: #f3f4f6;
+            border-color: #1b1f2426;
+        }
+
+        /* 消息提示 */
+        .message {
+            padding: 10px 16px;
+            border-bottom: 1px solid #d0d7de;
+            font-size: var(--global-font-size, 14px);
+        }
+        .success { background-color: #dafbe1; color: #1a7f37; }
+        .error { background-color: #ffebe9; color: #cf222e; }
+
+        /* 文件列表区域 */
+        .files-section {
+            padding: 0;
+        }
+        .file-list {
+            display: flex;
+            flex-direction: column;
+        }
+        .file-item {
+            display: flex;
+            align-items: center;
+            padding: 8px 16px;
+            border-bottom: 1px solid #d0d7de;
+            background-color: white;
+            transition: background-color 0.2s;
+        }
+        .file-item:last-child {
+            border-bottom: none;
+        }
+        .file-item:hover {
+            background-color: #f6f8fa;
+        }
+
+        /* 三列布局 */
+        .file-col-icon {
+            width: 32px;
+            margin-right: 12px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .file-thumbnail {
+            width: 32px;
+            height: 32px;
+            object-fit: cover;
+            border-radius: 4px;
+            border: 1px solid #d0d7de;
+        }
+        .file-icon {
+            font-size: 20px;
+            color: #57606a;
+        }
+
+        .file-col-info {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .file-name {
+            font-size: var(--global-font-size, 14px);
+            font-weight: 600;
+            color: #24292f;
+            line-height: 1.25;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .file-name a {
+            color: #24292f;
+            text-decoration: none;
+        }
+        .file-name a:hover {
+            color: #0969da;
+            text-decoration: underline;
+        }
+        .file-details-inline {
+            font-size: var(--global-font-size, 12px);
+            color: #57606a;
+            margin-top: 2px;
+        }
+
+        .file-col-actions {
+            margin-left: 16px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .preview-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            padding: 4px;
+            border-radius: 4px;
+            opacity: 0.7;
+            transition: opacity 0.2s;
+            text-decoration: none;
+        }
+        .preview-btn:hover {
+            opacity: 1;
+            background: #f0f0f0;
+        }
+        .menu-btn {
+            background: none;
+            color: #57606a;
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            font-size: var(--global-font-size, 16px);
+            cursor: pointer;
+            border: 1px solid transparent;
+        }
+        .menu-btn:hover {
+            background-color: #f3f4f6;
+            color: #24292f;
+            border-color: #1b1f2426;
+        }
+
+        .empty-directory {
+            text-align: center;
+            padding: 40px;
+            color: #57606a;
+            font-size: var(--global-font-size, 14px);
+        }
+
+        /* 浮动上传按钮 (已移除) */
+        
+        /* 面包屑中的上传按钮 */
+        .upload-btn-inline {
+            width: 24px; height: 24px;
+            background: #2da44e;
+            border-radius: 4px;
+            display: flex; align-items: center; justify-content: center;
+            color: white; font-size: 18px; font-weight: bold;
+            cursor: pointer;
+            margin-right: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            transition: background 0.2s;
+            flex-shrink: 0;
+        }
+        .upload-btn-inline:hover {
+            background: #2c974b;
+        }
+
+        /* Bot 悬浮按钮 (已移除，改用菜单按钮) */
+        
+        /* 菜单按钮样式 */
+        .menu-float-btn {
+            position: fixed;
+            left: 20px;
+            bottom: 20px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: #ffffff;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            cursor: pointer;
+            z-index: 1000;
+            transition: transform 0.2s;
+            border: 1px solid #eee;
+        }
+        .menu-float-btn:hover { transform: scale(1.1); }
+        
+        /* 右侧抽屉样式 */
+        .right-drawer {
+            position: fixed;
+            top: 0;
+            right: 0;
+            width: 280px;
+            height: 100%;
+            background: #fff;
+            box-shadow: -4px 0 20px rgba(0,0,0,0.15);
+            transform: translateX(100%);
+            transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+        }
+        .right-drawer.open {
+            transform: translateX(0);
+        }
+        .right-drawer-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.4);
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s, visibility 0.3s;
+            z-index: 1999;
+        }
+        .right-drawer-backdrop.open {
+            opacity: 1;
+            visibility: visible;
+        }
+        .right-drawer-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px;
+            border-bottom: 1px solid #eee;
+        }
+        .right-drawer-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px;
+        }
+        .menu-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            font-size: var(--global-font-size, 16px);
+            color: #24292f;
+        }
+        .menu-item:hover {
+            background-color: #f6f8fa;
+        }
+        .menu-icon {
+            font-size: 20px;
+        }
+        .menu-text {
+            font-weight: 500;
+        }
+        
+        /* Bot Drawer 样式 - 使用统一 drawer 样式 */
+        #botDrawer {
+            max-height: 95vh;
+        }
+        
+        /* 拖拽手柄 */
+        .drawer-handle {
+            width: 40px;
+            height: 4px;
+            background: #ccc;
+            border-radius: 2px;
+            margin: 12px auto 8px;
+            cursor: grab;
+        }
+        .drawer-handle:active { cursor: grabbing; }
+        
+        /* Drawer Header */
+        .drawer-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 16px;
+            border-bottom: 1px solid #eee;
+        }
+        .drawer-title { font-size: var(--global-font-size, 16px); font-weight: 600; }
+        .drawer-close-btn {
+            background: none; border: none; font-size: 20px; cursor: pointer; color: #666; padding: 4px;
+        }
+        
+        /* 抽屉遮罩层 */
+        .drawer-backdrop {
+            position: fixed;
+            left: 0;
+            right: 0;
+            top: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s;
+            z-index: 1999;
+        }
+        .drawer-backdrop.open {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        /* Terminal Drawer 样式 */
+        #terminalDrawer {
+            position: fixed;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #1a1a1a;
+            border-radius: 16px 16px 0 0;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.3);
+            transform: translateY(100%);
+            transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            max-height: 85vh;
+        }
+        #terminalDrawer.open {
+            transform: translateY(0);
+        }
+        #terminalDrawer .drawer-header {
+            background: #1a1a1a;
+            border-bottom: 1px solid #333;
+        }
+        #terminalDrawer .drawer-close-btn {
+            color: #fff;
+        }
+        #terminalDrawer .drawer-handle {
+            background: #555;
+        }
+        
+        /* Bot Chat 样式 */
+        .bot-container {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            position: relative;
+            min-height: 0; /* 重要：防止溢出 */
+        }
+        .bot-chat-box {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .bot-message {
+            display: flex;
+            flex-direction: column;
+            max-width: 85%;
+            margin-bottom: 0;
+        }
+        .bot-message.user { align-self: flex-end; align-items: flex-end; }
+        .bot-message.bot { align-self: flex-start; align-items: flex-start; }
+        .bot-message.system { align-self: center; max-width: 90%; align-items: center; margin: 10px auto; }
+        
+        .bot-message .text {
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: var(--global-font-size, 14px);
+            line-height: 1.5;
+            word-break: break-word;
+            white-space: pre-wrap; /* 保留换行 */
+            font-family: 'Menlo', 'Monaco', 'Courier New', monospace; /* 等宽字体 */
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+        .bot-message.user .text { background: #95ec69; color: #000; }
+        .bot-message.bot .text { background: #ffffff; color: #000; }
+        .bot-message.system .text { 
+            background: rgba(0,0,0,0.05); color: #666; font-size: var(--global-font-size, 12px); 
+            padding: 4px 10px; border-radius: 4px; box-shadow: none; 
+        }
+        .bot-message .meta { font-size: 10px; color: #b2b2b2; margin-top: 4px; padding: 0 4px; }
+
+        .bot-input-area {
+            /* position: absolute; 改为正常流布局 */
+            background: #fff;
+            padding: 12px 16px;
+            display: flex;
+            gap: 8px;
+            border-top: 1px solid #eee;
+            align-items: flex-end;
+            flex-shrink: 0;
+        }
+        .bot-input {
+            flex: 1;
+            border: none;
+            background: #f5f5f5;
+            padding: 8px 12px;
+            border-radius: 12px;
+            font-size: var(--global-font-size, 14px);
+            max-height: 80px;
+            resize: none;
+            outline: none;
+            height: 36px;
+        }
+        .bot-input:focus { background: #fff; box-shadow: 0 0 0 2px #95ec69; }
+        .bot-send-btn {
+            width: 36px; height: 36px;
+            border-radius: 50%;
+            background: #95ec69;
+            color: white;
+            border: none;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer;
+            font-size: var(--global-font-size, 16px);
+            flex-shrink: 0;
+        }
+        
+        /* Bot Settings Dialog */
+        .bot-settings-overlay {
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(255,255,255,0.98);
+            z-index: 10;
+            padding: 20px;
+            display: none;
+            flex-direction: column;
+        }
+        .bot-settings-btn {
+            /* position: absolute; top: 10px; right: 50px; 改为正常 flex 布局 */
+            background: none; border: none; font-size: 18px; cursor: pointer; color: #666;
+            z-index: 5;
+            padding: 4px 8px;
+        }
+        .bot-status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 5px; }
+        .bot-dot-connected { background: #07c160; }
+        .bot-dot-disconnected { background: #fa5151; }
+        .bot-dot-connecting { background: #ffc300; }
+
+        /* Dialog 容器 (关键修复: 恢复隐藏状态) */
+        .modal, .confirm-modal {
+            display: none; /* 默认隐藏 */
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.4);
+            backdrop-filter: blur(2px);
+        }
+
+        /* Dialog 样式微调 (GitHub风) */
+        .modal-content, .confirm-content {
+            background-color: white;
+            margin: 10% auto; /* 居中 */
+            padding: 0;
+            border-radius: 6px;
+            border: 1px solid #d0d7de;
+            box-shadow: 0 8px 24px rgba(140,149,159,0.2);
+            width: 80%;
+            max-width: 350px;
+            overflow: hidden; /* 防止圆角溢出 */
+        }
+        .modal-header {
+            background-color: #f6f8fa;
+            border-bottom: 1px solid #d0d7de;
+            padding: 12px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #666;
+            padding: 0;
+            line-height: 1;
+        }
+        .close-btn:hover {
+            color: #24292f;
+        }
+        .modal-body, .confirm-content > * {
+            padding: 16px;
+        }
+        .confirm-content {
+            padding: 0; /* 重置，由内部元素控制 padding */
+        }
+        .confirm-content h3 {
+            margin: 0;
+            padding: 16px;
+            background-color: #f6f8fa;
+            border-bottom: 1px solid #d0d7de;
+            font-size: var(--global-font-size, 14px);
+        }
+        .confirm-content p {
+            padding: 0 16px;
+            margin: 16px 0;
+        }
+        .confirm-content input {
+            display: block;
+            width: calc(100% - 32px);
+            margin: 0 16px 16px;
+            padding: 5px 12px;
+            border: 1px solid #d0d7de;
+            border-radius: 6px;
+        }
+        .modal-buttons {
+            padding: 16px;
+            border-top: 1px solid #d0d7de;
+            background-color: #f6f8fa;
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            margin: 0;
+        }
+
+        /* 底部抽屉样式 */
+        .bottom-sheet {
+            position: fixed;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100%;
+            max-width: 500px;
+            background: #fff;
+            border-radius: 16px 16px 0 0;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
+            max-height: 70vh;
+            display: flex;
+            flex-direction: column;
+            animation: slideUp 0.3s ease-out;
+            z-index: 1002;
+        }
+        @keyframes slideUp {
+            from { transform: translateX(-50%) translateY(100%); }
+            to { transform: translateX(-50%) translateY(0); }
+        }
+        @keyframes slideDown {
+            from { transform: translateX(-50%) translateY(0); }
+            to { transform: translateX(-50%) translateY(100%); }
+        }
+        .bottom-sheet.closing {
+            animation: slideDown 0.2s ease-in forwards;
+        }
+        .sheet-handle {
+            width: 40px;
+            height: 4px;
+            background: #d0d7de;
+            border-radius: 2px;
+            margin: 12px auto 8px;
+            cursor: grab;
+        }
+        .sheet-handle:active { cursor: grabbing; }
+        .sheet-header {
+            padding: 8px 16px 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .sheet-close-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: #f0f0f0;
+            border: none;
+            color: #666;
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+        .sheet-close-btn:hover {
+            background: #e0e0e0;
+            color: #333;
+        }
+        .sheet-content {
+            flex: 1;
+            overflow-y: auto;
+            padding-bottom: max(16px, env(safe-area-inset-bottom));
+        }
+        /* 遮罩层点击关闭 */
+        .modal-close-on-backdrop { cursor: pointer; }
+
+        .modal-title { font-size: var(--global-font-size, 14px); font-weight: 600; color: #24292f; }
+        .modal-item { 
+            padding: 10px 16px; 
+            border-bottom: 1px solid #d0d7de; 
+            cursor: pointer;
+            font-size: var(--global-font-size, 14px);
+            color: #24292f;
+        }
+        .modal-item:last-child { border-bottom: none; }
+        .modal-item:hover { background-color: #0969da; color: white; }
+        .modal-item.delete-item { color: #cf222e; }
+        .modal-item.delete-item:hover { background-color: #cf222e; color: white; }
+
+        /* 配置模态框 */
+        #configModal .modal-content { width: 320px; }
+        .config-section { padding: 20px; }
+        .config-label { display: block; margin-bottom: 10px; font-weight: 500; }
+        .font-size-slider { width: 100%; margin-bottom: 15px; }
+        .font-preview { 
+            padding: 15px; background: #f6f8fa; border-radius: 6px; text-align: center; 
+            margin-bottom: 15px; font-size: var(--global-font-size, 14px); 
+        }
+
+        /* 移动端适配 */
+        @media (max-width: 768px) {
+            body { padding: 0; }
+            .container { border: none; border-radius: 0; }
+            .file-item { padding: 12px 16px; }
+            .file-col-icon { width: 40px; margin-right: 12px; }
+            .file-thumbnail { width: 40px; height: 40px; }
+            .file-icon { font-size: 24px; }
+            .file-name { font-size: 15px; }
+            .breadcrumb { padding: 12px 16px; }
+        }
+    </style>
+    <input type="hidden" id="currentBrowsePath" value="{{ get_relative_path(current_dir) }}">
+    <input type="hidden" id="rootDir" value="{{ ROOT_DIR }}">
+</head>
+<body>
+    <div class="container">
+        <div class="breadcrumb">
+            <!-- 嵌入式上传按钮 -->
+            <form method="post" action="{{ url_for('upload_file', path=get_relative_path(current_dir)) }}" enctype="multipart/form-data" id="uploadForm">
+                <input type="file" name="file" id="fileInputInline" onchange="handleFileSelect(event)" style="display: none;">
+                <div class="upload-btn-inline" onclick="document.getElementById('fileInputInline').click()" title="上传文件">+</div>
+            </form>
+
+            <div class="breadcrumb-left">
+                <a href="{{ url_for('trash') }}" style="color: #dc3545; text-decoration: none; margin-right: 8px;" title="回收站">🗑️</a>
+                <span style="color: #ddd; margin-right: 8px;">|</span>
+                <a href="{{ url_for('browse') }}" style="color: #ffc107; margin-right: 8px;" title="根目录">🏠</a>
+                {% if breadcrumbs %}
+                    <span class="crumb-sep">/</span>
+                {% else %}
+                     <strong>({{ items|length }})</strong>
+                {% endif %}
+                {% for crumb in breadcrumbs %}
+                    {% if loop.last %}
+                        <strong>{{ crumb.name }} ({{ items|length }})</strong>
+                    {% else %}
+                        <a href="{{ url_for('browse', path=get_relative_path(crumb.path)) }}">{{ crumb.name }}</a>
+                        <span class="crumb-sep">/</span>
+                    {% endif %}
+                {% endfor %}
+                <!-- 搜索按钮 -->
+                <button onclick="openSearchModal()" style="margin-left: 8px; background: none; border: none; cursor: pointer; font-size: var(--global-font-size, 16px); opacity: 0.6;" title="搜索 (Ctrl+F)">🔍</button>
+            </div>
+            <div style="display: flex; gap: 8px;">
+                {% if current_dir != ROOT_DIR %}
+                <a href="{{ url_for('browse', path=get_relative_path(os.path.dirname(current_dir))) }}" class="up-btn">↑</a>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if message %}
+        <div class="message {% if msg_type == 'success' %}success{% else %}error{% endif %}">
+            {{ message }}
+        </div>
+        {% endif %}
+
+        <div class="files-section">
+            {% if items %}
+            <div class="file-list">
+                {% for item in items %}
+                <div class="file-item" id="file-item-{{ loop.index }}" data-path="{{ get_relative_path(item.path) }}" data-is-dir="{{ 'true' if item.is_dir else 'false' }}">
+                    <!-- 第一列：预览图或图标 + 复选框 -->
+                    <div class="file-col-icon">
+                        <input type="checkbox" class="file-checkbox" data-path="{{ get_relative_path(item.path) }}" onchange="toggleItemSelection('{{ get_relative_path(item.path) }}', this)" style="margin-right: 8px; cursor: pointer;">
+                        {% if item.is_image %}
+                            <img src="{{ url_for('thumbnail', path=get_relative_path(item.path)) }}" alt="{{ item.name }}" class="file-thumbnail" onerror="this.style.display='none';">
+                        {% else %}
+                            <span class="file-icon">{{ item.icon }}</span>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- 第二列：名称 + 详情 -->
+                    <div class="file-col-info">
+                        <div class="file-name">
+                            {% if item.is_dir %}
+                                <a href="{{ url_for('browse', path=get_relative_path(item.path)) }}" style="color: inherit; text-decoration: none;">{{ item.name }}</a>
+                            {% else %}
+                                {% set ext = (item.name.split('.')|last if '.' in item.name else '')|lower %}
+                                {% if ext in ['pdf', 'mp4', 'webm', 'ogg', 'mov', 'avi', 'mkv', 'mp3', 'wav', 'flac', 'aac', 'm4a', 'svg', 'ico', 'webp', 'avif'] %}
+                                <a href="{{ url_for('serve_file', path=get_relative_path(item.path)) }}" target="_blank" style="color: inherit; text-decoration: none;">{{ item.name }}</a>
+                                {% else %}
+                                <a href="{{ url_for('view_file', path=get_relative_path(item.path)) }}" style="color: inherit; text-decoration: none;">{{ item.name }}</a>
+                                {% endif %}
+                            {% endif %}
+                            {% if item.is_dir and item.name|starts_with_port %}
+                                <a href="http://{{ request.host.split(':')[0] }}:{{ item.name|extract_port }}" target="_blank" style="margin-left: 8px; color: #17a2b8; text-decoration: none; font-size: 1.2em;" title="打开网站">🔗</a>
+                            {% endif %}
+                        </div>
+                        <div class="file-details-inline">
+                            <span class="file-size">{{ item.size }}</span>
+                            <span class="file-modified">{{ item.modified }}</span>
+                        </div>
+                    </div>
+                    
+                    <!-- 第三列：操作按钮 -->
+                    <div class="file-col-actions">
+                        {% if not item.is_dir %}
+                        {% set ext = (item.name.split('.')|last if '.' in item.name else '')|lower %}
+                        {# Excel/Word 预览 #}
+                        {% if ext in ['xlsx', 'xls', 'docx', 'doc'] %}
+                        <button class="preview-btn" onclick="event.stopPropagation(); openPreview('{{ get_relative_path(item.path) }}', '{{ item.name }}')" title="在线预览">🔭</button>
+                        {# Chrome 原生支持格式 → 新窗口打开 #}
+                        {% elif ext in ['pdf', 'mp4', 'webm', 'ogg', 'mov', 'avi', 'mkv', 'mp3', 'wav', 'flac', 'aac', 'm4a', 'svg', 'ico', 'webp', 'avif'] %}
+                        <a class="preview-btn" href="{{ url_for('serve_file', path=get_relative_path(item.path)) }}" target="_blank" title="新窗口打开">👁️</a>
+                        {# 其他文本文件 → 查看器 #}
+                        {% elif ext in ['txt', 'md', 'json', 'xml', 'js', 'css', 'html', 'htm', 'py', 'sh', 'yaml', 'yml', 'csv'] %}
+                        <a class="preview-btn" href="{{ url_for('view_file', path=get_relative_path(item.path)) }}" title="查看器">📄</a>
+                        {% endif %}
+                        {% endif %}
+                        <!-- 菜单按钮 -->
+                        <div class="menu-btn" onclick="showMenuModal('{{ get_relative_path(item.path) }}', '{{ item.name }}', {{ 'true' if item.is_dir else 'false' }})">
+                            <span>⋮</span>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-directory">
+                <p>此目录为空</p>
+            </div>
+            {% endif %}
+        </div>
+
+    </div><!-- end container -->
+
+    <!-- 菜单按钮 -->
+    <div class="menu-float-btn" onclick="openMainMenuModal()" title="菜单">
+        ☰
+    </div>
+
+    <!-- 主菜单抽屉 -->
+    <div id="mainMenuDrawer" class="right-drawer">
+        <div class="right-drawer-header">
+            <div class="drawer-title">开始菜单</div>
+            <button class="drawer-close-btn" onclick="closeMainMenuModal()">&times;</button>
+        </div>
+        <div class="right-drawer-content" id="mainMenuItems">
+            <!-- 菜单项由 JS 动态渲染 -->
+            <div style="text-align: center; padding: 20px; color: #666;">加载中...</div>
+        </div>
+    </div>
+    <div id="mainMenuBackdrop" class="right-drawer-backdrop" onclick="closeMainMenuModal()"></div>
+
+    <!-- Bot Drawer 遮罩层 -->
+    <div id="botBackdrop" class="drawer-backdrop" onclick="closeBotModal()"></div>
+    <div id="botDrawer" class="drawer" style="height: 80vh;">
+        <!-- 拖拽手柄 -->
+        <div class="drawer-handle" id="botDrawerHandle"></div>
+        
+        <!-- Header -->
+        <div class="drawer-header">
+            <button class="bot-settings-btn" onclick="toggleBotSettings()" style="background: none; border: none; font-size: var(--global-font-size, 16px); cursor: pointer; padding: 4px;">⚙️</button>
+            <div class="drawer-title">🤖 智能助手</div>
+            <button class="drawer-close-btn" onclick="closeBotModal()">&times;</button>
+        </div>
+        
+        <div class="bot-container">
+            <!-- Settings Overlay -->
+            <div id="botSettings" class="bot-settings-overlay">
+                <h4>设置 & 状态</h4>
+                <div style="margin: 10px 0; font-size: var(--global-font-size, 13px); color: #666;">
+                    <span id="botWsDot" class="bot-status-dot bot-dot-disconnected"></span>
+                    <span id="botWsStatus">未连接</span>
+                </div>
+                
+                <!-- 连接模式选择 -->
+                <div style="margin-bottom: 10px; padding: 10px; background: #f5f5f5; border-radius: 6px;">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                        <input type="checkbox" id="useProxy" checked onchange="toggleWsMode()">
+                        <span style="font-size: var(--global-font-size, 13px);">使用 6002 代理 (推荐)</span>
+                    </label>
+                </div>
+                
+                <!-- WS URL 输入框 -->
+                <div id="wsUrlContainer" style="display: none; margin-bottom: 10px;">
+                    <input type="text" id="wsUrlInput" placeholder="ws://your-server:18789" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px; font-size: var(--global-font-size, 13px);">
+                </div>
+                
+                <input type="text" id="botTokenInput" placeholder="Gateway Token" style="margin-bottom: 10px; width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px;">
+                <div style="display: flex; gap: 10px;">
+                    <button onclick="botConnect()" class="dialog-btn dialog-btn-primary" style="padding: 8px;">连接</button>
+                    <button onclick="botClear()" class="dialog-btn dialog-btn-danger" style="padding: 8px;">清空记录</button>
+                </div>
+                <div style="margin-top: 20px; font-size: var(--global-font-size, 12px); color: #999;">
+                    已发送: <span id="botSentCount">-</span> | 轮次: <span id="botConvCount">-</span>
+                </div>
+                <button onclick="toggleBotSettings()" class="dialog-btn" style="margin-top: auto; background: #ddd;">关闭设置</button>
+            </div>
+
+            <div class="bot-chat-box" id="botChatBox">
+                <!-- Messages will be loaded here -->
+            </div>
+            
+            <div class="bot-input-area">
+                <textarea class="bot-input" id="botInput" placeholder="输入消息..." style="flex: 1; border: 1px solid #ddd; background: #f5f5f5; padding: 10px 12px; border-radius: 8px; font-size: var(--global-font-size, 14px); resize: none; outline: none; height: 40px; max-height: 100px;"></textarea>
+                <button class="bot-send-btn" onclick="botSend()" style="width: 40px; height: 40px; border-radius: 8px; background: #95ec69; border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0;">🚀</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 上传状态显示 -->
+    <div id="uploadStatus" class="upload-status"></div>
+
+    <!-- 预览抽屉 -->
+    <div id="previewBackdrop" class="drawer-backdrop" onclick="closePreviewModal()"></div>
+    <div id="previewModal" class="drawer">
+        <div class="drawer-handle"></div>
+        <div class="drawer-header">
+            <div class="drawer-title" id="previewTitle">预览</div>
+            <button class="drawer-close-btn" onclick="closePreviewModal()">&times;</button>
+        </div>
+        <div class="drawer-content">
+            <!-- 预览内容将动态插入 -->
+        </div>
+    </div>
+
+    <!-- 菜单抽屉 -->
+    <div id="menuModal" class="drawer">
+        <div class="drawer-handle"></div>
+        <div class="drawer-header">
+            <div class="drawer-title" id="menuTitle">菜单</div>
+            <button class="drawer-close-btn" onclick="closeMenuModal()">&times;</button>
+        </div>
+        <div class="drawer-content">
+            <div class="modal-item" onclick="handleMenuAction('details')">📋 查看详情</div>
+            <div class="modal-item" onclick="handleMenuAction('download')">下载文件</div>
+            <div class="modal-item" onclick="handleMenuAction('copyUrl')">复制下载地址</div>
+            <div class="modal-item" onclick="handleMenuAction('copyPath')">复制相对路径</div>
+            <div class="modal-item" onclick="handleMenuAction('rename')">重命名</div>
+            <div class="modal-item" onclick="handleMenuAction('move')">移动</div>
+            <div class="modal-item" onclick="handleMenuAction('clone')">克隆</div>
+            <div class="modal-item" onclick="handleMenuAction('chat')">💬 添加到对话</div>
+            <div class="modal-item" onclick="handleMenuAction('terminal')">📺 在终端打开</div>
+            <div class="modal-item delete-item" onclick="handleMenuAction('delete')">删除</div>
+        </div>
+    </div>
+
+    <!-- 删除确认抽屉 -->
+    <div id="confirmBackdrop" class="drawer-backdrop" onclick="closeConfirmModal()"></div>
+    <div id="confirmModal" class="drawer">
+        <div class="drawer-handle"></div>
+        <div class="drawer-header">
+            <div class="drawer-title">确认删除</div>
+            <button class="drawer-close-btn" onclick="closeConfirmModal()">&times;</button>
+        </div>
+        <div class="drawer-content">
+            <p style="margin: 0 0 12px 0; color: #666; font-size: var(--global-font-size, 14px);">您确定要删除这个项目吗？</p>
+            <p id="itemNameToDelete" style="font-weight: bold; margin: 0 0 16px 0; font-size: var(--global-font-size, 16px);"></p>
+            <div class="modal-buttons" style="padding: 0; border: none; background: none; gap: 12px;">
+                <button class="modal-btn modal-btn-cancel" style="flex: 1; padding: 12px; border-radius: 8px;" onclick="closeConfirmModal()">取消</button>
+                <button class="modal-btn modal-btn-confirm" style="flex: 1; padding: 12px; border-radius: 8px;" onclick="performDelete()">确认删除</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 详情模态框 -->
+    <div id="detailsBackdrop" class="drawer-backdrop" onclick="closeDetailsModal()"></div>
+    <div id="detailsModal" class="drawer">
+        <div class="drawer-handle"></div>
+        <div class="drawer-header">
+            <div class="drawer-title">📋 文件详情</div>
+            <button class="drawer-close-btn" onclick="closeDetailsModal()">&times;</button>
+        </div>
+        <div class="drawer-content" id="detailsContent">
+            <!-- 内容由 JS 填充 -->
+        </div>
+    </div>
+
+    <!-- 重命名抽屉 -->
+    <div id="renameBackdrop" class="drawer-backdrop" onclick="closeRenameModal()"></div>
+    <div id="renameModal" class="drawer">
+        <div class="drawer-handle"></div>
+        <div class="drawer-header">
+            <div class="drawer-title">重命名</div>
+            <button class="drawer-close-btn" onclick="closeRenameModal()">&times;</button>
+        </div>
+        <div class="drawer-content">
+            <p style="margin: 0 0 12px 0; color: #666; font-size: var(--global-font-size, 14px);">请输入新名称</p>
+            <input type="text" id="renameInput" style="width: 100%; padding: 12px; margin-bottom: 16px; border: 1px solid #ddd; border-radius: 8px; font-size: var(--global-font-size, 14px); box-sizing: border-box;">
+            <div class="modal-buttons" style="padding: 0; border: none; background: none; gap: 12px;">
+                <button class="modal-btn modal-btn-cancel" style="flex: 1; padding: 12px; border-radius: 8px;" onclick="closeRenameModal()">取消</button>
+                <button class="modal-btn modal-btn-confirm" style="flex: 1; padding: 12px; border-radius: 8px;" onclick="performRename()">确认</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 移动抽屉 -->
+    <div id="moveBackdrop" class="drawer-backdrop" onclick="closeMoveModal()"></div>
+    <div id="moveModal" class="drawer">
+        <div class="drawer-handle"></div>
+        <div class="drawer-header">
+            <div class="drawer-title">移动到</div>
+            <button class="drawer-close-btn" onclick="closeMoveModal()">&times;</button>
+        </div>
+        <div class="drawer-content">
+            <p style="margin: 0 0 12px 0; color: #666; font-size: var(--global-font-size, 14px);">请输入目标路径（相对于根目录）：</p>
+            <input type="text" id="moveInput" style="width: 100%; padding: 12px; margin-bottom: 16px; border: 1px solid #ddd; border-radius: 8px; font-size: var(--global-font-size, 14px); box-sizing: border-box;" placeholder="例如：tjx/新文件夹名">
+            <div class="modal-buttons" style="padding: 0; border: none; background: none; gap: 12px;">
+                <button class="modal-btn modal-btn-cancel" style="flex: 1; padding: 12px; border-radius: 8px;" onclick="closeMoveModal()">取消</button>
+                <button class="modal-btn modal-btn-confirm" style="flex: 1; padding: 12px; border-radius: 8px;" onclick="performMove()">确认</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 克隆抽屉 -->
+    <div id="cloneBackdrop" class="drawer-backdrop" onclick="Drawer.close('cloneModal')"></div>
+    <div id="cloneModal" class="drawer">
+        <div class="drawer-handle"></div>
+        <div class="drawer-header">
+            <div class="drawer-title">克隆中...</div>
+            <button class="drawer-close-btn" onclick="Drawer.close('cloneModal')">&times;</button>
+        </div>
+        <div class="drawer-content">
+            <p id="cloneStatus" style="text-align: center; color: #666;">正在处理...</p>
+        </div>
+    </div>
+
+    <!-- Terminal Drawer -->
+    <div id="terminalBackdrop" class="drawer-backdrop" onclick="closeTerminal()"></div>
+    <div id="terminalDrawer">
+        <!-- 拖拽手柄 -->
+        <div class="drawer-handle" id="terminalDrawerHandle"></div>
+        <!-- Header -->
+        <div class="drawer-header">
+            <span style="font-size:14px;">🖥️ 终端</span>
+            <span id="termPath" style="color:#888;font-size:12px;flex:1;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin:0 8px;">/root/.openclaw/workspace</span>
+            <button class="drawer-close-btn" onclick="closeTerminal()">&times;</button>
+        </div>
+        <!-- 虚拟键盘 -->
+        <div class="terminal-keyboard" style="background:#222;padding:6px;display:flex;flex-wrap:wrap;gap:4px;user-select:none;border-bottom:1px solid #333;">
+            <button class="term-key" onmousedown="handleKeyBtn(event, 'ctrl')" ontouchstart="handleKeyBtn(event, 'ctrl')">Ctrl</button>
+            <button class="term-key" onmousedown="handleKeyBtn(event, 'alt')" ontouchstart="handleKeyBtn(event, 'alt')">Alt</button>
+            <button class="term-key" onmousedown="handleKeyBtn(event, 'tab')" ontouchstart="handleKeyBtn(event, 'tab')">Tab</button>
+            <button class="term-key" onmousedown="handleKeyBtn(event, 'esc')" ontouchstart="handleKeyBtn(event, 'esc')">Esc</button>
+            <button class="term-key" onmousedown="handleKeyBtn(event, 'enter')" ontouchstart="handleKeyBtn(event, 'enter')">↵</button>
+            <button class="term-key" onmousedown="handleKeyBtn(event, 'up')" ontouchstart="handleKeyBtn(event, 'up')">↑</button>
+            <button class="term-key" onmousedown="handleKeyBtn(event, 'down')" ontouchstart="handleKeyBtn(event, 'down')">↓</button>
+            <button class="term-key" onmousedown="handleKeyBtn(event, 'backspace')" ontouchstart="handleKeyBtn(event, 'backspace')">⌫</button>
+        </div>
+        <!-- Ctrl组合键 -->
+        <div class="terminal-ctrl-keys" id="ctrlKeysArea" style="background:#1a1a1a;padding:6px;display:none;flex-wrap:wrap;gap:3px;border-bottom:1px solid #333;user-select:none;">
+            <span style="color:#888;font-size:12px;width:100%;margin-bottom:4px;">组合键：</span>
+            <button class="term-key term-key-small" onmousedown="handleCtrlBtn(event, 'a')" ontouchstart="handleCtrlBtn(event, 'a')">A</button>
+            <button class="term-key term-key-small" onmousedown="handleCtrlBtn(event, 'c')" ontouchstart="handleCtrlBtn(event, 'c')">C</button>
+            <button class="term-key term-key-small" onmousedown="handleCtrlBtn(event, 'd')" ontouchstart="handleCtrlBtn(event, 'd')">D</button>
+            <button class="term-key term-key-small" onmousedown="handleCtrlBtn(event, 'l')" ontouchstart="handleCtrlBtn(event, 'l')">L</button>
+            <button class="term-key term-key-small" onmousedown="handleCtrlBtn(event, 'p')" ontouchstart="handleCtrlBtn(event, 'p')">P</button>
+            <button class="term-key term-key-small" onmousedown="handleCtrlBtn(event, 'u')" ontouchstart="handleCtrlBtn(event, 'u')">U</button>
+            <button class="term-key term-key-small" onmousedown="handleCtrlBtn(event, 'z')" ontouchstart="handleCtrlBtn(event, 'z')">Z</button>
+        </div>
+        <style>
+            .terminal-keyboard .term-key, .terminal-ctrl-keys .term-key {
+                background:#444;border:none;color:#fff;padding:8px 10px;border-radius:4px;font-size:13px;cursor:pointer;min-width:36px;touch-action:manipulation;transition:all 0.15s;-webkit-tap-highlight-color:transparent;
+            }
+            .terminal-keyboard .term-key:active, .terminal-ctrl-keys .term-key:active { background:#666;transform:scale(0.95); }
+            .term-key.active { background:#0969da !important; }
+            .term-key-small { padding:6px 10px !important;font-size:12px !important;min-width:30px !important; }
+            @media (min-width:768px) { .terminal-keyboard, .terminal-ctrl-keys { display:none !important; } }
+        </style>
+        <div id="terminal-container" style="flex:1;overflow:hidden;background:#000;"></div>
+    </div>
+
+    <!-- 进程管理抽屉样式（复制终端抽屉） -->
+    <style>
+        #processModal {
+            position: fixed;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #fff;
+            border-radius: 16px 16px 0 0;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
+            transform: translateY(100%);
+            transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            max-height: 85vh;
+        }
+        #processModal.open {
+            transform: translateY(0);
+        }
+        #processModal .drawer-header {
+            background: #fff;
+            border-bottom: 1px solid #eee;
+        }
+        #processModal .drawer-close-btn {
+            color: #666;
+        }
+        #processModal .drawer-handle {
+            background: #ddd;
+        }
+    </style>
+
+    <!-- 系统设置抽屉 -->
+    <div id="configBackdrop" class="drawer-backdrop" onclick="closeConfigModal()"></div>
+    <div id="configModal" class="drawer">
+        <div class="drawer-handle"></div>
+        <div class="drawer-header">
+            <div class="drawer-title">⚙️ 系统设置</div>
+            <button class="drawer-close-btn" onclick="closeConfigModal()">&times;</button>
+        </div>
+        <div class="drawer-content" style="padding: 16px;">
+            <div class="config-section">
+                <label class="config-label">全局字体大小</label>
+                <input type="range" id="fontSizeSlider" class="font-size-slider" min="12" max="24" value="14" onchange="updateFontSize(this.value)">
+                <div id="fontPreview" class="font-preview" style="font-size: var(--global-font-size, 14px);">
+                    预览文字 abc ABC 123
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: var(--global-font-size, 12px); color: #666;">
+                    <span>小</span>
+                    <span>大</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 搜索模态框 -->
+    <div id="searchBackdrop" class="drawer-backdrop" onclick="closeSearchModal()"></div>
+    <div id="searchModal" class="drawer">
+        <div class="drawer-handle"></div>
+        <div class="drawer-header">
+            <div class="drawer-title">🔍 搜索文件</div>
+            <button class="drawer-close-btn" onclick="closeSearchModal()">&times;</button>
+        </div>
+        <div class="drawer-content" style="padding: 16px;">
+            <div style="display: flex; gap: 10px; margin-bottom: 16px;">
+                <input type="text" id="searchInput" style="flex: 1; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: var(--global-font-size, 14px);" placeholder="输入文件名搜索..." onkeyup="handleSearchKeyup(event)">
+                <button class="modal-btn modal-btn-confirm" style="padding: 12px 20px;" onclick="doSearch()">搜索</button>
+            </div>
+            <div id="searchResults" style="max-height: 400px; overflow-y: auto;">
+            </div>
+        </div>
+    </div>
+    <!-- 进程管理抽屉 -->
+    <div id="processBackdrop" class="drawer-backdrop" onclick="closeProcessModal()"></div>
+    <div id="processModal" class="drawer">
+        <div class="drawer-handle"></div>
+        <div class="drawer-header">
+            <div class="drawer-title">⚙️ 进程管理</div>
+            <div style="display:flex;gap:8px;">
+                <button style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px;" onclick="loadProcessList()" title="刷新">🔄</button>
+                <button class="drawer-close-btn" onclick="closeProcessModal()">&times;</button>
+            </div>
+        </div>
+        <div class="drawer-content" style="padding:0;">
+            <div id="processListContainer" style="padding: 16px;"></div>
+        </div>
+    </div>
+
+    <!-- 系统包管理抽屉 -->
+    <div id="systemPackageBackdrop" class="drawer-backdrop" onclick="closeSystemPackageModal()"></div>
+    <div id="systemPackageModal" class="drawer">
+        <div class="drawer-handle"></div>
+        <div class="drawer-header">
+            <div class="drawer-title">📦 系统包管理</div>
+            <div style="display:flex;gap:8px;">
+                <button style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px;" onclick="loadSystemPackageList()" title="刷新">🔄</button>
+                <button class="drawer-close-btn" onclick="closeSystemPackageModal()">&times;</button>
+            </div>
+        </div>
+        <div class="drawer-content" style="padding:0;">
+            <div id="systemPackageListContainer" style="padding: 16px;"></div>
+        </div>
+    </div>
+
+    <!-- Pip 包管理抽屉 -->
+    <div id="pipBackdrop" class="drawer-backdrop" onclick="closePipModal()"></div>
+    <div id="pipModal" class="drawer">
+        <div class="drawer-handle"></div>
+        <div class="drawer-header">
+            <div class="drawer-title">🐍 Pip 包管理</div>
+            <div style="display:flex;gap:8px;">
+                <button style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px;" onclick="loadPipList()" title="刷新">🔄</button>
+                <button class="drawer-close-btn" onclick="closePipModal()">&times;</button>
+            </div>
+        </div>
+        <div class="drawer-content" style="padding:0;">
+            <div id="pipListContainer" style="padding: 16px;"></div>
+        </div>
+    </div>
+
+    <!-- NPM 包管理抽屉 -->
+    <div id="npmBackdrop" class="drawer-backdrop" onclick="closeNpmModal()"></div>
+    <div id="npmModal" class="drawer">
+        <div class="drawer-handle"></div>
+        <div class="drawer-header">
+            <div class="drawer-title">📦 NPM 包管理</div>
+            <div style="display:flex;gap:8px;">
+                <button style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px;" onclick="loadNpmList()" title="刷新">🔄</button>
+                <button class="drawer-close-btn" onclick="closeNpmModal()">&times;</button>
+            </div>
+        </div>
+        <div class="drawer-content" style="padding:0;">
+            <div id="npmListContainer" style="padding: 16px;"></div>
+        </div>
+    </div>
+
+    <!-- Docker 管理抽屉 -->
+    <div id="dockerBackdrop" class="drawer-backdrop" onclick="closeDockerModal()"></div>
+    <div id="dockerModal" class="drawer">
+        <div class="drawer-handle"></div>
+        <div class="drawer-header">
+            <div class="drawer-title">🐳 Docker 管理</div>
+            <div style="display:flex;gap:8px;">
+                <button style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px;" onclick="loadDockerTabs('images')" title="刷新">🔄</button>
+                <button class="drawer-close-btn" onclick="closeDockerModal()">&times;</button>
+            </div>
+        </div>
+        <div class="drawer-content" style="padding:0;">
+            <div style="display: flex; border-bottom: 1px solid #d0d7de;">
+                <button class="docker-tab active" data-tab="images" onclick="loadDockerTabs('images')" style="flex: 1; padding: 12px; background: none; border: none; cursor: pointer; font-size: 14px; border-bottom: 2px solid transparent;">镜像</button>
+                <button class="docker-tab" data-tab="containers" onclick="loadDockerTabs('containers')" style="flex: 1; padding: 12px; background: none; border: none; cursor: pointer; font-size: 14px; border-bottom: 2px solid transparent;">容器</button>
+            </div>
+            <div id="dockerImagesContainer" style="padding: 16px;"></div>
+            <div id="dockerContainersContainer" style="padding: 16px; display: none;"></div>
+        </div>
+    </div>
+
+    <!-- Systemd 服务管理抽屉 -->
+    <div id="systemdBackdrop" class="drawer-backdrop" onclick="closeSystemdModal()"></div>
+    <div id="systemdModal" class="drawer">
+        <div class="drawer-handle"></div>
+        <div class="drawer-header">
+            <div class="drawer-title">🔧 Systemd 管理</div>
+            <div style="display:flex;gap:8px;">
+                <button style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px;" onclick="loadSystemdList()" title="刷新">🔄</button>
+                <button class="drawer-close-btn" onclick="closeSystemdModal()">&times;</button>
+            </div>
+        </div>
+        <div class="drawer-content" style="padding:0;">
+            <div id="systemdListContainer" style="padding: 16px;"></div>
+        </div>
+    </div>
+
+    <!-- 磁盘管理抽屉 -->
+    <div id="diskBackdrop" class="drawer-backdrop" onclick="closeDiskModal()"></div>
+    <div id="diskModal" class="drawer">
+        <div class="drawer-handle"></div>
+        <div class="drawer-header">
+            <div class="drawer-title">💾 磁盘管理</div>
+            <div style="display:flex;gap:8px;">
+                <button style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px;" onclick="loadDiskList()" title="刷新">🔄</button>
+                <button class="drawer-close-btn" onclick="closeDiskModal()">&times;</button>
+            </div>
+        </div>
+        <div class="drawer-content" style="padding:0;">
+            <div id="diskListContainer" style="padding: 16px;"></div>
+        </div>
+    </div>
+
+    <!-- 网络管理抽屉 -->
+    <div id="networkBackdrop" class="drawer-backdrop" onclick="closeNetworkModal()"></div>
+    <div id="networkModal" class="drawer">
+        <div class="drawer-handle"></div>
+        <div class="drawer-header">
+            <div class="drawer-title">🌐 网络管理</div>
+            <div style="display:flex;gap:8px;">
+                <button style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px;" onclick="loadNetworkList()" title="刷新">🔄</button>
+                <button class="drawer-close-btn" onclick="closeNetworkModal()">&times;</button>
+            </div>
+        </div>
+        <div class="drawer-content" style="padding:0;">
+            <div id="networkListContainer" style="padding: 16px;"></div>
+        </div>
+    </div>
+
+    <!-- Git管理抽屉 -->
+    <div id="gitBackdrop" class="drawer-backdrop" onclick="closeGitModal()"></div>
+    <div id="gitModal" class="drawer">
+        <div class="drawer-handle"></div>
+        <div class="drawer-header">
+            <div class="drawer-title">🔀 Git管理</div>
+            <div style="display:flex;gap:8px;">
+                <button style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px;" onclick="loadGitList()" title="刷新">🔄</button>
+                <button class="drawer-close-btn" onclick="closeGitModal()">&times;</button>
+            </div>
+        </div>
+        <div class="drawer-content" style="padding:0;">
+            <div id="gitListContainer" style="padding: 16px;"></div>
+        </div>
+    </div>
+
+        <!-- 批量操作栏 -->
+    <div id="batchActionBar" class="batch-action-bar" style="display:none;">
+        <div class="batch-info">
+            <input type="checkbox" id="batchSelectAll" onchange="toggleSelectAll(this)">
+            <span id="batchCount">已选择 0 个项目</span>
+        </div>
+        <div class="batch-actions">
+            <button class="batch-btn" onclick="batchDownload()">📥 下载</button>
+            <button class="batch-btn" onclick="batchMove()">📁 移动</button>
+            <button class="batch-btn" onclick="batchCopy()">📋 复制</button>
+            <button class="batch-btn batch-btn-danger" onclick="batchDelete()">🗑️ 删除</button>
+            <button class="batch-btn" onclick="clearSelection()">✖ 取消选择</button>
+        </div>
+    </div>
+
+    <!-- Toast 通知容器 -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <!-- 目标位置选择抽屉 -->
+    <div id="targetBackdrop" class="drawer-backdrop" onclick="closeTargetModal()"></div>
+    <div id="targetModal" class="drawer">
+        <div class="drawer-handle"></div>
+        <div class="drawer-header">
+            <div class="drawer-title" id="targetModalTitle">选择目标位置</div>
+            <button class="drawer-close-btn" onclick="closeTargetModal()">&times;</button>
+        </div>
+        <div class="drawer-content">
+            <input type="text" id="targetPathInput" style="width: 100%; padding: 12px; margin-bottom: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: var(--global-font-size, 14px); box-sizing: border-box;" placeholder="例如：tjx/新文件夹名">
+            <p style="font-size: var(--global-font-size, 12px); color: #666; margin: 0 0 16px 0;">相对于根目录的路径</p>
+            <div class="modal-buttons" style="padding: 0; border: none; background: none; gap: 12px;">
+                <button class="modal-btn modal-btn-cancel" style="flex: 1; padding: 12px; border-radius: 8px;" onclick="closeTargetModal()">取消</button>
+                <button class="modal-btn modal-btn-confirm" style="flex: 1; padding: 12px; border-radius: 8px;" onclick="confirmTargetPath()">确认</button>
+            </div>
+        </div>
+    </div>
+
+    
+</body>
+</html>

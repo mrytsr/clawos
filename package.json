@@ -1,0 +1,17 @@
+{
+  "name": "6002_clawos",
+  "version": "1.0.0",
+  "description": "一个基于 Flask + SocketIO 的单文件 Linux 网页管理器。支持文件管理、Web 终端、代码编辑和 AI 助手集成。",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "lint": "eslint static/js/**/*.js static/*.js --ignore-pattern **/*.min.js",
+    "lint:fix": "eslint static/js/**/*.js static/*.js --fix --ignore-pattern **/*.min.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "eslint": "^9.39.2"
+  }
+}

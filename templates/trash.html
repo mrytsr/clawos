@@ -1,0 +1,206 @@
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🗑️ 回收站</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh; padding: 20px;
+        }
+        .container { max-width: 800px; margin: 0 auto; }
+        h1 { color: white; text-align: center; margin-bottom: 20px; }
+        .card {
+            background: white; border-radius: 12px; padding: 20px;
+            margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .btn {
+            padding: 12px 20px; border: none; border-radius: 10px;
+            cursor: pointer; font-weight: 500; font-size: var(--global-font-size, 16px);
+        }
+        .btn-primary { background: linear-gradient(135deg, #667eea, #764ba2); color: white; }
+        .btn-danger { background: #dc3545; color: white; }
+        .btn-back { background: #6c757d; color: white; text-decoration: none; display: inline-block; }
+        .file-list { display: flex; flex-direction: column; gap: 12px; }
+        .file-item {
+            display: flex; flex-direction: column; align-items: flex-start;
+            padding: 14px; background: #f8f9fa; border-radius: 10px;
+        }
+        .file-info { flex: 1; width: 100%; }
+        .file-name { 
+            font-weight: bold; font-size: var(--global-font-size, 16px); 
+            word-break: break-word; white-space: pre-wrap;
+            line-height: 1.4; margin-bottom: 6px;
+        }
+        .file-meta { font-size: var(--global-font-size, 13px); color: #666; }
+        .file-actions { width: 100%; text-align: left; }
+        .restore-link {
+            color: #667eea; font-size: var(--global-font-size, 13px); text-decoration: none; cursor: pointer;
+        }
+        .restore-link:hover { text-decoration: underline; }
+        .empty { text-align: center; color: #666; padding: 50px; font-size: 18px; }
+        
+        /* 原生dialog样式 */
+        dialog {
+            border: none; border-radius: 16px; padding: 0;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            max-width: 90%; width: 320px;
+        }
+        dialog::backdrop {
+            background: rgba(0,0,0,0.5);
+        }
+        .dialog-header { padding: 20px; border-bottom: 1px solid #eee; }
+        .dialog-title { font-size: 18px; font-weight: bold; }
+        .dialog-body { padding: 20px; }
+        .dialog-input {
+            width: 100%; padding: 12px; border: 1px solid #ddd;
+            border-radius: 8px; font-size: var(--global-font-size, 16px); margin-top: 10px;
+        }
+        .dialog-actions {
+            padding: 15px 20px; border-top: 1px solid #eee;
+            display: flex; gap: 10px; justify-content: flex-end;
+        }
+        .dialog-btn {
+            padding: 12px 24px; border: none; border-radius: 10px;
+            font-size: var(--global-font-size, 16px); cursor: pointer;
+        }
+        .dialog-btn-cancel { background: #e9ecef; color: #333; }
+        .dialog-btn-confirm { background: linear-gradient(135deg, #667eea, #764ba2); color: white; }
+        .dialog-btn-danger { background: #dc3545; color: white; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🗑️ 回收站</h1>
+        
+        <div class="card">
+            <div class="header">
+                <span>共 {{ items|length }} 个项目</span>
+                <a href="{{ url_for('browse') }}" class="btn btn-back">←</a>
+            </div>
+            
+            {% if items %}
+            <div class="file-list">
+                {% for item in items %}
+                <div class="file-item">
+                    <div class="file-info">
+                        <div class="file-name">{{ item.name }}</div>
+                        <div class="file-meta">删除时间: {{ item.deleted_at }}</div>
+                    </div>
+                    <div class="file-actions">
+                        <a class="restore-link" onclick="showRestoreDialog('{{ item.name }}')">还原</a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty">回收站是空的</div>
+            {% endif %}
+        </div>
+
+        <div class="card">
+            <div class="header">
+                <span>危险操作</span>
+            </div>
+            <button class="btn btn-danger" style="width: 100%;" onclick="showClearDialog()">清空回收站</button>
+        </div>
+    </div>
+
+    <!-- 原生dialog: 还原 -->
+    <dialog id="restoreDialog">
+        <div class="dialog-header">
+            <div class="dialog-title">还原文件</div>
+        </div>
+        <div class="dialog-body">
+            <div id="restoreFileName" style="font-weight: bold; margin-bottom: 10px;"></div>
+            <input type="text" id="restorePath" class="dialog-input" placeholder="输入还原路径">
+        </div>
+        <div class="dialog-actions">
+            <button class="dialog-btn dialog-btn-cancel" onclick="closeRestoreDialog()">取消</button>
+            <button class="dialog-btn dialog-btn-confirm" onclick="confirmRestore()">还原</button>
+        </div>
+    </dialog>
+
+    <!-- 原生dialog: 清空 -->
+    <dialog id="clearDialog">
+        <div class="dialog-header">
+            <div class="dialog-title">⚠️ 确认清空</div>
+        </div>
+        <div class="dialog-body">
+            <p>确定要清空回收站吗？</p>
+            <p style="color: #dc3545; margin-top: 10px;">此操作不可恢复！</p>
+        </div>
+        <div class="dialog-actions">
+            <button class="dialog-btn dialog-btn-cancel" onclick="closeClearDialog()">取消</button>
+            <button class="dialog-btn dialog-btn-danger" onclick="confirmClear()">清空</button>
+        </div>
+    </dialog>
+
+    <script>
+        let currentRestoreName = '';
+
+        function showRestoreDialog(name) {
+            currentRestoreName = name;
+            // 去掉时间戳前缀
+            let defaultPath = name;
+            if (name.length > 15 && name[14] === '_') {
+                defaultPath = name.substring(15);
+            }
+            
+            document.getElementById('restoreFileName').textContent = name;
+            document.getElementById('restorePath').value = defaultPath;
+            document.getElementById('restoreDialog').showModal();
+        }
+
+        function closeRestoreDialog() {
+            document.getElementById('restoreDialog').close();
+        }
+
+        function confirmRestore() {
+            const path = document.getElementById('restorePath').value.trim();
+            if (!path) {
+                alert('请输入还原路径');
+                return;
+            }
+            
+            fetch('/trash/restore/' + encodeURIComponent(currentRestoreName), {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ target_path: path })
+            })
+            .then(r => r.json())
+            .then(d => {
+                closeRestoreDialog();
+                if (d.success) {
+                    location.reload();
+                } else {
+                    alert('还原失败: ' + d.message);
+                }
+            });
+        }
+
+        function showClearDialog() {
+            document.getElementById('clearDialog').showModal();
+        }
+
+        function closeClearDialog() {
+            document.getElementById('clearDialog').close();
+        }
+
+        function confirmClear() {
+            fetch('/trash/clear', { method: 'POST' })
+            .then(r => r.json())
+            .then(d => {
+                closeClearDialog();
+                alert(d.message);
+                if (d.success) location.reload();
+            });
+        }
+    </script>
+</body>
+</html>
