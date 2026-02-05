@@ -654,6 +654,28 @@
     box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
 }
 
+#dialogBackdrop {
+    z-index: 20040;
+}
+#dialogDrawer {
+    z-index: 20041;
+}
+#confirmBackdrop {
+    z-index: 20050;
+}
+#confirmModal {
+    z-index: 20051;
+}
+
+#previewBackdrop,
+#detailsBackdrop {
+    z-index: 20020;
+}
+#previewModal,
+#detailsModal {
+    z-index: 20021;
+}
+
 .drawer-handle {
     width: 40px;
     height: 4px;

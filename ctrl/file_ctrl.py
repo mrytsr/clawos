@@ -1,6 +1,10 @@
 import mimetypes
 import os
 import shutil
+import subprocess
+import tarfile
+import zipfile
+from urllib.parse import quote
 from datetime import datetime
 
 from flask import (
@@ -90,6 +94,20 @@ def view_file(path):
 
     if ext_lower in chrome_native:
         return redirect(url_for('file.serve_file', path=path))
+    if ext_lower in file_utils.MARKDOWN_EXTENSIONS:
+        try:
+            with open(full_path, 'r', encoding='utf-8') as f:
+                raw_markdown = f.read()
+        except UnicodeDecodeError:
+            with open(full_path, 'r', encoding='gbk', errors='replace') as f:
+                raw_markdown = f.read()
+        return render_template(
+            'markdown.html',
+            raw_markdown=raw_markdown,
+            filename=os.path.basename(full_path),
+            file_path=path,
+            current_dir=os.path.dirname(path),
+        )
     if mime_type and (
         mime_type.startswith('image')
         or ext_lower in file_utils.IMAGE_EXTENSIONS
@@ -114,32 +132,29 @@ def view_file(path):
             file_path=path,
             current_dir=os.path.dirname(path),
         )
+    if ext_lower in ['.ppt', '.pptx']:
+        src = (request.url_root or '').rstrip('/') + url_for('file.serve_file', path=path)
+        return redirect('https://view.officeapps.live.com/op/view.aspx?src=' + quote(src, safe=''))
     if mime_type and mime_type.startswith('text'):
+        max_bytes = 1024 * 1024
+        size = os.path.getsize(full_path)
+        truncated = size > max_bytes
+        with open(full_path, 'rb') as f:
+            raw = f.read(max_bytes if truncated else None)
         try:
-            with open(full_path, 'r', encoding='utf-8') as f:
-                content = f.read()
-            return render_template(
-                "code_mirror.html",
-                content=content,
-                filename=os.path.basename(full_path),
-                file_path=path,
-                current_dir=os.path.dirname(path),
-                extension=ext_lower,
-            )
+            content = raw.decode('utf-8')
         except UnicodeDecodeError:
-            try:
-                with open(full_path, 'r', encoding='gbk') as f:
-                    content = f.read()
-                return render_template(
-                    "code_mirror.html",
-                    content=content,
-                    filename=os.path.basename(full_path),
-                    file_path=path,
-                    current_dir=os.path.dirname(path),
-                    extension=ext_lower,
-                )
-            except Exception:
-                return redirect(url_for('file.download_file', path=path))
+            content = raw.decode('gbk', errors='replace')
+        return render_template(
+            "code_mirror.html",
+            content=content,
+            filename=os.path.basename(full_path),
+            file_path=path,
+            current_dir=os.path.dirname(path),
+            extension=ext_lower,
+            truncated=truncated,
+            total_size=size,
+        )
 
     return redirect(url_for('file.download_file', path=path))
 
@@ -248,13 +263,274 @@ def serve_file(path):
         '.svg': 'image/svg+xml',
         '.ico': 'image/x-icon',
         '.webp': 'image/webp',
+        '.avif': 'image/avif',
+        '.pdf': 'application/pdf',
+        '.mp4': 'video/mp4',
+        '.webm': 'video/webm',
+        '.ogg': 'application/ogg',
+        '.mov': 'video/quicktime',
+        '.avi': 'video/x-msvideo',
+        '.mkv': 'video/x-matroska',
+        '.mp3': 'audio/mpeg',
+        '.wav': 'audio/wav',
+        '.flac': 'audio/flac',
+        '.aac': 'audio/aac',
+        '.m4a': 'audio/mp4',
     }
     ext = os.path.splitext(path)[1].lower()
+    mime = mime_types.get(ext)
+    if not mime:
+        guessed, _ = mimetypes.guess_type(full_path)
+        mime = guessed
     return send_from_directory(
         os.path.dirname(full_path),
         os.path.basename(full_path),
-        mimetype=mime_types.get(ext),
+        mimetype=mime,
     )
+
+
+def _resolve_safe_file(path):
+    root_dir, _trash_dir = _get_paths()
+    root_dir = os.path.normpath(root_dir)
+    p = (path or '').lstrip('/\\').replace('\\', '/')
+    full_path = os.path.normpath(os.path.join(root_dir, p))
+    try:
+        if os.path.commonpath([root_dir, full_path]) != root_dir:
+            return None, None, "非法路径"
+    except Exception:
+        return None, None, "非法路径"
+    if not os.path.exists(full_path) or os.path.isdir(full_path):
+        return None, None, "文件不存在"
+    return root_dir, full_path, None
+
+
+def _is_archive_name(name):
+    n = (name or '').lower()
+    if n.endswith('.tar.gz') or n.endswith('.tar.bz2') or n.endswith('.tar.xz'):
+        return True
+    ext = os.path.splitext(n)[1].lower()
+    return ext in {'.zip', '.rar', '.tar', '.tgz', '.7z'}
+
+
+def _archive_kind(name):
+    n = (name or '').lower()
+    if n.endswith('.tar.gz'):
+        return 'tar'
+    if n.endswith('.tar.bz2'):
+        return 'tar'
+    if n.endswith('.tar.xz'):
+        return 'tar'
+    ext = os.path.splitext(n)[1].lower()
+    if ext == '.tgz':
+        return 'tar'
+    if ext == '.tar':
+        return 'tar'
+    if ext == '.zip':
+        return 'zip'
+    if ext in {'.7z', '.rar'}:
+        return '7z'
+    return None
+
+
+def _safe_join(base_dir, member_path):
+    rel = (member_path or '').replace('\\', '/')
+    if not rel or rel.startswith('/') or rel.startswith('\\'):
+        return None
+    if ':' in rel.split('/')[0]:
+        return None
+    norm_base = os.path.normpath(base_dir)
+    norm = os.path.normpath(os.path.join(norm_base, rel))
+    try:
+        if os.path.commonpath([norm_base, norm]) != norm_base:
+            return None
+    except Exception:
+        return None
+    if not norm.startswith(norm_base):
+        return None
+    return norm
+
+
+@file_bp.route('/api/archive/list/<path:path>')
+def api_archive_list(path):
+    root_dir, full_path, err = _resolve_safe_file(path)
+    if err:
+        return jsonify({'success': False, 'error': {'message': err}}), 400
+    name = os.path.basename(full_path)
+    if not _is_archive_name(name):
+        return jsonify({'success': False, 'error': {'message': '不是压缩包'}}), 400
+
+    kind = _archive_kind(name)
+    items = []
+    try:
+        if kind == 'zip':
+            dirs = set()
+            with zipfile.ZipFile(full_path, 'r') as zf:
+                for info in zf.infolist():
+                    inner = (info.filename or '').replace('\\', '/')
+                    if not inner or inner.startswith('/') or ':' in inner.split('/')[0]:
+                        continue
+                    if inner.endswith('/'):
+                        dirs.add(inner.rstrip('/'))
+                        continue
+                    parts = inner.split('/')
+                    if len(parts) > 1:
+                        acc = ''
+                        for seg in parts[:-1]:
+                            acc = (acc + '/' + seg) if acc else seg
+                            dirs.add(acc)
+                    items.append({
+                        'path': inner,
+                        'is_dir': False,
+                        'size': int(info.file_size or 0),
+                        'size_human': path_utils.format_size(int(info.file_size or 0)),
+                    })
+            for d in dirs:
+                items.append({'path': d + '/', 'is_dir': True, 'size': 0, 'size_human': ''})
+        elif kind == 'tar':
+            dirs = set()
+            with tarfile.open(full_path, 'r:*') as tf:
+                for m in tf.getmembers():
+                    inner = (m.name or '').replace('\\', '/')
+                    if not inner or inner.startswith('/') or ':' in inner.split('/')[0]:
+                        continue
+                    if '..' in inner.split('/'):
+                        continue
+                    if m.isdir():
+                        dirs.add(inner.rstrip('/'))
+                        continue
+                    parts = inner.split('/')
+                    if len(parts) > 1:
+                        acc = ''
+                        for seg in parts[:-1]:
+                            acc = (acc + '/' + seg) if acc else seg
+                            dirs.add(acc)
+                    size = int(m.size or 0)
+                    items.append({
+                        'path': inner,
+                        'is_dir': False,
+                        'size': size,
+                        'size_human': path_utils.format_size(size),
+                    })
+            for d in dirs:
+                items.append({'path': d + '/', 'is_dir': True, 'size': 0, 'size_human': ''})
+        else:
+            seven = shutil.which('7z') or shutil.which('7za') or shutil.which('7zr')
+            if not seven:
+                return jsonify({'success': False, 'error': {'message': '缺少 7z 命令，无法预览该压缩包'}}), 400
+            proc = subprocess.run([seven, 'l', '-slt', full_path], capture_output=True, text=True, timeout=30)
+            if proc.returncode != 0:
+                return jsonify({'success': False, 'error': {'message': (proc.stderr or proc.stdout or '列出失败').strip()}}), 400
+            blocks = (proc.stdout or '').split('\n\n')
+            for b in blocks:
+                if 'Path = ' not in b:
+                    continue
+                inner = None
+                is_dir = False
+                size = 0
+                for line in b.splitlines():
+                    if line.startswith('Path = '):
+                        inner = line[len('Path = '):].strip().replace('\\', '/')
+                    elif line.startswith('Attributes = '):
+                        attrs = line[len('Attributes = '):]
+                        if 'D' in attrs:
+                            is_dir = True
+                    elif line.startswith('Size = '):
+                        try:
+                            size = int(line[len('Size = '):].strip() or 0)
+                        except Exception:
+                            size = 0
+                if not inner or inner == name:
+                    continue
+                if inner.startswith('/') or ':' in inner.split('/')[0] or '..' in inner.split('/'):
+                    continue
+                if is_dir and not inner.endswith('/'):
+                    inner = inner + '/'
+                items.append({
+                    'path': inner,
+                    'is_dir': bool(is_dir),
+                    'size': int(size or 0),
+                    'size_human': '' if is_dir else path_utils.format_size(int(size or 0)),
+                })
+
+        items.sort(key=lambda x: (not x.get('is_dir', False), x.get('path', '').lower()))
+        return jsonify({'success': True, 'data': {'items': items}})
+    except Exception as e:
+        return jsonify({'success': False, 'error': {'message': str(e)}}), 500
+
+
+@file_bp.route('/api/archive/extract/<path:path>', methods=['POST'])
+def api_archive_extract(path):
+    root_dir, full_path, err = _resolve_safe_file(path)
+    if err:
+        return jsonify({'success': False, 'error': {'message': err}}), 400
+    name = os.path.basename(full_path)
+    if not _is_archive_name(name):
+        return jsonify({'success': False, 'error': {'message': '不是压缩包'}}), 400
+
+    payload = request.get_json(silent=True) or {}
+    target_dir = (payload.get('target_dir') or '').strip()
+    if not target_dir:
+        target_dir = os.path.dirname((path or '').replace('\\', '/'))
+    dest_full = os.path.normpath(os.path.join(root_dir, target_dir))
+    try:
+        if os.path.commonpath([root_dir, dest_full]) != root_dir:
+            return jsonify({'success': False, 'error': {'message': '非法目标目录'}}), 400
+    except Exception:
+        return jsonify({'success': False, 'error': {'message': '非法目标目录'}}), 400
+    os.makedirs(dest_full, exist_ok=True)
+
+    kind = _archive_kind(name)
+    extracted = 0
+    try:
+        if kind == 'zip':
+            with zipfile.ZipFile(full_path, 'r') as zf:
+                for info in zf.infolist():
+                    inner = (info.filename or '').replace('\\', '/')
+                    if not inner or inner.endswith('/') or inner.startswith('/') or ':' in inner.split('/')[0] or '..' in inner.split('/'):
+                        if inner and inner.endswith('/'):
+                            d = _safe_join(dest_full, inner.rstrip('/'))
+                            if d:
+                                os.makedirs(d, exist_ok=True)
+                        continue
+                    out_path = _safe_join(dest_full, inner)
+                    if not out_path:
+                        continue
+                    os.makedirs(os.path.dirname(out_path), exist_ok=True)
+                    with zf.open(info, 'r') as src, open(out_path, 'wb') as dst:
+                        shutil.copyfileobj(src, dst)
+                    extracted += 1
+        elif kind == 'tar':
+            with tarfile.open(full_path, 'r:*') as tf:
+                for m in tf.getmembers():
+                    inner = (m.name or '').replace('\\', '/')
+                    if not inner or inner.startswith('/') or ':' in inner.split('/')[0] or '..' in inner.split('/'):
+                        continue
+                    out_path = _safe_join(dest_full, inner)
+                    if not out_path:
+                        continue
+                    if m.isdir():
+                        os.makedirs(out_path, exist_ok=True)
+                        continue
+                    if not m.isreg():
+                        continue
+                    os.makedirs(os.path.dirname(out_path), exist_ok=True)
+                    src = tf.extractfile(m)
+                    if not src:
+                        continue
+                    with src, open(out_path, 'wb') as dst:
+                        shutil.copyfileobj(src, dst)
+                    extracted += 1
+        else:
+            seven = shutil.which('7z') or shutil.which('7za') or shutil.which('7zr')
+            if not seven:
+                return jsonify({'success': False, 'error': {'message': '缺少 7z 命令，无法解压该压缩包'}}), 400
+            proc = subprocess.run([seven, 'x', '-y', '-o' + dest_full, full_path], capture_output=True, text=True, timeout=300)
+            if proc.returncode != 0:
+                return jsonify({'success': False, 'error': {'message': (proc.stderr or proc.stdout or '解压失败').strip()}}), 400
+            extracted = 1
+        return jsonify({'success': True, 'data': {'extracted': extracted, 'target_dir': target_dir}})
+    except Exception as e:
+        return jsonify({'success': False, 'error': {'message': str(e)}}), 500
 
 
 @file_bp.route('/thumbnail/<path:path>')

@@ -8,6 +8,10 @@ function showMenuModal(path, name, isDir) {
     window.currentItemName = name;
     window.currentItemIsDir = isDir;
     document.getElementById('menuTitle').textContent = name;
+    var editEl = document.getElementById('menuEditItem');
+    if (editEl) editEl.style.display = isDir ? 'none' : '';
+    var extractEl = document.getElementById('menuExtractItem');
+    if (extractEl) extractEl.style.display = (!isDir && isArchiveName(name)) ? '' : 'none';
     Drawer.open('menuModal');
 }
 
@@ -58,6 +62,7 @@ function handleMenuAction(action) {
     setTimeout(() => {
         switch(action) {
             case 'download': downloadFile(window.currentItemPath); break;
+            case 'edit': openEditor(window.currentItemPath); break;
             case 'copyUrl': copyDownloadUrl(window.currentItemPath); break;
             case 'copyPath': copyFilePath(window.currentItemPath); break;
             case 'rename': showRenameModal(); break;
@@ -79,8 +84,162 @@ function handleMenuAction(action) {
             case 'terminal': openTerminal(window.currentItemPath, window.currentItemIsDir); break;
             case 'delete': confirmDelete(window.currentItemPath, window.currentItemName); break;
             case 'details': showDetails(window.currentItemPath, window.currentItemName); break;
+            case 'extract': extractArchiveHere(window.currentItemPath, window.currentItemName); break;
         }
     }, 50);
+}
+
+function openEditor(path) {
+    if (!path) return;
+    window.location.href = '/edit/' + encodeURIComponent(path);
+}
+
+function isArchiveName(name) {
+    var n = (name || '').toLowerCase();
+    if (!n) return false;
+    if (n.endsWith('.tar.gz')) return true;
+    if (n.endsWith('.tar.bz2')) return true;
+    if (n.endsWith('.tar.xz')) return true;
+    var parts = n.split('.');
+    if (parts.length < 2) return false;
+    var ext = parts.pop();
+    return ['zip', 'rar', 'tar', 'tgz', '7z'].indexOf(ext) >= 0;
+}
+
+function extractArchiveHere(path, name) {
+    if (!path || !name) return;
+    if (!isArchiveName(name)) {
+        showToast('不是压缩包', 'error');
+        return;
+    }
+    var currentPath = document.getElementById('currentBrowsePath') ? document.getElementById('currentBrowsePath').value : '';
+    var defaultTarget = currentPath || '';
+    if (typeof window.showPromptDrawer === 'function') {
+        window.showPromptDrawer(
+            '解压到此处',
+            '输入解压目标目录（相对于根目录）',
+            '例如：downloads/unpacked',
+            defaultTarget,
+            '解压',
+            function(targetDir) {
+                var t = (targetDir || '').trim();
+                fetch('/api/archive/extract/' + encodeURIComponent(path), {
+                    method: 'POST',
+                    headers: Object.assign({ 'Content-Type': 'application/json' }, (typeof authHeaders === 'function' ? authHeaders() : {})),
+                    body: JSON.stringify({ target_dir: t })
+                })
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data && data.success) {
+                            showToast('解压完成', 'success');
+                            if (typeof refreshFileList === 'function') refreshFileList();
+                        } else {
+                            showToast((data && data.error && data.error.message) || (data && data.message) || '解压失败', 'error');
+                        }
+                    })
+                    .catch(() => showToast('解压失败', 'error'));
+            },
+            true
+        );
+        return;
+    }
+}
+
+function encodePathForUrl(path) {
+    var p = (path || '').replace(/\\/g, '/');
+    return encodeURIComponent(p).replace(/%2F/g, '/');
+}
+
+function getFileExt(name) {
+    var n = (name || '').toLowerCase();
+    if (!n) return '';
+    if (n.endsWith('.tar.gz')) return '.tar.gz';
+    if (n.endsWith('.tar.bz2')) return '.tar.bz2';
+    if (n.endsWith('.tar.xz')) return '.tar.xz';
+    if (n.startsWith('.') && n.indexOf('.', 1) === -1) return n;
+    var idx = n.lastIndexOf('.');
+    if (idx < 0) return '';
+    return n.slice(idx);
+}
+
+function attachFileItemDefaultHandlers() {
+    document.querySelectorAll('.file-item[data-path][data-name]').forEach(function(el) {
+        if (el.dataset && el.dataset.defaultClickBound === 'true') return;
+        if (el.dataset) el.dataset.defaultClickBound = 'true';
+        el.addEventListener('click', function(ev) {
+            var target = ev.target;
+            if (target && (target.closest('.menu-btn') || target.closest('input[type="checkbox"]') || target.closest('a') || target.closest('button'))) {
+                return;
+            }
+            var path = el.dataset.path || '';
+            var name = el.dataset.name || '';
+            var isDir = (el.dataset.isDir || '').toLowerCase() === 'true';
+            if (!path && !name) return;
+
+            if (isDir) {
+                var dirUrl = path ? ('/browse/' + encodePathForUrl(path)) : '/browse/';
+                window.location.href = dirUrl;
+                return;
+            }
+
+            var ext = getFileExt(name);
+            var imageExts = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.svg'];
+            var chromeNativeExts = [
+                '.pdf',
+                '.mp4',
+                '.webm',
+                '.ogg',
+                '.mov',
+                '.avi',
+                '.mkv',
+                '.mp3',
+                '.wav',
+                '.flac',
+                '.aac',
+                '.m4a',
+                '.ico',
+                '.webp',
+                '.avif'
+            ];
+            var mdExts = ['.md', '.markdown'];
+            var officeExts = ['.xls', '.xlsx', '.doc', '.docx', '.ppt', '.pptx'];
+            var archiveExts = ['.zip', '.rar', '.tar', '.tgz', '.7z', '.tar.gz', '.tar.bz2', '.tar.xz'];
+
+            if (!ext) {
+                window.location.href = '/download/' + encodePathForUrl(path);
+                return;
+            }
+            if (imageExts.indexOf(ext) >= 0) {
+                if (typeof window.openPreview === 'function') window.openPreview(path, name);
+                return;
+            }
+            if (archiveExts.indexOf(ext) >= 0) {
+                if (typeof window.openPreview === 'function') window.openPreview(path, name);
+                return;
+            }
+            if (chromeNativeExts.indexOf(ext) >= 0) {
+                window.open('/serve/' + encodePathForUrl(path), '_blank', 'noopener');
+                return;
+            }
+            if (mdExts.indexOf(ext) >= 0) {
+                window.open('/view/' + encodePathForUrl(path), '_blank', 'noopener');
+                return;
+            }
+            if (officeExts.indexOf(ext) >= 0) {
+                window.open('/view/' + encodePathForUrl(path), '_blank', 'noopener');
+                return;
+            }
+            window.open('/view/' + encodePathForUrl(path), '_blank', 'noopener');
+        });
+    });
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() {
+        attachFileItemDefaultHandlers();
+    });
+} else {
+    attachFileItemDefaultHandlers();
 }
 
 // 删除
