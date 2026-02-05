@@ -6,6 +6,8 @@
     <title>{{ filename }} - 查看器</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/dialog/dialog.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/foldgutter.min.css">
     <style>
         body { margin: 0; padding: 0; background: #282a36; }
         .header {
@@ -33,10 +35,24 @@
             <a href="{{ url_for('file.download_file', path=file_path) }}" class="btn">📥 下载</a>
         </div>
     </div>
+    {% if truncated %}
+    <div style="padding: 8px 12px; background: #fff3cd; color: #664d03; font-size: 12px;">
+        内容过大，仅加载前 1MB（文件大小 {{ total_size }} bytes）
+    </div>
+    {% endif %}
     <textarea id="code">{{ content }}</textarea>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/mode/loadmode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/dialog/dialog.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/search/searchcursor.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/search/search.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/foldcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/foldgutter.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/brace-fold.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/comment-fold.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/xml-fold.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/markdown-fold.min.js"></script>
     <script>
         const filePath = '{{ file_path }}';
         const extension = '{{ extension }}'.toLowerCase();
@@ -74,11 +90,25 @@
                     mode: mode,
                     theme: 'dracula',
                     lineNumbers: true,
-                    lineWrapping: false,
+                    lineWrapping: true,
                     readOnly: true,
                     cursorBlinkRate: -1,
                     indentUnit: 4,
-                    tabSize: 4
+                    tabSize: 4,
+                    foldGutter: true,
+                    gutters: ["CodeMirror-linenumbers", "CodeMirror-foldgutter"],
+                    extraKeys: {
+                        "Ctrl-F": "findPersistent",
+                        "Cmd-F": "findPersistent",
+                        "Ctrl-G": "findNext",
+                        "Shift-Ctrl-G": "findPrev",
+                        "Shift-Cmd-G": "findPrev",
+                        "Ctrl-Alt-F": "replace",
+                        "Shift-Ctrl-F": "replace",
+                        "Cmd-Alt-F": "replace",
+                        "Shift-Cmd-Alt-F": "replace",
+                        "Ctrl-Space": false
+                    }
                 });
                 
                 // 点击行号复制
@@ -103,9 +133,15 @@
                 mode: null,
                 theme: 'dracula',
                 lineNumbers: true,
-                lineWrapping: false,
+                lineWrapping: true,
                 readOnly: true,
-                cursorBlinkRate: -1
+                cursorBlinkRate: -1,
+                foldGutter: true,
+                gutters: ["CodeMirror-linenumbers", "CodeMirror-foldgutter"],
+                extraKeys: {
+                    "Ctrl-F": "findPersistent",
+                    "Cmd-F": "findPersistent"
+                }
             });
             
             editor.on('gutterClick', function(cm, line) {

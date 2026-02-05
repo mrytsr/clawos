@@ -1,49 +1,119 @@
 // ============ 预览功能模块 ============
 /* global Drawer, escapeHtml */
 
-// 打开文件预览
+function encodePathForUrl(path) {
+    var p = (path || '').replace(/\\/g, '/');
+    return encodeURIComponent(p).replace(/%2F/g, '/');
+}
+
+function getFileExt(name) {
+    var n = (name || '').toLowerCase();
+    if (!n) return '';
+    if (n.endsWith('.tar.gz')) return '.tar.gz';
+    if (n.endsWith('.tar.bz2')) return '.tar.bz2';
+    if (n.endsWith('.tar.xz')) return '.tar.xz';
+    if (n.startsWith('.') && n.indexOf('.', 1) === -1) return n;
+    var idx = n.lastIndexOf('.');
+    if (idx < 0) return '';
+    return n.slice(idx);
+}
+
 function openPreview(path, name) {
-    const ext = name.split('.').pop().toLowerCase();
-    const url = '/serve/' + encodeURIComponent(path);
-    
-    document.getElementById('previewTitle').textContent = name;
-    const content = document.getElementById('previewContent');
-    
-    // 预览类型映射
-    const imageTypes = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg'];
-    const pdfTypes = ['pdf'];
-    const textTypes = ['txt', 'md', 'json', 'xml', 'js', 'css', 'html', 'htm', 'py', 'sh', 'yaml', 'yml', 'csv'];
-    
-    if (imageTypes.includes(ext)) {
-        content.innerHTML = `<div style="text-align: center; padding: 20px;"><img src="${url}" style="max-width: 100%; max-height: 70vh;"></div>`;
-    } else if (pdfTypes.includes(ext)) {
-        content.innerHTML = `<div style="height: 100%;"><iframe src="${url}" style="width: 100%; height: 70vh; border: none;"></iframe></div>`;
-    } else if (textTypes.includes(ext)) {
-        // 获取文本内容显示
-        fetch('/serve/' + encodeURIComponent(path))
-            .then(r => r.text())
-            .then(text => {
-                const escapedText = escapeHtml(text);
-                const isLong = text.length > 10000;
-                const displayText = isLong ? escapedText.substring(0, 10000) + '\n\n... (内容过长，仅显示前10000字符)' : escapedText;
-                
-                // 生成带行号的 HTML
-                const lines = displayText.split('\n');
-                const linesWithNumbers = lines.map((line, i) => {
-                    const lineNum = i + 1;
-                    return `<span class="line-number" data-path="${escapeHtml(path)}" data-line="${lineNum}" onclick="copyLineRef(this)">${lineNum}</span>${line}`;
-                }).join('\n');
-                
-                content.innerHTML = `<pre style="margin:0;padding:16px;background:#f6f8fa;white-space:pre-wrap;word-wrap:break-word;font-family:monospace;font-size:13px;line-height:1.5;">${linesWithNumbers}</pre>`;
+    var titleEl = document.getElementById('previewTitle');
+    if (titleEl) titleEl.textContent = name || '预览';
+    var content = document.getElementById('previewContent');
+    if (!content) return;
+
+    var ext = getFileExt(name);
+    var url = '/serve/' + encodePathForUrl(path);
+    var imageExts = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.svg'];
+    var archiveExts = ['.zip', '.rar', '.tar', '.tgz', '.7z', '.tar.gz', '.tar.bz2', '.tar.xz'];
+
+    if (imageExts.indexOf(ext) >= 0) {
+        content.innerHTML = `
+            <div style="display:flex;gap:10px;align-items:center;justify-content:center;padding:12px 12px 0 12px;flex-wrap:wrap;">
+                <button class="modal-btn modal-btn-cancel" style="padding:8px 12px;border-radius:8px;" onclick="window.__imagePreviewZoom(-0.2)">-</button>
+                <button class="modal-btn modal-btn-cancel" style="padding:8px 12px;border-radius:8px;" onclick="window.__imagePreviewZoom(0.2)">+</button>
+                <button class="modal-btn modal-btn-cancel" style="padding:8px 12px;border-radius:8px;" onclick="window.__imagePreviewRotate(-90)">⟲</button>
+                <button class="modal-btn modal-btn-cancel" style="padding:8px 12px;border-radius:8px;" onclick="window.__imagePreviewRotate(90)">⟳</button>
+                <button class="modal-btn modal-btn-cancel" style="padding:8px 12px;border-radius:8px;" onclick="window.__imagePreviewReset()">重置</button>
+            </div>
+            <div id="imagePreviewStage" style="height:70vh;display:flex;align-items:center;justify-content:center;overflow:hidden;padding:12px;">
+                <img id="imagePreviewImg" src="${url}" style="max-width:100%;max-height:100%;transform-origin:center center;user-select:none;touch-action:none;">
+            </div>
+        `;
+        window.__imagePreviewState = { scale: 1, rotation: 0 };
+        window.__applyImageTransform = function() {
+            var img = document.getElementById('imagePreviewImg');
+            if (!img) return;
+            var s = window.__imagePreviewState ? window.__imagePreviewState.scale : 1;
+            var r = window.__imagePreviewState ? window.__imagePreviewState.rotation : 0;
+            img.style.transform = 'scale(' + s + ') rotate(' + r + 'deg)';
+        };
+        window.__imagePreviewZoom = function(delta) {
+            if (!window.__imagePreviewState) window.__imagePreviewState = { scale: 1, rotation: 0 };
+            var next = (window.__imagePreviewState.scale || 1) + delta;
+            next = Math.max(0.2, Math.min(6, next));
+            window.__imagePreviewState.scale = next;
+            window.__applyImageTransform();
+        };
+        window.__imagePreviewRotate = function(deltaDeg) {
+            if (!window.__imagePreviewState) window.__imagePreviewState = { scale: 1, rotation: 0 };
+            window.__imagePreviewState.rotation = (window.__imagePreviewState.rotation || 0) + deltaDeg;
+            window.__applyImageTransform();
+        };
+        window.__imagePreviewReset = function() {
+            window.__imagePreviewState = { scale: 1, rotation: 0 };
+            window.__applyImageTransform();
+        };
+        var stage = document.getElementById('imagePreviewStage');
+        if (stage) {
+            stage.onwheel = function(e) {
+                if (!e) return;
+                e.preventDefault();
+                var delta = e.deltaY > 0 ? -0.12 : 0.12;
+                window.__imagePreviewZoom(delta);
+            };
+        }
+        Drawer.open('previewModal');
+        return;
+    }
+
+    if (archiveExts.indexOf(ext) >= 0) {
+        content.innerHTML = '<div style="text-align:center;padding:40px;color:#666;">🔄 加载中...</div>';
+        Drawer.open('previewModal');
+        fetch('/api/archive/list/' + encodePathForUrl(path), { headers: (typeof authHeaders === 'function' ? authHeaders() : {}) })
+            .then(r => r.json())
+            .then(data => {
+                if (!data || !data.success || !data.data) {
+                    var msg = (data && data.error && data.error.message) || (data && data.message) || '加载失败';
+                    content.innerHTML = '<div style="text-align:center;padding:40px;color:#cf222e;">' + escapeHtml(msg) + '</div>';
+                    return;
+                }
+                var items = data.data.items || [];
+                if (!items.length) {
+                    content.innerHTML = '<div style="text-align:center;padding:40px;color:#666;">空压缩包</div>';
+                    return;
+                }
+                content.innerHTML = items.map(function(it) {
+                    var icon = it.is_dir ? '📁' : '📄';
+                    var p = escapeHtml(it.path || '');
+                    var size = it.is_dir ? '' : ('<span style="color:#999;font-size:12px;margin-left:8px;">' + escapeHtml(it.size_human || '') + '</span>');
+                    return '<div style="padding:10px 2px;border-bottom:1px solid #eee;display:flex;align-items:center;gap:10px;">' +
+                        '<span style="width:24px;text-align:center;">' + icon + '</span>' +
+                        '<span style="flex:1;min-width:0;word-break:break-all;">' + p + '</span>' +
+                        size +
+                    '</div>';
+                }).join('');
             })
             .catch(() => {
-                content.innerHTML = `<div style="padding:40px;color:#cf222e;text-align:center;">❌ 无法加载文件内容</div>`;
+                content.innerHTML = '<div style="text-align:center;padding:40px;color:#cf222e;">加载失败</div>';
             });
-    } else {
-        content.innerHTML = `<div style="padding:40px;text-align:center;color:#666;">该文件类型无法预览</div>`;
+        return;
     }
-    
-    document.getElementById('previewModal').style.display = 'block';
+
+    content.innerHTML = `<div style="padding:40px;text-align:center;color:#666;">该文件类型不在抽屉预览范围</div>`;
+    Drawer.open('previewModal');
 }
 
 function closePreviewModal() {

@@ -383,6 +383,13 @@
             opacity: 1;
             visibility: visible;
         }
+
+        #dialogBackdrop { z-index: 20040; }
+        #dialogDrawer { z-index: 20041; }
+        #confirmBackdrop { z-index: 20050; }
+        #confirmModal { z-index: 20051; }
+        #previewBackdrop, #detailsBackdrop { z-index: 20020; }
+        #previewModal, #detailsModal { z-index: 20021; }
         
         /* Terminal Drawer 样式 */
         #terminalDrawer {
@@ -752,7 +759,7 @@
             {% if items %}
             <div class="file-list">
                 {% for item in items %}
-                <div class="file-item" id="file-item-{{ loop.index }}" data-path="{{ get_relative_path(item.path) }}" data-is-dir="{{ 'true' if item.is_dir else 'false' }}">
+                <div class="file-item" id="file-item-{{ loop.index }}" data-path="{{ get_relative_path(item.path) }}" data-name="{{ item.name }}" data-is-dir="{{ 'true' if item.is_dir else 'false' }}" data-is-image="{{ 'true' if item.is_image else 'false' }}">
                     <!-- 第一列：预览图或图标 + 复选框 -->
                     <div class="file-col-icon">
                         <input type="checkbox" class="file-checkbox" data-path="{{ get_relative_path(item.path) }}" onchange="toggleItemSelection('{{ get_relative_path(item.path) }}', this)" style="margin-right: 8px; cursor: pointer;">
@@ -766,16 +773,7 @@
                     <!-- 第二列：名称 + 详情 -->
                     <div class="file-col-info">
                         <div class="file-name">
-                            {% if item.is_dir %}
-                                <a href="{{ url_for('file.browse', path=get_relative_path(item.path)) }}" style="color: inherit; text-decoration: none;">{{ item.name }}</a>
-                            {% else %}
-                                {% set ext = (item.name.split('.')|last if '.' in item.name else '')|lower %}
-                                {% if ext in ['pdf', 'mp4', 'webm', 'ogg', 'mov', 'avi', 'mkv', 'mp3', 'wav', 'flac', 'aac', 'm4a', 'svg', 'ico', 'webp', 'avif'] %}
-                                <a href="{{ url_for('file.serve_file', path=get_relative_path(item.path)) }}" target="_blank" style="color: inherit; text-decoration: none;">{{ item.name }}</a>
-                                {% else %}
-                                <a href="{{ url_for('file.view_file', path=get_relative_path(item.path)) }}" style="color: inherit; text-decoration: none;">{{ item.name }}</a>
-                                {% endif %}
-                            {% endif %}
+                            <span>{{ item.name }}</span>
                             {% if item.is_dir and item.name|starts_with_port %}
                                 <a href="http://{{ request.host.split(':')[0] }}:{{ item.name|extract_port }}" target="_blank" style="margin-left: 8px; color: #17a2b8; text-decoration: none; font-size: 1.2em;" title="打开网站">🔗</a>
                             {% endif %}
@@ -788,19 +786,6 @@
                     
                     <!-- 第三列：操作按钮 -->
                     <div class="file-col-actions">
-                        {% if not item.is_dir %}
-                        {% set ext = (item.name.split('.')|last if '.' in item.name else '')|lower %}
-                        {# Excel/Word 预览 #}
-                        {% if ext in ['xlsx', 'xls', 'docx', 'doc'] %}
-                        <button class="preview-btn" onclick="event.stopPropagation(); openPreview('{{ get_relative_path(item.path) }}', '{{ item.name }}')" title="在线预览">🔭</button>
-                        {# Chrome 原生支持格式 → 新窗口打开 #}
-                        {% elif ext in ['pdf', 'mp4', 'webm', 'ogg', 'mov', 'avi', 'mkv', 'mp3', 'wav', 'flac', 'aac', 'm4a', 'svg', 'ico', 'webp', 'avif'] %}
-                        <a class="preview-btn" href="{{ url_for('file.serve_file', path=get_relative_path(item.path)) }}" target="_blank" title="新窗口打开">👁️</a>
-                        {# 其他文本文件 → 查看器 #}
-                        {% elif ext in ['txt', 'md', 'json', 'xml', 'js', 'css', 'html', 'htm', 'py', 'sh', 'yaml', 'yml', 'csv'] %}
-                        <a class="preview-btn" href="{{ url_for('file.view_file', path=get_relative_path(item.path)) }}" title="查看器">📄</a>
-                        {% endif %}
-                        {% endif %}
                         <!-- 菜单按钮 -->
                         <div class="menu-btn" onclick="showMenuModal('{{ get_relative_path(item.path) }}', '{{ item.name }}', {{ 'true' if item.is_dir else 'false' }})">
                             <span>⋮</span>
@@ -892,7 +877,7 @@
             <button class="drawer-close-btn" onclick="closePreviewModal()">&times;</button>
         </div>
         <div class="drawer-content">
-            <!-- 预览内容将动态插入 -->
+            <div id="previewContent"></div>
         </div>
     </div>
 
@@ -905,12 +890,14 @@
         </div>
         <div class="drawer-content">
             <div class="modal-item" onclick="handleMenuAction('details')">📋 查看详情</div>
+            <div class="modal-item" id="menuEditItem" onclick="handleMenuAction('edit')">✏️ 编辑</div>
             <div class="modal-item" onclick="handleMenuAction('download')">下载文件</div>
             <div class="modal-item" onclick="handleMenuAction('copyUrl')">复制下载地址</div>
             <div class="modal-item" onclick="handleMenuAction('copyPath')">复制相对路径</div>
             <div class="modal-item" onclick="handleMenuAction('rename')">重命名</div>
             <div class="modal-item" onclick="handleMenuAction('cut')" aria-label="剪切">剪切</div>
             <div class="modal-item" onclick="handleMenuAction('copy')" aria-label="复制">复制</div>
+            <div class="modal-item" id="menuExtractItem" onclick="handleMenuAction('extract')">📦 解压到此处</div>
             <div class="modal-item" onclick="handleMenuAction('chat')">💬 添加到对话</div>
             <div class="modal-item" onclick="handleMenuAction('terminal')">📺 在终端打开</div>
             <div class="modal-item delete-item" onclick="handleMenuAction('delete')">删除</div>

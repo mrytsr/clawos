@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ repo_name }} @ {{ commit_hash[:12] }}</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/default.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            padding: 18px;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+            color: #24292f;
+            background: #ffffff;
+        }
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+        .header {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            margin-bottom: 14px;
+        }
+        .title {
+            min-width: 0;
+        }
+        .title h1 {
+            font-size: 18px;
+            margin: 0;
+            line-height: 1.2;
+        }
+        .subtitle {
+            margin-top: 4px;
+            font-size: 12px;
+            color: #57606a;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .mono {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        }
+        .actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .btn {
+            background: #f6f8fa;
+            border: 1px solid #d0d7de;
+            color: #24292f;
+            padding: 6px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .btn:hover { background: #f3f4f6; }
+        .card {
+            border: 1px solid #d0d7de;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 14px;
+        }
+        .card-hd {
+            background: #f6f8fa;
+            border-bottom: 1px solid #d0d7de;
+            padding: 10px 12px;
+            font-size: 13px;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            align-items: center;
+        }
+        .card-bd { padding: 12px; }
+        pre {
+            margin: 0;
+            font-size: 12px;
+            line-height: 1.45;
+        }
+        .log-pre {
+            white-space: pre-wrap;
+            word-break: break-word;
+            overflow-wrap: anywhere;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+        th, td {
+            padding: 8px 10px;
+            border-bottom: 1px solid #eaeef2;
+            text-align: left;
+            vertical-align: top;
+        }
+        th { background: #ffffff; color: #57606a; font-weight: 600; }
+        .path {
+            max-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .stat {
+            display: inline-flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .badge {
+            font-size: 11px;
+            padding: 2px 6px;
+            border-radius: 999px;
+            border: 1px solid #d0d7de;
+            background: #ffffff;
+            font-variant-numeric: tabular-nums;
+        }
+        .add { border-color: #2da44e66; background: #dafbe1; color: #1a7f37; }
+        .mod { border-color: #d2992266; background: #fff8c5; color: #9a6700; }
+        .del { border-color: #cf222e66; background: #ffebe9; color: #cf222e; }
+        .bin { border-color: #8c959f66; background: #f6f8fa; color: #57606a; }
+        .diff-wrap {
+            border: 1px solid #d0d7de;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .diff-view {
+            display: grid;
+            grid-template-columns: 64px 1fr;
+            width: 100%;
+            overflow: auto;
+        }
+        .diff-lnums {
+            background: #f6f8fa;
+            color: #6e7781;
+            border-right: 1px solid #d0d7de;
+            text-align: right;
+            padding: 10px 8px;
+            user-select: none;
+            white-space: pre;
+        }
+        .diff-code-pre {
+            padding: 10px 12px;
+            overflow: visible;
+        }
+        .diff-code-pre code {
+            white-space: pre;
+        }
+        .diff-line { display: block; white-space: pre; }
+        .diff-meta { color: #6e7781; }
+        .diff-hunk { background: #ddf4ff; color: #0969da; }
+        .diff-add { background: #dafbe1; color: #1a7f37; }
+        .diff-del { background: #ffebe9; color: #cf222e; }
+        .muted { color: #57606a; font-weight: 500; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="title">
+                <h1>{{ repo_name }} 提交详情</h1>
+                <div class="subtitle">
+                    <span class="mono" id="commitHashText">{{ commit_hash }}</span>
+                    <span class="muted">RepoId: {{ repo_id }}</span>
+                </div>
+            </div>
+            <div class="actions">
+                <button class="btn" id="copyHashBtn" type="button">复制哈希</button>
+                <a class="btn" href="{{ patch_url }}">下载 patch</a>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-hd">git log -1 --pretty=fuller</div>
+            <div class="card-bd">
+                <pre class="log-pre mono">{{ log_text | e }}</pre>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-hd">文件变更统计</div>
+            <div class="card-bd" style="padding:0;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width:60%;">文件</th>
+                            <th>统计</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    {% if numstat and numstat|length > 0 %}
+                        {% for row in numstat %}
+                        <tr>
+                            <td class="path mono" title="{{ row.path }}">{{ row.path }}</td>
+                            <td>
+                                <span class="stat">
+                                    {% if row.is_binary %}
+                                        <span class="badge bin">binary</span>
+                                    {% else %}
+                                        <span class="badge add">+{{ row.added }}</span>
+                                        <span class="badge mod">~{{ row.modified }}</span>
+                                        <span class="badge del">-{{ row.deleted }}</span>
+                                    {% endif %}
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr><td colspan="2" style="padding:14px 10px;color:#57606a;text-align:center;">无变更统计</td></tr>
+                    {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-hd">diff</div>
+            <div class="card-bd">
+                <div class="diff-wrap">
+                    <div class="diff-view" id="diffView">
+                        <pre class="diff-lnums mono" id="diffLineNums"></pre>
+                        <pre class="diff-code-pre"><code class="language-diff" id="diffCode">{{ diff_text | e }}</code></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            const hashText = document.getElementById('commitHashText');
+            const copyBtn = document.getElementById('copyHashBtn');
+            const diffCode = document.getElementById('diffCode');
+            const diffLineNums = document.getElementById('diffLineNums');
+
+            function escapeHtml(s) {
+                return String(s)
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#39;');
+            }
+
+            copyBtn.addEventListener('click', async function() {
+                const hash = (hashText && hashText.textContent) ? hashText.textContent.trim() : '';
+                if (!hash) return;
+                try {
+                    await navigator.clipboard.writeText(hash);
+                    copyBtn.textContent = '已复制';
+                    setTimeout(function() { copyBtn.textContent = '复制哈希'; }, 900);
+                } catch (e) {
+                    const ta = document.createElement('textarea');
+                    ta.value = hash;
+                    document.body.appendChild(ta);
+                    ta.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(ta);
+                    copyBtn.textContent = '已复制';
+                    setTimeout(function() { copyBtn.textContent = '复制哈希'; }, 900);
+                }
+            });
+
+            const raw = (diffCode && diffCode.textContent) ? diffCode.textContent.replace(/\n$/, '') : '';
+            const lines = raw ? raw.split('\n') : [];
+            const lineCount = lines.length;
+            if (lineCount > 0) {
+                let nums = '';
+                for (let i = 1; i <= lineCount; i++) nums += i + (i === lineCount ? '' : '\n');
+                diffLineNums.textContent = nums;
+            } else {
+                diffLineNums.textContent = '';
+            }
+
+            if (diffCode) {
+                const html = lines.map((line) => {
+                    let cls = '';
+                    if (line.startsWith('diff ') || line.startsWith('index ') || line.startsWith('---') || line.startsWith('+++')) {
+                        cls = 'diff-meta';
+                    } else if (line.startsWith('@@')) {
+                        cls = 'diff-hunk';
+                    } else if (line.startsWith('+')) {
+                        cls = 'diff-add';
+                    } else if (line.startsWith('-')) {
+                        cls = 'diff-del';
+                    } else {
+                        cls = '';
+                    }
+                    const safe = escapeHtml(line);
+                    const clsAttr = cls ? ` diff-line ${cls}` : ' diff-line';
+                    return `<span class="${clsAttr.trim()}">${safe}</span>`;
+                }).join('\n');
+                diffCode.innerHTML = html;
+            }
+        })();
+    </script>
+</body>
+</html>

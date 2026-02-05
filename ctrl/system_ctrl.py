@@ -2,7 +2,7 @@ import json
 import os
 import re
 import subprocess
-from flask import Blueprint, request
+from flask import Blueprint, Response, render_template, request
 
 from ctrl import api_error, api_ok
 
@@ -212,6 +212,89 @@ def api_network_list():
 def api_git_list():
     result = git_utils.get_all_git_repos_info()
     return api_ok({'repos': result})
+
+
+@system_bp.route('/api/git/commit')
+def api_git_commit():
+    repo_id = request.args.get('repoId')
+    commit_hash = request.args.get('hash')
+    include = request.args.get('include', 'summary')
+    if not repo_id or not commit_hash:
+        return api_error('Missing repoId or hash', status=400)
+
+    repo_path = git_utils.resolve_repo_path(repo_id)
+    if not repo_path:
+        return api_error('Invalid repoId', status=400)
+
+    log_text = git_utils.get_commit_log_text(repo_path, commit_hash)
+    if not log_text:
+        return api_error('Failed to get commit log', status=400)
+
+    if include == 'summary':
+        return api_ok({'repoId': repo_id, 'hash': commit_hash, 'log': log_text})
+
+    numstat = git_utils.get_commit_numstat(repo_path, commit_hash) or []
+    diff_text = git_utils.get_commit_diff_text(repo_path, commit_hash) or ''
+    return api_ok(
+        {
+            'repoId': repo_id,
+            'hash': commit_hash,
+            'log': log_text,
+            'numstat': numstat,
+            'diff': diff_text,
+        }
+    )
+
+
+@system_bp.route('/api/git/commit/patch')
+def api_git_commit_patch():
+    repo_id = request.args.get('repoId')
+    commit_hash = request.args.get('hash')
+    if not repo_id or not commit_hash:
+        return api_error('Missing repoId or hash', status=400)
+
+    repo_path = git_utils.resolve_repo_path(repo_id)
+    if not repo_path:
+        return api_error('Invalid repoId', status=400)
+
+    patch_text = git_utils.get_commit_patch_text(repo_path, commit_hash)
+    if not patch_text:
+        return api_error('Failed to generate patch', status=400)
+
+    repo_name = os.path.basename(repo_path) or 'repo'
+    filename = f'{repo_name}-{commit_hash[:12]}.patch'
+    resp = Response(patch_text, mimetype='text/x-diff; charset=utf-8')
+    resp.headers['Content-Disposition'] = f'attachment; filename="{filename}"'
+    return resp
+
+
+@system_bp.route('/git/commit')
+def git_commit_page():
+    repo_id = request.args.get('repoId')
+    commit_hash = request.args.get('hash')
+    if not repo_id or not commit_hash:
+        return api_error('Missing repoId or hash', status=400)
+
+    repo_path = git_utils.resolve_repo_path(repo_id)
+    if not repo_path:
+        return api_error('Invalid repoId', status=400)
+
+    repo_name = os.path.basename(repo_path) or repo_path
+    log_text = git_utils.get_commit_log_text(repo_path, commit_hash) or ''
+    numstat = git_utils.get_commit_numstat(repo_path, commit_hash) or []
+    diff_text = git_utils.get_commit_diff_text(repo_path, commit_hash) or ''
+    patch_url = f'/api/git/commit/patch?repoId={repo_id}&hash={commit_hash}'
+
+    return render_template(
+        'git_commit.html',
+        repo_name=repo_name,
+        repo_id=repo_id,
+        commit_hash=commit_hash,
+        log_text=log_text,
+        numstat=numstat,
+        diff_text=diff_text,
+        patch_url=patch_url,
+    )
 
 
 @system_bp.route('/api/gpu/info')
