@@ -73,23 +73,24 @@
         if (!bar.getAttribute('aria-hidden')) bar.setAttribute('aria-hidden', 'true');
 
         if (bar.getAttribute('data-clipboard-initialized') !== '1') {
-            var pasteIconSvg = '<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" style="display:block"><path d="M19 2h-4.18C14.4.84 13.3 0 12 0c-1.3 0-2.4.84-2.82 2H5c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm7 18H5V4h2v3h10V4h2v16z"/></svg>';
-
             bar.innerHTML =
-                '<div id="clipboardFilename" class="clipboard-filename"></div>' +
-                '<div class="clipboard-actions">' +
-                    '<button id="clipboardPasteBtn" type="button" class="clipboard-paste-btn" aria-label="在此粘贴">' +
-                        pasteIconSvg +
-                        '<span>粘贴</span>' +
-                    '</button>' +
-                    '<button id="clipboardCancelBtn" type="button" class="clipboard-cancel-btn" title="取消" aria-label="取消剪贴板操作">×</button>' +
+                '<div class="clipboard-main">' +
+                    '<div class="clipboard-text">' +
+                        '<div id="clipboardTitle" class="clipboard-title"></div>' +
+                        '<div id="clipboardFilename" class="clipboard-filename"></div>' +
+                    '</div>' +
+                    '<div class="clipboard-actions">' +
+                        '<button id="clipboardPasteBtn" type="button" class="clipboard-paste-btn" aria-label="粘贴">粘贴</button>' +
+                                                '<button id="clipboardCloseBtn" type="button" class="clipboard-close-btn" aria-label="关闭">×</button>' +
+
+                    '</div>' +
                 '</div>';
 
             bar.setAttribute('data-clipboard-initialized', '1');
         }
 
         var pasteBtn = document.getElementById('clipboardPasteBtn');
-        var cancelBtn = document.getElementById('clipboardCancelBtn');
+        var closeBtn = document.getElementById('clipboardCloseBtn');
 
         if (pasteBtn && pasteBtn.getAttribute('data-clipboard-bound') !== '1') {
             pasteBtn.addEventListener('click', debounce(function() {
@@ -97,11 +98,11 @@
             }, PASTE_DEBOUNCE_MS));
             pasteBtn.setAttribute('data-clipboard-bound', '1');
         }
-        if (cancelBtn && cancelBtn.getAttribute('data-clipboard-bound') !== '1') {
-            cancelBtn.addEventListener('click', function() {
+        if (closeBtn && closeBtn.getAttribute('data-clipboard-bound') !== '1') {
+            closeBtn.addEventListener('click', function() {
                 cancel();
             });
-            cancelBtn.setAttribute('data-clipboard-bound', '1');
+            closeBtn.setAttribute('data-clipboard-bound', '1');
         }
     }
 
@@ -214,18 +215,21 @@
         
         createDom();
         var bar = document.getElementById('clipboardBar');
+        var titleEl = document.getElementById('clipboardTitle');
         var filenameEl = document.getElementById('clipboardFilename');
         
         if (bar && filenameEl) {
-            var displayText = '';
-            if (state.count === 1) {
-                var name = state.paths[0].split(/[/\\]/).pop();
-                displayText = '在此粘贴 ' + name;
-            } else {
-                displayText = '在此粘贴 ' + state.count + ' 个项目';
+            var titleText = state.op === 'cut' ? '已剪切' : '已复制';
+            if (titleEl) {
+                titleEl.textContent = titleText;
             }
-            
-            filenameEl.textContent = displayText;
+            var fileText = '';
+            if (state.count === 1) {
+                fileText = state.paths[0].split(/[/\\]/).pop();
+            } else {
+                fileText = state.count + ' 个项目';
+            }
+            filenameEl.textContent = fileText;
             bar.style.display = 'flex';
             bar.setAttribute('aria-hidden', 'false');
             // Force reflow
