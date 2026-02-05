@@ -9,7 +9,13 @@ function showMenuModal(path, name, isDir) {
     window.currentItemIsDir = isDir;
     document.getElementById('menuTitle').textContent = name;
     var editEl = document.getElementById('menuEditItem');
-    if (editEl) editEl.style.display = isDir ? 'none' : '';
+    if (editEl) {
+        editEl.style.display = isDir ? 'none' : '';
+        editEl.onclick = function() {
+            closeMenuModal();
+            openEditor(window.currentItemPath);
+        };
+    }
     var downloadEl = document.getElementById('menuDownloadItem');
     if (downloadEl) downloadEl.style.display = isDir ? 'none' : '';
     var copyUrlEl = document.getElementById('menuCopyUrlItem');

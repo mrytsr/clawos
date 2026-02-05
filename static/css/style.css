@@ -844,20 +844,19 @@
     left: 50%;
     transform: translateX(-50%);
     display: flex;
-    flex-direction: column;
-    width: 320px;
+    width: 340px;
     max-width: 90vw;
-    padding: 12px;
-    border-radius: 4px;
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(4px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: rgba(0, 0, 0, 0.58);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
     z-index: 9999;
     transition: opacity 0.2s ease, visibility 0.2s ease;
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
-    border: 1px solid rgba(0,0,0,0.1);
+    border: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 .clipboard-bar.visible {
@@ -866,62 +865,86 @@
     pointer-events: auto;
 }
 
-.clipboard-filename {
-    font-size: 14px;
-    color: #333;
-    margin-bottom: 12px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+.clipboard-main {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+    width: 100%;
+}
+
+.clipboard-text {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    width: 100%;
+    align-items: center;
     text-align: center;
-    font-weight: 500;
 }
 
 .clipboard-actions {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 12px;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.clipboard-title {
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.78);
+    line-height: 1.1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.clipboard-filename {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.95);
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .clipboard-paste-btn {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 4px;
-    padding: 6px 12px;
-    background: #0969da;
+    flex-shrink: 0;
+    padding: 7px 14px;
+    background: #2f81f7;
     color: white;
     border: none;
-    border-radius: 4px;
-    font-size: 13px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
     cursor: pointer;
     transition: background 0.2s;
 }
 
 .clipboard-paste-btn:hover {
-    background: #0354a6;
+    background: #1f6feb;
 }
 
-.clipboard-cancel-btn {
-    width: 32px;
-    height: 32px;
+.clipboard-close-btn {
+    width: 30px;
+    height: 30px;
     display: flex;
     align-items: center;
     justify-content: center;
     background: transparent;
     border: none;
-    color: #666;
+    color: rgba(255, 255, 255, 0.65);
     font-size: 18px;
+    line-height: 1;
     cursor: pointer;
-    border-radius: 4px;
+    border-radius: 999px;
     transition: color 0.2s, background 0.2s;
 }
 
-.clipboard-cancel-btn:hover {
-    color: #000;
-    background: rgba(0,0,0,0.05);
+.clipboard-close-btn:hover {
+    color: rgba(255, 255, 255, 0.9);
+    background: rgba(255, 255, 255, 0.12);
 }
 
 .task-listener-bar {
