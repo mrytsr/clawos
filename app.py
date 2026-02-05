@@ -1,5 +1,9 @@
-import logging
 import os
+import importlib
+import re
+import select
+import struct
+import subprocess
 
 from flask import Flask, jsonify, request
 from flask import Response
@@ -7,20 +11,15 @@ from flask_socketio import SocketIO
 from werkzeug.exceptions import HTTPException
 
 import config
+from lib import path_utils
 
-from ctrl.api_ctrl import register_api
-from ctrl.auth_ctrl import register_auth
-from ctrl.batch_ctrl import register_batch
-from ctrl.bot_proxy_ctrl import register_bot_proxy
-from ctrl.file_ctrl import register_file
-from ctrl.system_ctrl import register_system
-from ctrl.task_ctrl import register_task
-from ctrl.template_ctrl import register_template_helpers
-from ctrl.terminal_ctrl import register_terminal
-
-if os.name != 'nt':
-    import eventlet
-    eventlet.monkey_patch()
+from ctrl.api_ctrl import api_bp
+from ctrl.api_ctrl import _ApiContext
+from ctrl.auth_ctrl import auth_bp
+from ctrl.batch_ctrl import batch_bp
+from ctrl.file_ctrl import file_bp
+from ctrl.system_ctrl import system_bp
+from ctrl.task_ctrl import task_bp
 
 app = Flask(__name__, static_folder='static', template_folder='templates')
 app.config['SECRET_KEY'] = os.urandom(24).hex()
@@ -30,17 +29,168 @@ socketio = SocketIO(
     async_mode='threading' if os.name == 'nt' else None,
 )
 
-register_auth(app)
-register_template_helpers(app)
-register_api(app)
-register_batch(app)
-register_system(app)
-register_task(app)
-register_file(app)
-register_terminal(socketio)
-register_bot_proxy(socketio)
+_template_root_dir = config.ROOT_DIR
 
-logging.basicConfig(level=logging.INFO)
+
+@app.template_global()
+def get_relative_path(path):
+    return path_utils.get_relative_path(path, _template_root_dir)
+
+
+@app.template_filter('starts_with_port')
+def starts_with_port_filter(name):
+    return bool(re.match(r'^[0-9]{4}_', name))
+
+
+@app.template_filter('extract_port')
+def extract_port_filter(name):
+    match = re.match(r'^([0-9]{4})_', name)
+    return match.group(1) if match else ''
+
+
+@app.template_filter('dirname')
+def dirname_filter(path):
+    return os.path.dirname(path)
+
+
+@app.template_global()
+def server_is_windows():
+    return os.name == 'nt'
+
+
+app.extensions['api_ctx'] = _ApiContext(
+    root_dir=config.ROOT_DIR,
+    conversation_file=config.CONVERSATION_FILE,
+    trash_dir=config.TRASH_DIR,
+    terminal_supported=os.name != 'nt',
+)
+app.register_blueprint(auth_bp)
+app.register_blueprint(api_bp)
+app.register_blueprint(batch_bp)
+app.register_blueprint(system_bp)
+app.register_blueprint(task_bp)
+app.register_blueprint(file_bp)
+
+_terminal_root_dir = config.ROOT_DIR
+_terminal_supported = os.name != 'nt'
+_terminal_sessions = {}
+TERMINAL_PREEXEC_FN = getattr(os, 'setsid', None)
+fcntl = None
+pty = None
+termios = None
+
+if _terminal_supported:
+    try:
+        fcntl = importlib.import_module('fcntl')
+        pty = importlib.import_module('pty')
+        termios = importlib.import_module('termios')
+    except Exception:
+        _terminal_supported = False
+        fcntl = None
+        pty = None
+        termios = None
+
+
+@socketio.on('connect', namespace='/term')
+def term_connect():
+    return
+
+
+@socketio.on('create_terminal', namespace='/term')
+def term_create_terminal(data):
+    if not _terminal_supported or pty is None:
+        message = (
+            '\r\n\x1b[31m*** 当前系统不支持 Web 终端（需要 Linux '
+            'PTY/termios）***\x1b[0m\r\n'
+        )
+        socketio.emit(
+            'output',
+            {'data': message},
+            room=request.sid,
+            namespace='/term',
+        )
+        return
+
+    cwd = (data or {}).get('cwd', _terminal_root_dir)
+    if not os.path.abspath(cwd).startswith(
+        os.path.abspath(_terminal_root_dir)
+    ):
+        cwd = _terminal_root_dir
+    if not os.path.exists(cwd):
+        cwd = _terminal_root_dir
+
+    master, slave = pty.openpty()
+    process = subprocess.Popen(
+        ['/bin/bash'],
+        preexec_fn=TERMINAL_PREEXEC_FN,
+        stdin=slave,
+        stdout=slave,
+        stderr=slave,
+        cwd=cwd,
+        env={**os.environ, "TERM": "xterm-256color"},
+    )
+    _terminal_sessions[request.sid] = {'fd': master, 'process': process}
+    os.close(slave)
+
+    def _read_terminal_output(fd, sid):
+        try:
+            while True:
+                socketio.sleep(0.01)
+                if sid not in _terminal_sessions:
+                    break
+                readable, _w, _e = select.select([fd], [], [], 0)
+                if fd in readable:
+                    output = os.read(fd, 10240)
+                    if not output:
+                        break
+                    socketio.emit(
+                        'output',
+                        {'data': output.decode('utf-8', 'ignore')},
+                        room=sid,
+                        namespace='/term',
+                    )
+        except OSError:
+            pass
+
+    socketio.start_background_task(_read_terminal_output, master, request.sid)
+    return
+
+
+@socketio.on('input', namespace='/term')
+def term_on_input(data):
+    session = _terminal_sessions.get(request.sid)
+    if session:
+        os.write(session['fd'], (data or {}).get('input', '').encode())
+
+
+@socketio.on('resize', namespace='/term')
+def term_on_resize(data):
+    if not _terminal_supported or fcntl is None or termios is None:
+        return
+    session = _terminal_sessions.get(request.sid)
+    if session:
+        fd = session['fd']
+        winsize = struct.pack(
+            "HHHH",
+            int((data or {}).get('rows') or 0),
+            int((data or {}).get('cols') or 0),
+            0,
+            0,
+        )
+        fcntl.ioctl(fd, termios.TIOCSWINSZ, winsize)
+    return
+
+
+@socketio.on('disconnect', namespace='/term')
+def term_disconnect():
+    session = _terminal_sessions.get(request.sid)
+    if session:
+        try:
+            os.close(session['fd'])
+            session['process'].terminate()
+        except Exception:
+            pass
+        del _terminal_sessions[request.sid]
 
 
 @app.errorhandler(Exception)
@@ -49,7 +199,10 @@ def handle_unhandled_exception(e):
         return e
     app.logger.exception('Unhandled exception')
     if request.path.startswith('/api/'):
-        return jsonify({'success': False, 'error': {'message': 'Internal Server Error'}}), 500
+        return jsonify({
+            'success': False,
+            'error': {'message': 'Internal Server Error'},
+        }), 500
     return '服务器内部错误', 500
 
 

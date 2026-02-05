@@ -710,7 +710,7 @@
     <div class="container">
         <div class="breadcrumb">
             <!-- 嵌入式上传按钮 -->
-            <form method="post" action="{{ url_for('upload_file', path=get_relative_path(current_dir)) }}" enctype="multipart/form-data" id="uploadForm">
+            <form method="post" action="{{ url_for('file.upload_file', path=get_relative_path(current_dir)) }}" enctype="multipart/form-data" id="uploadForm">
                 <input type="file" name="file" id="fileInputInline" onchange="handleFileSelect(event)" style="display: none;">
                 <div class="upload-btn-inline" onclick="openCreateMenuDrawer()" title="创建">+</div>
             </form>
@@ -718,7 +718,7 @@
             <div class="breadcrumb-left">
                 <a href="#" onclick="openTrashDrawer(); return false;" style="color: #dc3545; text-decoration: none; margin-right: 8px;" title="回收站">🗑️</a>
                 <span style="color: #ddd; margin-right: 8px;">|</span>
-                <a href="{{ url_for('browse') }}" style="color: #ffc107; margin-right: 8px;" title="根目录">🏠</a>
+                <a href="{{ url_for('file.browse') }}" style="color: #ffc107; margin-right: 8px;" title="根目录">🏠</a>
                 {% if breadcrumbs %}
                     <span class="crumb-sep">/</span>
                 {% else %}
@@ -728,7 +728,7 @@
                     {% if loop.last %}
                         <strong>{{ crumb.name }} ({{ items|length }})</strong>
                     {% else %}
-                        <a href="{{ url_for('browse', path=get_relative_path(crumb.path)) }}">{{ crumb.name }}</a>
+                        <a href="{{ url_for('file.browse', path=get_relative_path(crumb.path)) }}">{{ crumb.name }}</a>
                         <span class="crumb-sep">/</span>
                     {% endif %}
                 {% endfor %}
@@ -737,7 +737,7 @@
             </div>
             <div style="display: flex; gap: 8px;">
                 {% if current_dir != ROOT_DIR %}
-                <a href="{{ url_for('browse', path=get_relative_path(os.path.dirname(current_dir))) }}" class="up-btn">↑</a>
+                <a href="{{ url_for('file.browse', path=get_relative_path(os.path.dirname(current_dir))) }}" class="up-btn">↑</a>
                 {% endif %}
             </div>
         </div>
@@ -757,7 +757,7 @@
                     <div class="file-col-icon">
                         <input type="checkbox" class="file-checkbox" data-path="{{ get_relative_path(item.path) }}" onchange="toggleItemSelection('{{ get_relative_path(item.path) }}', this)" style="margin-right: 8px; cursor: pointer;">
                         {% if item.is_image %}
-                            <img src="{{ url_for('thumbnail', path=get_relative_path(item.path)) }}" alt="{{ item.name }}" class="file-thumbnail" onerror="this.style.display='none';">
+                            <img src="{{ url_for('file.thumbnail', path=get_relative_path(item.path)) }}" alt="{{ item.name }}" class="file-thumbnail" onerror="this.style.display='none';">
                         {% else %}
                             <span class="file-icon">{{ item.icon }}</span>
                         {% endif %}
@@ -767,13 +767,13 @@
                     <div class="file-col-info">
                         <div class="file-name">
                             {% if item.is_dir %}
-                                <a href="{{ url_for('browse', path=get_relative_path(item.path)) }}" style="color: inherit; text-decoration: none;">{{ item.name }}</a>
+                                <a href="{{ url_for('file.browse', path=get_relative_path(item.path)) }}" style="color: inherit; text-decoration: none;">{{ item.name }}</a>
                             {% else %}
                                 {% set ext = (item.name.split('.')|last if '.' in item.name else '')|lower %}
                                 {% if ext in ['pdf', 'mp4', 'webm', 'ogg', 'mov', 'avi', 'mkv', 'mp3', 'wav', 'flac', 'aac', 'm4a', 'svg', 'ico', 'webp', 'avif'] %}
-                                <a href="{{ url_for('serve_file', path=get_relative_path(item.path)) }}" target="_blank" style="color: inherit; text-decoration: none;">{{ item.name }}</a>
+                                <a href="{{ url_for('file.serve_file', path=get_relative_path(item.path)) }}" target="_blank" style="color: inherit; text-decoration: none;">{{ item.name }}</a>
                                 {% else %}
-                                <a href="{{ url_for('view_file', path=get_relative_path(item.path)) }}" style="color: inherit; text-decoration: none;">{{ item.name }}</a>
+                                <a href="{{ url_for('file.view_file', path=get_relative_path(item.path)) }}" style="color: inherit; text-decoration: none;">{{ item.name }}</a>
                                 {% endif %}
                             {% endif %}
                             {% if item.is_dir and item.name|starts_with_port %}
@@ -795,10 +795,10 @@
                         <button class="preview-btn" onclick="event.stopPropagation(); openPreview('{{ get_relative_path(item.path) }}', '{{ item.name }}')" title="在线预览">🔭</button>
                         {# Chrome 原生支持格式 → 新窗口打开 #}
                         {% elif ext in ['pdf', 'mp4', 'webm', 'ogg', 'mov', 'avi', 'mkv', 'mp3', 'wav', 'flac', 'aac', 'm4a', 'svg', 'ico', 'webp', 'avif'] %}
-                        <a class="preview-btn" href="{{ url_for('serve_file', path=get_relative_path(item.path)) }}" target="_blank" title="新窗口打开">👁️</a>
+                        <a class="preview-btn" href="{{ url_for('file.serve_file', path=get_relative_path(item.path)) }}" target="_blank" title="新窗口打开">👁️</a>
                         {# 其他文本文件 → 查看器 #}
                         {% elif ext in ['txt', 'md', 'json', 'xml', 'js', 'css', 'html', 'htm', 'py', 'sh', 'yaml', 'yml', 'csv'] %}
-                        <a class="preview-btn" href="{{ url_for('view_file', path=get_relative_path(item.path)) }}" title="查看器">📄</a>
+                        <a class="preview-btn" href="{{ url_for('file.view_file', path=get_relative_path(item.path)) }}" title="查看器">📄</a>
                         {% endif %}
                         {% endif %}
                         <!-- 菜单按钮 -->
@@ -858,20 +858,7 @@
                     <span id="botWsStatus">未连接</span>
                 </div>
                 
-                <!-- 连接模式选择 -->
-                <div style="margin-bottom: 10px; padding: 10px; background: #f5f5f5; border-radius: 6px;">
-                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                        <input type="checkbox" id="useProxy" checked onchange="toggleWsMode()">
-                        <span style="font-size: var(--global-font-size, 13px);">使用 6002 代理 (推荐)</span>
-                    </label>
-                </div>
-                
-                <!-- WS URL 输入框 -->
-                <div id="wsUrlContainer" style="display: none; margin-bottom: 10px;">
-                    <input type="text" id="wsUrlInput" placeholder="ws://your-server:18789" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px; font-size: var(--global-font-size, 13px);">
-                </div>
-                
-                <input type="text" id="botTokenInput" placeholder="Gateway Token" style="margin-bottom: 10px; width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px;">
+                <input type="text" id="botTokenInput" placeholder="Gateway Token" value="48d6818aace0430b504d27a7c100669ed8f4694da9d6eb95" style="margin-bottom: 10px; width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px;">
                 <div style="display: flex; gap: 10px;">
                     <button onclick="botConnect()" class="dialog-btn dialog-btn-primary" style="padding: 8px;">连接</button>
                     <button onclick="botClear()" class="dialog-btn dialog-btn-danger" style="padding: 8px;">清空记录</button>
@@ -883,7 +870,7 @@
             </div>
 
             <div class="bot-chat-box" id="botChatBox">
-                <!-- Messages will be loaded here -->
+                <ul id="botHistoryList" class="bot-history" style="list-style: none; padding: 0; margin: 0;"></ul>
             </div>
             
             <div class="bot-input-area">

@@ -61,13 +61,13 @@
 <body>
     <div class="filename">{{ filename }}</div>
     <div class="image-container">
-        <img src="{{ url_for('serve_file', path=file_path) }}" 
+        <img src="{{ url_for('file.serve_file', path=file_path) }}" 
              onerror="alert('无法显示此图片');"
              alt="{{ filename }}">
     </div>
     <div class="actions">
-        <a href="{{ url_for('download_file', path=file_path) }}" class="btn btn-primary">下载</a>
-        <a href="{{ url_for('browse', path=current_dir) }}" class="btn btn-secondary">返回目录</a>
+        <a href="{{ url_for('file.download_file', path=file_path) }}" class="btn btn-primary">下载</a>
+        <a href="{{ url_for('file.browse', path=current_dir) }}" class="btn btn-secondary">返回目录</a>
     </div>
 </body>
 </html>

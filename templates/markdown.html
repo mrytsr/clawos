@@ -56,12 +56,12 @@
 </head>
 <body>
     <div class="header">
-        <a href="{{ url_for('browse', path=get_relative_path(current_dir)) }}" class="back-btn">←</a>
+        <a href="{{ url_for('file.browse', path=get_relative_path(current_dir)) }}" class="back-btn">←</a>
         <h1 style="margin: 0; font-size: 1rem; flex-grow: 1; text-align: center;">{{ filename }}</h1>
         <div class="header-buttons">
             <button class="edit-btn" onclick="toggleSourceMode()" id="sourceBtn">📄 源码</button>
-            <a href="{{ url_for('edit_file', path=file_path) }}" class="edit-btn">✏️ 编辑</a>
-            <a href="{{ url_for('download_file', path=file_path) }}" class="download-btn">📥</a>
+            <a href="{{ url_for('file.edit_file', path=file_path) }}" class="edit-btn">✏️ 编辑</a>
+            <a href="{{ url_for('file.download_file', path=file_path) }}" class="download-btn">📥</a>
         </div>
     </div>
     

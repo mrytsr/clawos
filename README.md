@@ -1,118 +1,165 @@
-# 🖥️ PyWebDeck
-# 🖥️ PyWebDeck
-一个基于 Flask + SocketIO 的单文件 Linux 网页管理器。支持文件管理、Web 终端、代码编辑和 AI 助手集成。
-A single-file Linux web manager based on Flask + SocketIO. Features file management, web terminal, code editing, and AI assistant integration.
-![License](https://img.shields.io/badge/License-MIT-blue.svg)
+# 🖥️ ClawOS / PyWebDeck
+
+一个基于 Flask + SocketIO 的 Web 管理面板，主要用于在浏览器里进行文件管理、批量操作、预览与 Web 终端操作。支持 Windows/Linux。
+
+A Flask + SocketIO based web management panel for file management, batch operations, preview, and a web terminal. Works on both Windows and Linux.
+
 ![License](https://img.shields.io/badge/License-MIT-blue.svg)
 ![Python](https://img.shields.io/badge/Python-3.8+-green.svg)
-![Python](https://img.shields.io/badge/Python-3.8+-green.svg)
-## ✨ 特性
-## ✨ Features
-- 📂 **全功能文件管理**：浏览、上传、下载、重命名、移动、删除、克隆
-- 📂 **Full-featured File Management**: Browse, upload, download, rename, move, delete, clone
-- 🖥️ **Web 终端**：基于 xterm.js 的完整 Shell 体验，支持颜色和快捷键
-- 🖥️ **Web Terminal**: Complete Shell experience based on xterm.js with color and shortcut support
-- 🤖 **AI 助手集成**：内置悬浮聊天机器人，支持上下文对话
-- 🤖 **AI Assistant Integration**: Built-in floating chat bot with context-aware conversation
-- 📱 **移动端优化**：针对手机触屏优化的交互设计
-- 📱 **Mobile Optimized**: Touch-friendly interaction design for mobile devices
-- ⚡ **单文件部署**：所有代码和模板集成在一个 `.py` 文件中，即拷即用
-- ⚡ **Single-file Deployment**: All code and templates integrated in one `.py` file
-## 🚀 快速开始
-## 🚀 Quick Start
-### 环境准备
-### Prerequisites
+
+---
+
+## ✨ 功能概览（中文）
+
+- 📂 文件管理：浏览、上传、下载、重命名、移动、删除、克隆
+- ✅ 批量操作：多选、批量删除、批量复制/剪切（通过悬浮剪贴板条粘贴到当前目录）
+- 📌 悬浮剪贴板条：复制/剪切后底部提示“在此粘贴…”，支持粘贴/取消，支持多文件列表
+- 🔍 搜索：文件搜索抽屉
+- 👁️ 预览：图片缩略图、文本/Markdown 预览（根据模板页面）
+- 🖥️ Web 终端：基于 xterm.js + SocketIO 的交互终端
+- 🤖 AI 助手：内置对话抽屉（可配置 Token，具体取决于你的网关服务）
+- 📱 移动端适配：抽屉式交互与响应式样式
+
+## 🚀 安装与运行（中文）
+
+### 1) 安装 Python 依赖
+
 ```bash
-# 安装依赖 / Install dependencies
 pip install -r requirements.txt
 ```
-### 运行
-### Run
+
+### 2) 启动服务
+
 ```bash
-# 设置管理目录（可选，默认为当前目录或 /root/clawd） / Set root directory (optional, defaults to current directory or /root/clawd)
+python app.py
+```
+
+默认监听端口：`6002`。浏览器打开：
+
+```
+http://127.0.0.1:6002/
+```
+
+### 3) （可选）配置环境变量
+
+本项目通过环境变量控制根目录和端口：
+
+- `ROOT_DIR`：管理的根目录（默认是项目目录的上一级目录）
+- `SERVER_PORT`：服务端口（默认 `6002`）
+
+Linux/macOS:
+
+```bash
 export ROOT_DIR=/your/path
-# 启动服务 / Start the service
-python3 app.py
+export SERVER_PORT=6002
+python app.py
 ```
-访问 `http://your-server:6002`，使用默认账号登录：
-Visit `http://your-server:6002` and login with default credentials:
-- **用户名**：`admin`
-- **Username**: `admin`
-- **密码**：`admin`
-- **Password**: `admin`
-### Docker 部署
-### Docker Deployment
+
+Windows PowerShell:
+
+```powershell
+$env:ROOT_DIR="C:\\your\\path"
+$env:SERVER_PORT="6002"
+python app.py
+```
+
+### 4) 登录
+
+默认账号（建议启动后立即修改认证逻辑或加反向代理鉴权）：
+
+- 用户名：`admin`
+- 密码：`admin`
+
+---
+
+## 🧪 测试与代码质量（可选）
+
+项目提供了前端 JS 的 lint / unit / e2e 测试脚本（需要安装 Node.js）。
+
 ```bash
-docker run -d -p 6002:6002 -v /:/data --name pywebdeck pywebdeck-image
+npm install
+npm run lint
+npm test
+npm run test:e2e
 ```
-## 📖 功能说明
-## 📖 Features
-### 文件管理
-### File Management
-- 双击/点击进入目录
-- Click to enter directories
-- 点击行号复制文件路径
-- Click line numbers to copy file paths
-- 点击右侧菜单进行重命名、移动、删除等操作
-- Use the right-side menu for rename, move, delete, etc.
-- 支持图片缩略图预览
-- Thumbnail preview for images
-### Web 终端
-### Web Terminal
-- 点击文件右侧菜单 → **在终端打开**
-- Click file menu → **Open in Terminal**
-- 支持常用命令：`ls`, `cd`, `vim`, `git` 等
-- Supports common commands: `ls`, `cd`, `vim`, `git`, etc.
-- 支持复制粘贴（Ctrl+C/V）
-- Copy/Paste support (Ctrl+C/V)
-### AI 助手
-### AI Assistant
-- 点击右下角 🤖 图标打开对话窗口
-- Click 🤖 icon to open chat window
-- 可配置 Gateway Token 连接外部 AI 服务
-- Configure Gateway Token to connect external AI service
-- 支持上下文对话
-- Context-aware conversation support
-## ⚙️ 配置项
-## ⚙️ Configuration
-- 环境变量：`ROOT_DIR` — 管理的根目录（默认 `/root/clawd`）
-- Environment variable: `ROOT_DIR` — Root directory to manage (default `/root/clawd`)
-## 🔒 安全提示
-## 🔒 Security Notes
-- **务必修改默认密码！**
-- **Change the default password!**
-- 仅在可信网络环境使用，或配置 VPN/防火墙限制访问
-- Use only in trusted network environments or with VPN/firewall protection
-- 终端拥有 Root 权限，请谨慎操作
-- Terminal has Root permissions, please operate with caution
-## ⚠️ 免责声明
-## ⚠️ Disclaimer
-本软件按“原样”提供，不提供任何明示或暗示的保证，包括但不限于对适销性、特定用途适用性或非侵权性的暗示保证。
-This software is provided "as is" without any warranty, express or implied, including but not limited to the warranties of merchantability, fitness for a particular purpose, and non-infringement.
-使用本软件对服务器进行的所有操作（包括但不限于文件管理、终端执行命令等）由使用者自行承担风险。对于因使用本软件而导致的任何数据丢失、系统损坏或其他任何损失，作者不承担任何责任。
-All operations performed on the server using this software (including but not limited to file management and terminal command execution) are at the user's own risk. The author is not responsible for any data loss, system damage, or other losses resulting from the use of this software.
-**请勿在生产环境或公网环境直接暴露本服务**，建议配置防火墙、强密码认证和 HTTPS 加密。
-**Do not expose this service directly in production environments or on the public internet.** It is recommended to configure firewall, strong password authentication, and HTTPS encryption.
-## 📂 项目结构
-## 📂 Project Structure
-```text
-6002_file_manager/
-├── app.py              # 主程序（单文件应用） / Main program (single-file application)
-├── README.md           # 本文档（中英合并） / This document (Chinese + English)
-├── requirements.txt    # Python 依赖 / Python dependencies
-└── ...
+
+Playwright e2e 初次运行可能需要安装浏览器：
+
+```bash
+npx playwright install
 ```
-## 📝 更新日志
-## 📝 Changelog
-**v1.0** (2026-02-01)
-**v1.0** (2026-02-01)
-- 初始版本发布
-- Initial release
-- 支持文件管理、Web 终端、AI 助手
-- File management, web terminal, AI assistant support
-- 移动端适配优化
-- Mobile optimization
+
+---
+
+## 🔒 安全提示（中文）
+
+- 请勿把服务直接暴露到公网（默认账号密码为 `admin/admin`）。
+- 推荐只在可信内网使用，或在反向代理（Nginx/Caddy）后加 HTTPS 与强认证。
+- Web 终端具备执行命令能力，请谨慎授权与隔离运行环境。
+
+---
+
+## ✨ Features (English)
+
+- 📂 File management: browse, upload, download, rename, move, delete, clone
+- ✅ Batch operations: multi-select, batch delete, batch copy/cut (paste via a floating clipboard bar)
+- 📌 Floating clipboard bar: shows “Paste here …” after copy/cut, supports paste/cancel, supports multiple paths
+- 🔍 Search: drawer-based search UI
+- 👁️ Preview: thumbnails and viewers (image / text / markdown depending on templates)
+- 🖥️ Web terminal: xterm.js + SocketIO interactive terminal
+- 🤖 AI assistant: built-in chat drawer (depends on your gateway/token setup)
+- 📱 Mobile friendly: drawer-based interactions and responsive layout
+
+## 🚀 Install & Run (English)
+
+### 1) Install Python dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+### 2) Run the server
+
+```bash
+python app.py
+```
+
+Open:
+
+```
+http://127.0.0.1:6002/
+```
+
+### 3) (Optional) Environment variables
+
+- `ROOT_DIR`: root directory to manage (defaults to the parent directory of this project)
+- `SERVER_PORT`: server port (default `6002`)
+
+Linux/macOS:
+
+```bash
+export ROOT_DIR=/your/path
+export SERVER_PORT=6002
+python app.py
+```
+
+Windows PowerShell:
+
+```powershell
+$env:ROOT_DIR="C:\\your\\path"
+$env:SERVER_PORT="6002"
+python app.py
+```
+
+### 4) Login
+
+Default credentials:
+
+- Username: `admin`
+- Password: `admin`
+
+---
+
 ## 📄 License
-## 📄 License
-MIT License
-MIT License
+
+MIT

@@ -2,7 +2,7 @@ import threading
 import time
 import uuid
 
-from flask import jsonify, request
+from flask import Blueprint, jsonify, request
 
 
 _TASKS = {}
@@ -42,14 +42,28 @@ def get_task(task_id):
         return dict(_TASKS.get(task_id) or {})
 
 
-def register_task(app):
-    @app.route('/api/task/status')
-    def api_task_status():
-        task_id = request.args.get('taskId', '').strip()
-        if not task_id:
-            return jsonify({'success': False, 'error': {'message': 'taskId required'}}), 400
-        task = get_task(task_id)
-        if not task:
-            return jsonify({'success': False, 'error': {'message': 'task not found'}, 'taskId': task_id, 'status': 'failed'}), 404
-        return jsonify({'success': True, 'taskId': task_id, 'status': task.get('status'), 'message': task.get('message', '')})
+task_bp = Blueprint('task', __name__)
 
+
+@task_bp.route('/api/task/status')
+def api_task_status():
+    task_id = request.args.get('taskId', '').strip()
+    if not task_id:
+        return jsonify({
+            'success': False,
+            'error': {'message': 'taskId required'},
+        }), 400
+    task = get_task(task_id)
+    if not task:
+        return jsonify({
+            'success': False,
+            'error': {'message': 'task not found'},
+            'taskId': task_id,
+            'status': 'failed',
+        }), 404
+    return jsonify({
+        'success': True,
+        'taskId': task_id,
+        'status': task.get('status'),
+        'message': task.get('message', ''),
+    })

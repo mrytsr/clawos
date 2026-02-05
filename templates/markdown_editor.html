@@ -91,14 +91,14 @@
 </head>
 <body>
     <div class="editor-header">
-        <a href="{{ url_for('browse', path=get_relative_path(current_dir)) }}" class="editor-btn">←</a>
+        <a href="{{ url_for('file.browse', path=get_relative_path(current_dir)) }}" class="editor-btn">←</a>
         <h1 style="margin: 0; font-size: 0.95rem; flex-grow: 1; text-align: center; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ filename }}</h1>
         <div class="header-buttons">
             <button class="editor-btn" onclick="saveFile()">💾</button>
             <button class="editor-btn" onclick="undo()">↩</button>
             <button class="editor-btn" onclick="redo()">↪</button>
             <button class="editor-btn" onclick="formatCode()">✨</button>
-            <a href="{{ url_for('download_file', path=file_path) }}" class="editor-btn">📥</a>
+            <a href="{{ url_for('file.download_file', path=file_path) }}" class="editor-btn">📥</a>
         </div>
     </div>
     <div class="editor-container">

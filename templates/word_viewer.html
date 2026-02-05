@@ -177,9 +177,9 @@
 </head>
 <body>
     <div class="header">
-        <a href="{{ url_for('browse', path=get_relative_path(current_dir)) }}">← 返回目录</a>
+        <a href="{{ url_for('file.browse', path=get_relative_path(current_dir)) }}">← 返回目录</a>
         <span class="filename">{{ filename }}</span>
-        <a href="{{ url_for('download_file', path=file_path) }}">📥 下载</a>
+        <a href="{{ url_for('file.download_file', path=file_path) }}">📥 下载</a>
     </div>
     
     <div class="document-container">

@@ -102,14 +102,14 @@
 </head>
 <body>
     <div class="editor-header">
-        <a href="{{ url_for('browse', path=get_relative_path(current_dir)) }}" class="editor-btn">←</a>
+        <a href="{{ url_for('file.browse', path=get_relative_path(current_dir)) }}" class="editor-btn">←</a>
         <h1 style="margin: 0; font-size: 1.2rem; flex-grow: 1; text-align: center;">{{ filename }}</h1>
         <div class="header-buttons">
             <button class="editor-btn" onclick="saveFile()">💾 保存</button>
             <button class="editor-btn" onclick="undo()">↩ 撤销</button>
             <button class="editor-btn" onclick="redo()">↪ 重做</button>
             <button class="editor-btn" onclick="formatCode()">✨ 格式化</button>
-            <a href="{{ url_for('download_file', path=file_path) }}" class="editor-btn">📥 下载</a>
+            <a href="{{ url_for('file.download_file', path=file_path) }}" class="editor-btn">📥 下载</a>
         </div>
     </div>
     <div class="editor-container">
