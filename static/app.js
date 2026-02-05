@@ -223,15 +223,17 @@ window.createMenuNewFile = function() {
 };
 
 // 执行操作
-function performDelete() {
-    fetch(`/delete/${encodeURIComponent(currentItemPath)}`, { method: 'DELETE' })
+function performDelete(path) {
+    const p = (typeof path === 'string' && path) ? path : currentItemPath;
+    fetch(`/delete/${encodeURIComponent(p)}`, { method: 'DELETE' })
         .then(r => r.json())
         .then(data => {
             if (data.success) { showToast('已移到回收站', 'success'); refreshFileList(); }
             else { showToast(data.message || '删除失败', 'error'); }
         })
         .catch(() => showToast('删除失败', 'error'));
-    closeConfirmModal();
+    const m = document.getElementById('confirmModal');
+    if (m && m.classList.contains('open')) closeConfirmModal();
 }
 
 function performRename() {
@@ -319,6 +321,22 @@ window.handleMenuAction = function(action) {
             case 'rename': showRenameModal(); break;
             case 'move': showMoveModal(); break;
             case 'clone': cloneItem(); break;
+            case 'cut':
+                if (window.Clipboard && typeof window.Clipboard.set === 'function') {
+                    window.Clipboard.set('cut', { path: currentItemPath, name: currentItemName, isDir: currentItemIsDir });
+                    showToast('已剪切', 'success');
+                } else {
+                    showToast('剪切不可用', 'error');
+                }
+                break;
+            case 'copy':
+                if (window.Clipboard && typeof window.Clipboard.set === 'function') {
+                    window.Clipboard.set('copy', { path: currentItemPath, name: currentItemName, isDir: currentItemIsDir });
+                    showToast('已复制', 'success');
+                } else {
+                    showToast('复制不可用', 'error');
+                }
+                break;
             case 'chat': addToChat(currentItemPath); break;
             case 'terminal': openTerminal(currentItemPath, currentItemIsDir); break;
             case 'delete': confirmDelete(currentItemPath, currentItemName); break;

@@ -337,6 +337,16 @@ window.showMenuModal = function(path, name, isDir) {
     Drawer.open('menuModal');
 };
 window.confirmDelete = function(path, name) {
+    if (window.showConfirmDrawer && typeof window.performDelete === 'function') {
+        window.showConfirmDrawer(
+            '删除',
+            '确定要删除 "' + (name || '') + '" 吗？',
+            '删除',
+            function() { window.performDelete(path); },
+            true
+        );
+        return;
+    }
     document.getElementById('itemNameToDelete').textContent = name;
     Drawer.open('confirmModal');
 };
@@ -350,49 +360,128 @@ window.showMoveModal = function() {
     document.getElementById('targetPathInput').value = '';
 };
 
+// 全局状态
+window.batchOperationFiles = [];
+window.batchActionType = null; // 'copy' or 'move'
+
 // 批量操作
-window.clearSelection = function() { document.querySelectorAll('.file-checkbox').forEach(function(c) { c.checked = false; }); document.getElementById('batchActionBar').style.display = 'none'; };
-window.batchDownload = function() { document.querySelectorAll('.file-checkbox:checked').forEach(function(c) { window.location.href = '/download/' + encodeURIComponent(c.dataset.path); }); };
-window.batchDelete = function() { var paths = []; document.querySelectorAll('.file-checkbox:checked').forEach(function(c) { paths.push(c.dataset.path); }); if (paths.length === 0) { return showToast('请选择要删除的文件', 'warning'); } document.getElementById('batchActionBar').style.display = 'none'; fetch('/api/batch/delete', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({paths: paths}) }).then(function(r) { return r.json(); }).then(function(d) { if (d && d.success) { showToast((d.data && d.data.message) || '删除成功', 'success'); refreshFileList(); } else { showToast((d && d.error && d.error.message) || '删除失败', 'error'); } }).catch(function() { showToast('删除失败', 'error'); }); };
+window.clearSelection = function() { 
+    document.querySelectorAll('.file-checkbox').forEach(function(c) { c.checked = false; }); 
+    window.batchOperationFiles = [];
+    Drawer.close('batchDrawer');
+    updateBatchBar();
+};
+
+window.batchDelete = function() { 
+    var paths = []; 
+    document.querySelectorAll('.file-checkbox:checked').forEach(function(c) { paths.push(c.dataset.path); }); 
+    if (paths.length === 0) { return showToast('请选择要删除的文件', 'warning'); } 
+
+    var batchDrawer = document.getElementById('batchDrawer');
+    if (batchDrawer && batchDrawer.classList.contains('open')) {
+        Drawer.close('batchDrawer');
+        window.__restoreBatchDrawerAfterDialog = true;
+        var dialogEl = document.getElementById('dialogDrawer');
+        if (dialogEl) {
+            var restoreHandler = function() {
+                dialogEl.removeEventListener('drawer:after-close', restoreHandler);
+                if (window.__restoreBatchDrawerAfterDialog) {
+                    window.__restoreBatchDrawerAfterDialog = false;
+                    updateBatchBar();
+                }
+            };
+            dialogEl.addEventListener('drawer:after-close', restoreHandler);
+        }
+    }
+    
+    window.showConfirmDrawer('批量删除', '确定要删除这 ' + paths.length + ' 个项目吗？', '删除', function() {
+        fetch('/api/batch/delete', { 
+            method: 'POST', 
+            headers: {'Content-Type': 'application/json'}, 
+            body: JSON.stringify({paths: paths}) 
+        }).then(function(r) { return r.json(); })
+        .then(function(d) { 
+            if (d && d.success) { 
+                showToast((d.data && d.data.message) || '删除成功', 'success'); 
+                refreshFileList(); 
+            } else { 
+                showToast((d && d.error && d.error.message) || '删除失败', 'error'); 
+            } 
+        }).catch(function() { showToast('删除失败', 'error'); });
+        window.clearSelection();
+    }, true);
+};
+
 window.batchCopy = function() {
     var paths = [];
     document.querySelectorAll('.file-checkbox:checked').forEach(function(c) { paths.push(c.dataset.path); });
     if (paths.length === 0) { return showToast('请选择要复制的文件', 'warning'); }
-    document.getElementById('batchActionBar').style.display = 'none';
-    showPromptDrawer('批量复制', '请输入目标路径（相对于根目录）', '例如：backup', '', '复制', function(target) {
-        if (!target) { return; }
-        fetch('/api/batch/copy', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ paths: paths, target: target })
-        })
-            .then(function(r) { return r.json(); })
-            .then(function(d) {
-                if (d && d.success) { showToast((d.data && d.data.message) || '复制成功', 'success'); refreshFileList(); }
-                else { showToast((d && d.error && d.error.message) || '复制失败', 'error'); }
-            })
-            .catch(function() { showToast('复制失败', 'error'); });
-    });
+
+    if (window.Clipboard && typeof window.Clipboard.set === 'function') {
+        window.Clipboard.set('copy', paths);
+        showToast('已复制 ' + paths.length + ' 个项目', 'success');
+        window.clearSelection();
+    } else {
+        showToast('复制不可用', 'error');
+    }
 };
+
 window.batchMove = function() {
     var paths = [];
     document.querySelectorAll('.file-checkbox:checked').forEach(function(c) { paths.push(c.dataset.path); });
     if (paths.length === 0) { return showToast('请选择要移动的文件', 'warning'); }
-    document.getElementById('batchActionBar').style.display = 'none';
-    showPromptDrawer('批量移动', '请输入目标路径（相对于根目录）', '例如：docs', '', '移动', function(target) {
-        if (!target) { return; }
-        fetch('/api/batch/move', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ paths: paths, target: target })
-        })
-            .then(function(r) { return r.json(); })
-            .then(function(d) {
-                if (d && d.success) { showToast((d.data && d.data.message) || '移动成功', 'success'); refreshFileList(); }
-                else { showToast((d && d.error && d.error.message) || '移动失败', 'error'); }
-            })
-            .catch(function() { showToast('移动失败', 'error'); });
-    });
+
+    if (window.Clipboard && typeof window.Clipboard.set === 'function') {
+        window.Clipboard.set('cut', paths);
+        showToast('已剪切 ' + paths.length + ' 个项目', 'success');
+        window.clearSelection();
+    } else {
+        showToast('剪切不可用', 'error');
+    }
+};
+
+// Target Modal Functions
+window.openTargetModal = function(title) {
+    var t = document.getElementById('targetModalTitle');
+    if (t) t.textContent = title || '选择目标位置';
+    document.getElementById('targetPathInput').value = '';
+    Drawer.open('targetModal');
+    setTimeout(function() { document.getElementById('targetPathInput').focus(); }, 100);
+};
+
+window.closeTargetModal = function() {
+    Drawer.close('targetModal');
+};
+
+window.confirmTargetPath = function() {
+    var target = document.getElementById('targetPathInput').value.trim();
+    if (!target) { return showToast('请输入目标路径', 'warning'); }
+    
+    var paths = window.batchOperationFiles;
+    var action = window.batchActionType;
+    
+    if (!paths || paths.length === 0) { return showToast('未选择文件', 'error'); }
+    
+    var endpoint = action === 'move' ? '/api/batch/move' : '/api/batch/copy';
+    
+    fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ paths: paths, target: target })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+        if (d && d.success) {
+            showToast((d.data && d.data.message) || (action === 'move' ? '移动成功' : '复制成功'), 'success');
+            window.clearSelection();
+            refreshFileList();
+        } else {
+            showToast((d && d.error && d.error.message) || (action === 'move' ? '移动失败' : '复制失败'), 'error');
+        }
+    })
+    .catch(function() { showToast('操作失败', 'error'); });
+    
+    window.closeTargetModal();
 };
 
 // 拖拽
@@ -472,10 +561,19 @@ window.toggleItemSelection = function(path, cb) { if (!cb.checked) { document.ge
 
 function updateBatchBar() {
     var count = document.querySelectorAll('.file-checkbox:checked').length;
-    var bar = document.getElementById('batchActionBar');
     var countEl = document.getElementById('batchCount');
-    if (bar) { bar.style.display = count > 0 ? 'flex' : 'none'; }
-    if (countEl) { countEl.textContent = '已选择 ' + count + ' 个项目'; }
+    if (countEl) { countEl.textContent = '已选 ' + count + ' 项'; }
+    
+    var d = document.getElementById('batchDrawer');
+    if (count > 0) {
+        if (d && !d.classList.contains('open')) {
+            Drawer.open('batchDrawer');
+        }
+    } else {
+        if (d && d.classList.contains('open')) {
+            Drawer.close('batchDrawer');
+        }
+    }
 }
 
 // 全局变量（通过 window 对象暴露）

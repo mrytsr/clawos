@@ -85,6 +85,16 @@ function handleMenuAction(action) {
 
 // 删除
 function confirmDelete(path, name) {
+    if (window.showConfirmDrawer) {
+        window.showConfirmDrawer(
+            '删除',
+            '确定要删除 "' + (name || '') + '" 吗？',
+            '删除',
+            function() { performDelete(path); },
+            true
+        );
+        return;
+    }
     document.getElementById('itemNameToDelete').textContent = name;
     Drawer.open('confirmModal');
 }
@@ -93,8 +103,9 @@ function closeConfirmModal() {
     Drawer.close('confirmModal');
 }
 
-function performDelete() {
-    fetch(`/delete/${encodeURIComponent(window.currentItemPath)}`, { method: 'DELETE' })
+function performDelete(path) {
+    var p = typeof path === 'string' && path ? path : window.currentItemPath;
+    fetch(`/delete/${encodeURIComponent(p)}`, { method: 'DELETE' })
         .then(r => r.json())
         .then(data => {
             if (data.success) {
@@ -105,7 +116,9 @@ function performDelete() {
             }
         })
         .catch(() => showToast('删除失败', 'error'));
-    closeConfirmModal();
+    if (document.getElementById('confirmModal') && document.getElementById('confirmModal').classList.contains('open')) {
+        closeConfirmModal();
+    }
 }
 
 // 重命名

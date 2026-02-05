@@ -8,9 +8,8 @@
     /**
      * @typedef {Object} ClipboardState
      * @property {'copy'|'cut'} op - The operation type
-     * @property {string} path - The relative path of the source file
-     * @property {string} name - The filename of the source file
-     * @property {boolean} isDir - Whether the source is a directory
+     * @property {string[]} paths - The relative paths of the source files
+     * @property {number} count - Number of files
      * @property {number} ts - Timestamp
      */
 
@@ -61,42 +60,48 @@
      */
     function createDom() {
         if (typeof document === 'undefined') return;
-        if (document.getElementById('clipboardBar')) return;
+        var bar = document.getElementById('clipboardBar');
+        if (!bar) {
+            bar = document.createElement('div');
+            bar.id = 'clipboardBar';
+            document.body.appendChild(bar);
+        }
 
-        var bar = document.createElement('div');
-        bar.id = 'clipboardBar';
         bar.className = 'clipboard-bar';
-        bar.setAttribute('role', 'dialog');
-        bar.setAttribute('aria-label', 'Clipboard actions');
-        
-        // Use SVG for paste icon to avoid external font dependencies
-        var pasteIconSvg = '<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" style="display:block"><path d="M19 2h-4.18C14.4.84 13.3 0 12 0c-1.3 0-2.4.84-2.82 2H5c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm7 18H5V4h2v3h10V4h2v16z"/></svg>';
+        bar.setAttribute('role', 'region');
+        bar.setAttribute('aria-label', '剪贴板操作');
+        if (!bar.getAttribute('aria-hidden')) bar.setAttribute('aria-hidden', 'true');
 
-        bar.innerHTML = 
-            '<div id="clipboardFilename" class="clipboard-filename"></div>' +
-            '<div class="clipboard-actions">' +
-                '<button id="clipboardPasteBtn" class="clipboard-paste-btn">' +
-                    pasteIconSvg +
-                    '<span>粘贴</span>' +
-                '</button>' +
-                '<button id="clipboardCancelBtn" class="clipboard-cancel-btn" title="取消" aria-label="Cancel">×</button>' +
-            '</div>';
+        if (bar.getAttribute('data-clipboard-initialized') !== '1') {
+            var pasteIconSvg = '<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" style="display:block"><path d="M19 2h-4.18C14.4.84 13.3 0 12 0c-1.3 0-2.4.84-2.82 2H5c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm7 18H5V4h2v3h10V4h2v16z"/></svg>';
 
-        document.body.appendChild(bar);
+            bar.innerHTML =
+                '<div id="clipboardFilename" class="clipboard-filename"></div>' +
+                '<div class="clipboard-actions">' +
+                    '<button id="clipboardPasteBtn" type="button" class="clipboard-paste-btn" aria-label="在此粘贴">' +
+                        pasteIconSvg +
+                        '<span>粘贴</span>' +
+                    '</button>' +
+                    '<button id="clipboardCancelBtn" type="button" class="clipboard-cancel-btn" title="取消" aria-label="取消剪贴板操作">×</button>' +
+                '</div>';
 
-        // Bind events
+            bar.setAttribute('data-clipboard-initialized', '1');
+        }
+
         var pasteBtn = document.getElementById('clipboardPasteBtn');
         var cancelBtn = document.getElementById('clipboardCancelBtn');
 
-        if (pasteBtn) {
+        if (pasteBtn && pasteBtn.getAttribute('data-clipboard-bound') !== '1') {
             pasteBtn.addEventListener('click', debounce(function() {
                 pasteHere();
             }, PASTE_DEBOUNCE_MS));
+            pasteBtn.setAttribute('data-clipboard-bound', '1');
         }
-        if (cancelBtn) {
+        if (cancelBtn && cancelBtn.getAttribute('data-clipboard-bound') !== '1') {
             cancelBtn.addEventListener('click', function() {
                 cancel();
             });
+            cancelBtn.setAttribute('data-clipboard-bound', '1');
         }
     }
 
@@ -109,7 +114,8 @@
         if (bar) {
             bar.classList.remove('visible');
             setTimeout(function() {
-                if (bar.parentNode) bar.parentNode.removeChild(bar);
+                bar.style.display = 'none';
+                bar.setAttribute('aria-hidden', 'true');
             }, 200); // Wait for fade out
         }
     }
@@ -124,14 +130,22 @@
             var raw = window.localStorage.getItem(STORAGE_KEY);
             if (!raw) return null;
             var parsed = safeJsonParse(raw);
-            if (!parsed || !parsed.path || !parsed.type) return null;
+            if (!parsed || !parsed.type) return null;
             
-            // Normalize
+            // Normalize legacy format (single path) to array
+            var paths = [];
+            if (parsed.paths && Array.isArray(parsed.paths)) {
+                paths = parsed.paths;
+            } else if (parsed.path) {
+                paths = [parsed.path];
+            } else {
+                return null;
+            }
+
             return {
-                op: parsed.type, // User requested 'type' in requirements, mapping to op
-                path: parsed.path,
-                name: parsed.name || parsed.path.split(/[/\\]/).pop(),
-                isDir: !!parsed.isDir,
+                op: parsed.type,
+                paths: paths,
+                count: paths.length,
                 ts: parsed.ts || nowMs()
             };
         } catch (e) {
@@ -142,17 +156,32 @@
 
     /**
      * Write state to storage
-     * @param {string} op 
-     * @param {string} path 
+     * @param {'copy'|'cut'} op 
+     * @param {string|string[]|Object|Object[]} items - Single path, array of paths, single item object, or array of item objects
      * @returns {boolean}
      */
-    function write(op, path) {
+    function set(op, items) {
         if (typeof window === 'undefined' || !window.localStorage) return false;
         try {
+            var paths = [];
+            
+            // Handle different input types
+            if (Array.isArray(items)) {
+                paths = items.map(function(item) {
+                    return (typeof item === 'string') ? item : item.path;
+                }).filter(Boolean);
+            } else if (typeof items === 'string') {
+                paths = [items];
+            } else if (items && items.path) {
+                paths = [items.path];
+            }
+
+            if (paths.length === 0) return false;
+
             var state = {
                 type: op,
-                path: path,
-                name: path.split(/[/\\]/).pop(),
+                paths: paths,
+                count: paths.length,
                 ts: nowMs()
             };
             window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
@@ -188,7 +217,17 @@
         var filenameEl = document.getElementById('clipboardFilename');
         
         if (bar && filenameEl) {
-            filenameEl.textContent = '在此粘贴 ' + state.name;
+            var displayText = '';
+            if (state.count === 1) {
+                var name = state.paths[0].split(/[/\\]/).pop();
+                displayText = '在此粘贴 ' + name;
+            } else {
+                displayText = '在此粘贴 ' + state.count + ' 个项目';
+            }
+            
+            filenameEl.textContent = displayText;
+            bar.style.display = 'flex';
+            bar.setAttribute('aria-hidden', 'false');
             // Force reflow
             void bar.offsetWidth;
             bar.classList.add('visible');
@@ -220,7 +259,7 @@
         // Construct API payload
         var endpoint = state.op === 'cut' ? '/api/batch/move' : '/api/batch/copy';
         var payload = {
-            paths: [state.path],
+            paths: state.paths,
             target: targetDir
         };
 
@@ -234,13 +273,18 @@
         })
         .then(function(data) {
             if (data.success) {
-                if (state.op === 'cut') {
-                    clear();
-                    removeDom();
-                }
+                clear();
+                removeDom();
                 // Show toast
                 if (window.showToast) {
-                    window.showToast((state.op === 'cut' ? '已移动: ' : '已复制: ') + state.name, 'success');
+                    var msg = '';
+                    if (state.count === 1) {
+                        var name = state.paths[0].split(/[/\\]/).pop();
+                        msg = (state.op === 'cut' ? '已移动: ' : '已复制: ') + name;
+                    } else {
+                        msg = (state.op === 'cut' ? '已移动 ' : '已复制 ') + state.count + ' 个项目';
+                    }
+                    window.showToast(msg, 'success');
                 }
                 // Refresh list
                 if (window.refreshFileList) {
@@ -249,9 +293,9 @@
             } else {
                 // Keep bar, show error
                 if (window.showToast) {
-                    window.showToast('操作失败: ' + (data.message || '未知错误'), 'error');
+                    var errMsg = (data && data.error && data.error.message) || data.message || '未知错误';
+                    window.showToast('操作失败: ' + errMsg, 'error');
                 }
-                // Also show snackbar if available (using showToast as snackbar proxy)
             }
         })
         .catch(function(err) {
@@ -282,7 +326,8 @@
     }
 
     return {
-        write: write,
+        set: set,
+        write: set, // Alias for backward compatibility if needed
         read: read,
         clear: clear,
         show: show,

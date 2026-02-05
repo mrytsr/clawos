@@ -75,7 +75,7 @@ def register_batch(app):
                 counter = 1
                 while os.path.exists(new_path):
                     name, ext = os.path.splitext(item_name)
-                    new_name = f"{name}_{counter}{ext if not os.path.isdir(full_path) else ''}"
+                    new_name = f"{name}_{counter}{ext}"
                     new_path = os.path.join(target_full, new_name)
                     counter += 1
                 if os.path.isdir(full_path):
