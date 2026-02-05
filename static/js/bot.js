@@ -96,7 +96,9 @@ function ensureBotSocket() {
     }
 
     try {
-        botSocket = new WebSocket('ws://179.utjx.cn:18789');
+        //const h = 'ws://127.0.0.1:18789'
+        const h = 'wss://179.utjx.cn'
+        botSocket = new WebSocket(h);
     } catch (e) {
         console.error('WebSocket Init Error:', e);
         setBotWsStatus(false, '初始化失败');
@@ -374,39 +376,93 @@ async function sendBotConnect(challenge) {
 }
 
 function handleBotEvent(data) {
-    // Handle streaming chat response
-    // Events can be 'chat.event', 'agent', etc.
-    
-    // Logic to extract text delta
-    let delta = '';
-    let isFinal = false;
+    const extractTextFromChatMessage = (message) => {
+        if (!message) return null;
+        if (typeof message === 'string') return message;
+        if (typeof message.text === 'string') return message.text;
+        const content = message.content;
+        if (Array.isArray(content)) {
+            const parts = [];
+            for (const block of content) {
+                if (block && block.type === 'text' && typeof block.text === 'string') {
+                    parts.push(block.text);
+                }
+            }
+            const merged = parts.join('');
+            return merged ? merged : null;
+        }
+        return null;
+    };
 
-    // Check for 'agent' event (lifecycle, text_delta, etc)
+    if (data.event === 'chat' && data.payload) {
+        const p = data.payload;
+        const state = p.state;
+        const msg = p.message;
+        if (msg && typeof msg.role === 'string' && msg.role !== 'assistant') {
+            return;
+        }
+        if (state === 'delta') {
+            const next = extractTextFromChatMessage(msg);
+            if (typeof next === 'string') {
+                if (!currentBotResponse || next.length >= currentBotResponse.length) {
+                    currentBotResponse = next;
+                    updateBotResponseUI(currentBotResponse);
+                }
+            }
+            return;
+        }
+        if (state === 'final') {
+            const next = extractTextFromChatMessage(msg);
+            if (typeof next === 'string' && next.length >= (currentBotResponse || '').length) {
+                currentBotResponse = next;
+            }
+            if (currentBotResponse) {
+                saveBotMessageToHistory(currentBotResponse);
+            }
+            currentBotResponse = '';
+            currentRunId = null;
+            return;
+        }
+        if (state === 'error') {
+            showToast(p.errorMessage ? String(p.errorMessage) : '对话出错', 'error');
+            currentBotResponse = '';
+            currentRunId = null;
+            return;
+        }
+        if (state === 'aborted') {
+            currentBotResponse = '';
+            currentRunId = null;
+            return;
+        }
+    }
+
     if (data.event === 'agent' && data.payload) {
         const p = data.payload;
         if (p.stream === 'text_delta' && p.data && p.data.text) {
-            delta = p.data.text;
+            currentBotResponse += p.data.text;
+            updateBotResponseUI(currentBotResponse);
         } else if (p.stream === 'lifecycle' && p.data && p.data.phase === 'end') {
-            isFinal = true;
+            if (currentBotResponse) {
+                saveBotMessageToHistory(currentBotResponse);
+            }
+            currentBotResponse = '';
+            currentRunId = null;
         }
-    } 
-    // Check for 'chat.event' (if server sends that instead)
-    else if (data.event === 'chat.event' && data.payload) {
-        // Adapt based on actual payload structure if different
-        if (data.payload.delta) delta = data.payload.delta;
-        if (data.payload.state === 'final') isFinal = true;
+        return;
     }
 
-    if (delta) {
-        currentBotResponse += delta;
-        updateBotResponseUI(currentBotResponse);
-    }
-
-    if (isFinal) {
-        // Save full response to history
-        saveBotMessageToHistory(currentBotResponse);
-        currentBotResponse = '';
-        currentRunId = null;
+    if (data.event === 'chat.event' && data.payload) {
+        if (data.payload.delta) {
+            currentBotResponse += String(data.payload.delta);
+            updateBotResponseUI(currentBotResponse);
+        }
+        if (data.payload.state === 'final') {
+            if (currentBotResponse) {
+                saveBotMessageToHistory(currentBotResponse);
+            }
+            currentBotResponse = '';
+            currentRunId = null;
+        }
     }
 }
 
