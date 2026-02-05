@@ -882,6 +882,7 @@
     </div>
 
     <!-- 菜单抽屉 -->
+    <div id="menuBackdrop" class="drawer-backdrop" onclick="closeMenuModal()"></div>
     <div id="menuModal" class="drawer">
         <div class="drawer-handle"></div>
         <div class="drawer-header">
@@ -891,8 +892,8 @@
         <div class="drawer-content">
             <div class="modal-item" onclick="handleMenuAction('details')">📋 查看详情</div>
             <div class="modal-item" id="menuEditItem" onclick="handleMenuAction('edit')">✏️ 编辑</div>
-            <div class="modal-item" onclick="handleMenuAction('download')">下载文件</div>
-            <div class="modal-item" onclick="handleMenuAction('copyUrl')">复制下载地址</div>
+            <div class="modal-item" id="menuDownloadItem" onclick="handleMenuAction('download')">下载文件</div>
+            <div class="modal-item" id="menuCopyUrlItem" onclick="handleMenuAction('copyUrl')">复制下载地址</div>
             <div class="modal-item" onclick="handleMenuAction('copyPath')">复制相对路径</div>
             <div class="modal-item" onclick="handleMenuAction('rename')">重命名</div>
             <div class="modal-item" onclick="handleMenuAction('cut')" aria-label="剪切">剪切</div>

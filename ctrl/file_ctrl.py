@@ -7,6 +7,7 @@ import zipfile
 from urllib.parse import quote
 from datetime import datetime
 
+import markdown
 from flask import (
     Blueprint,
     jsonify,
@@ -101,9 +102,15 @@ def view_file(path):
         except UnicodeDecodeError:
             with open(full_path, 'r', encoding='gbk', errors='replace') as f:
                 raw_markdown = f.read()
+        rendered_html = markdown.markdown(
+            raw_markdown or '',
+            extensions=['fenced_code', 'tables'],
+            output_format='html5',
+        )
         return render_template(
             'markdown.html',
             raw_markdown=raw_markdown,
+            rendered_html=rendered_html,
             filename=os.path.basename(full_path),
             file_path=path,
             current_dir=os.path.dirname(path),
