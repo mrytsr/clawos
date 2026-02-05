@@ -49,19 +49,12 @@
         .crumb-sep {
             color: #57606a;
         }
-        .up-btn {
-            padding: 3px 8px;
-            background-color: #f6f8fa;
-            border: 1px solid #d0d7de;
-            border-radius: 6px;
-            color: #24292f;
-            text-decoration: none;
-            font-size: var(--global-font-size, 12px);
-            font-weight: 500;
-        }
-        .up-btn:hover {
-            background-color: #f3f4f6;
-            border-color: #1b1f2426;
+        .breadcrumb-right {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 16px;
+            margin-left: auto;
         }
 
         /* 消息提示 */
@@ -722,10 +715,11 @@
 @media (max-width: 768px) {
     #searchModal,
     #trashDrawer {
-        top: 0;
+        top: auto;
         bottom: 0;
-        max-height: 100vh;
-        border-radius: 0;
+        height: 80vh;
+        max-height: 80vh;
+        border-radius: 16px 16px 0 0;
     }
 }
 

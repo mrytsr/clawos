@@ -82,19 +82,12 @@
         .crumb-sep {
             color: #57606a;
         }
-        .up-btn {
-            padding: 3px 8px;
-            background-color: #f6f8fa;
-            border: 1px solid #d0d7de;
-            border-radius: 6px;
-            color: #24292f;
-            text-decoration: none;
-            font-size: var(--global-font-size, 12px);
-            font-weight: 500;
-        }
-        .up-btn:hover {
-            background-color: #f3f4f6;
-            border-color: #1b1f2426;
+        .breadcrumb-right {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 16px;
+            margin-left: auto;
         }
 
         /* 消息提示 */
@@ -723,9 +716,8 @@
             </form>
 
             <div class="breadcrumb-left">
-                <a href="#" onclick="openTrashDrawer(); return false;" style="color: #dc3545; text-decoration: none; margin-right: 8px;" title="回收站">🗑️</a>
-                <span style="color: #ddd; margin-right: 8px;">|</span>
-                <a href="{{ url_for('file.browse') }}" style="color: #ffc107; margin-right: 8px;" title="根目录">🏠</a>
+                <a href="#" onclick="openTrashDrawer(); return false;" style="color: #dc3545; text-decoration: none;" title="回收站">🗑️</a>
+                <a href="{{ url_for('file.browse') }}" style="color: #ffc107; text-decoration: none;" title="根目录">🏠</a>
                 {% if breadcrumbs %}
                     <span class="crumb-sep">/</span>
                 {% else %}
@@ -739,13 +731,9 @@
                         <span class="crumb-sep">/</span>
                     {% endif %}
                 {% endfor %}
-                <!-- 搜索按钮 -->
-                <button onclick="openSearchModal()" style="margin-left: 8px; background: none; border: none; cursor: pointer; font-size: var(--global-font-size, 16px); opacity: 0.6;" title="搜索 (Ctrl+F)">🔍</button>
             </div>
-            <div style="display: flex; gap: 8px;">
-                {% if current_dir != ROOT_DIR %}
-                <a href="{{ url_for('file.browse', path=get_relative_path(os.path.dirname(current_dir))) }}" class="up-btn">↑</a>
-                {% endif %}
+            <div class="breadcrumb-right">
+                <button onclick="openSearchModal()" style="background: none; border: none; cursor: pointer; font-size: var(--global-font-size, 16px); opacity: 0.75; padding: 4px 6px;" title="搜索 (Ctrl+F)">🔍</button>
             </div>
         </div>
 
@@ -809,21 +797,22 @@
     </div>
 
     <!-- 主菜单抽屉 -->
-    <div id="mainMenuDrawer" class="right-drawer">
+    <div id="mainMenuDrawer" class="right-drawer" role="dialog" aria-modal="true" aria-label="开始菜单" aria-hidden="true" tabindex="-1">
         <div class="right-drawer-header">
             <div class="drawer-title">开始菜单</div>
-            <button class="drawer-close-btn" onclick="closeMainMenuModal()">&times;</button>
+            <button id="mainMenuCloseBtn" class="drawer-close-btn" onclick="closeMainMenuModal()" aria-label="关闭开始菜单">&times;</button>
         </div>
         <div class="right-drawer-content" id="mainMenuItems">
             <!-- 菜单项由 JS 动态渲染 -->
             <div style="text-align: center; padding: 20px; color: #666;">加载中...</div>
         </div>
     </div>
-    <div id="mainMenuBackdrop" class="right-drawer-backdrop" onclick="closeMainMenuModal()"></div>
+    <div id="mainMenuBackdrop" class="right-drawer-backdrop" onclick="closeMainMenuModal()" aria-hidden="true"></div>
+    <div id="srAnnouncer" aria-live="polite" aria-atomic="true" style="position: fixed; width: 1px; height: 1px; overflow: hidden; clip: rect(1px, 1px, 1px, 1px); white-space: nowrap;"></div>
 
     <!-- Bot Drawer 遮罩层 -->
     <div id="botBackdrop" class="drawer-backdrop" onclick="closeBotModal()"></div>
-    <div id="botDrawer" class="drawer" style="height: 80vh;">
+    <div id="botDrawer" class="drawer" style="height: 90vh;">
         <!-- 拖拽手柄 -->
         <div class="drawer-handle" id="botDrawerHandle"></div>
         

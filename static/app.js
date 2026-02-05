@@ -75,7 +75,6 @@ window.loadTrashList = function() {
             container.innerHTML = items.map(item => {
                 const rawName = item.name || '';
                 const rawDisplayName = item.display_name || item.name || '';
-                const name = escapeHtml(rawName);
                 const displayName = escapeHtml(rawDisplayName);
                 const deletedAt = escapeHtml(item.deleted_at || '');
                 const typeIcon = item.is_dir ? '📁' : '📄';
@@ -83,12 +82,11 @@ window.loadTrashList = function() {
                     `<div style="padding:12px;border:1px solid #eee;border-radius:10px;margin-bottom:10px;background:#fff;display:flex;gap:12px;align-items:flex-start;">` +
                         `<div style="font-size:18px;line-height:1;">${typeIcon}</div>` +
                         `<div style="flex:1;min-width:0;">` +
-                            `<div style="font-weight:600;word-break:break-word;white-space:pre-wrap;">${displayName}</div>` +
-                            `<div style="margin-top:4px;color:#666;font-size:12px;">删除时间: ${deletedAt}</div>` +
-                            `<div style="margin-top:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">` +
-                                `<button class="modal-btn modal-btn-confirm" style="padding:8px 12px;border-radius:8px;" data-trash-name="${encodeURIComponent(rawName)}" data-trash-default="${encodeURIComponent(rawDisplayName)}" onclick="restoreTrashItemFromButton(this)">还原</button>` +
-                                `<span style="color:#999;font-size:12px;font-family:monospace;word-break:break-word;">${name}</span>` +
+                            `<div style="font-weight:600;word-break:break-word;white-space:pre-wrap;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">` +
+                                `<span>${displayName}</span>` +
+                                `<button class="modal-btn modal-btn-confirm" style="padding:4px 8px;border-radius:999px;font-size:12px;" data-trash-name="${encodeURIComponent(rawName)}" data-trash-default="${encodeURIComponent(rawDisplayName)}" onclick="restoreTrashItemFromButton(this)">还原</button>` +
                             `</div>` +
+                            `<div style="margin-top:4px;color:#666;font-size:12px;">删除时间: ${deletedAt}</div>` +
                         `</div>` +
                     `</div>`
                 );
@@ -366,24 +364,4 @@ document.addEventListener('keydown', (e) => {
 
 // 页面初始化
 document.addEventListener('DOMContentLoaded', function() {
-    // 文件列表项点击
-    document.querySelectorAll('.file-item').forEach(item => {
-        item.addEventListener('click', function(e) {
-            if (!e.target.closest('.menu-btn') && !e.target.closest('.checkbox-wrapper') && !e.target.closest('input[type="checkbox"]')) {
-                const path = this.dataset.path;
-                const isDir = this.dataset.isDir === 'true';
-                if (isDir) {
-                    window.location.href = '/browse/' + encodeURIComponent(path);
-                } else {
-                    // 点击文件直接打开，而不是预览
-                    window.location.href = '/view/' + encodeURIComponent(path);
-                }
-            }
-        });
-    });
-    // 菜单项点击
-    document.getElementById('mainMenuDrawer')?.addEventListener('click', function(e) {
-        const menuItem = e.target.closest('.menu-item[data-action]');
-        if (menuItem) handleMainMenu(menuItem.dataset.action);
-    });
 });
