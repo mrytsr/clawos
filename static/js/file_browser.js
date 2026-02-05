@@ -10,6 +10,10 @@ function showMenuModal(path, name, isDir) {
     document.getElementById('menuTitle').textContent = name;
     var editEl = document.getElementById('menuEditItem');
     if (editEl) editEl.style.display = isDir ? 'none' : '';
+    var downloadEl = document.getElementById('menuDownloadItem');
+    if (downloadEl) downloadEl.style.display = isDir ? 'none' : '';
+    var copyUrlEl = document.getElementById('menuCopyUrlItem');
+    if (copyUrlEl) copyUrlEl.style.display = isDir ? 'none' : '';
     var extractEl = document.getElementById('menuExtractItem');
     if (extractEl) extractEl.style.display = (!isDir && isArchiveName(name)) ? '' : 'none';
     Drawer.open('menuModal');
@@ -91,7 +95,7 @@ function handleMenuAction(action) {
 
 function openEditor(path) {
     if (!path) return;
-    window.location.href = '/edit/' + encodeURIComponent(path);
+    window.location.href = '/edit/' + encodePathForUrl(path);
 }
 
 function isArchiveName(name) {
@@ -404,7 +408,7 @@ function copyToClipboard(text) {
 }
 
 function editFile(path) {
-    window.location.href = `/edit/${encodeURIComponent(path)}`;
+    window.location.href = '/edit/' + encodePathForUrl(path);
 }
 
 // 添加到对话

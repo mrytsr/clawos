@@ -52,7 +52,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/default.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/markdown-it/14.1.0/markdown-it.min.js"></script>
     <script src="{{ url_for('static', filename='app.js') }}"></script>
 </head>
 <body>
@@ -80,25 +79,7 @@
     (function() {
         const renderEl = document.getElementById('renderView');
         if (!renderEl) return;
-        const md = window.markdownit({
-            html: false,
-            linkify: true,
-            breaks: false,
-            highlight: function(str, lang) {
-                if (window.hljs) {
-                    if (lang && window.hljs.getLanguage(lang)) {
-                        try {
-                            return '<pre class="hljs"><code>' + window.hljs.highlight(str, { language: lang, ignoreIllegals: true }).value + '</code></pre>';
-                        } catch (e) {}
-                    }
-                    try {
-                        return '<pre class="hljs"><code>' + window.hljs.highlightAuto(str).value + '</code></pre>';
-                    } catch (e2) {}
-                }
-                return '<pre><code>' + escapeHtml(str) + '</code></pre>';
-            }
-        });
-        renderEl.innerHTML = md.render(rawContent || '');
+        renderEl.innerHTML = {{ rendered_html|tojson }};
         if (window.hljs && typeof window.hljs.highlightAll === 'function') {
             window.hljs.highlightAll();
         }
