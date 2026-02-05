@@ -1,68 +1,73 @@
-# ClawOS WebSocket Protocol Documentation
+# OpenClaw Gateway Protocol Documentation
 
-This document describes the WebSocket protocol used by the ClawOS Bot interface, based on the official client implementation (`openclaw/ui`) and traffic analysis (`ws.har`).
+This document describes the WebSocket communication protocol used by OpenClaw Gateway.
 
 ## 1. Connection
 
-*   **URL**: `ws://<host>:<port>/` (e.g., `ws://179.utjx.cn:18789/`)
-    *   *Note: Previous `/bot` path is deprecated/removed.*
-*   **Transport**: Native WebSocket
+- **URL**: `ws://<host>:<port>` (e.g., `ws://179.utjx.cn:18789`)
+- **Path**: `/` (Root path, no specific endpoint required)
 
-## 2. Authentication (Handshake)
+## 2. Handshake & Authentication
 
-The authentication flow uses a Challenge-Response mechanism.
+The connection establishment follows a Challenge-Response pattern.
 
-### Sequence:
+### Step 1: Challenge (Server -> Client)
+Upon connection, the server sends a challenge event containing a nonce.
 
-1.  **Client** establishes WebSocket connection.
-2.  **Server** sends `connect.challenge` event.
-3.  **Client** sends `connect` request with credentials.
-4.  **Server** responds with `hello-ok` (success) or error.
-
-### Frame Details:
-
-#### Step 2: Server Challenge
 ```json
 {
   "type": "event",
   "event": "connect.challenge",
   "payload": {
-    "nonce": "uuid-string",
+    "nonce": "89782023-a3a7-4bd2-a063-1577d6cc5675",
     "ts": 1770276274822
   }
 }
 ```
 
-#### Step 3: Client Connect Request
+### Step 2: Connect Request (Client -> Server)
+The client must respond with a `connect` request, including device identity and signature.
+
 ```json
 {
   "type": "req",
-  "id": "uuid-request-id",
+  "id": "uuid-v4",
   "method": "connect",
   "params": {
     "minProtocol": 3,
     "maxProtocol": 3,
     "client": {
-      "id": "webchat-ui", 
-      "version": "1.0.0",
-      "platform": "web",
+      "id": "openclaw-control-ui",
+      "version": "dev",
+      "platform": "Win32",
       "mode": "webchat"
     },
-    "auth": {
-      "token": "your-gateway-token"
+    "role": "operator",
+    "scopes": ["operator.admin", "operator.approvals", "operator.pairing"],
+    "device": {
+      "id": "<device_id_sha256_hex>",
+      "publicKey": "<base64url_public_key>",
+      "signature": "<base64url_signature>",
+      "signedAt": 1770276275804,
+      "nonce": "<nonce_from_challenge>"
     },
-    "caps": []
+    "auth": {
+      "token": "<gateway_token>"
+    },
+    "caps": [],
+    "userAgent": "...",
+    "locale": "zh-CN"
   }
 }
 ```
-*   `client.id`: Use `"webchat-ui"` for standard web chat.
-*   `auth.token`: The Gateway Token.
 
-#### Step 4: Server Response
+### Step 3: Connect Response (Server -> Client)
+
+**Success:**
 ```json
 {
   "type": "res",
-  "id": "uuid-request-id",
+  "id": "uuid-v4",
   "ok": true,
   "payload": {
     "type": "hello-ok",
@@ -73,80 +78,132 @@ The authentication flow uses a Challenge-Response mechanism.
 }
 ```
 
-## 3. Heartbeat / Health
+**Failure (Device Identity Required):**
+```json
+{
+  "type": "res",
+  "id": "uuid-v4",
+  "ok": false,
+  "error": {
+    "code": "NOT_PAIRED",
+    "message": "device identity required"
+  }
+}
+```
 
-The client should verify connection health.
-
-*   **Method**: `health` or `last-heartbeat`
-*   **Request**:
-    ```json
-    {
-      "type": "req",
-      "id": "uuid",
-      "method": "health",
-      "params": {}
+**Failure (Pairing Required):**
+```json
+{
+  "type": "res",
+  "id": "uuid-v4",
+  "ok": false,
+  "error": {
+    "code": "NOT_PAIRED",
+    "message": "pairing required",
+    "details": {
+      "requestId": "<request_id>"
     }
-    ```
-*   **Server Event**: The server may periodically send `heartbeat` events.
+  }
+}
+```
 
-## 4. Chat Interaction
+## 3. Device Identity
 
-### Sending Messages
+Device identity uses **Ed25519** key pairs.
 
-Use the `chat.send` method.
+- **Keys**: Ed25519 public/private key pair.
+- **DeviceId**: SHA-256 hash of the raw public key bytes, converted to hex string.
+- **Signature Payload**: Pipe-separated string (`|`).
+
+**Payload Format:**
+```
+version|deviceId|clientId|clientMode|role|scopes|signedAtMs|token|nonce
+```
+*Note: `version` is "v2" if nonce is present, otherwise "v1".*
+
+## 4. Message Protocol
+
+### Request (Client -> Server)
+```json
+{
+  "type": "req",
+  "id": "uuid",
+  "method": "method.name",
+  "params": { ... }
+}
+```
+
+### Response (Server -> Client)
+```json
+{
+  "type": "res",
+  "id": "uuid_of_request",
+  "ok": true, // or false
+  "payload": { ... }, // if ok=true
+  "error": { "code": "...", "message": "..." } // if ok=false
+}
+```
+
+### Event (Server -> Client)
+```json
+{
+  "type": "event",
+  "event": "event.name",
+  "payload": { ... }
+}
+```
+
+## 5. Chat Protocol
+
+### Send Message
+**Method**: `chat.send`
 
 ```json
 {
   "type": "req",
-  "id": "uuid-req",
+  "id": "uuid",
   "method": "chat.send",
   "params": {
     "sessionKey": "session-uuid",
-    "message": "User message content",
+    "message": "Hello world",
     "deliver": false,
-    "idempotencyKey": "uuid-run-id",
-    "attachments": [] 
+    "idempotencyKey": "uuid",
+    "attachments": []
   }
 }
 ```
-*   `sessionKey`: Unique identifier for the chat session (e.g., `session-<uuid>`).
-*   `idempotencyKey`: Unique ID for this message turn (usually same as request ID or separate UUID).
 
-### Receiving Messages
+### Receive Message
+The server streams the response via `agent` events.
 
-The server streams responses using `agent` events.
-
-#### Lifecycle Events
 ```json
 {
   "type": "event",
   "event": "agent",
   "payload": {
-    "runId": "uuid-run-id",
-    "stream": "lifecycle",
-    "data": { "phase": "start" } // or "end"
-  }
-}
-```
-
-#### Text Streaming (Delta)
-```json
-{
-  "type": "event",
-  "event": "agent",
-  "payload": {
-    "runId": "uuid-run-id",
     "stream": "text_delta",
-    "data": { "text": "Hello " }
+    "data": {
+      "text": "Hello! "
+    }
   }
 }
 ```
 
-#### Chat Events
+Lifecycle events:
 ```json
 {
   "type": "event",
-  "event": "chat",
-  "payload": { ... }
+  "event": "agent",
+  "payload": {
+    "stream": "lifecycle",
+    "data": {
+      "phase": "end"
+    }
+  }
 }
 ```
+
+## 6. Heartbeat
+
+The server defines a `tickIntervalMs` in the hello payload. Clients may receive `tick` events or be expected to maintain activity. The specific heartbeat frame is usually handled at the WebSocket level (Ping/Pong) or via periodic activity.
+

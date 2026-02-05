@@ -6,6 +6,11 @@ let botLastToken = '';
 let botRequests = new Map();
 let currentBotResponse = ''; 
 let currentRunId = null;
+let botConnectNonce = null;
+let botConnectSent = false;
+let botConnectTimer = null;
+let botReconnectBackoffMs = 800;
+let botLastPairingRequestId = null;
 
 // Generate UUID for IDs
 function generateUUID() {
@@ -65,6 +70,26 @@ function botRequest(method, params) {
     });
 }
 
+function queueBotConnect() {
+    botConnectNonce = null;
+    botConnectSent = false;
+    if (botConnectTimer !== null) {
+        clearTimeout(botConnectTimer);
+        botConnectTimer = null;
+    }
+    botConnectTimer = setTimeout(() => {
+        void sendBotConnect(null);
+    }, 750);
+}
+
+function scheduleBotReconnect() {
+    const delay = botReconnectBackoffMs;
+    botReconnectBackoffMs = Math.min(Math.floor(botReconnectBackoffMs * 1.7), 15000);
+    setTimeout(() => {
+        ensureBotSocket();
+    }, delay);
+}
+
 function ensureBotSocket() {
     if (botSocket && (botSocket.readyState === WebSocket.OPEN || botSocket.readyState === WebSocket.CONNECTING)) {
         return botSocket;
@@ -81,6 +106,7 @@ function ensureBotSocket() {
     botSocket.onopen = function() {
         console.log('Bot WS Connected');
         setBotWsStatus(false, '鉴权中...');
+        queueBotConnect();
     };
 
     botSocket.onmessage = function(event) {
@@ -96,7 +122,11 @@ function ensureBotSocket() {
                         req.resolve(data.payload);
                     } else {
                         console.error('Req Error:', data.error);
-                        req.reject(new Error(data.error.message || 'Unknown error'));
+                        const err = data.error || {};
+                        const e = new Error(err.message || 'Unknown error');
+                        e.code = err.code;
+                        e.details = err.details;
+                        req.reject(e);
                     }
                 }
                 return;
@@ -105,7 +135,9 @@ function ensureBotSocket() {
             // Handle Events
             if (data.type === 'event') {
                 if (data.event === 'connect.challenge') {
-                    sendBotConnect();
+                    const payload = data.payload || {};
+                    botConnectNonce = typeof payload.nonce === 'string' ? payload.nonce : botConnectNonce;
+                    void sendBotConnect(payload);
                 } else {
                     handleBotEvent(data);
                 }
@@ -119,9 +151,17 @@ function ensureBotSocket() {
         console.log('Bot WS Closed', event.code, event.reason);
         botIsConnected = false;
         let msg = '未连接';
+        const reason = String(event.reason || '');
         if (event.code === 1008) {
-            msg = '认证失败 (1008)';
-            showToast('连接被拒绝：Token 无效或协议错误', 'error');
+            if (reason.includes('pairing required') && botLastPairingRequestId) {
+                msg = `需配对 (ReqID: ${botLastPairingRequestId})`;
+            } else if (reason.includes('pairing required')) {
+                msg = '需配对';
+            } else if (reason.includes('device identity required')) {
+                msg = '设备认证失败';
+            } else {
+                msg = '认证失败 (1008)';
+            }
         } else if (event.code === 1006) {
             msg = '连接中断';
         }
@@ -130,6 +170,10 @@ function ensureBotSocket() {
         // Clear pending requests
         botRequests.forEach(req => req.reject(new Error('Connection closed')));
         botRequests.clear();
+
+        if (event.code !== 1000 && event.code !== 1008) {
+            scheduleBotReconnect();
+        }
     };
 
     botSocket.onerror = function(err) {
@@ -141,35 +185,192 @@ function ensureBotSocket() {
     return botSocket;
 }
 
-function sendBotConnect() {
-    setBotWsStatus(false, '鉴权中...');
-    const token = botLastToken;
-    
-    // Official Client Protocol
-    const params = {
-        minProtocol: 3,
-        maxProtocol: 3,
-        client: {
-            id: "webchat-ui", 
-            version: "1.0.0", 
-            platform: "web", 
-            mode: "webchat"
-        },
-        auth: { token },
-        caps: []
-    };
+// ============ Device Identity & Crypto Utils ============
+function bufToB64Url(buf) {
+    return btoa(String.fromCharCode(...new Uint8Array(buf)))
+        .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
 
-    botRequest('connect', params)
-        .then(res => {
-             console.log('Bot Connected', res);
-             botIsConnected = true;
-             setBotWsStatus(true, '已连接');
-        })
-        .catch(err => {
-             console.error('Connect Failed', err);
-             setBotWsStatus(false, '鉴权失败: ' + (err.message || 'Unknown'));
-             if (botSocket) botSocket.close();
-        });
+function b64UrlToBuf(str) {
+    const bin = atob(str.replace(/-/g, '+').replace(/_/g, '/'));
+    const buf = new Uint8Array(bin.length);
+    for(let i=0; i<bin.length; i++) buf[i] = bin.charCodeAt(i);
+    return buf;
+}
+
+function bufToHex(buf) {
+    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
+const DEVICE_KEY = 'bot_device_identity_v1';
+
+async function getDeviceIdentity() {
+    let raw = localStorage.getItem(DEVICE_KEY);
+    if (raw) {
+        try {
+            const stored = JSON.parse(raw);
+            const pubKey = await window.crypto.subtle.importKey(
+                'raw', b64UrlToBuf(stored.publicKey), {name: 'Ed25519'}, true, ['verify']
+            );
+            // Check if private key is JWK or raw/pkcs8. Storing as JWK is easier for re-import
+            const privKey = await window.crypto.subtle.importKey(
+                'jwk', stored.privateKeyJwk, {name: 'Ed25519'}, true, ['sign']
+            );
+            return { ...stored, pubKeyObj: pubKey, privKeyObj: privKey };
+        } catch(e) {
+            console.error('Invalid stored identity, regenerating', e);
+        }
+    }
+
+    const keyPair = await window.crypto.subtle.generateKey(
+        { name: 'Ed25519' }, true, ['sign', 'verify']
+    );
+    
+    const pubRaw = await window.crypto.subtle.exportKey('raw', keyPair.publicKey);
+    const privJwk = await window.crypto.subtle.exportKey('jwk', keyPair.privateKey);
+    
+    const hash = await window.crypto.subtle.digest('SHA-256', pubRaw);
+    const deviceId = bufToHex(hash);
+    
+    const identity = {
+        deviceId,
+        publicKey: bufToB64Url(pubRaw),
+        privateKeyJwk: privJwk
+    };
+    
+    localStorage.setItem(DEVICE_KEY, JSON.stringify(identity));
+    return { ...identity, pubKeyObj: keyPair.publicKey, privKeyObj: keyPair.privateKey };
+}
+
+async function signDeviceAuth(identity, params) {
+    const parts = [
+        params.version || (params.nonce ? 'v2' : 'v1'),
+        params.deviceId,
+        params.clientId,
+        params.clientMode,
+        params.role,
+        params.scopes.join(','),
+        String(params.signedAtMs),
+        params.token || ''
+    ];
+    if (params.nonce || params.version === 'v2') {
+        parts.push(params.nonce || '');
+    }
+    
+    const payload = parts.join('|');
+    const enc = new TextEncoder();
+    const sig = await window.crypto.subtle.sign(
+        { name: 'Ed25519' },
+        identity.privKeyObj,
+        enc.encode(payload)
+    );
+    return bufToB64Url(sig);
+}
+
+async function sendBotConnect(challenge) {
+    if (!botSocket || botSocket.readyState !== WebSocket.OPEN) {
+        throw new Error('WebSocket not connected');
+    }
+    if (botConnectSent) {
+        return;
+    }
+    botConnectSent = true;
+    if (botConnectTimer !== null) {
+        clearTimeout(botConnectTimer);
+        botConnectTimer = null;
+    }
+    setBotWsStatus(false, '鉴权中...');
+    
+    // Read token from UI input
+    const tokenInput = document.getElementById('botTokenInput');
+    const token = tokenInput ? tokenInput.value.trim() : botLastToken;
+    
+    const nonce = challenge && typeof challenge.nonce === 'string'
+        ? challenge.nonce
+        : (botConnectNonce || null);
+    
+    try {
+        const isSecureContext = typeof window.crypto !== 'undefined' && window.crypto && window.crypto.subtle;
+        const client = {
+            id: "openclaw-control-ui",
+            version: "dev",
+            platform: navigator.platform || "web",
+            mode: "webchat",
+            instanceId: localStorage.getItem('bot_instance_id') || undefined
+        };
+        if (!client.instanceId) {
+            client.instanceId = generateUUID();
+            localStorage.setItem('bot_instance_id', client.instanceId);
+        }
+        const role = "operator";
+        const scopes = ["operator.admin", "operator.approvals", "operator.pairing"];
+        const signedAt = Date.now();
+
+        let device = undefined;
+        if (isSecureContext) {
+            const identity = await getDeviceIdentity();
+            console.log('Using Device ID:', identity.deviceId);
+            const authPayloadParams = {
+                deviceId: identity.deviceId,
+                clientId: client.id,
+                clientMode: client.mode,
+                role: role,
+                scopes: scopes,
+                signedAtMs: signedAt,
+                token: token,
+                nonce: nonce,
+                version: nonce ? 'v2' : 'v1'
+            };
+            const signature = await signDeviceAuth(identity, authPayloadParams);
+            device = {
+                id: identity.deviceId,
+                publicKey: identity.publicKey,
+                signature: signature,
+                signedAt: signedAt,
+                nonce: nonce || undefined
+            };
+        }
+        
+        const params = {
+            minProtocol: 3,
+            maxProtocol: 3,
+            client: client,
+            role: role,
+            scopes: scopes,
+            device: device,
+            auth: { token },
+            caps: [],
+            userAgent: navigator.userAgent,
+            locale: navigator.language
+        };
+
+        const res = await botRequest('connect', params);
+        console.log('Bot Connected', res);
+        botIsConnected = true;
+        setBotWsStatus(true, '已连接');
+        botReconnectBackoffMs = 800;
+        botLastPairingRequestId = null;
+        localStorage.removeItem('bot_pairing_request');
+    } catch (err) {
+        console.error('Connect Failed', err);
+        let msg = (err && err.message) ? err.message : 'Unknown';
+        if (err && err.code === 'NOT_PAIRED') {
+            const details = err.details || {};
+            const requestId = details.requestId || null;
+            if (requestId) {
+                botLastPairingRequestId = requestId;
+                localStorage.setItem('bot_pairing_request', JSON.stringify({ requestId, ts: Date.now() }));
+                msg = `需配对 (ReqID: ${requestId})`;
+                showToast(`设备需配对。请在服务端批准请求: ${requestId}`, 'warning');
+            } else {
+                msg = '需配对';
+                showToast('设备需配对。请在服务端批准请求。', 'warning');
+            }
+        } else if (msg === 'pairing required') {
+            showToast('设备需配对。请在服务端批准请求。', 'warning');
+        }
+        setBotWsStatus(false, msg);
+    }
 }
 
 function handleBotEvent(data) {
@@ -324,8 +525,9 @@ function botSend() {
     
     if (!botIsConnected) {
         showToast('请先连接助手', 'error');
-        // Try to connect
-        ensureBotSocket();
+        const tokenInput = document.getElementById('botTokenInput');
+        const token = tokenInput ? tokenInput.value.trim() : botLastToken;
+        botConnect(token);
         return;
     }
 
@@ -374,18 +576,28 @@ function botSend() {
 function botConnect(token) {
     botLastToken = token;
     const ws = ensureBotSocket();
-    // If already connected, we might need to re-auth? 
-    // ensureBotSocket checks readyState. 
-    // If connected, it won't reconnect.
-    // If we want to force auth, we might need to send auth frame again?
-    // But official protocol authenticates during connect.
-    // So if WS is open, we assume authenticated.
+    if (ws && ws.readyState === WebSocket.OPEN) {
+        queueBotConnect();
+    }
 }
 
 function initBot() {
     // Load history
     loadBotHistory();
     loadBotStats();
+
+    try {
+        const rawPair = localStorage.getItem('bot_pairing_request');
+        if (rawPair) {
+            const parsed = JSON.parse(rawPair);
+            if (parsed && typeof parsed.requestId === 'string') {
+                botLastPairingRequestId = parsed.requestId;
+                setBotWsStatus(false, `需配对 (ReqID: ${botLastPairingRequestId})`);
+            }
+        }
+    } catch (e) {
+        console.error('Invalid pairing request cache', e);
+    }
     
     // Bind Enter key
     const input = document.getElementById('botInput');
