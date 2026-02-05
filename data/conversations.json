@@ -14,7 +14,37 @@
       "type": "user",
       "text": "hi",
       "time": "13:56:53"
+    },
+    {
+      "type": "user",
+      "text": "你好",
+      "time": "17:32:05"
+    },
+    {
+      "type": "bot",
+      "text": "",
+      "time": "17:32:27"
+    },
+    {
+      "type": "user",
+      "text": "在么",
+      "time": "17:32:47"
+    },
+    {
+      "type": "bot",
+      "text": "",
+      "time": "17:32:53"
+    },
+    {
+      "type": "user",
+      "text": "hi",
+      "time": "17:37:46"
+    },
+    {
+      "type": "bot",
+      "text": "嘿！需要帮忙吗？",
+      "time": "17:38:02"
     }
   ],
-  "sent_count": 2
+  "sent_count": 5
 }
