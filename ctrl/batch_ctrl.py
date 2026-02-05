@@ -49,11 +49,17 @@ def register_batch(app):
         data = request.json
         if not isinstance(data, dict):
             return api_error('Invalid JSON', status=400)
-        paths, target_path = data.get('paths', []), data.get('target', '').strip()
-        if not paths or not target_path:
+        paths = data.get('paths', [])
+        target_path = data.get('target', None)
+        if target_path is None:
+            target_path = ''
+        if not isinstance(target_path, str):
+            return api_error('参数不完整', status=400)
+        target_path = target_path.strip()
+        if not paths:
             return api_error('参数不完整', status=400)
 
-        target_full = os.path.normpath(os.path.join(root_dir, target_path))
+        target_full = root_dir if target_path == '' else os.path.normpath(os.path.join(root_dir, target_path))
         if not target_full.startswith(root_dir) or not os.path.isdir(target_full):
             return api_error('目标位置无效', status=400)
 
@@ -87,11 +93,17 @@ def register_batch(app):
         data = request.json
         if not isinstance(data, dict):
             return api_error('Invalid JSON', status=400)
-        paths, target_path = data.get('paths', []), data.get('target', '').strip()
-        if not paths or not target_path:
+        paths = data.get('paths', [])
+        target_path = data.get('target', None)
+        if target_path is None:
+            target_path = ''
+        if not isinstance(target_path, str):
+            return api_error('参数不完整', status=400)
+        target_path = target_path.strip()
+        if not paths:
             return api_error('参数不完整', status=400)
 
-        target_full = os.path.normpath(os.path.join(root_dir, target_path))
+        target_full = root_dir if target_path == '' else os.path.normpath(os.path.join(root_dir, target_path))
         if not target_full.startswith(root_dir) or not os.path.isdir(target_full):
             return api_error('目标位置无效', status=400)
 

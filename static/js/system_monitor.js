@@ -200,27 +200,14 @@ function formatTimeAgo(isoTime) {
 }
 
 window.controlSystemdService = function(service, action) {
-    const verb = action === 'start' ? '启动' : action === 'stop' ? '停止' : '重启';
-    showConfirmDrawer('确认操作', `确定要${verb} ${service.replace('.service', '')} 吗？`, verb, function() {
-        fetch('/api/systemd/control', {
-            method: 'POST',
-            headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders()),
-            body: JSON.stringify({ service: service, action: action })
-        })
-            .then(r => r.json())
-            .then(data => {
-                const payload = apiData(data);
-                if (payload) {
-                    showToast(`${service.replace('.service', '')} ${action} 成功`, 'success');
-                    loadSystemdList();
-                } else {
-                    showToast(`操作失败: ${(data && data.error && data.error.message) || '未知错误'}`, 'error');
-                }
-            })
-            .catch(() => {
-                showToast('操作失败', 'error');
-            });
-    }, true);
+    (async () => {
+        if (!window.TaskActions || typeof window.TaskActions.controlSystemdService !== 'function') {
+            showToast('操作失败', 'error');
+            return;
+        }
+        const result = await window.TaskActions.controlSystemdService(service, action);
+        if (result && result.ok) loadSystemdList();
+    })();
 };
 
 // 磁盘管理

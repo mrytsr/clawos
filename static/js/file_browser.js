@@ -63,6 +63,18 @@ function handleMenuAction(action) {
             case 'rename': showRenameModal(); break;
             case 'move': showMoveModal(); break;
             case 'clone': cloneItem(); break;
+            case 'cut':
+                if (window.Clipboard && typeof window.Clipboard.set === 'function') {
+                    window.Clipboard.set('cut', { path: window.currentItemPath, name: window.currentItemName, isDir: window.currentItemIsDir });
+                    showToast('已剪切', 'success');
+                }
+                break;
+            case 'copy':
+                if (window.Clipboard && typeof window.Clipboard.set === 'function') {
+                    window.Clipboard.set('copy', { path: window.currentItemPath, name: window.currentItemName, isDir: window.currentItemIsDir });
+                    showToast('已复制', 'success');
+                }
+                break;
             case 'chat': addToChat(window.currentItemPath); break;
             case 'terminal': openTerminal(window.currentItemPath, window.currentItemIsDir); break;
             case 'delete': confirmDelete(window.currentItemPath, window.currentItemName); break;
@@ -225,8 +237,16 @@ function editFile(path) {
 
 // 添加到对话
 function addToChat(path) {
-    // TODO: 实现添加到对话功能
-    showToast('功能开发中', 'info');
+    if (typeof window.openBotModal === 'function') {
+        window.openBotModal();
+    }
+    const input = document.getElementById('botInput');
+    if (input) {
+        const prefix = path ? (path + '： ') : '';
+        input.value = (input.value || '') + prefix;
+        input.focus();
+        try { input.setSelectionRange(input.value.length, input.value.length); } catch (e) {}
+    }
 }
 
 // 详情

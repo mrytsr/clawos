@@ -243,8 +243,7 @@
             bottom: 0;
             background: #fff;
             border-radius: 16px 16px 0 0;
-            box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
-            transform: translateY(100%); /* 默认隐藏 */
+            transform: translateY(110%); /* 默认隐藏 */
             transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
             z-index: 2000;
             display: flex;
@@ -253,6 +252,7 @@
         }
         #botDrawer.open {
             transform: translateY(0);
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
         }
         
         /* 拖拽手柄 */
@@ -643,8 +643,7 @@
     right: 0;
     background: #fff;
     border-radius: 16px 16px 0 0;
-    box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
-    transform: translateY(100%);
+    transform: translateY(110%);
     transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
     z-index: 2000;
     max-height: 85vh;
@@ -652,6 +651,7 @@
 }
 .drawer.open {
     transform: translateY(0);
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
 }
 
 .drawer-handle {
@@ -814,6 +814,120 @@
 
 .batch-btn-danger:hover {
     background: rgba(255, 82, 82, 1);
+}
+
+.clipboard-bar {
+    position: fixed;
+    bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+    left: 50%;
+    transform: translateX(-50%);
+    display: none;
+    align-items: center;
+    gap: 10px;
+    z-index: 1001;
+    max-width: calc(100% - 32px);
+    width: 520px;
+    padding: 10px 12px;
+    border-radius: 999px;
+    border: 1px solid #d0d7de;
+    background: #ffffff;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.clipboard-paste-btn {
+    flex: 1;
+    min-width: 0;
+    border: none;
+    background: transparent;
+    text-align: left;
+    padding: 6px 8px;
+    cursor: pointer;
+    border-radius: 999px;
+    font-size: var(--global-font-size, 14px);
+    color: #24292f;
+}
+
+.clipboard-paste-btn:focus {
+    outline: 2px solid #0969da;
+    outline-offset: 2px;
+}
+
+.clipboard-paste-btn span {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.clipboard-cancel-btn {
+    width: 34px;
+    height: 34px;
+    border-radius: 999px;
+    border: 1px solid #d0d7de;
+    background: #f6f8fa;
+    color: #24292f;
+    cursor: pointer;
+    font-size: 18px;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.clipboard-cancel-btn:focus {
+    outline: 2px solid #0969da;
+    outline-offset: 2px;
+}
+
+.clipboard-cancel-btn:hover {
+    background: #eef1f4;
+}
+
+.task-listener-bar {
+    position: fixed;
+    top: calc(12px + env(safe-area-inset-top, 0px));
+    left: 50%;
+    transform: translateX(-50%);
+    display: none;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    border-radius: 999px;
+    border: 1px solid #d0d7de;
+    background: #ffffff;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+    z-index: 2001;
+    max-width: calc(100% - 24px);
+    width: 520px;
+    pointer-events: none;
+}
+
+.task-listener-text {
+    font-size: var(--global-font-size, 14px);
+    color: #24292f;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.task-spinner {
+    width: 16px;
+    height: 16px;
+    border-radius: 999px;
+    border: 2px solid #d0d7de;
+    border-top-color: #0969da;
+    animation: taskSpinner 0.9s linear infinite;
+    flex-shrink: 0;
+}
+
+@keyframes taskSpinner {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+@media (max-width: 768px) {
+    .clipboard-bar { width: calc(100% - 32px); }
+    .task-listener-bar { width: calc(100% - 24px); }
 }
 
 .toast-container {

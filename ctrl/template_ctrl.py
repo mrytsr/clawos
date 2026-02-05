@@ -25,3 +25,7 @@ def register_template_helpers(app):
     @app.template_filter('dirname')
     def dirname_filter(path):
         return os.path.dirname(path)
+
+    @app.template_global()
+    def server_is_windows():
+        return os.name == 'nt'

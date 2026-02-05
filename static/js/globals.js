@@ -63,6 +63,22 @@ document.addEventListener('keydown', function(e) {
     if (e && e.key === 'Escape') Drawer.closeAll();
 });
 
+window.showTaskListener = function(text) {
+    var bar = document.getElementById('taskListenerBar');
+    var label = document.getElementById('taskListenerText');
+    if (!bar) return;
+    if (label) label.textContent = text || '正在监听任务状态…';
+    bar.style.display = 'flex';
+    bar.setAttribute('aria-hidden', 'false');
+};
+
+window.hideTaskListener = function() {
+    var bar = document.getElementById('taskListenerBar');
+    if (!bar) return;
+    bar.style.display = 'none';
+    bar.setAttribute('aria-hidden', 'true');
+};
+
 window.openDialogDrawer = function(opts) {
     var o = opts || {};
     window.__dialogDrawerState = { onConfirm: typeof o.onConfirm === 'function' ? o.onConfirm : null };
@@ -186,6 +202,11 @@ window.closeSystemdModal = function() {
     var b = document.getElementById('systemdBackdrop');
     if (m) m.classList.remove('open');
     if (b) b.classList.remove('open');
+    if (window.__activeTaskPoller && typeof window.__activeTaskPoller.cancel === 'function') {
+        window.__activeTaskPoller.cancel();
+        window.__activeTaskPoller = null;
+    }
+    if (typeof window.hideTaskListener === 'function') window.hideTaskListener();
 };
 window.closeDiskModal = function() {
     var m = document.getElementById('diskModal');

@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "node --test",
+    "test:e2e": "playwright test",
     "lint": "eslint static/js/**/*.js static/*.js --ignore-pattern **/*.min.js",
     "lint:fix": "eslint static/js/**/*.js static/*.js --fix --ignore-pattern **/*.min.js"
   },
@@ -13,6 +14,7 @@
   "license": "ISC",
   "devDependencies": {
     "eslint": "^9.39.2",
+    "@playwright/test": "^1.51.1",
     "pixelmatch": "^7.1.0",
     "playwright": "^1.51.1",
     "pngjs": "^7.0.0"

@@ -14,6 +14,7 @@ from ctrl.batch_ctrl import register_batch
 from ctrl.bot_proxy_ctrl import register_bot_proxy
 from ctrl.file_ctrl import register_file
 from ctrl.system_ctrl import register_system
+from ctrl.task_ctrl import register_task
 from ctrl.template_ctrl import register_template_helpers
 from ctrl.terminal_ctrl import register_terminal
 
@@ -34,6 +35,7 @@ register_template_helpers(app)
 register_api(app)
 register_batch(app)
 register_system(app)
+register_task(app)
 register_file(app)
 register_terminal(socketio)
 register_bot_proxy(socketio)

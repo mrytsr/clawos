@@ -2,6 +2,7 @@ from flask import request
 
 from ctrl import api_error, api_ok
 
+from ctrl.task_ctrl import create_task
 from lib import (
     disk_utils,
     docker_utils,
@@ -146,8 +147,19 @@ def register_system(app):
         data = request.json
         if not isinstance(data, dict):
             return api_error('Invalid JSON', status=400)
-        result = systemd_utils.control_systemd_service(data.get('service'), data.get('action'))
-        return _wrap(result)
+        service = data.get('service')
+        action = data.get('action')
+        def _run():
+            result = systemd_utils.control_systemd_service(service, action)
+            if isinstance(result, dict) and result.get('success'):
+                return
+            message = None
+            if isinstance(result, dict):
+                message = result.get('message')
+            raise RuntimeError(message or 'Error')
+
+        task_id = create_task(_run, name=f'systemd:{action}:{service}')
+        return api_ok({'taskId': task_id})
 
     @app.route('/api/disk/list')
     def api_disk_list():

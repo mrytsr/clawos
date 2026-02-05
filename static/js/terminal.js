@@ -8,8 +8,8 @@ let isTermOpen = false;
 
 function openTerminal(path, isDir) {
     closeMenuModal();
-    if (navigator.userAgent && navigator.userAgent.includes('Windows')) {
-        showToast('Windows 环境不支持 Web 终端', 'warning');
+    if (typeof window !== 'undefined' && window.SERVER_IS_WINDOWS) {
+        showToast('服务端环境不支持 Web 终端（需要 Linux PTY/termios）', 'warning');
         return;
     }
     isTermOpen = true;

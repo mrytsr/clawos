@@ -15,6 +15,12 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <!-- 全局函数预加载（必须在最前） -->
     <script src="{{ url_for('static', filename='js/globals.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/clipboard.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/task_poller.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/task_actions.js') }}"></script>
+    <script>
+        window.SERVER_IS_WINDOWS = {{ 'true' if server_is_windows() else 'false' }};
+    </script>
     <!-- 功能模块 -->
     <script src="{{ url_for('static', filename='js/utils.js') }}"></script>
     <script src="{{ url_for('static', filename='js/terminal.js') }}"></script>
@@ -386,8 +392,7 @@
             bottom: 0;
             background: #1a1a1a;
             border-radius: 16px 16px 0 0;
-            box-shadow: 0 -4px 20px rgba(0,0,0,0.3);
-            transform: translateY(100%);
+            transform: translateY(110%);
             transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
             z-index: 2000;
             display: flex;
@@ -396,6 +401,7 @@
         }
         #terminalDrawer.open {
             transform: translateY(0);
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.3);
         }
         #terminalDrawer .drawer-header {
             background: #1a1a1a;
@@ -697,6 +703,10 @@
     <input type="hidden" id="rootDir" value="{{ ROOT_DIR }}">
 </head>
 <body>
+    <div id="taskListenerBar" class="task-listener-bar" role="status" aria-live="polite" aria-hidden="true" style="display:none;">
+        <div class="task-spinner" aria-hidden="true"></div>
+        <div id="taskListenerText" class="task-listener-text">正在监听任务状态…</div>
+    </div>
     <div class="container">
         <div class="breadcrumb">
             <!-- 嵌入式上传按钮 -->
@@ -912,8 +922,8 @@
             <div class="modal-item" onclick="handleMenuAction('copyUrl')">复制下载地址</div>
             <div class="modal-item" onclick="handleMenuAction('copyPath')">复制相对路径</div>
             <div class="modal-item" onclick="handleMenuAction('rename')">重命名</div>
-            <div class="modal-item" onclick="handleMenuAction('move')">移动</div>
-            <div class="modal-item" onclick="handleMenuAction('clone')">克隆</div>
+            <div class="modal-item" onclick="handleMenuAction('cut')" aria-label="剪切">剪切</div>
+            <div class="modal-item" onclick="handleMenuAction('copy')" aria-label="复制">复制</div>
             <div class="modal-item" onclick="handleMenuAction('chat')">💬 添加到对话</div>
             <div class="modal-item" onclick="handleMenuAction('terminal')">📺 在终端打开</div>
             <div class="modal-item delete-item" onclick="handleMenuAction('delete')">删除</div>
@@ -1085,8 +1095,7 @@
             bottom: 0;
             background: #fff;
             border-radius: 16px 16px 0 0;
-            box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
-            transform: translateY(100%);
+            transform: translateY(110%);
             transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
             z-index: 2000;
             display: flex;
@@ -1095,6 +1104,7 @@
         }
         #processModal.open {
             transform: translateY(0);
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
         }
         #processModal .drawer-header {
             background: #fff;
@@ -1331,6 +1341,13 @@
             <button class="batch-btn batch-btn-danger" onclick="batchDelete()">🗑️ 删除</button>
             <button class="batch-btn" onclick="clearSelection()">✖ 取消选择</button>
         </div>
+    </div>
+
+    <div id="clipboardBar" class="clipboard-bar" role="region" aria-label="剪贴板操作" aria-hidden="true" style="display:none;">
+        <button id="clipboardPasteBtn" type="button" class="clipboard-paste-btn" aria-label="在此粘贴">
+            <span id="clipboardLabel" aria-live="polite"></span>
+        </button>
+        <button id="clipboardCancelBtn" type="button" class="clipboard-cancel-btn" aria-label="取消剪贴板操作">×</button>
     </div>
 
     <!-- Toast 通知容器 -->
