@@ -1,3 +1,7 @@
+import json
+import os
+import re
+import subprocess
 from flask import Blueprint, request
 
 from ctrl import api_error, api_ok
@@ -12,6 +16,8 @@ from lib import (
     process_utils,
     systemd_utils,
 )
+
+OPENCLAW_CONFIG_PATH = os.path.expanduser('~/.openclaw/openclaw.json')
 
 
 system_bp = Blueprint('system', __name__)
@@ -206,3 +212,182 @@ def api_network_list():
 def api_git_list():
     result = git_utils.get_all_git_repos_info()
     return api_ok({'repos': result})
+
+
+@system_bp.route('/api/gpu/info')
+def api_gpu_info():
+    """获取NVIDIA GPU信息"""
+    try:
+        result = subprocess.run(['nvidia-smi'], capture_output=True, text=True, timeout=10)
+        output = result.stdout or result.stderr
+        # 解析关键信息
+        gpu_info = {}
+        lines = output.split('\n')
+        
+        # 提取GPU名称
+        for line in lines:
+            if 'GeForce' in line or 'RTX' in line or 'NVIDIA' in line:
+                gpu_info['name'] = line.strip()
+                break
+        
+        # 提取显存、温度、功耗
+        for line in lines:
+            if 'MiB /' in line:
+                # 提取显存使用情况
+                match = re.search(r'(\d+)MiB / (\d+)MiB', line)
+                if match:
+                    used = int(match.group(1))
+                    total = int(match.group(2))
+                    gpu_info['memory_used'] = used
+                    gpu_info['memory_total'] = total
+                    gpu_info['memory_percent'] = round(used / total * 100, 1)
+                break
+        
+        for line in lines:
+            if 'W / ' in line:
+                match = re.search(r'(\d+)W / (\d+)W', line)
+                if match:
+                    gpu_info['power_used'] = int(match.group(1))
+                    gpu_info['power_total'] = int(match.group(2))
+                break
+        
+        for line in lines:
+            temp = line.strip()
+            if temp and 'C' in temp:
+                match = re.search(r'(\d+)C', temp)
+                if match:
+                    gpu_info['temperature'] = int(match.group(1))
+                break
+        
+        for line in lines:
+            if '%' in line and 'Default' in line:
+                match = re.search(r'(\d+)%', line)
+                if match:
+                    gpu_info['utilization'] = int(match.group(1))
+                break
+        
+        # 驱动版本
+        for line in lines:
+            if 'Driver Version' in line:
+                match = re.search(r'Driver Version: ([\d.]+)', line)
+                if match:
+                    gpu_info['driver'] = match.group(1)
+                break
+        
+        # CUDA版本
+        for line in lines:
+            if 'CUDA Version' in line:
+                match = re.search(r'CUDA Version: ([\d.]+)', line)
+                if match:
+                    gpu_info['cuda'] = match.group(1)
+                break
+        
+        return api_ok({'raw': output, 'parsed': gpu_info})
+    except subprocess.TimeoutExpired:
+        return api_error('nvidia-smi超时', status=500)
+    except Exception as e:
+        return api_error(str(e), status=500)
+
+
+@system_bp.route('/api/ollama/models')
+def api_ollama_models():
+    """获取Ollama模型列表"""
+    try:
+        result = subprocess.run(
+            ['curl', '-s', 'http://localhost:11434/api/tags'],
+            capture_output=True, text=True, timeout=5
+        )
+        if result.returncode != 0:
+            # 尝试ollama list命令
+            result = subprocess.run(
+                ['ollama', 'list'],
+                capture_output=True, text=True, timeout=10
+            )
+            if result.returncode == 0:
+                models = []
+                for line in result.stdout.strip().split('\n'):
+                    if line:
+                        parts = line.split()
+                        if parts:
+                            model_name = parts[0]
+                            size = parts[1] if len(parts) > 1 else '?'
+                            models.append({
+                                'name': model_name,
+                                'size': size
+                            })
+                return api_ok({'models': models})
+            return api_error('无法获取模型列表')
+        
+        data = json.loads(result.stdout)
+        models = []
+        for m in data.get('models', []):
+            models.append({
+                'name': m.get('name', ''),
+                'size': m.get('size', 0),
+                'modified': m.get('modified', '')
+            })
+        return api_ok({'models': models})
+    except Exception as e:
+        return api_error(str(e), status=500)
+
+
+@system_bp.route('/api/openclaw/config')
+def api_openclaw_config():
+    """获取OpenClaw配置"""
+    try:
+        if not os.path.exists(OPENCLAW_CONFIG_PATH):
+            return api_error('配置文件不存在')
+        
+        with open(OPENCLAW_CONFIG_PATH, 'r') as f:
+            config = json.load(f)
+        
+        # 提取关键配置信息
+        simplified = {
+            'version': config.get('meta', {}).get('lastTouchedVersion', 'Unknown'),
+            'models': {
+                'count': 0,
+                'list': []
+            },
+            'channels': {},
+            'gateway': {},
+            'auth': {}
+        }
+        
+        # 模型列表
+        providers = config.get('models', {}).get('providers', {})
+        for provider_name, provider_data in providers.items():
+            models = provider_data.get('models', [])
+            for m in models:
+                simplified['models']['list'].append({
+                    'id': m.get('id', ''),
+                    'name': m.get('name', m.get('id', '')),
+                    'reasoning': m.get('reasoning', False)
+                })
+        simplified['models']['count'] = len(simplified['models']['list'])
+        
+        # 渠道
+        channels = config.get('channels', {})
+        for ch_name, ch_data in channels.items():
+            simplified['channels'][ch_name] = {
+                'enabled': ch_data.get('enabled', False)
+            }
+        
+        # 网关
+        gateway = config.get('gateway', {})
+        simplified['gateway'] = {
+            'port': gateway.get('port', 18789),
+            'bind': gateway.get('bind', 'lan'),
+            'tailscale': gateway.get('tailscale', {}).get('mode', 'off')
+        }
+        
+        # 认证
+        auth = config.get('auth', {}).get('profiles', {})
+        simplified['auth'] = {
+            'profiles': list(auth.keys())
+        }
+        
+        return api_ok(simplified)
+    except json.JSONDecodeError:
+        return api_error('配置文件解析失败', status=500)
+    except Exception as e:
+        return api_error(str(e), status=500)

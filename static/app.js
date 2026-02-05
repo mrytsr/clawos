@@ -12,7 +12,10 @@ window.actionToModalMap = {
     'docker': { modal: 'dockerModal', load: 'loadDockerTabs', open: 'openDockerModal' },
     'systemd': { modal: 'systemdModal', load: 'loadSystemdList', open: 'openSystemdModal' },
     'disk': { modal: 'diskModal', load: 'loadDiskList', open: 'openDiskModal' },
-    'network': { modal: 'networkModal', load: 'loadNetworkList', open: 'openNetworkModal' }
+    'network': { modal: 'networkModal', load: 'loadNetworkList', open: 'openNetworkModal' },
+    'gpu': { modal: 'gpuModal', load: 'loadGpuInfo', open: 'openGpuModal' },
+    'ollama': { modal: 'ollamaModal', load: 'loadOllamaModels', open: 'openOllamaModal' },
+    'openclaw': { modal: 'openclawModal', load: 'loadOpenclawConfig', open: 'openOpenclawModal' }
 };
 
 // 搜索功能
