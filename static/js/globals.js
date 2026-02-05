@@ -215,8 +215,26 @@ window.closeDiskModal = function() {
     if (b) b.classList.remove('open');
 };
 window.closeNetworkModal = function() {
-    var m = document.getElementById('networkModal');
+    var m = document.getElementByElementById('networkModal');
     var b = document.getElementById('networkBackdrop');
+    if (m) m.classList.remove('open');
+    if (b) b.classList.remove('open');
+};
+window.closeGpuModal = function() {
+    var m = document.getElementById('gpuModal');
+    var b = document.getElementById('gpuBackdrop');
+    if (m) m.classList.remove('open');
+    if (b) b.classList.remove('open');
+};
+window.closeOllamaModal = function() {
+    var m = document.getElementById('ollamaModal');
+    var b = document.getElementById('ollamaBackdrop');
+    if (m) m.classList.remove('open');
+    if (b) b.classList.remove('open');
+};
+window.closeOpenclawModal = function() {
+    var m = document.getElementById('openclawModal');
+    var b = document.getElementById('openclawBackdrop');
     if (m) m.classList.remove('open');
     if (b) b.classList.remove('open');
 };

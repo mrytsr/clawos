@@ -1314,6 +1314,54 @@
         </div>
     </div>
 
+    <!-- GPU显卡抽屉 -->
+    <div id="gpuBackdrop" class="drawer-backdrop" onclick="closeGpuModal()"></div>
+    <div id="gpuModal" class="drawer">
+        <div class="drawer-handle"></div>
+        <div class="drawer-header">
+            <div class="drawer-title">🖥️ 显卡信息</div>
+            <div style="display:flex;gap:8px;">
+                <button style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px;" onclick="loadGpuInfo()" title="刷新">🔄</button>
+                <button class="drawer-close-btn" onclick="closeGpuModal()">&times;</button>
+            </div>
+        </div>
+        <div class="drawer-content" style="padding:0;">
+            <div id="gpuInfoContainer" style="padding: 16px;"></div>
+        </div>
+    </div>
+
+    <!-- Ollama模型抽屉 -->
+    <div id="ollamaBackdrop" class="drawer-backdrop" onclick="closeOllamaModal()"></div>
+    <div id="ollamaModal" class="drawer">
+        <div class="drawer-handle"></div>
+        <div class="drawer-header">
+            <div class="drawer-title">🦙 Ollama 模型</div>
+            <div style="display:flex;gap:8px;">
+                <button style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px;" onclick="loadOllamaModels()" title="刷新">🔄</button>
+                <button class="drawer-close-btn" onclick="closeOllamaModal()">&times;</button>
+            </div>
+        </div>
+        <div class="drawer-content" style="padding:0;">
+            <div id="ollamaModelsContainer" style="padding: 16px;"></div>
+        </div>
+    </div>
+
+    <!-- OpenClaw配置抽屉 -->
+    <div id="openclawBackdrop" class="drawer-backdrop" onclick="closeOpenclawModal()"></div>
+    <div id="openclawModal" class="drawer">
+        <div class="drawer-handle"></div>
+        <div class="drawer-header">
+            <div class="drawer-title">⚙️ OpenClaw 配置</div>
+            <div style="display:flex;gap:8px;">
+                <button style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px;" onclick="loadOpenclawConfig()" title="刷新">🔄</button>
+                <button class="drawer-close-btn" onclick="closeOpenclawModal()">&times;</button>
+            </div>
+        </div>
+        <div class="drawer-content" style="padding:0;">
+            <div id="openclawConfigContainer" style="padding: 16px;"></div>
+        </div>
+    </div>
+
         <!-- 批量操作抽屉 (无遮罩) -->
     <div id="batchDrawer" class="drawer" style="box-shadow: 0 -4px 20px rgba(0,0,0,0.15);">
         <div class="drawer-handle"></div>
