@@ -75,7 +75,7 @@ def register_batch(app):
                 counter = 1
                 while os.path.exists(new_path):
                     name, ext = os.path.splitext(item_name)
-                    new_name = f"{name}_copy_{counter}{ext if not os.path.isdir(full_path) else ''}"
+                    new_name = f"{name}_{counter}{ext if not os.path.isdir(full_path) else ''}"
                     new_path = os.path.join(target_full, new_name)
                     counter += 1
                 if os.path.isdir(full_path):
@@ -116,9 +116,15 @@ def register_batch(app):
             try:
                 item_name = os.path.basename(full_path)
                 new_path = os.path.join(target_full, item_name)
-                if os.path.exists(new_path):
-                    errors.append({'path': path, 'error': f'{item_name} 已存在'})
-                    continue
+                
+                # Conflict resolution: Rename if target exists
+                counter = 1
+                while os.path.exists(new_path):
+                    name, ext = os.path.splitext(item_name)
+                    new_name = f"{name}_{counter}{ext}"
+                    new_path = os.path.join(target_full, new_name)
+                    counter += 1
+                    
                 shutil.move(full_path, new_path)
                 moved.append(path)
             except Exception as e:

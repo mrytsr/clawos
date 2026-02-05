@@ -5,12 +5,49 @@
         root.Clipboard = factory();
     }
 })(typeof window !== 'undefined' ? window : globalThis, function() {
-    var STORAGE_KEY = 'clawos_clipboard_v1';
+    /**
+     * @typedef {Object} ClipboardState
+     * @property {'copy'|'cut'} op - The operation type
+     * @property {string} path - The relative path of the source file
+     * @property {string} name - The filename of the source file
+     * @property {boolean} isDir - Whether the source is a directory
+     * @property {number} ts - Timestamp
+     */
 
+    var STORAGE_KEY = 'clipboard_file_path';
+    var PASTE_DEBOUNCE_MS = 200;
+
+    /**
+     * Helper to get current time
+     * @returns {number}
+     */
     function nowMs() {
         return Date.now ? Date.now() : new Date().getTime();
     }
 
+    /**
+     * Debounce function
+     * @param {Function} func 
+     * @param {number} wait 
+     * @returns {Function}
+     */
+    function debounce(func, wait) {
+        var timeout;
+        return function() {
+            var context = this;
+            var args = arguments;
+            clearTimeout(timeout);
+            timeout = setTimeout(function() {
+                func.apply(context, args);
+            }, wait);
+        };
+    }
+
+    /**
+     * Safe JSON parse
+     * @param {string} text 
+     * @returns {Object|null}
+     */
     function safeJsonParse(text) {
         try {
             return JSON.parse(text);
@@ -19,261 +56,237 @@
         }
     }
 
-    function normalizeOp(op) {
-        return op === 'cut' || op === 'copy' ? op : null;
-    }
+    /**
+     * Create the DOM elements for the floating bar
+     */
+    function createDom() {
+        if (typeof document === 'undefined') return;
+        if (document.getElementById('clipboardBar')) return;
 
-    function normalizeState(raw) {
-        if (!raw || typeof raw !== 'object') return null;
-        var op = normalizeOp(raw.op);
-        var path = typeof raw.path === 'string' ? raw.path : null;
-        var name = typeof raw.name === 'string' ? raw.name : null;
-        if (!op || !path || !name) return null;
-        return {
-            op: op,
-            path: path,
-            name: name,
-            isDir: !!raw.isDir,
-            ts: typeof raw.ts === 'number' ? raw.ts : nowMs()
-        };
-    }
+        var bar = document.createElement('div');
+        bar.id = 'clipboardBar';
+        bar.className = 'clipboard-bar';
+        bar.setAttribute('role', 'dialog');
+        bar.setAttribute('aria-label', 'Clipboard actions');
+        
+        // Use SVG for paste icon to avoid external font dependencies
+        var pasteIconSvg = '<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" style="display:block"><path d="M19 2h-4.18C14.4.84 13.3 0 12 0c-1.3 0-2.4.84-2.82 2H5c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm7 18H5V4h2v3h10V4h2v16z"/></svg>';
 
-    function createState(op, item) {
-        var normalizedOp = normalizeOp(op);
-        if (!normalizedOp) return null;
-        if (!item || typeof item !== 'object') return null;
-        var path = typeof item.path === 'string' ? item.path : null;
-        var name = typeof item.name === 'string' ? item.name : null;
-        if (!path || !name) return null;
-        return {
-            op: normalizedOp,
-            path: path,
-            name: name,
-            isDir: !!item.isDir,
-            ts: nowMs()
-        };
-    }
+        bar.innerHTML = 
+            '<div id="clipboardFilename" class="clipboard-filename"></div>' +
+            '<div class="clipboard-actions">' +
+                '<button id="clipboardPasteBtn" class="clipboard-paste-btn">' +
+                    pasteIconSvg +
+                    '<span>粘贴</span>' +
+                '</button>' +
+                '<button id="clipboardCancelBtn" class="clipboard-cancel-btn" title="取消" aria-label="Cancel">×</button>' +
+            '</div>';
 
-    function read(storage) {
-        var s = storage;
-        if (!s) {
-            if (typeof window === 'undefined' || !window.localStorage) return null;
-            s = window.localStorage;
+        document.body.appendChild(bar);
+
+        // Bind events
+        var pasteBtn = document.getElementById('clipboardPasteBtn');
+        var cancelBtn = document.getElementById('clipboardCancelBtn');
+
+        if (pasteBtn) {
+            pasteBtn.addEventListener('click', debounce(function() {
+                pasteHere();
+            }, PASTE_DEBOUNCE_MS));
         }
+        if (cancelBtn) {
+            cancelBtn.addEventListener('click', function() {
+                cancel();
+            });
+        }
+    }
+
+    /**
+     * Remove the DOM elements
+     */
+    function removeDom() {
+        if (typeof document === 'undefined') return;
+        var bar = document.getElementById('clipboardBar');
+        if (bar) {
+            bar.classList.remove('visible');
+            setTimeout(function() {
+                if (bar.parentNode) bar.parentNode.removeChild(bar);
+            }, 200); // Wait for fade out
+        }
+    }
+
+    /**
+     * Read state from storage
+     * @returns {ClipboardState|null}
+     */
+    function read() {
+        if (typeof window === 'undefined' || !window.localStorage) return null;
         try {
-            var raw = s.getItem(STORAGE_KEY);
+            var raw = window.localStorage.getItem(STORAGE_KEY);
             if (!raw) return null;
-            return normalizeState(safeJsonParse(raw));
+            var parsed = safeJsonParse(raw);
+            if (!parsed || !parsed.path || !parsed.type) return null;
+            
+            // Normalize
+            return {
+                op: parsed.type, // User requested 'type' in requirements, mapping to op
+                path: parsed.path,
+                name: parsed.name || parsed.path.split(/[/\\]/).pop(),
+                isDir: !!parsed.isDir,
+                ts: parsed.ts || nowMs()
+            };
         } catch (e) {
+            console.warn('Clipboard read failed', e);
             return null;
         }
     }
 
-    function write(storage, state) {
-        var s = storage;
-        if (!s) {
-            if (typeof window === 'undefined' || !window.localStorage) return false;
-            s = window.localStorage;
-        }
-        var normalized = normalizeState(state);
-        if (!normalized) return false;
+    /**
+     * Write state to storage
+     * @param {string} op 
+     * @param {string} path 
+     * @returns {boolean}
+     */
+    function write(op, path) {
+        if (typeof window === 'undefined' || !window.localStorage) return false;
         try {
-            s.setItem(STORAGE_KEY, JSON.stringify(normalized));
+            var state = {
+                type: op,
+                path: path,
+                name: path.split(/[/\\]/).pop(),
+                ts: nowMs()
+            };
+            window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+            show();
             return true;
         } catch (e) {
+            console.warn('Clipboard write failed', e);
             return false;
         }
     }
 
-    function clear(storage) {
-        var s = storage;
-        if (!s) {
-            if (typeof window === 'undefined' || !window.localStorage) return false;
-            s = window.localStorage;
-        }
+    /**
+     * Clear storage
+     */
+    function clear() {
+        if (typeof window === 'undefined' || !window.localStorage) return;
         try {
-            s.removeItem(STORAGE_KEY);
-            return true;
+            window.localStorage.removeItem(STORAGE_KEY);
         } catch (e) {
-            return false;
+            console.warn('Clipboard clear failed', e);
         }
     }
 
-    function buildLabel(state) {
-        var st = normalizeState(state);
-        if (!st) return '';
-        return '在此粘贴 ' + st.name;
-    }
-
-    function buildPasteRequest(state, targetPath) {
-        var st = normalizeState(state);
-        if (!st) return null;
-        var target = typeof targetPath === 'string' ? targetPath : '';
-        var endpoint = st.op === 'cut' ? '/api/batch/move' : '/api/batch/copy';
-        return {
-            endpoint: endpoint,
-            payload: { paths: [st.path], target: target }
-        };
-    }
-
-    function hasApiOkShape(data) {
-        return !!(data && typeof data === 'object' && data.success === true);
-    }
-
-    function getApiMessage(data) {
-        if (!data || typeof data !== 'object') return null;
-        if (typeof data.message === 'string' && data.message) return data.message;
-        if (data.error && typeof data.error.message === 'string' && data.error.message) return data.error.message;
-        if (typeof data.error === 'string' && data.error) return data.error;
-        return null;
-    }
-
-    function getCurrentBrowsePathFromDom() {
-        if (typeof document === 'undefined') return '';
-        var el = document.getElementById('currentBrowsePath');
-        return el && typeof el.value === 'string' ? el.value : '';
-    }
-
-    function getUiElements() {
-        if (typeof document === 'undefined') return null;
+    /**
+     * Show the clipboard bar
+     */
+    function show() {
+        var state = read();
+        if (!state) return;
+        
+        createDom();
         var bar = document.getElementById('clipboardBar');
-        var label = document.getElementById('clipboardLabel');
-        var pasteBtn = document.getElementById('clipboardPasteBtn');
-        var cancelBtn = document.getElementById('clipboardCancelBtn');
-        if (!bar || !label || !pasteBtn || !cancelBtn) return null;
-        return { bar: bar, label: label, pasteBtn: pasteBtn, cancelBtn: cancelBtn };
+        var filenameEl = document.getElementById('clipboardFilename');
+        
+        if (bar && filenameEl) {
+            filenameEl.textContent = '在此粘贴 ' + state.name;
+            // Force reflow
+            void bar.offsetWidth;
+            bar.classList.add('visible');
+        }
     }
 
-    function setBarVisible(elements, visible) {
-        if (!elements) return;
-        elements.bar.style.display = visible ? 'flex' : 'none';
-        elements.bar.setAttribute('aria-hidden', visible ? 'false' : 'true');
-        if (!visible) elements.bar.removeAttribute('data-op');
+    /**
+     * Cancel operation
+     */
+    function cancel() {
+        clear();
+        removeDom();
     }
 
-    function updateBottomOffset(elements) {
-        if (!elements || typeof document === 'undefined') return;
-        var batch = document.getElementById('batchActionBar');
-        var batchVisible = batch && batch.style && batch.style.display !== 'none';
-        elements.bar.style.bottom = batchVisible ? '84px' : '';
-    }
-
-    function render(elements, state) {
-        var st = normalizeState(state);
-        if (!elements) return;
-        if (!st) {
-            setBarVisible(elements, false);
+    /**
+     * Execute paste
+     */
+    function pasteHere() {
+        var state = read();
+        if (!state) {
+            console.warn('No clipboard state found');
             return;
         }
-        elements.label.textContent = buildLabel(st);
-        elements.bar.setAttribute('data-op', st.op);
-        setBarVisible(elements, true);
-        updateBottomOffset(elements);
-    }
 
-    function initUi() {
-        var elements = getUiElements();
-        if (!elements) return;
-        elements.pasteBtn.addEventListener('click', function() {
-            pasteHere();
-        });
-        elements.cancelBtn.addEventListener('click', function() {
-            cancel();
-        });
-        elements.cancelBtn.addEventListener('keydown', function(e) {
-            if (!e) return;
-            if (e.key === 'Enter' || e.key === ' ') cancel();
-        });
-        if (typeof window !== 'undefined') {
-            window.addEventListener('resize', function() {
-                render(elements, read());
-            });
-        }
-        render(elements, read());
-    }
+        // Get current path from DOM (assuming input#currentBrowsePath exists)
+        var currentPathInput = document.getElementById('currentBrowsePath');
+        var targetDir = currentPathInput ? currentPathInput.value : '';
 
-    function set(op, item) {
-        var st = createState(op, item);
-        if (!st) return false;
-        write(null, st);
-        render(getUiElements(), st);
-        return true;
-    }
+        // Construct API payload
+        var endpoint = state.op === 'cut' ? '/api/batch/move' : '/api/batch/copy';
+        var payload = {
+            paths: [state.path],
+            target: targetDir
+        };
 
-    function cancel() {
-        clear(null);
-        render(getUiElements(), null);
-    }
-
-    function paste(state, targetPath, fetchFn) {
-        var req = buildPasteRequest(state, targetPath);
-        if (!req) return Promise.resolve({ ok: false, error: 'empty' });
-        var f = fetchFn;
-        if (!f) {
-            if (typeof window === 'undefined' || !window.fetch) return Promise.resolve({ ok: false, error: 'no_fetch' });
-            f = window.fetch.bind(window);
-        }
-        return f(req.endpoint, {
+        fetch(endpoint, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(req.payload)
+            body: JSON.stringify(payload)
         })
-            .then(function(r) { return r.json().catch(function() { return null; }); })
-            .then(function(data) {
-                if (hasApiOkShape(data)) return { ok: true, data: data };
-                return { ok: false, data: data, error: getApiMessage(data) || 'failed' };
-            })
-            .catch(function(err) {
-                return { ok: false, error: (err && err.message) || 'failed' };
-            });
-    }
-
-    function pasteHere() {
-        var st = read();
-        if (!st) return;
-        var target = getCurrentBrowsePathFromDom();
-        paste(st, target)
-            .then(function(res) {
-                if (res && res.ok) {
-                    cancel();
-                    if (typeof window !== 'undefined' && typeof window.showToast === 'function') {
-                        window.showToast('粘贴成功', 'success');
-                    }
-                    if (typeof window !== 'undefined' && typeof window.refreshFileList === 'function') {
-                        window.refreshFileList();
-                    }
-                } else {
-                    if (typeof window !== 'undefined' && typeof window.showToast === 'function') {
-                        window.showToast((res && res.error) || '粘贴失败', 'error');
-                    }
+        .then(function(response) {
+            return response.json();
+        })
+        .then(function(data) {
+            if (data.success) {
+                if (state.op === 'cut') {
+                    clear();
+                    removeDom();
                 }
-            });
+                // Show toast
+                if (window.showToast) {
+                    window.showToast((state.op === 'cut' ? '已移动: ' : '已复制: ') + state.name, 'success');
+                }
+                // Refresh list
+                if (window.refreshFileList) {
+                    window.refreshFileList();
+                }
+            } else {
+                // Keep bar, show error
+                if (window.showToast) {
+                    window.showToast('操作失败: ' + (data.message || '未知错误'), 'error');
+                }
+                // Also show snackbar if available (using showToast as snackbar proxy)
+            }
+        })
+        .catch(function(err) {
+            console.error('Paste error:', err);
+            if (window.showToast) {
+                window.showToast('网络错误', 'error');
+            }
+        });
     }
 
-    function autoInit() {
-        if (typeof document === 'undefined') return;
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initUi);
-        } else {
-            initUi();
+    /**
+     * Initialize
+     */
+    function init() {
+        var state = read();
+        if (state) {
+            show();
         }
     }
 
-    autoInit();
+    // Auto init on load
+    if (typeof document !== 'undefined') {
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', init);
+        } else {
+            init();
+        }
+    }
 
     return {
-        STORAGE_KEY: STORAGE_KEY,
-        normalizeState: normalizeState,
-        createState: createState,
-        read: read,
         write: write,
+        read: read,
         clear: clear,
-        buildLabel: buildLabel,
-        buildPasteRequest: buildPasteRequest,
-        paste: paste,
-        set: set,
+        show: show,
         cancel: cancel,
-        pasteHere: pasteHere,
-        initUi: initUi
+        pasteHere: pasteHere
     };
 });
