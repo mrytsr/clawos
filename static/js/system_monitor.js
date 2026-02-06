@@ -507,7 +507,7 @@ window.loadGitList = function() {
                         const hash = item.getAttribute('data-hash');
                         const time = item.getAttribute('data-time');
                         const repoId = state.repoId;
-                        if (!repoId || !hash) return;
+                        if (repoId === null || repoId === undefined || !hash) return;
 
                         Array.from(listEl.querySelectorAll('.git-item')).forEach(function(el) { el.classList.remove('active'); });
                         item.classList.add('active');
