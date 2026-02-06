@@ -411,7 +411,7 @@ window.loadNetworkList = function() {
         });
 };
 
-// Git 管理（手机适配版）
+// Git 管理（简化版 - 单列表布局）
 window.loadGitList = function() {
     const container = document.getElementById('gitListContainer');
     if (container) container.innerHTML = '<div style="text-align:center;padding:20px;color:#666;">🔄 加载中...</div>';
@@ -423,67 +423,37 @@ window.loadGitList = function() {
                 const container = document.getElementById('gitListContainer');
                 if (container) {
                     window.__gitRepos = payload.repos || [];
-                    const css = '<style>.git-shell { display:flex; flex-direction:column; gap:10px; }.git-top { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }.git-top .label { font-size:12px; color:#57606a; }.git-select { padding:6px 10px; border:1px solid #d0d7de; border-radius:8px; background:#fff; font-size:13px; }.git-layout { display:grid; grid-template-columns: 190px 1fr; gap:10px; min-height: 340px; }.git-left { border:1px solid #d0d7de; border-radius:10px; overflow:hidden; background:#fff; }.git-right { border:1px solid #d0d7de; border-radius:10px; overflow:hidden; background:#fff; display:flex; flex-direction:column; }.git-hd { background:#f6f8fa; border-bottom:1px solid #d0d7de; padding:10px 12px; display:flex; justify-content:space-between; align-items:center; gap:10px; }.git-hd .title { font-weight:600; font-size:13px; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }.git-hd .meta { font-size:11px; color:#57606a; display:flex; gap:8px; align-items:center; }.git-list { max-height: 340px; overflow:auto; }.git-item { padding:8px 10px; border-top:1px solid #eee; cursor:pointer; display:flex; flex-direction:column; gap:3px; }.git-item:hover { background:#f6f8fa; }.git-item.active { background:#ddf4ff; }.git-time { font-size:12px; color:#0969da; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }.git-hash { font-size:11px; color:#57606a; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; text-decoration:underline; cursor:pointer; width: fit-content; }.git-hash:hover { color:#0969da; }.git-subject { font-size:12px; color:#24292f; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }.git-detail { padding:12px; overflow:auto; }.git-detail pre { margin:0; font-size:12px; line-height:1.45; white-space:pre-wrap; word-break:break-word; overflow-wrap:anywhere; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }.git-actions { display:flex; gap:8px; align-items:center; }.git-btn { background:#fff; border:1px solid #d0d7de; border-radius:8px; font-size:12px; padding:5px 8px; cursor:pointer; }.git-btn:hover { background:#f6f8fa; }@media (max-width: 520px) { .git-layout { grid-template-columns: 1fr; } .git-left { max-height: 260px; } }</style>';
-                    const html = css + '<div class="git-shell"><div class="git-top"><span class="label">仓库</span><select id="gitRepoSelect" class="git-select"></select></div><div class="git-layout"><div class="git-left"><div class="git-hd"><div class="title" id="gitRepoTitle">提交列表</div><div class="meta" id="gitRepoMeta"></div></div><div class="git-list" id="gitCommitList"></div></div><div class="git-right"><div class="git-hd"><div class="title" id="gitCommitTitle">提交详情</div><div class="git-actions"><button class="git-btn" type="button" id="gitCopyHashBtn" disabled>复制哈希</button><button class="git-btn" type="button" id="gitOpenNewTabBtn" disabled>新标签页</button></div></div><div class="git-detail"><pre id="gitCommitSummary">请选择左侧提交</pre></div></div></div></div>';
+                    const css = '<style>.git-shell { display:flex; flex-direction:column; gap:10px; }.git-top { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }.git-select { padding:8px 12px; border:1px solid #d0d7de; border-radius:8px; background:#fff; font-size:14px; flex:1; }.git-list { max-height: calc(70vh - 100px); overflow:auto; }.git-item { padding:10px 12px; border-bottom:1px solid #eee; cursor:pointer; display:flex; flex-direction:column; gap:4px; }.git-item:hover { background:#f6f8fa; }.git-item.active { background:#ddf4ff; }.git-meta { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }.git-time { font-size:12px; color:#0969da; font-family: ui-monospace, monospace; }.git-hash { font-size:11px; color:#57606a; font-family: ui-monospace, monospace; text-decoration:underline; cursor:pointer; }.git-hash:hover { color:#0969da; }.git-subject { font-size:13px; color:#24292f; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }</style>';
+                    const html = css + '<div class="git-shell"><div class="git-top"><span style="font-size:12px;color:#57606a;">仓库</span><select id="gitRepoSelect" class="git-select"></select></div><div class="git-list" id="gitCommitList"></div></div>';
                     container.innerHTML = html;
 
                     const repos = window.__gitRepos || [];
                     const select = document.getElementById('gitRepoSelect');
-                    const repoTitle = document.getElementById('gitRepoTitle');
-                    const repoMeta = document.getElementById('gitRepoMeta');
                     const listEl = document.getElementById('gitCommitList');
-                    const summaryEl = document.getElementById('gitCommitSummary');
-                    const commitTitle = document.getElementById('gitCommitTitle');
-                    const copyBtn = document.getElementById('gitCopyHashBtn');
-                    const openBtn = document.getElementById('gitOpenNewTabBtn');
-
                     const state = { repoId: null, hash: null };
 
                     function commitPageUrl(repoId, hash) {
                         return '/git/commit?repoId=' + encodeURIComponent(repoId) + '&hash=' + encodeURIComponent(hash);
                     }
 
-                    function setSelected(repoId, hash, committedAt) {
-                        state.repoId = repoId;
-                        state.hash = hash;
-                        commitTitle.textContent = committedAt ? committedAt : '提交详情';
-                        copyBtn.disabled = !hash;
-                        openBtn.disabled = !hash;
-                        summaryEl.textContent = '🔄 加载中...';
-                        fetch('/api/git/commit?repoId=' + encodeURIComponent(repoId) + '&hash=' + encodeURIComponent(hash) + '&include=summary', { headers: authHeaders() })
-                            .then(r => r.json())
-                            .then(d => {
-                                const p = apiData(d);
-                                summaryEl.textContent = (p && p.log) ? p.log : '加载失败';
-                            })
-                            .catch(function() { summaryEl.textContent = '加载失败'; });
-                    }
-
                     function renderRepo(repo) {
                         if (!repo) return;
                         state.repoId = repo.id;
                         const branch = repo.status ? repo.status.branch : '-';
-                        repoTitle.textContent = repo.name;
-                        repoMeta.innerHTML = '<span style="background:#ddf4ff;color:#0969da;padding:2px 8px;border-radius:999px;font-size:11px;">' + escapeHtml(branch) + '</span>';
+                        select.value = String(repo.id);
 
-                        const logs = Array.isArray(repo.logs) ? repo.logs : [];
+                        const logs = Array.isArray(repo.logs) ? repo.logs.slice(0, 50) : [];
                         if (logs.length === 0) {
                             listEl.innerHTML = '<div style="padding:16px;text-align:center;color:#666;">暂无提交记录</div>';
-                            summaryEl.textContent = '暂无提交记录';
-                            copyBtn.disabled = true;
-                            openBtn.disabled = true;
                             return;
                         }
-                        listEl.innerHTML = logs.map(function(log, idx) {
+                        listEl.innerHTML = logs.map(function(log) {
                             const time = escapeHtml(log.committed_at || '');
                             const subject = escapeHtml(log.subject || '');
                             const shortHash = escapeHtml(String(log.hash || '').slice(0, 7));
-                            const activeCls = idx === 0 ? 'active' : '';
-                            return '<div class="git-item ' + activeCls + '" data-hash="' + escapeHtml(log.hash) + '" data-time="' + time + '"><div class="git-time">' + time + '</div><div class="git-hash" data-open="1">' + shortHash + '</div><div class="git-subject" title="' + subject + '">' + (subject || '-') + '</div></div>';
+                            const hash = escapeHtml(log.hash || '');
+                            return '<div class="git-item" data-hash="' + hash + '" onclick="window.open(\'' + commitPageUrl(repo.id, hash) + '\', \'_blank\')"><div class="git-meta"><span class="git-time">' + time + '</span><span class="git-hash" data-open="1">' + shortHash + '</span><span style="background:#ddf4ff;color:#0969da;padding:1px 6px;border-radius:999px;font-size:10px;">' + escapeHtml(branch) + '</span></div><div class="git-subject" title="' + subject + '">' + (subject || '-') + '</div></div>';
                         }).join('');
-
-                        const first = logs[0];
-                        setSelected(repo.id, first.hash, first.committed_at);
                     }
 
                     repos.forEach(function(r) {
@@ -497,67 +467,6 @@ window.loadGitList = function() {
                         const rid = this.value;
                         const repo = repos.find(function(r) { return String(r.id) === String(rid); });
                         renderRepo(repo);
-                    });
-
-                    listEl.addEventListener('click', function(ev) {
-                        const t = (ev && ev.target && ev.target.nodeType === 3) ? ev.target.parentElement : (ev ? ev.target : null);
-                        const open = !!(t && t.closest && t.closest('[data-open="1"]'));
-                        const item = t && t.closest ? t.closest('.git-item') : null;
-                        if (!item) return;
-                        const hash = item.getAttribute('data-hash');
-                        const time = item.getAttribute('data-time');
-                        const repoId = state.repoId;
-                        if (repoId === null || repoId === undefined || !hash) return;
-
-                        Array.from(listEl.querySelectorAll('.git-item')).forEach(function(el) { el.classList.remove('active'); });
-                        item.classList.add('active');
-                        setSelected(repoId, hash, time);
-
-                        if (open) {
-                            ev.preventDefault();
-                            ev.stopPropagation();
-                            const url = commitPageUrl(repoId, hash);
-                            const win = window.open(url, '_blank');
-                            if (!win) window.location.assign(url);
-                        }
-                    });
-
-                    copyBtn.addEventListener('click', function() {
-                        if (!state.hash) return;
-                        const hash = state.hash;
-                        const done = function() {
-                            const old = copyBtn.textContent;
-                            copyBtn.textContent = '已复制';
-                            setTimeout(function() { copyBtn.textContent = old; }, 900);
-                        };
-                        if (navigator.clipboard && navigator.clipboard.writeText) {
-                            navigator.clipboard.writeText(hash).then(done).catch(function() {
-                                try {
-                                    const ta = document.createElement('textarea');
-                                    ta.value = hash;
-                                    document.body.appendChild(ta);
-                                    ta.select();
-                                    document.execCommand('copy');
-                                    document.body.removeChild(ta);
-                                    done();
-                                } catch (e) {}
-                            });
-                        } else {
-                            try {
-                                const ta = document.createElement('textarea');
-                                ta.value = hash;
-                                document.body.appendChild(ta);
-                                ta.select();
-                                document.execCommand('copy');
-                                document.body.removeChild(ta);
-                                done();
-                            } catch (e) {}
-                        }
-                    });
-
-                    openBtn.addEventListener('click', function() {
-                        if (!state.repoId || !state.hash) return;
-                        window.open(commitPageUrl(state.repoId, state.hash), '_blank');
                     });
 
                     if (repos.length > 0) renderRepo(repos[0]);
