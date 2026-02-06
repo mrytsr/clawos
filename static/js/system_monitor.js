@@ -282,7 +282,9 @@ window.loadGitList = function() {
                             .git-item { padding:8px 10px; border-top:1px solid #eee; cursor:pointer; display:flex; flex-direction:column; gap:3px; }
                             .git-item:hover { background:#f6f8fa; }
                             .git-item.active { background:#ddf4ff; }
-                            .git-time { font-size:12px; color:#0969da; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; text-decoration:underline; cursor:pointer; }
+                            .git-time { font-size:12px; color:#0969da; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+                            .git-hash { font-size:11px; color:#57606a; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; text-decoration:underline; cursor:pointer; width: fit-content; }
+                            .git-hash:hover { color:#0969da; }
                             .git-subject { font-size:12px; color:#24292f; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
                             .git-detail { padding:12px; overflow:auto; }
                             .git-detail pre { margin:0; font-size:12px; line-height:1.45; white-space:pre-wrap; word-break:break-word; overflow-wrap:anywhere; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
@@ -373,10 +375,12 @@ window.loadGitList = function() {
                         listEl.innerHTML = logs.map((log, idx) => {
                             const time = escapeHtml(log.committed_at || '');
                             const subject = escapeHtml(log.subject || '');
+                            const shortHash = escapeHtml(String(log.hash || '').slice(0, 7));
                             const activeCls = idx === 0 ? 'active' : '';
                             return `
                                 <div class="git-item ${activeCls}" data-hash="${escapeHtml(log.hash)}" data-time="${time}">
-                                    <div class="git-time" data-open="1">${time}</div>
+                                    <div class="git-time">${time}</div>
+                                    <div class="git-hash" data-open="1">${shortHash}</div>
                                     <div class="git-subject" title="${subject}">${subject || '-'}</div>
                                 </div>
                             `;
