@@ -36,8 +36,79 @@ def _wrap(result, fail_status=400):
 
 @system_bp.route('/api/process/list')
 def api_process_list():
-    result = process_utils.list_processes()
-    return _wrap(result)
+    """获取进程列表（适合手机展示）"""
+    try:
+        # 使用 ps 命令获取进程信息
+        result = subprocess.run(
+            ['ps', 'aux', '--sort=-%cpu'],
+            capture_output=True,
+            text=True,
+            timeout=10
+        )
+        
+        lines = result.stdout.strip().split('\n')[1:]  # 跳过表头
+        processes = []
+        
+        for line in lines:
+            parts = line.split()
+            if len(parts) >= 11:
+                try:
+                    # ps aux 输出格式: USER PID %CPU %MEM VSZ RSS TTY STAT START TIME COMMAND
+                    proc = {
+                        'pid': int(parts[1]),
+                        'user': parts[0],
+                        'cpu_percent': float(parts[2]),
+                        'memory_percent': float(parts[3]),
+                        'memory_rss': int(parts[5]) * 1024,  # KB -> Bytes
+                        'elapsed': parts[9],
+                        'command': parts[10] if len(parts) > 10 else parts[10],
+                        'full_command': ' '.join(parts[10:]) if len(parts) > 10 else parts[10],
+                    }
+                    processes.append(proc)
+                except (ValueError, IndexError):
+                    continue
+        
+        # 计算内存总量和进程数
+        memory_total = 0
+        try:
+            import psutil
+            vm = psutil.virtual_memory()
+            memory_total = vm.total
+        except ImportError:
+            # 估算：所有进程 RSS 之和 * 2
+            total_rss = sum(p['memory_rss'] for p in processes)
+            memory_total = total_rss * 2
+        
+        memory_used = sum(p['memory_rss'] for p in processes)
+        memory_percent = round(memory_used / memory_total * 100, 1) if memory_total > 0 else 0
+        
+        # 获取 CPU 使用率
+        cpu_percent = 0
+        try:
+            import psutil
+            cpu_percent = psutil.cpu_percent()
+        except ImportError:
+            cpu_percent = sum(p['cpu_percent'] for p in processes[:20])
+        
+        stats = {
+            'cpu_percent': cpu_percent,
+            'memory_used': memory_used,
+            'memory_total': memory_total,
+            'memory_percent': memory_percent,
+            'process_count': len(processes),
+        }
+        
+        return jsonify({
+            'success': True,
+            'data': {
+                'stats': stats,
+                'processes': processes[:50]  # 限制50个
+            }
+        })
+    except subprocess.TimeoutExpired:
+        return api_error('获取进程信息超时', status=500)
+    except Exception as e:
+        return api_error(str(e), status=500)
 
 
 @system_bp.route('/api/process/kill/<int:pid>', methods=['POST'])

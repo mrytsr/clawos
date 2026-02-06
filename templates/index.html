@@ -1252,14 +1252,24 @@
     <div id="processModal" class="drawer">
         <div class="drawer-handle"></div>
         <div class="drawer-header">
-            <div class="drawer-title">⚙️ 进程管理</div>
-            <div style="display:flex;gap:8px;">
-                <button style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px;" onclick="loadProcessList()" title="刷新">🔄</button>
-                <button class="drawer-close-btn" onclick="closeProcessModal()">&times;</button>
-            </div>
+            <div class="drawer-title">📊 进程管理</div>
+            <button class="drawer-close-btn" onclick="closeProcessModal()">&times;</button>
+        </div>
+        <div class="drawer-content" style="padding:0;display:flex;flex-direction:column;max-height:calc(85vh - 60px);">
+            <div id="processListContainer" style="flex:1;overflow:auto;"></div>
+        </div>
+    </div>
+
+    <!-- 进程详情抽屉 -->
+    <div id="processDetailBackdrop" class="drawer-backdrop" onclick="Drawer.close('processDetailModal')"></div>
+    <div id="processDetailModal" class="drawer">
+        <div class="drawer-handle"></div>
+        <div class="drawer-header">
+            <div class="drawer-title">进程详情</div>
+            <button class="drawer-close-btn" onclick="Drawer.close('processDetailModal')">&times;</button>
         </div>
         <div class="drawer-content" style="padding:0;">
-            <div id="processListContainer" style="padding: 16px;"></div>
+            <div id="processDetailContent" style="padding:16px;"></div>
         </div>
     </div>
 
