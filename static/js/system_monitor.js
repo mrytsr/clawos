@@ -147,11 +147,9 @@ window.showProcessDetail = function(pid) {
     if (!p) return;
     
     const detailHtml = '<div style="padding:16px;">' +
-        '<h3 style="margin:0 0 16px 0;font-size:16px;">' + getProcessIcon(p.name || '') + ' ' + escapeHtml(p.name || '?') + '</h3>' +
+        '<h3 style="margin:0 0 16px 0;font-size:16px;">' + getProcessIcon(p.command || '') + ' ' + escapeHtml(p.command || '?') + '</h3>' +
         '<div style="font-size:13px;line-height:1.8;">' +
         '<div><span style="color:#666;">PID:</span> ' + p.pid + '</div>' +
-        '<div><span style="color:#666;">CPU:</span> ' + (p.cpu || 0).toFixed(1) + '%</div>' +
-        '<div><span style="color:#666;">内存:</span> ' + (p.memory || 0).toFixed(1) + '%</div>' +
         '<div><span style="color:#666;">CPU:</span> ' + (p.cpu_percent || 0).toFixed(1) + '%</div>' +
         '<div><span style="color:#666;">内存:</span> ' + (p.memory_percent || 0).toFixed(1) + '%</div>' +
         '<div><span style="color:#666;">运行时长:</span> ' + (p.elapsed || '-') + '</div>' +
