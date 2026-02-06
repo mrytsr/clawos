@@ -40,7 +40,15 @@ window.openSearchResultMenu = function(ev, el) {
     var path = decodeURIComponent(el.dataset.path || '');
     var name = decodeURIComponent(el.dataset.name || '');
     var isDir = (el.dataset.isDir || '').toLowerCase() === 'true';
-    if (typeof window.showMenuModal === 'function') window.showMenuModal(path, name, isDir);
+    if (typeof window.showMenuModal === 'function') {
+        var rect = null;
+        try {
+            rect = el.getBoundingClientRect ? el.getBoundingClientRect() : null;
+        } catch (e) {
+            rect = null;
+        }
+        window.showMenuModal(path, name, isDir, { fromSearch: true, anchorRect: rect });
+    }
     return false;
 };
 

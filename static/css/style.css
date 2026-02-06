@@ -647,6 +647,64 @@
     box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
 }
 
+.drawer.menu-popover {
+    top: 12px;
+    left: 12px;
+    right: auto;
+    bottom: auto;
+    width: min(360px, calc(100vw - 24px));
+    max-height: min(70vh, 560px);
+    border-radius: 14px;
+    overflow: hidden;
+    transform: scale(0.96);
+    opacity: 0;
+    transition: transform 0.16s ease, opacity 0.16s ease;
+    box-shadow: 0 14px 50px rgba(0,0,0,0.25);
+}
+.drawer.menu-popover.open {
+    transform: scale(1);
+    opacity: 1;
+}
+.drawer.menu-popover .drawer-handle {
+    display: none;
+}
+.drawer.menu-popover .drawer-content {
+    padding: 0;
+}
+.drawer.menu-popover .drawer-header {
+    padding: 10px 12px;
+}
+
+.menu-action-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+.menu-icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 999px;
+    border: 1px solid #d0d7de;
+    background: #ffffff;
+    color: #24292f;
+    font-size: 14px;
+    line-height: 1;
+    cursor: pointer;
+    transition: background-color 0.15s, border-color 0.15s, color 0.15s;
+}
+.modal-item:hover .menu-icon-btn {
+    background: rgba(255,255,255,0.18);
+    border-color: rgba(255,255,255,0.55);
+    color: #ffffff;
+}
+.menu-icon-btn:hover {
+    background: #f6f8fa;
+}
+
 #dialogBackdrop {
     z-index: 20040;
 }
