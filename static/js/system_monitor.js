@@ -68,10 +68,10 @@ function renderProcessCards(processList, sortBy) {
     if (!cardsContainer) return;
     
     const sorted = processList.slice().sort(function(a, b) {
-        if (sortBy === 'cpu') return (b.cpu || 0) - (a.cpu || 0);
-        if (sortBy === 'memory') return (b.memory || 0) - (a.memory || 0);
+        if (sortBy === 'cpu') return (b.cpu_percent || 0) - (a.cpu_percent || 0);
+        if (sortBy === 'memory') return (b.memory_percent || 0) - (a.memory_percent || 0);
         if (sortBy === 'pid') return (a.pid || 0) - (b.pid || 0);
-        if (sortBy === 'name') return (a.name || '').localeCompare(b.name || '');
+        if (sortBy === 'name') return (a.command || '').localeCompare(b.command || '');
         return 0;
     });
     
@@ -93,8 +93,8 @@ window.sortProcesses = function(sortBy) {
     let filtered = window._processData;
     if (searchKeyword) {
         filtered = window._processData.filter(function(p) {
-            return (p.name || '').toLowerCase().includes(searchKeyword) || 
-                   (p.cmd || '').toLowerCase().includes(searchKeyword);
+            return (p.command || '').toLowerCase().includes(searchKeyword) || 
+                   (p.full_command || '').toLowerCase().includes(searchKeyword);
         });
     }
     renderProcessCards(filtered, sortBy);
@@ -106,12 +106,12 @@ window.filterProcesses = function() {
 };
 
 function renderProcessCard(p, index) {
-    const cpuPercent = p.cpu || 0;
-    const memPercent = p.memory || 0;
-    const command = p.name || '?';
-    const fullCommand = p.cmd || command;
+    const cpuPercent = p.cpu_percent || 0;
+    const memPercent = p.memory_percent || 0;
+    const command = p.command || '?';
+    const fullCommand = p.full_command || command;
     const pid = p.pid || 0;
-    const elapsed = p.uptime || '0:00';
+    const elapsed = p.elapsed || '0:00';
     const icon = getProcessIcon(command);
     const ports = p.ports || [];
     
@@ -122,7 +122,7 @@ function renderProcessCard(p, index) {
     let displayPath = fullCommand;
     if (displayPath.length > 50) displayPath = displayPath.substring(0, 50) + '...';
     
-    return '<div class="process-card" data-name="' + (p.name || '').toLowerCase() + '" onclick="showProcessDetail(' + pid + ')" style="cursor:pointer;padding:12px;border-bottom:1px solid #eee;">' +
+    return '<div class="process-card" data-name="' + (p.command || '').toLowerCase() + '" onclick="showProcessDetail(' + pid + ')" style="cursor:pointer;padding:12px;border-bottom:1px solid #eee;">' +
         '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">' +
         '<span style="color:#999;font-size:12px;width:24px;">' + index + '.</span>' +
         '<span>' + icon + '</span>' +
@@ -135,7 +135,7 @@ function renderProcessCard(p, index) {
         '<div style="display:flex;flex-wrap:wrap;gap:8px;font-size:11px;color:#666;margin-left:32px;">' +
         '<span>💭 ' + memPercent.toFixed(1) + '%</span>' +
         '<span>⏱️ ' + elapsed + '</span>' +
-        '<span>📡 ' + (ports.length > 0 ? ports.join(',') : '-') + '</span>' +
+        '<span>👤 ' + escapeHtml(p.user || '?') + '</span>' +
         '<span style="font-family:monospace;">PID:' + pid + '</span>' +
         '</div>' +
         '</div>';
@@ -152,10 +152,11 @@ window.showProcessDetail = function(pid) {
         '<div><span style="color:#666;">PID:</span> ' + p.pid + '</div>' +
         '<div><span style="color:#666;">CPU:</span> ' + (p.cpu || 0).toFixed(1) + '%</div>' +
         '<div><span style="color:#666;">内存:</span> ' + (p.memory || 0).toFixed(1) + '%</div>' +
-        '<div><span style="color:#666;">运行时长:</span> ' + (p.uptime || '-') + '</div>' +
-        '<div><span style="color:#666;">状态:</span> ' + (p.status || '-') + '</div>' +
-        '<div><span style="color:#666;">端口:</span> ' + (p.ports || []).join(', ') + '</div>' +
-        '<div style="margin-top:12px;"><span style="color:#666;">命令:</span><br><code style="font-size:11px;word-break:break-all;background:#f6f8fa;padding:8px;border-radius:4px;display:block;margin-top:4px;">' + escapeHtml(p.cmd || '-') + '</code></div>' +
+        '<div><span style="color:#666;">CPU:</span> ' + (p.cpu_percent || 0).toFixed(1) + '%</div>' +
+        '<div><span style="color:#666;">内存:</span> ' + (p.memory_percent || 0).toFixed(1) + '%</div>' +
+        '<div><span style="color:#666;">运行时长:</span> ' + (p.elapsed || '-') + '</div>' +
+        '<div><span style="color:#666;">用户:</span> ' + (p.user || '-') + '</div>' +
+        '<div style="margin-top:12px;"><span style="color:#666;">命令:</span><br><code style="font-size:11px;word-break:break-all;background:#f6f8fa;padding:8px;border-radius:4px;display:block;margin-top:4px;">' + escapeHtml(p.full_command || '-') + '</code></div>' +
         '</div>' +
         '</div>';
     

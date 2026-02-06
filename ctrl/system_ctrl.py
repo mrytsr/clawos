@@ -2,7 +2,7 @@ import json
 import os
 import re
 import subprocess
-from flask import Blueprint, Response, render_template, request
+from flask import Blueprint, Response, render_template, request, jsonify
 
 from ctrl import api_error, api_ok
 
