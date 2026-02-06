@@ -22,6 +22,8 @@ function showMenuModal(path, name, isDir) {
     if (copyUrlEl) copyUrlEl.style.display = isDir ? 'none' : '';
     var extractEl = document.getElementById('menuExtractItem');
     if (extractEl) extractEl.style.display = (!isDir && isArchiveName(name)) ? '' : 'none';
+    var newArchiveEl = document.getElementById('menuNewArchiveItem');
+    if (newArchiveEl) newArchiveEl.style.display = '';
     Drawer.open('menuModal');
 }
 
@@ -68,7 +70,6 @@ function endDrag() {
 
 // 文件操作
 function handleMenuAction(action) {
-    closeMenuModal();
     setTimeout(() => {
         switch(action) {
             case 'download': downloadFile(window.currentItemPath); break;
@@ -95,8 +96,422 @@ function handleMenuAction(action) {
             case 'delete': confirmDelete(window.currentItemPath, window.currentItemName); break;
             case 'details': showDetails(window.currentItemPath, window.currentItemName); break;
             case 'extract': extractArchiveHere(window.currentItemPath, window.currentItemName); break;
+            case 'newArchive':
+                closeMenuModal();
+                openArchiveCreateDialog([window.currentItemPath], getParentDir(window.currentItemPath));
+                break;
         }
     }, 50);
+}
+
+function normalizeRelPath(path) {
+    return (path || '').toString().replace(/\\/g, '/').replace(/^\/+/, '').replace(/\/+$/, '');
+}
+
+function getParentDir(path) {
+    var p = normalizeRelPath(path);
+    var idx = p.lastIndexOf('/');
+    return idx >= 0 ? p.slice(0, idx) : '';
+}
+
+function getCurrentBrowsePath() {
+    var el = document.getElementById('currentBrowsePath');
+    return el ? normalizeRelPath(el.value || '') : '';
+}
+
+function formatTimestampYYYYMMDDHHMMSS() {
+    var d = new Date();
+    var pad = function(n) { return String(n).padStart(2, '0'); };
+    return String(d.getFullYear())
+        + pad(d.getMonth() + 1)
+        + pad(d.getDate())
+        + pad(d.getHours())
+        + pad(d.getMinutes())
+        + pad(d.getSeconds());
+}
+
+function openArchiveProgressDrawer() {
+    var fill = document.getElementById('archiveProgressFill');
+    var text = document.getElementById('archiveProgressText');
+    if (fill) fill.style.width = '0%';
+    if (text) text.textContent = '准备中…';
+    Drawer.open('archiveProgressDrawer');
+}
+
+function closeArchiveProgressDrawer() {
+    if (window.__archiveProgressPoller && typeof window.__archiveProgressPoller.cancel === 'function') {
+        window.__archiveProgressPoller.cancel();
+    }
+    window.__archiveProgressPoller = null;
+    Drawer.close('archiveProgressDrawer');
+}
+
+function startArchiveProgressPoll(taskId) {
+    if (!taskId || !window.TaskPoller || typeof window.TaskPoller.start !== 'function') return;
+    openArchiveProgressDrawer();
+    window.__archiveProgressPoller = window.TaskPoller.start(taskId, {
+        intervalMs: 600,
+        timeoutMs: 30 * 60 * 1000,
+        onUpdate: function(evt) {
+            var payload = evt && evt.payload ? evt.payload : null;
+            var p = payload && typeof payload.progress === 'number' ? payload.progress : null;
+            var msg = payload && typeof payload.message === 'string' ? payload.message : '';
+            var fill = document.getElementById('archiveProgressFill');
+            var text = document.getElementById('archiveProgressText');
+            if (text && msg) text.textContent = msg;
+            if (fill && p !== null && !Number.isNaN(p)) fill.style.width = String(Math.max(0, Math.min(100, p))) + '%';
+        }
+    });
+    window.__archiveProgressPoller.promise.then(function(res) {
+        if (res && res.ok) {
+            showToast('压缩完成', 'success');
+            closeArchiveProgressDrawer();
+            if (typeof refreshFileList === 'function') refreshFileList();
+            return;
+        }
+        var payload = res && res.payload ? res.payload : null;
+        var msg = payload && (payload.message || (payload.error && payload.error.message)) ? (payload.message || (payload.error && payload.error.message)) : '';
+        showToast(msg || '压缩失败', 'error');
+        closeArchiveProgressDrawer();
+    });
+}
+
+function openArchiveCreateDialog(paths, outputDir) {
+    var items = Array.isArray(paths) ? paths.filter(function(p) { return typeof p === 'string' && p.trim(); }) : [];
+    if (!items.length) {
+        showToast('未选择可压缩项目', 'warning');
+        return;
+    }
+    var outDir = typeof outputDir === 'string' ? normalizeRelPath(outputDir) : '';
+    var defaultName = '新建压缩包.zip';
+
+    if (typeof window.openDialogDrawer === 'function') {
+        window.openDialogDrawer({
+            title: '新建压缩包',
+            message: '输入压缩包名称并选择格式（生成在同级目录）',
+            input: true,
+            placeholder: '例如：backup.zip',
+            defaultValue: defaultName,
+            confirmText: '开始压缩',
+            select: {
+                options: [
+                    { value: 'zip', label: 'zip' },
+                    { value: 'tar.gz', label: 'tar.gz' }
+                ],
+                defaultValue: 'zip'
+            },
+            onConfirm: function(result) {
+                var name = result && typeof result.value === 'string' ? result.value.trim() : '';
+                var fmt = result && typeof result.select === 'string' ? result.select.trim() : 'zip';
+                if (!name) name = fmt === 'zip' ? '新建压缩包.zip' : '新建压缩包.tar.gz';
+                if (fmt === 'zip' && !name.toLowerCase().endsWith('.zip')) name = name + '.zip';
+                if (fmt === 'tar.gz' && !name.toLowerCase().endsWith('.tar.gz')) {
+                    if (name.toLowerCase().endsWith('.tar')) name = name + '.gz';
+                    else name = name + '.tar.gz';
+                }
+                fetch('/api/archive/create', {
+                    method: 'POST',
+                    headers: Object.assign({ 'Content-Type': 'application/json' }, (typeof authHeaders === 'function' ? authHeaders() : {})),
+                    body: JSON.stringify({
+                        paths: items,
+                        output_dir: outDir,
+                        name: name,
+                        format: fmt
+                    })
+                })
+                    .then(function(r) { return r.json(); })
+                    .then(function(d) {
+                        if (d && d.success && d.data && d.data.taskId) {
+                            startArchiveProgressPoll(d.data.taskId);
+                        } else {
+                            showToast((d && d.error && d.error.message) || '创建任务失败', 'error');
+                        }
+                    })
+                    .catch(function() { showToast('创建任务失败', 'error'); });
+            }
+        });
+        return;
+    }
+
+    var picked = prompt('压缩包名称（默认：新建压缩包.zip）', defaultName);
+    if (picked === null) return;
+    fetch('/api/archive/create', {
+        method: 'POST',
+        headers: Object.assign({ 'Content-Type': 'application/json' }, (typeof authHeaders === 'function' ? authHeaders() : {})),
+        body: JSON.stringify({ paths: items, output_dir: outDir, name: picked, format: 'zip' })
+    })
+        .then(function(r) { return r.json(); })
+        .then(function(d) {
+            if (d && d.success && d.data && d.data.taskId) startArchiveProgressPoll(d.data.taskId);
+            else showToast((d && d.error && d.error.message) || '创建任务失败', 'error');
+        })
+        .catch(function() { showToast('创建任务失败', 'error'); });
+}
+
+function shareText(text) {
+    var t = typeof text === 'string' ? text : '';
+    if (!t) return;
+    if (navigator.share) {
+        navigator.share({ text: t }).catch(function() {});
+        return;
+    }
+    showToast('当前浏览器不支持分享', 'warning');
+}
+
+function shareMenuDownloadUrl() {
+    var path = window.currentItemPath || '';
+    var url = window.location.origin + '/download/' + encodeURIComponent(path);
+    shareText(url);
+}
+
+function shareMenuPath() {
+    shareText(window.currentItemPath || '');
+}
+
+function batchArchive() {
+    var paths = [];
+    document.querySelectorAll('.file-checkbox:checked').forEach(function(c) {
+        if (c && c.dataset && c.dataset.path) paths.push(c.dataset.path);
+    });
+    if (paths.length === 0) {
+        showToast('请选择要压缩的文件', 'warning');
+        return;
+    }
+    openArchiveCreateDialog(paths, getCurrentBrowsePath());
+}
+
+function showDragUploadOverlay(show) {
+    var overlay = document.getElementById('dragUploadOverlay');
+    if (!overlay) return;
+    overlay.style.display = show ? 'flex' : 'none';
+}
+
+function openDragUploadDrawer(files) {
+    var listEl = document.getElementById('dragUploadFileList');
+    var targetEl = document.getElementById('dragUploadTargetPath');
+    var fillEl = document.getElementById('dragUploadProgressFill');
+    var textEl = document.getElementById('dragUploadProgressText');
+
+    var arr = Array.from(files || []).filter(function(f) { return f && typeof f.name === 'string'; });
+    if (!arr.length) return;
+
+    var baseTs = formatTimestampYYYYMMDDHHMMSS();
+    var renamed = arr.map(function(f, idx) {
+        var name = f.name || '';
+        var dot = name.lastIndexOf('.');
+        var ext = dot >= 0 ? name.slice(dot) : '';
+        if (arr.length === 1) return baseTs + ext;
+        return baseTs + '_' + String(idx + 1) + ext;
+    });
+
+    window.__dragUploadState = { files: arr, renamed: renamed, uploading: false };
+
+    if (targetEl) targetEl.value = getCurrentBrowsePath();
+    if (fillEl) fillEl.style.width = '0%';
+    if (textEl) textEl.textContent = '';
+    if (listEl) {
+        listEl.innerHTML = arr.map(function(f, i) {
+            var size = typeof f.size === 'number' ? formatSize(f.size) : '';
+            var type = f.type || 'application/octet-stream';
+            return '<div style="display:flex;justify-content:space-between;gap:12px;padding:8px 6px;border-bottom:1px solid #f1f2f4;">'
+                + '<div style="min-width:0;">'
+                + '<div style="font-weight:600;word-break:break-all;">' + escapeHtml(f.name) + '</div>'
+                + '<div style="font-size:12px;color:#6e7781;">' + escapeHtml(size) + (size ? ' · ' : '') + escapeHtml(type) + '</div>'
+                + '</div>'
+                + '<div style="font-family:monospace;font-size:12px;color:#57606a;white-space:nowrap;flex-shrink:0;">→ ' + escapeHtml(renamed[i]) + '</div>'
+                + '</div>';
+        }).join('');
+    }
+    Drawer.open('dragUploadDrawer');
+}
+
+function closeDragUploadDrawer() {
+    window.__dragUploadState = null;
+    showDragUploadOverlay(false);
+    Drawer.close('dragUploadDrawer');
+}
+
+async function startDragUpload() {
+    var state = window.__dragUploadState;
+    if (!state || !Array.isArray(state.files) || !state.files.length) return;
+    if (state.uploading) return;
+    state.uploading = true;
+
+    var targetEl = document.getElementById('dragUploadTargetPath');
+    var targetDir = targetEl ? normalizeRelPath(targetEl.value || '') : '';
+    var total = state.files.length;
+    var fillEl = document.getElementById('dragUploadProgressFill');
+    var textEl = document.getElementById('dragUploadProgressText');
+
+    for (var i = 0; i < total; i++) {
+        if (!window.__dragUploadState || !window.__dragUploadState.uploading) return;
+        var f = state.files[i];
+        var desired = state.renamed[i] || (formatTimestampYYYYMMDDHHMMSS() + (getFileExt(f.name || '') || ''));
+        if (textEl) textEl.textContent = '上传中… ' + String(i + 1) + '/' + String(total);
+
+        var fd = new FormData();
+        fd.append('file', f, desired);
+        fd.append('target_dir', targetDir);
+        fd.append('filename', desired);
+
+        try {
+            var resp = await fetch('/api/upload', { method: 'POST', body: fd });
+            var json = null;
+            try { json = await resp.json(); } catch (e) { json = null; }
+            if (!json || !json.success) {
+                var msg = json && json.error && json.error.message ? json.error.message : '上传失败';
+                showToast(msg, 'error');
+                state.uploading = false;
+                return;
+            }
+        } catch (e) {
+            showToast('上传失败', 'error');
+            state.uploading = false;
+            return;
+        }
+
+        var pct = Math.round(((i + 1) * 1000) / total) / 10;
+        if (fillEl) fillEl.style.width = String(pct) + '%';
+    }
+
+    state.uploading = false;
+    showToast('上传完成', 'success');
+    closeDragUploadDrawer();
+    if (typeof refreshFileList === 'function') refreshFileList();
+}
+
+function openPasteImageDrawer(blob) {
+    if (!blob) return;
+    var targetEl = document.getElementById('pasteImageTargetPath');
+    var nameEl = document.getElementById('pasteImageFilename');
+    var imgEl = document.getElementById('pasteImagePreview');
+
+    var type = String(blob.type || '').toLowerCase();
+    var ext = '.png';
+    if (type === 'image/jpeg' || type === 'image/jpg') ext = '.jpg';
+    if (type === 'image/png') ext = '.png';
+
+    var ts = formatTimestampYYYYMMDDHHMMSS();
+    var filename = 'paste_' + ts + ext;
+
+    if (targetEl) targetEl.value = getCurrentBrowsePath();
+    if (nameEl) nameEl.value = filename;
+
+    var url = URL.createObjectURL(blob);
+    window.__pasteImageState = { blob: blob, url: url };
+    if (imgEl) {
+        imgEl.src = url;
+        imgEl.style.display = 'block';
+    }
+    Drawer.open('pasteImageDrawer');
+}
+
+function closePasteImageDrawer() {
+    var st = window.__pasteImageState;
+    if (st && st.url) {
+        try { URL.revokeObjectURL(st.url); } catch (e) {}
+    }
+    window.__pasteImageState = null;
+    var imgEl = document.getElementById('pasteImagePreview');
+    if (imgEl) {
+        imgEl.src = '';
+        imgEl.style.display = 'none';
+    }
+    Drawer.close('pasteImageDrawer');
+}
+
+async function savePasteImage() {
+    var st = window.__pasteImageState;
+    if (!st || !st.blob) return;
+    var targetEl = document.getElementById('pasteImageTargetPath');
+    var nameEl = document.getElementById('pasteImageFilename');
+    var targetDir = targetEl ? normalizeRelPath(targetEl.value || '') : '';
+    var filename = nameEl ? (nameEl.value || '').trim() : '';
+    if (!filename) {
+        showToast('请输入文件名', 'warning');
+        return;
+    }
+
+    var file = null;
+    try {
+        file = new File([st.blob], filename, { type: st.blob.type || 'image/png' });
+    } catch (e) {
+        file = st.blob;
+    }
+
+    var fd = new FormData();
+    fd.append('file', file, filename);
+    fd.append('target_dir', targetDir);
+    fd.append('filename', filename);
+
+    try {
+        var resp = await fetch('/api/upload', { method: 'POST', body: fd });
+        var json = null;
+        try { json = await resp.json(); } catch (e) { json = null; }
+        if (!json || !json.success) {
+            var msg = json && json.error && json.error.message ? json.error.message : '保存失败';
+            showToast(msg, 'error');
+            return;
+        }
+    } catch (e) {
+        showToast('保存失败', 'error');
+        return;
+    }
+
+    showToast('保存成功', 'success');
+    closePasteImageDrawer();
+    if (typeof refreshFileList === 'function') refreshFileList();
+}
+
+function initDragUploadAndPaste() {
+    if (window.__dragUploadInited) return;
+    window.__dragUploadInited = true;
+
+    var dragCounter = 0;
+    window.addEventListener('dragenter', function(e) {
+        if (!e || !e.dataTransfer) return;
+        if (e.dataTransfer.types && Array.from(e.dataTransfer.types).indexOf('Files') < 0) return;
+        dragCounter += 1;
+        showDragUploadOverlay(true);
+    });
+    window.addEventListener('dragleave', function(e) {
+        dragCounter = Math.max(0, dragCounter - 1);
+        if (dragCounter === 0) showDragUploadOverlay(false);
+    });
+    window.addEventListener('dragover', function(e) {
+        if (!e || !e.dataTransfer) return;
+        if (e.dataTransfer.types && Array.from(e.dataTransfer.types).indexOf('Files') < 0) return;
+        e.preventDefault();
+        showDragUploadOverlay(true);
+    });
+    window.addEventListener('drop', function(e) {
+        if (!e || !e.dataTransfer) return;
+        var files = e.dataTransfer.files;
+        if (!files || files.length === 0) return;
+        e.preventDefault();
+        dragCounter = 0;
+        showDragUploadOverlay(false);
+        openDragUploadDrawer(files);
+    });
+
+    document.addEventListener('paste', function(e) {
+        var ev = e || window.event;
+        var cd = ev && ev.clipboardData ? ev.clipboardData : null;
+        if (!cd || !cd.items) return;
+        var imgItem = null;
+        for (var i = 0; i < cd.items.length; i++) {
+            var it = cd.items[i];
+            if (it && it.kind === 'file' && String(it.type || '').toLowerCase().startsWith('image/')) {
+                imgItem = it;
+                break;
+            }
+        }
+        if (!imgItem) return;
+        var blob = imgItem.getAsFile ? imgItem.getAsFile() : null;
+        if (!blob) return;
+        if (ev.preventDefault) ev.preventDefault();
+        openPasteImageDrawer(blob);
+    });
 }
 
 function openEditor(path) {
@@ -117,16 +532,37 @@ function isArchiveName(name) {
 }
 
 function extractArchiveHere(path, name) {
-    if (!path || !name) return;
+    if (!path || !name) {
+        return;
+    }
     if (!isArchiveName(name)) {
         showToast('不是压缩包', 'error');
         return;
     }
-    var currentPath = document.getElementById('currentBrowsePath') ? document.getElementById('currentBrowsePath').value : '';
-    var defaultTarget = currentPath || '';
+    var normPath = (path || '').replace(/\\/g, '/');
+    var lastSlash = normPath.lastIndexOf('/');
+    var archiveDir = lastSlash >= 0 ? normPath.slice(0, lastSlash) : '';
+    var filename = lastSlash >= 0 ? normPath.slice(lastSlash + 1) : normPath;
+    var baseName = filename;
+    if (filename.toLowerCase().endsWith('.zip')) {
+        baseName = filename.slice(0, -4);
+    }
+    var defaultTarget = baseName;
+    var rootEl = document.getElementById('rootDir');
+    var rootVal = rootEl ? (rootEl.value || '') : '';
+    var rootNorm = rootVal.replace(/\\/g, '/').replace(/\/+$/, '');
+    var rootName = rootNorm ? rootNorm.split('/').pop() : '';
+    var displayDir = (rootName ? ('/' + rootName) : '') + (archiveDir ? ('/' + archiveDir) : '');
+    if (!displayDir) displayDir = '/';
+    var msg = '输入解压目标目录（相对于当前文件夹）。相对于当前文件夹: ' + displayDir;
+
     var runExtract = function(targetDir) {
         var t = (targetDir || '').trim();
-        fetch('/api/archive/extract/' + encodePathForUrl(path), {
+        if (!t) t = baseName;
+        t = (t || '').replace(/\\/g, '/').replace(/^\/+/, '');
+        if (archiveDir) t = archiveDir + '/' + t;
+        var url = '/api/archive/extract/' + encodePathForUrl(path);
+        fetch(url, {
             method: 'POST',
             headers: Object.assign({ 'Content-Type': 'application/json' }, (typeof authHeaders === 'function' ? authHeaders() : {})),
             body: JSON.stringify({ target_dir: t })
@@ -144,15 +580,17 @@ function extractArchiveHere(path, name) {
                     showToast((data && data.error && data.error.message) || (data && data.message) || '解压失败', 'error');
                 }
             })
-            .catch(function() { showToast('解压失败', 'error'); });
+            .catch(function(err) {
+                showToast('解压失败', 'error');
+            });
     };
 
     if (typeof window.showPromptDrawer === 'function') {
-        window.showPromptDrawer('解压到此处', '输入解压目标目录（相对于根目录）', '例如：downloads/unpacked', defaultTarget, '解压', runExtract, true);
+        window.showPromptDrawer('解压到此处', msg, '例如：downloads/unpacked', defaultTarget, '解压', runExtract, true);
         return;
     }
 
-    var target = prompt('输入解压目标目录（相对于根目录）', defaultTarget);
+    var target = prompt(msg, defaultTarget);
     if (target === null) return;
     runExtract(target);
 }
@@ -249,9 +687,11 @@ function attachFileItemDefaultHandlers() {
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', function() {
         attachFileItemDefaultHandlers();
+        initDragUploadAndPaste();
     });
 } else {
     attachFileItemDefaultHandlers();
+    initDragUploadAndPaste();
 }
 
 // 删除
@@ -508,6 +948,15 @@ window.cloneItem = cloneItem;
 window.downloadFile = downloadFile;
 window.copyDownloadUrl = copyDownloadUrl;
 window.copyFilePath = copyFilePath;
+window.shareMenuDownloadUrl = shareMenuDownloadUrl;
+window.shareMenuPath = shareMenuPath;
 window.editFile = editFile;
 window.addToChat = addToChat;
 window.refreshFileList = refreshFileList;
+window.openArchiveCreateDialog = openArchiveCreateDialog;
+window.closeArchiveProgressDrawer = closeArchiveProgressDrawer;
+window.batchArchive = batchArchive;
+window.closeDragUploadDrawer = closeDragUploadDrawer;
+window.startDragUpload = startDragUpload;
+window.closePasteImageDrawer = closePasteImageDrawer;
+window.savePasteImage = savePasteImage;

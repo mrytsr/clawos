@@ -11,6 +11,8 @@ let botConnectSent = false;
 let botConnectTimer = null;
 let botReconnectBackoffMs = 800;
 let botLastPairingRequestId = null;
+let botAutoScrollEnabled = true;
+let botUiBound = false;
 
 // Generate UUID for IDs
 function generateUUID() {
@@ -394,8 +396,26 @@ function handleBotEvent(data) {
         return null;
     };
 
+    const isForActiveSession = (payload) => {
+        const active = getOrCreateSessionKey();
+        if (!payload || typeof payload !== 'object') return true;
+        const candidates = [
+            payload.sessionKey,
+            payload.sessionkey,
+            payload.session_key,
+            payload.sessionId,
+            payload.session_id,
+            payload.session && payload.session.key,
+            payload.session && payload.session.sessionKey
+        ];
+        const found = candidates.find(v => typeof v === 'string' && v.trim());
+        if (!found) return true;
+        return String(found) === String(active);
+    };
+
     if (data.event === 'chat' && data.payload) {
         const p = data.payload;
+        if (!isForActiveSession(p)) return;
         const state = p.state;
         const msg = p.message;
         if (msg && typeof msg.role === 'string' && msg.role !== 'assistant') {
@@ -438,6 +458,7 @@ function handleBotEvent(data) {
 
     if (data.event === 'agent' && data.payload) {
         const p = data.payload;
+        if (!isForActiveSession(p)) return;
         if (p.stream === 'text_delta' && p.data && p.data.text) {
             currentBotResponse += p.data.text;
             updateBotResponseUI(currentBotResponse);
@@ -452,6 +473,7 @@ function handleBotEvent(data) {
     }
 
     if (data.event === 'chat.event' && data.payload) {
+        if (!isForActiveSession(data.payload)) return;
         if (data.payload.delta) {
             currentBotResponse += String(data.payload.delta);
             updateBotResponseUI(currentBotResponse);
@@ -466,15 +488,144 @@ function handleBotEvent(data) {
     }
 }
 
+function getOrCreateSessionKey() {
+    let sessionKey = localStorage.getItem('bot_session_key');
+    if (!sessionKey) {
+        sessionKey = 'session-' + generateUUID();
+        localStorage.setItem('bot_session_key', sessionKey);
+    }
+    return sessionKey;
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    return String(text).replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+function renderMarkdownToHtml(text) {
+    const src = String(text ?? '');
+    const blocks = [];
+    const fenceRe = /```([a-zA-Z0-9_-]+)?\n([\s\S]*?)```/g;
+    let last = 0;
+    let m;
+    while ((m = fenceRe.exec(src)) !== null) {
+        const before = src.slice(last, m.index);
+        blocks.push({ t: 'text', v: before });
+        const lang = (m[1] || '').trim();
+        const code = m[2] || '';
+        blocks.push({ t: 'code', lang, v: code });
+        last = m.index + m[0].length;
+    }
+    blocks.push({ t: 'text', v: src.slice(last) });
+
+    const out = blocks.map((b) => {
+        if (b.t === 'code') {
+            const lang = b.lang ? escapeHtml(b.lang) : '';
+            const codeEsc = escapeHtml(b.v);
+            const langClass = b.lang ? 'language-' + escapeHtml(b.lang) : '';
+            return (
+                '<div class="bot-md-code" style="position:relative;margin:10px 0;">'
+                + '<button type="button" class="bot-code-copy" style="position:absolute;right:8px;top:8px;z-index:2;border:1px solid #d0d7de;background:#ffffff;border-radius:6px;padding:6px 8px;font-size:12px;cursor:pointer;" aria-label="复制代码" title="复制代码">⧉</button>'
+                + '<pre style="margin:0;overflow:auto;"><code class="' + langClass + '">' + codeEsc + '</code></pre>'
+                + (lang ? '<div style="position:absolute;left:10px;top:8px;font-size:12px;color:#6e7781;">' + lang + '</div>' : '')
+                + '</div>'
+            );
+        }
+        let html = escapeHtml(b.v);
+        html = html.replace(/`([^`]+)`/g, function(_, c) {
+            return '<code>' + escapeHtml(c) + '</code>';
+        });
+        html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+        html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+        html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, function(_, label, url) {
+            const u = String(url || '').trim();
+            if (!u) return label;
+            const safe = escapeHtml(u);
+            return '<a href="' + safe + '" target="_blank" rel="noopener noreferrer">' + escapeHtml(label) + '</a>';
+        });
+        html = html.replace(/\n/g, '<br>');
+        return html;
+    }).join('');
+
+    return out;
+}
+
+function isNearBottom(container, thresholdPx) {
+    const th = typeof thresholdPx === 'number' ? thresholdPx : 40;
+    return (container.scrollHeight - container.scrollTop - container.clientHeight) <= th;
+}
+
+function setJumpLatestVisible(visible) {
+    const btn = document.getElementById('botJumpLatestBtn');
+    if (!btn) return;
+    btn.style.display = visible ? 'block' : 'none';
+}
+
+function botScrollToBottom(smooth) {
+    const box = document.getElementById('botChatBox');
+    if (!box) return;
+    const behavior = smooth ? 'smooth' : 'auto';
+    try {
+        box.scrollTo({ top: box.scrollHeight, behavior });
+    } catch (e) {
+        box.scrollTop = box.scrollHeight;
+    }
+}
+
+function botJumpToLatest() {
+    botAutoScrollEnabled = true;
+    setJumpLatestVisible(false);
+    botScrollToBottom(true);
+}
+
+function ensureBotUiBindings() {
+    if (botUiBound) return;
+    const box = document.getElementById('botChatBox');
+    const list = document.getElementById('botHistoryList');
+    if (!box || !list) return;
+    botUiBound = true;
+
+    box.addEventListener('scroll', function() {
+        const atBottom = isNearBottom(box, 60);
+        botAutoScrollEnabled = atBottom;
+        setJumpLatestVisible(!atBottom);
+    });
+
+    list.addEventListener('click', function(e) {
+        const t = e && e.target ? e.target : null;
+        if (!t) return;
+        const btn = t.closest ? t.closest('.bot-code-copy') : null;
+        if (!btn) return;
+        const wrapper = btn.closest ? btn.closest('.bot-md-code') : null;
+        const codeEl = wrapper ? wrapper.querySelector('code') : null;
+        const code = codeEl ? codeEl.textContent : '';
+        if (!code) return;
+        navigator.clipboard.writeText(code).then(function() {
+            showToast('已复制', 'success');
+        }).catch(function() {
+            showToast('复制失败', 'error');
+        });
+    });
+
+    window.botJumpToLatest = botJumpToLatest;
+}
+
+function renderBotTextInto(el, text) {
+    if (!el) return;
+    el.innerHTML = renderMarkdownToHtml(text);
+    if (window.hljs && typeof window.hljs.highlightElement === 'function') {
+        el.querySelectorAll('pre code').forEach(function(codeEl) {
+            try { window.hljs.highlightElement(codeEl); } catch (e) {}
+        });
+    }
+}
+
 function updateBotResponseUI(text) {
-    // Ideally update the last message bubble if it exists, or create one
-    // For simplicity, we can reload history if we are saving incrementally? 
-    // No, that flickers. 
-    // We should find the specific DOM element and update it.
-    
-    // If we are using the simple loadBotHistory approach which clears container:
-    // We need to implement a "temporary" message append.
-    
+    ensureBotUiBindings();
     const list = document.getElementById('botHistoryList');
     if (!list) return;
     
@@ -494,21 +645,18 @@ function updateBotResponseUI(text) {
         list.appendChild(li);
         tempMsg = document.getElementById('bot-temp-response-text');
         tempMsg.parentElement.parentElement.id = 'bot-temp-response'; // Mark container
-        
-        // Scroll to bottom
-        const container = document.querySelector('.bot-history');
-        if (container) container.scrollTop = container.scrollHeight;
     } else {
         tempMsg = document.getElementById('bot-temp-response-text');
     }
     
     if (tempMsg) {
-        // Simple text escape
-        tempMsg.textContent = text; 
-        
-        // Scroll to bottom
-        const container = document.querySelector('.bot-history');
-        if (container) container.scrollTop = container.scrollHeight;
+        renderBotTextInto(tempMsg, text);
+        const box = document.getElementById('botChatBox');
+        if (box && botAutoScrollEnabled) {
+            botScrollToBottom(true);
+        } else {
+            setJumpLatestVisible(true);
+        }
     }
 }
 
@@ -531,6 +679,7 @@ function saveBotMessageToHistory(text) {
 }
 
 function loadBotHistory() {
+    ensureBotUiBindings();
     fetch('/api/history', { headers: { 'Authorization': 'Basic ' + btoa('admin:admin') } })
         .then(r => r.json())
         .then(data => {
@@ -550,27 +699,21 @@ function loadBotHistory() {
                     <div class="bot-avatar">${avatar}</div>
                     <div class="bot-bubble">
                         <div class="bot-name">${name} <span style="font-size:0.8em;opacity:0.6;margin-left:5px">${item.time || ''}</span></div>
-                        <div class="bot-text">${escapeHtml(item.text)}</div>
+                        <div class="bot-text"></div>
                     </div>
                 `;
                 list.appendChild(li);
+                const textEl = li.querySelector('.bot-text');
+                renderBotTextInto(textEl, item.text);
             });
             
-            // Scroll to bottom
-            const container = document.querySelector('.bot-history');
-            if (container) {
-                container.scrollTop = container.scrollHeight;
+            const box = document.getElementById('botChatBox');
+            if (box && botAutoScrollEnabled) {
+                botScrollToBottom(false);
+            } else {
+                setJumpLatestVisible(true);
             }
         });
-}
-
-function escapeHtml(text) {
-    if (!text) return '';
-    return text.replace(/&/g, "&amp;")
-               .replace(/</g, "&lt;")
-               .replace(/>/g, "&gt;")
-               .replace(/"/g, "&quot;")
-               .replace(/'/g, "&#039;");
 }
 
 function botSend() {
@@ -603,11 +746,7 @@ function botSend() {
     });
 
     // 2. Send to Gateway
-    let sessionKey = localStorage.getItem('bot_session_key');
-    if (!sessionKey) {
-        sessionKey = 'session-' + generateUUID();
-        localStorage.setItem('bot_session_key', sessionKey);
-    }
+    let sessionKey = getOrCreateSessionKey();
     
     const runId = generateUUID();
     currentRunId = runId;

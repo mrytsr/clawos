@@ -20,6 +20,7 @@ from flask import (
 
 import config
 from lib import file_utils, path_utils
+from ctrl.task_ctrl import create_task, update_task
 
 
 file_bp = Blueprint('file', __name__)
@@ -311,6 +312,23 @@ def _resolve_safe_file(path):
     return root_dir, full_path, None
 
 
+def _resolve_safe_dir(path, ensure_exists=False):
+    root_dir, _trash_dir = _get_paths()
+    root_dir = os.path.normpath(root_dir)
+    p = (path or '').lstrip('/\\').replace('\\', '/')
+    full_path = os.path.normpath(os.path.join(root_dir, p))
+    try:
+        if os.path.commonpath([root_dir, full_path]) != root_dir:
+            return None, None, "非法路径"
+    except Exception:
+        return None, None, "非法路径"
+    if ensure_exists:
+        os.makedirs(full_path, exist_ok=True)
+    if not os.path.exists(full_path) or not os.path.isdir(full_path):
+        return None, None, "目录不存在"
+    return root_dir, full_path, None
+
+
 def _is_archive_name(name):
     n = (name or '').lower()
     if n.endswith('.tar.gz') or n.endswith('.tar.bz2') or n.endswith('.tar.xz'):
@@ -538,6 +556,207 @@ def api_archive_extract(path):
         return jsonify({'success': True, 'data': {'extracted': extracted, 'target_dir': target_dir}})
     except Exception as e:
         return jsonify({'success': False, 'error': {'message': str(e)}}), 500
+
+
+@file_bp.route('/api/archive/create', methods=['POST'])
+def api_archive_create():
+    payload = request.get_json(silent=True) or {}
+    if not isinstance(payload, dict):
+        return jsonify({'success': False, 'error': {'message': 'Invalid JSON'}}), 400
+
+    paths = payload.get('paths') or []
+    if not isinstance(paths, list) or not paths:
+        return jsonify({'success': False, 'error': {'message': 'paths required'}}), 400
+
+    fmt = (payload.get('format') or 'zip').strip().lower()
+    if fmt not in {'zip', 'tar.gz'}:
+        return jsonify({'success': False, 'error': {'message': '不支持的格式'}}), 400
+
+    output_dir = (payload.get('output_dir') or '').strip()
+    _root_dir, out_dir_full, err = _resolve_safe_dir(output_dir, ensure_exists=False)
+    if err:
+        return jsonify({'success': False, 'error': {'message': err}}), 400
+
+    archive_name = (payload.get('name') or '').strip()
+    if not archive_name:
+        archive_name = '新建压缩包.zip' if fmt == 'zip' else '新建压缩包.tar.gz'
+    archive_name = os.path.basename(archive_name)
+    if fmt == 'zip' and not archive_name.lower().endswith('.zip'):
+        archive_name = archive_name + '.zip'
+    if fmt == 'tar.gz' and not archive_name.lower().endswith('.tar.gz'):
+        if archive_name.lower().endswith('.tar'):
+            archive_name = archive_name + '.gz'
+        else:
+            archive_name = archive_name + '.tar.gz'
+
+    root_dir, _trash_dir = _get_paths()
+    root_dir = os.path.normpath(root_dir)
+    output_full = os.path.normpath(os.path.join(out_dir_full, archive_name))
+    try:
+        if os.path.commonpath([root_dir, output_full]) != root_dir:
+            return jsonify({'success': False, 'error': {'message': '非法目标文件'}}), 400
+    except Exception:
+        return jsonify({'success': False, 'error': {'message': '非法目标文件'}}), 400
+
+    if os.path.exists(output_full):
+        base = archive_name
+        ext = ''
+        if fmt == 'tar.gz':
+            base = archive_name[:-7]
+            ext = '.tar.gz'
+        else:
+            base, ext = os.path.splitext(archive_name)
+        counter = 1
+        while True:
+            cand = os.path.join(out_dir_full, f'{base}({counter}){ext}')
+            if not os.path.exists(cand):
+                output_full = cand
+                break
+            counter += 1
+
+    resolved = []
+    for p in paths:
+        if not isinstance(p, str) or not p.strip():
+            continue
+        rel = p.strip().lstrip('/\\').replace('\\', '/')
+        full = os.path.normpath(os.path.join(root_dir, rel))
+        try:
+            if os.path.commonpath([root_dir, full]) != root_dir:
+                continue
+        except Exception:
+            continue
+        if not os.path.exists(full):
+            continue
+        resolved.append((rel, full))
+    if not resolved:
+        return jsonify({'success': False, 'error': {'message': '未找到可压缩项'}}), 400
+
+    def _build_plan():
+        entries = []
+        seen = set()
+        file_count = 0
+        for rel, full in resolved:
+            top = os.path.basename(full.rstrip('/\\'))
+            if not top:
+                continue
+            if os.path.isdir(full):
+                for root, dirs, files in os.walk(full):
+                    dirs[:] = [d for d in dirs if not os.path.islink(os.path.join(root, d))]
+                    for d in dirs:
+                        arc = os.path.join(top, os.path.relpath(os.path.join(root, d), full)).replace('\\', '/').rstrip('/') + '/'
+                        if arc not in seen:
+                            seen.add(arc)
+                            entries.append(('dir', os.path.join(root, d), arc))
+                    for f in files:
+                        fp = os.path.join(root, f)
+                        if os.path.islink(fp):
+                            continue
+                        arc = os.path.join(top, os.path.relpath(fp, full)).replace('\\', '/')
+                        if arc not in seen:
+                            seen.add(arc)
+                            entries.append(('file', fp, arc))
+                            file_count += 1
+                if file_count == 0:
+                    arc = top.rstrip('/') + '/'
+                    if arc not in seen:
+                        seen.add(arc)
+                        entries.append(('dir', full, arc))
+            else:
+                arc = top
+                if arc not in seen:
+                    seen.add(arc)
+                    entries.append(('file', full, arc))
+                    file_count += 1
+        return entries, max(file_count, 1)
+
+    def _run(task_id):
+        entries, total = _build_plan()
+        update_task(task_id, status='pending', progress=0.0, message='准备中…')
+
+        done = 0
+        if fmt == 'zip':
+            zf = None
+            try:
+                zf = zipfile.ZipFile(output_full, 'w', compression=zipfile.ZIP_DEFLATED)
+                for kind, fp, arc in entries:
+                    if kind == 'dir':
+                        arc_dir = (arc or '').replace('\\', '/').rstrip('/') + '/'
+                        if arc_dir:
+                            try:
+                                zf.writestr(arc_dir, b'')
+                            except Exception:
+                                pass
+                        continue
+                    zf.write(fp, arcname=arc)
+                    done += 1
+                    update_task(task_id, progress=(done * 100.0 / total), message=f'压缩中… {done}/{total}')
+            finally:
+                if zf:
+                    zf.close()
+        else:
+            tf = None
+            try:
+                tf = tarfile.open(output_full, 'w:gz')
+                for kind, fp, arc in entries:
+                    if kind == 'dir':
+                        tf.add(fp, arcname=arc.rstrip('/'), recursive=False)
+                        continue
+                    tf.add(fp, arcname=arc, recursive=False)
+                    done += 1
+                    update_task(task_id, progress=(done * 100.0 / total), message=f'压缩中… {done}/{total}')
+            finally:
+                if tf:
+                    tf.close()
+
+    task_id = create_task(_run, name=f'archive:create:{fmt}')
+    rel_out = os.path.relpath(output_full, root_dir).replace('\\', '/')
+    return jsonify({'success': True, 'data': {'taskId': task_id, 'output': rel_out}})
+
+
+@file_bp.route('/api/upload', methods=['POST'])
+def api_upload_file():
+    root_dir, _trash_dir = _get_paths()
+    root_dir = os.path.normpath(root_dir)
+
+    f = request.files.get('file')
+    if not f:
+        return jsonify({'success': False, 'error': {'message': 'file required'}}), 400
+
+    target_dir = (request.form.get('target_dir') or '').strip().lstrip('/\\').replace('\\', '/')
+    _root, target_full, err = _resolve_safe_dir(target_dir, ensure_exists=True)
+    if err:
+        return jsonify({'success': False, 'error': {'message': err}}), 400
+
+    desired = (request.form.get('filename') or f.filename or '').strip()
+    desired = os.path.basename(desired)
+    if not desired:
+        return jsonify({'success': False, 'error': {'message': 'filename required'}}), 400
+
+    out_full = os.path.normpath(os.path.join(target_full, desired))
+    try:
+        if os.path.commonpath([root_dir, out_full]) != root_dir:
+            return jsonify({'success': False, 'error': {'message': '非法目标文件'}}), 400
+    except Exception:
+        return jsonify({'success': False, 'error': {'message': '非法目标文件'}}), 400
+
+    if os.path.exists(out_full):
+        base, ext = os.path.splitext(desired)
+        counter = 1
+        while True:
+            cand = os.path.join(target_full, f'{base}({counter}){ext}')
+            if not os.path.exists(cand):
+                out_full = cand
+                desired = os.path.basename(out_full)
+                break
+            counter += 1
+
+    try:
+        f.save(out_full)
+    except Exception as e:
+        return jsonify({'success': False, 'error': {'message': str(e)}}), 500
+
+    rel_out = os.path.relpath(out_full, root_dir).replace('\\', '/')
+    return jsonify({'success': True, 'data': {'path': rel_out, 'filename': desired}})
 
 
 @file_bp.route('/thumbnail/<path:path>')
