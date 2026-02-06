@@ -24,6 +24,7 @@ const Drawer = {
         if (b) b.classList.add('open');
         if (opts && typeof opts.onOpen === 'function') opts.onOpen();
         dispatchDrawerEvent(modalId, 'drawer:open');
+        if (typeof window.__updateScrollLock === 'function') window.__updateScrollLock();
     },
     close: function(modalId, opts) {
         var m = document.getElementById(modalId);
@@ -37,15 +38,20 @@ const Drawer = {
             setTimeout(function() {
                 afterClose();
                 dispatchDrawerEvent(modalId, 'drawer:after-close');
+                if (typeof window.__updateScrollLock === 'function') window.__updateScrollLock();
             }, 300);
         } else {
-            setTimeout(function() { dispatchDrawerEvent(modalId, 'drawer:after-close'); }, 300);
+            setTimeout(function() {
+                dispatchDrawerEvent(modalId, 'drawer:after-close');
+                if (typeof window.__updateScrollLock === 'function') window.__updateScrollLock();
+            }, 300);
         }
     },
     closeAll: function(opts) {
         var openDrawers = Array.prototype.slice.call(document.querySelectorAll('.drawer.open, .right-drawer.open')).map(function(el) { return el.id; }).filter(Boolean);
         openDrawers.forEach(function(id) { Drawer.close(id, opts); });
         document.querySelectorAll('.drawer-backdrop.open, .right-drawer-backdrop.open').forEach(function(el) { el.classList.remove('open'); });
+        if (typeof window.__updateScrollLock === 'function') window.__updateScrollLock();
     }
 };
 
@@ -53,6 +59,85 @@ const Drawer = {
 function authHeaders() {
     return { 'Authorization': 'Basic ' + btoa('admin:admin') };
 }
+
+;(function() {
+    if (window.__scrollLockInited) return;
+    window.__scrollLockInited = true;
+
+    var state = {
+        locked: false,
+        scrollY: 0,
+        prev: null
+    };
+
+    function anyOverlayOpen() {
+        if (document.querySelector('.drawer-backdrop.open, .right-drawer-backdrop.open')) return true;
+        var dragOverlay = document.getElementById('dragUploadOverlay');
+        if (dragOverlay && dragOverlay.style && dragOverlay.style.display && dragOverlay.style.display !== 'none') return true;
+        return false;
+    }
+
+    function lockBodyScroll() {
+        if (state.locked) return;
+        var body = document.body;
+        if (!body) return;
+        state.locked = true;
+        state.scrollY = window.scrollY || window.pageYOffset || 0;
+        state.prev = {
+            overflow: body.style.overflow,
+            position: body.style.position,
+            top: body.style.top,
+            left: body.style.left,
+            right: body.style.right,
+            width: body.style.width
+        };
+        body.style.overflow = 'hidden';
+        body.style.position = 'fixed';
+        body.style.top = '-' + String(state.scrollY) + 'px';
+        body.style.left = '0';
+        body.style.right = '0';
+        body.style.width = '100%';
+    }
+
+    function unlockBodyScroll() {
+        if (!state.locked) return;
+        var body = document.body;
+        if (!body) return;
+        var prev = state.prev || {};
+        body.style.overflow = prev.overflow || '';
+        body.style.position = prev.position || '';
+        body.style.top = prev.top || '';
+        body.style.left = prev.left || '';
+        body.style.right = prev.right || '';
+        body.style.width = prev.width || '';
+        var y = state.scrollY || 0;
+        state.locked = false;
+        state.prev = null;
+        state.scrollY = 0;
+        window.scrollTo(0, y);
+    }
+
+    function updateScrollLock() {
+        if (anyOverlayOpen()) lockBodyScroll();
+        else unlockBodyScroll();
+    }
+
+    window.__updateScrollLock = updateScrollLock;
+
+    if (window.MutationObserver) {
+        var obs = new MutationObserver(function() { updateScrollLock(); });
+        obs.observe(document.documentElement, { subtree: true, attributes: true, attributeFilter: ['class', 'style'] });
+    }
+
+    document.addEventListener('touchmove', function(e) {
+        if (!state.locked) return;
+        var t = e && e.target ? e.target : null;
+        if (t && t.closest && (t.closest('.drawer.open') || t.closest('.right-drawer.open'))) return;
+        if (e && typeof e.preventDefault === 'function') e.preventDefault();
+    }, { passive: false, capture: true });
+
+    updateScrollLock();
+})();
 
 // 页面加载时关闭所有抽屉
 (function() {

@@ -3,7 +3,57 @@
 // 注意：currentItemPath, currentItemName, currentItemIsDir 由 globals.js 定义
 
 // 文件菜单
-function showMenuModal(path, name, isDir) {
+function setSearchModalInteractive(enabled) {
+    var m = document.getElementById('searchModal');
+    var b = document.getElementById('searchBackdrop');
+    var pe = enabled ? '' : 'none';
+    if (m) m.style.pointerEvents = pe;
+    if (b) b.style.pointerEvents = pe;
+}
+
+function setMenuTopLayer(on) {
+    var modal = document.getElementById('menuModal');
+    var backdrop = document.getElementById('menuBackdrop');
+    if (backdrop) backdrop.style.zIndex = on ? '20009' : '';
+    if (modal) modal.style.zIndex = on ? '20010' : '';
+}
+
+function clampNumber(v, min, max) {
+    if (v < min) return min;
+    if (v > max) return max;
+    return v;
+}
+
+function positionMenuPopover(anchorRect) {
+    var modal = document.getElementById('menuModal');
+    if (!modal || !anchorRect) return;
+    var vw = Math.max(1, window.innerWidth || document.documentElement.clientWidth || 1);
+    var vh = Math.max(1, window.innerHeight || document.documentElement.clientHeight || 1);
+    var pad = 12;
+
+    modal.style.left = '0px';
+    modal.style.top = '0px';
+    modal.style.right = '';
+    modal.style.bottom = '';
+
+    var w = modal.offsetWidth || 280;
+    var h = modal.offsetHeight || 360;
+
+    var preferRight = (anchorRect.right || 0) - w;
+    var left = clampNumber(preferRight, pad, Math.max(pad, vw - w - pad));
+
+    var belowTop = (anchorRect.bottom || 0) + 8;
+    var aboveTop = (anchorRect.top || 0) - h - 8;
+    var top = belowTop;
+    if (top + h + pad > vh && aboveTop >= pad) top = aboveTop;
+    top = clampNumber(top, pad, Math.max(pad, vh - h - pad));
+
+    modal.style.left = String(Math.round(left)) + 'px';
+    modal.style.top = String(Math.round(top)) + 'px';
+}
+
+function showMenuModal(path, name, isDir, opts) {
+    var o = opts && typeof opts === 'object' ? opts : null;
     window.currentItemPath = path;
     window.currentItemName = name;
     window.currentItemIsDir = isDir;
@@ -24,10 +74,43 @@ function showMenuModal(path, name, isDir) {
     if (extractEl) extractEl.style.display = (!isDir && isArchiveName(name)) ? '' : 'none';
     var newArchiveEl = document.getElementById('menuNewArchiveItem');
     if (newArchiveEl) newArchiveEl.style.display = '';
+
+    var menuModal = document.getElementById('menuModal');
+    if (menuModal) {
+        if (o && o.fromSearch) menuModal.classList.add('menu-popover');
+        else menuModal.classList.remove('menu-popover');
+        if (!(o && o.fromSearch)) {
+            menuModal.style.left = '';
+            menuModal.style.top = '';
+            menuModal.style.right = '';
+            menuModal.style.bottom = '';
+        }
+    }
+
+    var fromSearch = !!(o && o.fromSearch);
+    setMenuTopLayer(fromSearch);
+    if (fromSearch) setSearchModalInteractive(false);
+
     Drawer.open('menuModal');
+
+    if (fromSearch && o && o.anchorRect) {
+        requestAnimationFrame(function() {
+            positionMenuPopover(o.anchorRect);
+        });
+    }
 }
 
 function closeMenuModal() {
+    setSearchModalInteractive(true);
+    setMenuTopLayer(false);
+    var menuModal = document.getElementById('menuModal');
+    if (menuModal) {
+        menuModal.classList.remove('menu-popover');
+        menuModal.style.left = '';
+        menuModal.style.top = '';
+        menuModal.style.right = '';
+        menuModal.style.bottom = '';
+    }
     Drawer.close('menuModal');
 }
 
