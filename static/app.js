@@ -19,6 +19,31 @@ window.actionToModalMap = {
 };
 
 // 搜索功能
+window.openSearchResultFolder = function(path, isDir) {
+    var p = (path || '').toString().replace(/\\/g, '/').replace(/^\/+/, '').replace(/\/+$/, '');
+    var dir = '';
+    if (isDir) {
+        var idx = p.lastIndexOf('/');
+        dir = idx >= 0 ? p.slice(0, idx) : '';
+    } else {
+        var idx2 = p.lastIndexOf('/');
+        dir = idx2 >= 0 ? p.slice(0, idx2) : '';
+    }
+    var enc = (typeof encodePathForUrl === 'function') ? encodePathForUrl(dir) : encodeURIComponent(dir).replace(/%2F/g, '/');
+    window.location.href = dir ? ('/browse/' + enc) : '/browse/';
+    return false;
+};
+
+window.openSearchResultMenu = function(ev, el) {
+    if (ev && typeof ev.stopPropagation === 'function') ev.stopPropagation();
+    if (!el || !el.dataset) return false;
+    var path = decodeURIComponent(el.dataset.path || '');
+    var name = decodeURIComponent(el.dataset.name || '');
+    var isDir = (el.dataset.isDir || '').toLowerCase() === 'true';
+    if (typeof window.showMenuModal === 'function') window.showMenuModal(path, name, isDir);
+    return false;
+};
+
 function doSearch() {
     const keyword = document.getElementById('searchInput').value.trim();
     if (!keyword) return;
@@ -29,15 +54,34 @@ function doSearch() {
         .then(data => {
             const results = data && data.success && data.data ? data.data.results : null;
             if (results && results.length > 0) {
-                resultsContainer.innerHTML = results.map(item => 
-                    `<div class="search-result-item" onclick="window.location.href='/browse/${item.path}'">
-                        <span style="font-size:20px;margin-right:10px;">${item.icon}</span>
-                        <div style="flex:1;">
-                            <div style="font-weight:500;">${item.name}</div>
-                            <div style="font-size:12px;color:#666;">${item.path}</div>
-                        </div>
-                    </div>`
-                ).join('');
+                resultsContainer.innerHTML = results.map(item => {
+                    var rawPath = (item && item.path ? String(item.path) : '').replace(/\\/g, '/').replace(/^\/+/, '');
+                    var rawName = item && item.name ? String(item.name) : '';
+                    var isDir = !!(item && item.is_dir);
+                    var icon = item && item.icon ? String(item.icon) : (isDir ? '📁' : '📄');
+                    var safeName = (typeof escapeHtml === 'function') ? escapeHtml(rawName) : rawName;
+                    var safePath = (typeof escapeHtml === 'function') ? escapeHtml(rawPath) : rawPath;
+                    var encPath = encodeURIComponent(rawPath);
+                    var encName = encodeURIComponent(rawName);
+                    return (
+                        `<div class="file-item search-result-item" data-path="${safePath}" data-name="${safeName}" data-is-dir="${isDir ? 'true' : 'false'}">` +
+                            `<div class="file-col-icon">` +
+                                `<span class="file-icon">${escapeHtml(icon)}</span>` +
+                            `</div>` +
+                            `<div class="file-col-info">` +
+                                `<div class="file-name"><span>${safeName}</span></div>` +
+                                `<div class="file-details-inline"><span>${safePath}</span></div>` +
+                            `</div>` +
+                            `<div class="file-col-actions" style="gap:8px;">` +
+                                `<a href="#" class="preview-btn" title="所在文件夹" onclick="return openSearchResultFolder(decodeURIComponent('${encPath}'), ${isDir ? 'true' : 'false'});">📁</a>` +
+                                `<div class="menu-btn" data-path="${encPath}" data-name="${encName}" data-is-dir="${isDir ? 'true' : 'false'}" onclick="return openSearchResultMenu(event, this);">` +
+                                    `<span>⋮</span>` +
+                                `</div>` +
+                            `</div>` +
+                        `</div>`
+                    );
+                }).join('');
+                if (typeof attachFileItemDefaultHandlers === 'function') attachFileItemDefaultHandlers();
             } else {
                 resultsContainer.innerHTML = '<div style="text-align:center;padding:40px;color:#666;">未找到结果</div>';
             }
@@ -312,41 +356,6 @@ function copyToClipboard(text, successMsg) {
 }
 function editFile(path) { window.location.href = `/edit/${encodeURIComponent(path)}`; }
 function addToChat(path) { showToast('功能开发中', 'info'); }
-
-// 文件菜单操作
-window.handleMenuAction = function(action) {
-    closeMenuModal();
-    setTimeout(() => {
-        switch(action) {
-            case 'download': downloadFile(currentItemPath); break;
-            case 'copyUrl': copyDownloadUrl(currentItemPath); break;
-            case 'copyPath': copyFilePath(currentItemPath); break;
-            case 'rename': showRenameModal(); break;
-            case 'move': showMoveModal(); break;
-            case 'clone': cloneItem(); break;
-            case 'cut':
-                if (window.Clipboard && typeof window.Clipboard.set === 'function') {
-                    window.Clipboard.set('cut', { path: currentItemPath, name: currentItemName, isDir: currentItemIsDir });
-                    showToast('已剪切', 'success');
-                } else {
-                    showToast('剪切不可用', 'error');
-                }
-                break;
-            case 'copy':
-                if (window.Clipboard && typeof window.Clipboard.set === 'function') {
-                    window.Clipboard.set('copy', { path: currentItemPath, name: currentItemName, isDir: currentItemIsDir });
-                    showToast('已复制', 'success');
-                } else {
-                    showToast('复制不可用', 'error');
-                }
-                break;
-            case 'chat': addToChat(currentItemPath); break;
-            case 'terminal': openTerminal(currentItemPath, currentItemIsDir); break;
-            case 'delete': confirmDelete(currentItemPath, currentItemName); break;
-            case 'details': showDetails(currentItemPath, currentItemName); break;
-        }
-    }, 50);
-};
 
 // 终端处理
 function handleTerminalBackdrop(event) {

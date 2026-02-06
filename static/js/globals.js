@@ -81,15 +81,40 @@ window.hideTaskListener = function() {
 
 window.openDialogDrawer = function(opts) {
     var o = opts || {};
-    window.__dialogDrawerState = { onConfirm: typeof o.onConfirm === 'function' ? o.onConfirm : null };
+    window.__dialogDrawerState = {
+        onConfirm: typeof o.onConfirm === 'function' ? o.onConfirm : null,
+        hasSelect: !!o.select
+    };
 
     var titleEl = document.getElementById('dialogTitle');
     var msgEl = document.getElementById('dialogMessage');
+    var selectEl = document.getElementById('dialogSelect');
     var inputEl = document.getElementById('dialogInput');
     var btnEl = document.getElementById('dialogConfirmBtn');
 
     if (titleEl) titleEl.textContent = o.title || '提示';
     if (msgEl) msgEl.textContent = o.message || '';
+
+    if (selectEl) {
+        if (o.select && Array.isArray(o.select.options)) {
+            selectEl.style.display = 'block';
+            selectEl.innerHTML = '';
+            o.select.options.forEach(function(opt) {
+                if (!opt) return;
+                var value = typeof opt === 'string' ? opt : opt.value;
+                var label = typeof opt === 'string' ? opt : (opt.label || opt.value);
+                if (typeof value !== 'string') return;
+                var optionEl = document.createElement('option');
+                optionEl.value = value;
+                optionEl.textContent = label || value;
+                selectEl.appendChild(optionEl);
+            });
+            if (typeof o.select.defaultValue === 'string') selectEl.value = o.select.defaultValue;
+        } else {
+            selectEl.style.display = 'none';
+            selectEl.innerHTML = '';
+        }
+    }
 
     var needsInput = !!o.input;
     if (inputEl) {
@@ -121,9 +146,14 @@ window.closeDialogDrawer = function() {
     Drawer.close('dialogDrawer', {
         afterClose: function() {
             var inputEl = document.getElementById('dialogInput');
+            var selectEl = document.getElementById('dialogSelect');
             if (inputEl) {
                 inputEl.value = '';
                 inputEl.onkeydown = null;
+            }
+            if (selectEl) {
+                selectEl.innerHTML = '';
+                selectEl.style.display = 'none';
             }
             window.__dialogDrawerState = null;
         }
@@ -133,10 +163,18 @@ window.closeDialogDrawer = function() {
 window.confirmDialogDrawer = function() {
     var state = window.__dialogDrawerState;
     var inputEl = document.getElementById('dialogInput');
+    var selectEl = document.getElementById('dialogSelect');
     var value = inputEl && inputEl.style.display !== 'none' ? (inputEl.value || '').trim() : null;
+    var selected = selectEl && selectEl.style.display !== 'none' ? (selectEl.value || '').trim() : null;
     var handler = state && typeof state.onConfirm === 'function' ? state.onConfirm : null;
     closeDialogDrawer();
-    if (handler) handler(value);
+    if (handler) {
+        if (state && state.hasSelect) {
+            handler({ value: value, select: selected });
+        } else {
+            handler(value);
+        }
+    }
 };
 
 window.showPromptDrawer = function(title, message, placeholder, defaultValue, confirmText, onConfirm, danger) {

@@ -683,6 +683,28 @@
         .modal-item:hover { background-color: #0969da; color: white; }
         .modal-item.delete-item { color: #cf222e; }
         .modal-item.delete-item:hover { background-color: #cf222e; color: white; }
+        .menu-share-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 10px;
+            border-radius: 999px;
+            border: 1px solid #d0d7de;
+            background: #ffffff;
+            color: #24292f;
+            font-size: 12px;
+            cursor: pointer;
+            flex-shrink: 0;
+            transition: background-color 0.15s, border-color 0.15s, color 0.15s;
+        }
+        .modal-item:hover .menu-share-btn {
+            background: rgba(255,255,255,0.18);
+            border-color: rgba(255,255,255,0.55);
+            color: #ffffff;
+        }
+        .menu-share-btn:hover {
+            background: #f6f8fa;
+        }
 
         /* 配置模态框 */
         #configModal .modal-content { width: 320px; }
@@ -857,6 +879,9 @@
             <div class="bot-chat-box" id="botChatBox">
                 <ul id="botHistoryList" class="bot-history" style="list-style: none; padding: 0; margin: 0;"></ul>
             </div>
+            <button id="botJumpLatestBtn" type="button" onclick="botJumpToLatest()" style="position:absolute;right:16px;bottom:78px;z-index:5;display:none;padding:10px 12px;border-radius:999px;border:1px solid #d0d7de;background:#ffffff;color:#24292f;box-shadow:0 6px 16px rgba(0,0,0,0.12);cursor:pointer;font-size: var(--global-font-size, 12px);">
+                ⬇ 跳转到最新
+            </button>
             
             <div class="bot-input-area">
                 <textarea class="bot-input" id="botInput" placeholder="输入消息..." style="flex: 1; border: 1px solid #ddd; background: #f5f5f5; padding: 10px 12px; border-radius: 8px; font-size: var(--global-font-size, 14px); resize: none; outline: none; height: 40px; max-height: 100px;"></textarea>
@@ -867,6 +892,71 @@
 
     <!-- 上传状态显示 -->
     <div id="uploadStatus" class="upload-status"></div>
+
+    <div id="archiveProgressBackdrop" class="drawer-backdrop" onclick="closeArchiveProgressDrawer()"></div>
+    <div id="archiveProgressDrawer" class="drawer">
+        <div class="drawer-handle"></div>
+        <div class="drawer-header">
+            <div class="drawer-title">🗜️ 压缩中</div>
+            <button class="drawer-close-btn" onclick="closeArchiveProgressDrawer()">&times;</button>
+        </div>
+        <div class="drawer-content" style="padding:16px;">
+            <div id="archiveProgressText" style="font-size: var(--global-font-size, 14px); color:#57606a; margin-bottom: 12px;">准备中…</div>
+            <div class="progress-bar" style="width:100%;height:10px;background:#e5e7eb;border-radius:999px;overflow:hidden;">
+                <div id="archiveProgressFill" style="height:100%;width:0%;background:#2da44e;transition:width 0.2s;"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="dragUploadOverlay" style="position:fixed;inset:0;background:rgba(0,0,0,0.35);backdrop-filter:blur(2px);z-index:1900;display:none;align-items:center;justify-content:center;color:#fff;font-size:18px;font-weight:600;">
+        释放以上传
+    </div>
+    <div id="dragUploadBackdrop" class="drawer-backdrop" onclick="closeDragUploadDrawer()"></div>
+    <div id="dragUploadDrawer" class="drawer">
+        <div class="drawer-handle"></div>
+        <div class="drawer-header">
+            <div class="drawer-title">📤 拖拽上传</div>
+            <button class="drawer-close-btn" onclick="closeDragUploadDrawer()">&times;</button>
+        </div>
+        <div class="drawer-content" style="padding:16px;">
+            <div style="display:flex;gap:10px;margin-bottom:12px;">
+                <input type="text" id="dragUploadTargetPath" style="flex:1;padding:12px;border:1px solid #ddd;border-radius:8px;font-size: var(--global-font-size, 14px);" placeholder="目标路径（相对于根目录）">
+            </div>
+            <div id="dragUploadFileList" style="max-height: 220px; overflow:auto; border:1px solid #eee; border-radius:8px; padding:8px; margin-bottom:12px;"></div>
+            <div id="dragUploadProgressText" style="font-size: var(--global-font-size, 12px); color:#57606a; margin-bottom: 8px;"></div>
+            <div class="progress-bar" style="width:100%;height:10px;background:#e5e7eb;border-radius:999px;overflow:hidden;margin-bottom:12px;">
+                <div id="dragUploadProgressFill" style="height:100%;width:0%;background:#0969da;transition:width 0.2s;"></div>
+            </div>
+            <div class="modal-buttons" style="padding:0;border:none;background:none;gap:12px;display:flex;">
+                <button class="modal-btn modal-btn-cancel" style="flex:1;padding:12px;border-radius:8px;" onclick="closeDragUploadDrawer()">取消</button>
+                <button class="modal-btn modal-btn-confirm" style="flex:1;padding:12px;border-radius:8px;" onclick="startDragUpload()">开始上传</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="pasteImageBackdrop" class="drawer-backdrop" onclick="closePasteImageDrawer()"></div>
+    <div id="pasteImageDrawer" class="drawer">
+        <div class="drawer-handle"></div>
+        <div class="drawer-header">
+            <div class="drawer-title">🖼️ 保存粘贴图片</div>
+            <button class="drawer-close-btn" onclick="closePasteImageDrawer()">&times;</button>
+        </div>
+        <div class="drawer-content" style="padding:16px;">
+            <div style="display:flex;justify-content:center;margin-bottom:12px;">
+                <img id="pasteImagePreview" alt="paste preview" style="max-width: 100%; max-height: 240px; border-radius: 8px; border: 1px solid #eee; display:none;">
+            </div>
+            <div style="display:flex;gap:10px;margin-bottom:12px;">
+                <input type="text" id="pasteImageTargetPath" style="flex:1;padding:12px;border:1px solid #ddd;border-radius:8px;font-size: var(--global-font-size, 14px);" placeholder="保存路径（相对于根目录）">
+            </div>
+            <div style="display:flex;gap:10px;margin-bottom:12px;">
+                <input type="text" id="pasteImageFilename" style="flex:1;padding:12px;border:1px solid #ddd;border-radius:8px;font-size: var(--global-font-size, 14px);" placeholder="文件名">
+            </div>
+            <div class="modal-buttons" style="padding:0;border:none;background:none;gap:12px;display:flex;">
+                <button class="modal-btn modal-btn-cancel" style="flex:1;padding:12px;border-radius:8px;" onclick="closePasteImageDrawer()">取消</button>
+                <button class="modal-btn modal-btn-confirm" style="flex:1;padding:12px;border-radius:8px;" onclick="savePasteImage()">保存</button>
+            </div>
+        </div>
+    </div>
 
     <!-- 预览抽屉 -->
     <div id="previewBackdrop" class="drawer-backdrop" onclick="closePreviewModal()"></div>
@@ -893,12 +983,19 @@
             <div class="modal-item" onclick="handleMenuAction('details')">📋 查看详情</div>
             <div class="modal-item" id="menuEditItem">✏️ 编辑</div>
             <div class="modal-item" id="menuDownloadItem" onclick="handleMenuAction('download')">下载文件</div>
-            <div class="modal-item" id="menuCopyUrlItem" onclick="handleMenuAction('copyUrl')">复制下载地址</div>
-            <div class="modal-item" onclick="handleMenuAction('copyPath')">复制相对路径</div>
+            <div class="modal-item" id="menuCopyUrlItem" onclick="handleMenuAction('copyUrl')" style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+                <span>复制下载地址</span>
+                <button type="button" class="menu-share-btn" onclick="event.stopPropagation(); shareMenuDownloadUrl();">🔗 分享</button>
+            </div>
+            <div class="modal-item" id="menuCopyPathItem" onclick="handleMenuAction('copyPath')" style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+                <span>复制相对路径</span>
+                <button type="button" class="menu-share-btn" onclick="event.stopPropagation(); shareMenuPath();">🔗 分享</button>
+            </div>
             <div class="modal-item" onclick="handleMenuAction('rename')">重命名</div>
             <div class="modal-item" onclick="handleMenuAction('cut')" aria-label="剪切">剪切</div>
             <div class="modal-item" onclick="handleMenuAction('copy')" aria-label="复制">复制</div>
             <div class="modal-item" id="menuExtractItem" onclick="handleMenuAction('extract')">📦 解压到此处</div>
+            <div class="modal-item" id="menuNewArchiveItem" onclick="handleMenuAction('newArchive')">🗜️ 新建压缩包</div>
             <div class="modal-item" onclick="handleMenuAction('chat')">💬 添加到对话</div>
             <div class="modal-item" onclick="handleMenuAction('terminal')">📺 在终端打开</div>
             <div class="modal-item delete-item" onclick="handleMenuAction('delete')">删除</div>
@@ -928,6 +1025,7 @@
         </div>
         <div class="drawer-content">
             <p id="dialogMessage" style="margin: 0 0 12px 0; color: #666; font-size: var(--global-font-size, 14px);"></p>
+            <select id="dialogSelect" style="width: 100%; padding: 12px; margin-bottom: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: var(--global-font-size, 14px); box-sizing: border-box; display:none;"></select>
             <input type="text" id="dialogInput" style="width: 100%; padding: 12px; margin-bottom: 16px; border: 1px solid #ddd; border-radius: 8px; font-size: var(--global-font-size, 14px); box-sizing: border-box;">
             <div class="modal-buttons" style="padding: 0; border: none; background: none; gap: 12px; display:flex;">
                 <button style="flex: 1; padding: 12px; border-radius: 8px; border: 1px solid #d0d7de; background: #f6f8fa; cursor: pointer;" onclick="closeDialogDrawer()">取消</button>
@@ -1362,6 +1460,10 @@
         </div>
         <div class="drawer-content">
             <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 16px;">
+                <div class="modal-item" onclick="batchArchive()" style="display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:12px; border:1px solid #eee; border-radius:8px; cursor:pointer;">
+                    <span style="font-size:24px; margin-bottom:4px;">🗜️</span>
+                    <span style="font-size:12px;">压缩</span>
+                </div>
                 <div class="modal-item" onclick="batchMove()" style="display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:12px; border:1px solid #eee; border-radius:8px; cursor:pointer;">
                     <span style="font-size:24px; margin-bottom:4px;">📁</span>
                     <span style="font-size:12px;">移动</span>
