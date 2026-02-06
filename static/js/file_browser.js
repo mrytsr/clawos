@@ -124,35 +124,37 @@ function extractArchiveHere(path, name) {
     }
     var currentPath = document.getElementById('currentBrowsePath') ? document.getElementById('currentBrowsePath').value : '';
     var defaultTarget = currentPath || '';
+    var runExtract = function(targetDir) {
+        var t = (targetDir || '').trim();
+        fetch('/api/archive/extract/' + encodePathForUrl(path), {
+            method: 'POST',
+            headers: Object.assign({ 'Content-Type': 'application/json' }, (typeof authHeaders === 'function' ? authHeaders() : {})),
+            body: JSON.stringify({ target_dir: t })
+        })
+            .then(function(r) {
+                return r.json().catch(function() {
+                    return { success: false, error: { message: '解压失败' } };
+                });
+            })
+            .then(function(data) {
+                if (data && data.success) {
+                    showToast('解压完成', 'success');
+                    if (typeof refreshFileList === 'function') refreshFileList();
+                } else {
+                    showToast((data && data.error && data.error.message) || (data && data.message) || '解压失败', 'error');
+                }
+            })
+            .catch(function() { showToast('解压失败', 'error'); });
+    };
+
     if (typeof window.showPromptDrawer === 'function') {
-        window.showPromptDrawer(
-            '解压到此处',
-            '输入解压目标目录（相对于根目录）',
-            '例如：downloads/unpacked',
-            defaultTarget,
-            '解压',
-            function(targetDir) {
-                var t = (targetDir || '').trim();
-                fetch('/api/archive/extract/' + encodeURIComponent(path), {
-                    method: 'POST',
-                    headers: Object.assign({ 'Content-Type': 'application/json' }, (typeof authHeaders === 'function' ? authHeaders() : {})),
-                    body: JSON.stringify({ target_dir: t })
-                })
-                    .then(r => r.json())
-                    .then(data => {
-                        if (data && data.success) {
-                            showToast('解压完成', 'success');
-                            if (typeof refreshFileList === 'function') refreshFileList();
-                        } else {
-                            showToast((data && data.error && data.error.message) || (data && data.message) || '解压失败', 'error');
-                        }
-                    })
-                    .catch(() => showToast('解压失败', 'error'));
-            },
-            true
-        );
+        window.showPromptDrawer('解压到此处', '输入解压目标目录（相对于根目录）', '例如：downloads/unpacked', defaultTarget, '解压', runExtract, true);
         return;
     }
+
+    var target = prompt('输入解压目标目录（相对于根目录）', defaultTarget);
+    if (target === null) return;
+    runExtract(target);
 }
 
 function encodePathForUrl(path) {
