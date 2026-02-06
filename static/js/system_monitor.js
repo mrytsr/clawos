@@ -404,8 +404,9 @@ window.loadGitList = function() {
                     });
 
                     listEl.addEventListener('click', function(ev) {
-                        const open = ev.target && ev.target.getAttribute && ev.target.getAttribute('data-open') === '1';
-                        const item = ev.target && ev.target.closest ? ev.target.closest('.git-item') : null;
+                        const t = (ev && ev.target && ev.target.nodeType === 3) ? ev.target.parentElement : (ev ? ev.target : null);
+                        const open = !!(t && t.closest && t.closest('[data-open="1"]'));
+                        const item = t && t.closest ? t.closest('.git-item') : null;
                         if (!item) return;
                         const hash = item.getAttribute('data-hash');
                         const time = item.getAttribute('data-time');
@@ -419,7 +420,9 @@ window.loadGitList = function() {
                         if (open) {
                             ev.preventDefault();
                             ev.stopPropagation();
-                            window.open(commitPageUrl(repoId, hash), '_blank');
+                            const url = commitPageUrl(repoId, hash);
+                            const win = window.open(url, '_blank');
+                            if (!win) window.location.assign(url);
                         }
                     });
 
