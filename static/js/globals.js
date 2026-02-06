@@ -383,7 +383,7 @@ window.closeDiskModal = function() {
     if (b) b.classList.remove('open');
 };
 window.closeNetworkModal = function() {
-    var m = document.getElementByElementById('networkModal');
+    var m = document.getElementById('networkModal');
     var b = document.getElementById('networkBackdrop');
     if (m) m.classList.remove('open');
     if (b) b.classList.remove('open');
