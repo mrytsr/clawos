@@ -711,35 +711,23 @@ function attachFileItemDefaultHandlers() {
 
             if (isDir) {
                 var dirUrl = path ? ('/browse/' + encodePathForUrl(path)) : '/browse/';
-                window.location.href = dirUrl;
+                window.open(dirUrl, '_blank', 'noopener');
                 return;
             }
 
             var ext = getFileExt(name);
-            var imageExts = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.svg'];
             var chromeNativeExts = [
-                '.pdf',
-                '.mp4',
-                '.webm',
-                '.ogg',
-                '.mov',
-                '.avi',
-                '.mkv',
-                '.mp3',
-                '.wav',
-                '.flac',
-                '.aac',
-                '.m4a',
-                '.ico',
-                '.webp',
-                '.avif'
+                '.pdf', '.mp4', '.webm', '.ogg', '.mov', '.avi', '.mkv',
+                '.mp3', '.wav', '.flac', '.aac', '.m4a', '.ico', '.webp', '.avif',
+                '.html', '.htm', '.txt', '.css', '.js', '.json', '.xml', '.svg'
             ];
+            var imageExts = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.svg'];
+            var archiveExts = ['.zip', '.rar', '.tar', '.tgz', '.7z', '.tar.gz', '.tar.bz2', '.tar.xz'];
             var mdExts = ['.md', '.markdown'];
             var officeExts = ['.xls', '.xlsx', '.doc', '.docx', '.ppt', '.pptx'];
-            var archiveExts = ['.zip', '.rar', '.tar', '.tgz', '.7z', '.tar.gz', '.tar.bz2', '.tar.xz'];
 
             if (!ext) {
-                window.location.href = '/download/' + encodePathForUrl(path);
+                window.open('/download/' + encodePathForUrl(path), '_blank', 'noopener');
                 return;
             }
             if (imageExts.indexOf(ext) >= 0) {
@@ -750,19 +738,8 @@ function attachFileItemDefaultHandlers() {
                 if (typeof window.openPreview === 'function') window.openPreview(path, name);
                 return;
             }
-            if (chromeNativeExts.indexOf(ext) >= 0) {
-                window.open('/serve/' + encodePathForUrl(path), '_blank', 'noopener');
-                return;
-            }
-            if (mdExts.indexOf(ext) >= 0) {
-                window.open('/view/' + encodePathForUrl(path), '_blank', 'noopener');
-                return;
-            }
-            if (officeExts.indexOf(ext) >= 0) {
-                window.open('/view/' + encodePathForUrl(path), '_blank', 'noopener');
-                return;
-            }
-            window.open('/view/' + encodePathForUrl(path), '_blank', 'noopener');
+            // 所有其他文件都用 /serve/ 让浏览器原生预览
+            window.open('/serve/' + encodePathForUrl(path), '_blank', 'noopener');
         });
     });
 }
