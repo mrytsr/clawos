@@ -144,8 +144,53 @@ function authHeaders() {
     Drawer.closeAll();
 })();
 
+function closeTopmostDrawer() {
+    var drawers = Array.prototype.slice.call(document.querySelectorAll('.drawer.open, .right-drawer.open'));
+    if (!drawers.length) return false;
+
+    var top = null;
+    var topZ = -Infinity;
+    drawers.forEach(function(el) {
+        var z = 0;
+        try {
+            var zs = window.getComputedStyle ? window.getComputedStyle(el).zIndex : '';
+            z = parseInt(zs, 10);
+            if (Number.isNaN(z)) z = 0;
+        } catch (e) {
+            z = 0;
+        }
+        if (z >= topZ) {
+            topZ = z;
+            top = el;
+        }
+    });
+
+    if (!top || !top.id) return false;
+
+    if (top.id === 'dialogDrawer' && typeof window.closeDialogDrawer === 'function') {
+        window.closeDialogDrawer();
+        return true;
+    }
+    if (top.id === 'mainMenuDrawer' && typeof window.closeMainMenuModal === 'function') {
+        window.closeMainMenuModal();
+        return true;
+    }
+    Drawer.close(top.id);
+    return true;
+}
+
 document.addEventListener('keydown', function(e) {
-    if (e && e.key === 'Escape') Drawer.closeAll();
+    if (!e || e.key !== 'Escape') return;
+    var active = document.activeElement;
+    var menu = document.getElementById('mainMenuDrawer');
+    if (menu && menu.classList.contains('open') && active && menu.contains(active)) {
+        if (typeof window.closeMainMenuModal === 'function') {
+            e.preventDefault();
+            window.closeMainMenuModal();
+        }
+        return;
+    }
+    closeTopmostDrawer();
 });
 
 window.showTaskListener = function(text) {
@@ -393,14 +438,87 @@ window.closeBotModal = function() {
     if (b) b.classList.remove('open'); 
 };
 window.closeTerminal = function() { var d = document.getElementById('terminalDrawer'); var b = document.getElementById('terminalBackdrop'); if (d) { d.classList.remove('open'); } if (b) { b.classList.remove('open'); } };
-window.closeMainMenuModal = function() { var d = document.getElementById('mainMenuDrawer'); var b = document.getElementById('mainMenuBackdrop'); if (d) { d.classList.remove('open'); } if (b) { b.classList.remove('open'); } };
+window.__mainMenuState = window.__mainMenuState || { prevFocus: null, trapHandler: null };
+window.closeMainMenuModal = function() {
+    var d = document.getElementById('mainMenuDrawer');
+    var b = document.getElementById('mainMenuBackdrop');
+    var a = document.getElementById('srAnnouncer');
+    if (d) {
+        d.classList.remove('open');
+        d.setAttribute('aria-hidden', 'true');
+    }
+    if (b) {
+        b.classList.remove('open');
+    }
+    if (a) a.textContent = '开始菜单已关闭';
+    if (window.__mainMenuState && window.__mainMenuState.trapHandler) {
+        document.removeEventListener('keydown', window.__mainMenuState.trapHandler, true);
+        window.__mainMenuState.trapHandler = null;
+    }
+    var prev = window.__mainMenuState ? window.__mainMenuState.prevFocus : null;
+    if (prev && typeof prev.focus === 'function') {
+        prev.focus();
+    }
+    if (window.__mainMenuState) window.__mainMenuState.prevFocus = null;
+};
 
 // 打开函数
 window.openMainMenuModal = function() {
     var d = document.getElementById('mainMenuDrawer');
     var b = document.getElementById('mainMenuBackdrop');
-    if (d) { d.classList.add('open'); }
-    if (b) { b.classList.add('open'); }
+    var a = document.getElementById('srAnnouncer');
+    if (window.__mainMenuState) window.__mainMenuState.prevFocus = document.activeElement || null;
+    if (d) {
+        d.classList.add('open');
+        d.setAttribute('aria-hidden', 'false');
+    }
+    if (b) {
+        b.classList.add('open');
+    }
+    if (a) a.textContent = '开始菜单已打开';
+    if (d && window.__mainMenuState && !window.__mainMenuState.trapHandler) {
+        window.__mainMenuState.trapHandler = function(e) {
+            if (!d.classList.contains('open')) return;
+            if (e && e.key === 'Escape') {
+                var active = document.activeElement;
+                if (active && d.contains(active)) {
+                    e.preventDefault();
+                    closeMainMenuModal();
+                }
+                return;
+            }
+            if (!e || e.key !== 'Tab' || typeof d.querySelectorAll !== 'function') return;
+            var focusable = Array.prototype.slice.call(d.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'));
+            focusable = focusable.filter(function(el) {
+                if (!el || el.disabled) return false;
+                if (typeof el.offsetParent === 'undefined') return true;
+                return el.offsetParent !== null;
+            });
+            if (focusable.length === 0) return;
+            var first = focusable[0];
+            var last = focusable[focusable.length - 1];
+            var active = document.activeElement;
+            if (active && !d.contains(active) && active !== d) return;
+            if (e.shiftKey) {
+                if (active === first || active === d) {
+                    e.preventDefault();
+                    last.focus();
+                }
+            } else {
+                if (active === last) {
+                    e.preventDefault();
+                    first.focus();
+                }
+            }
+        };
+        document.addEventListener('keydown', window.__mainMenuState.trapHandler, true);
+    }
+    var closeBtn = document.getElementById('mainMenuCloseBtn');
+    if (closeBtn && typeof closeBtn.focus === 'function') {
+        closeBtn.focus();
+    } else if (d && typeof d.focus === 'function') {
+        d.focus();
+    }
     var c = document.getElementById('mainMenuItems');
     if (c) {
         c.innerHTML = '<div style="text-align:center;padding:40px;color:#666;">加载中...</div>';
@@ -448,7 +566,6 @@ window.openConfigModal = function() { var m = document.getElementById('configMod
 // 主菜单处理函数（需要在 globals.js 中定义，因为菜单项 onclick 使用）
 window.handleMainMenu = function(action) {
     /* eslint-disable no-undef */
-    closeMainMenuModal();
     if (action === 'bot') {
         openBotModal();
     } else if (action === 'terminal') {
