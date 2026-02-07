@@ -393,12 +393,12 @@
             background: #1a1a1a;
             border-radius: 16px 16px 0 0;
             transform: translateY(110%);
-            transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+            transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), height 0.2s ease, max-height 0.2s ease, bottom 0.2s ease;
             z-index: 2000;
             display: flex;
             flex-direction: column;
-            height: 80vh;
-            max-height: 80vh;
+            height: 95vh;
+            max-height: 95vh;
         }
         #terminalDrawer.open {
             transform: translateY(0);
@@ -1116,11 +1116,6 @@
     <div id="terminalDrawer">
         <!-- 拖拽手柄 -->
         <div class="drawer-handle" id="terminalDrawerHandle"></div>
-        <!-- Header -->
-        <div class="drawer-header">
-            <span style="font-size:14px;">🖥️ 终端</span>
-            <button class="drawer-close-btn" onclick="closeTerminal()">&times;</button>
-        </div>
         <style>
             .terminal-keyboard .term-key, .terminal-ctrl-keys .term-key {
                 background:#444;border:none;color:#fff;padding:8px 10px;border-radius:4px;font-size:13px;cursor:pointer;min-width:36px;touch-action:manipulation;transition:all 0.15s;-webkit-tap-highlight-color:transparent;
@@ -1128,11 +1123,13 @@
             .terminal-keyboard .term-key:active, .terminal-ctrl-keys .term-key:active { background:#666;transform:scale(0.95); }
             .term-key.active { background:#0969da !important; }
             .term-key-small { padding:6px 10px !important;font-size:12px !important;min-width:30px !important; }
+            .terminal-keyboard { visibility:hidden;opacity:0;max-height:0;overflow:hidden;padding:0 !important;border-top:0 !important;pointer-events:none;transition:max-height 0.2s ease,opacity 0.2s ease,visibility 0.2s ease,padding 0.2s ease; }
+            .terminal-keyboard.visible { visibility:visible;opacity:1;max-height:240px;padding:6px !important;border-top:1px solid #333 !important;pointer-events:auto; }
             @media (min-width:768px) { .terminal-keyboard, .terminal-ctrl-keys { display:none !important; } }
         </style>
         <div id="terminal-container" style="flex:1;overflow:hidden;background:#000;"></div>
         <!-- 虚拟键盘 -->
-        <div class="terminal-keyboard" style="background:#222;padding:6px;display:flex;flex-direction:column;gap:6px;user-select:none;border-top:1px solid #333;flex-shrink:0;">
+        <div id="terminalAuxKeyboard" class="terminal-keyboard" style="background:#222;padding:6px;display:flex;flex-direction:column;gap:6px;user-select:none;border-top:1px solid #333;flex-shrink:0;">
             <div style="display:flex;gap:6px;">
                 <button type="button" tabindex="-1" class="term-key" onmousedown="handleKeyBtn(event, 'esc')" ontouchstart="handleKeyBtn(event, 'esc')">ESC</button>
                 <button type="button" tabindex="-1" class="term-key" onmousedown="handleKeyBtn(event, 'slash')" ontouchstart="handleKeyBtn(event, 'slash')">/</button>

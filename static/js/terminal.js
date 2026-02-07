@@ -314,17 +314,29 @@ function updateTerminalDrawerLayout() {
     const drawer = document.getElementById('terminalDrawer');
     if (!drawer) return;
 
+    const auxKb = document.getElementById('terminalAuxKeyboard') || drawer.querySelector('.terminal-keyboard');
     const vv = window.visualViewport;
     if (vv) {
         const overlap = Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop));
         drawer.style.bottom = overlap ? (String(overlap) + 'px') : '';
-        const desired = Math.max(240, Math.round(vv.height * 0.8));
+        const desired = Math.max(240, Math.round(vv.height * 0.95));
         drawer.style.height = String(desired) + 'px';
         drawer.style.maxHeight = String(desired) + 'px';
+
+        const keyboardOpen = overlap >= 80;
+        if (auxKb) {
+            if (keyboardOpen) auxKb.classList.add('visible');
+            else auxKb.classList.remove('visible');
+            auxKb.style.visibility = keyboardOpen ? 'visible' : 'hidden';
+        }
     } else {
         drawer.style.bottom = '';
         drawer.style.height = '';
         drawer.style.maxHeight = '';
+        if (auxKb) {
+            auxKb.classList.remove('visible');
+            auxKb.style.visibility = 'hidden';
+        }
     }
 }
 
