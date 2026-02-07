@@ -57,7 +57,7 @@ const Drawer = {
 
 // 认证头辅助函数
 function authHeaders() {
-    return { 'Authorization': 'Basic ' + btoa('admin:admin') };
+    return {};
 }
 
 ;(function() {
@@ -522,7 +522,7 @@ window.openMainMenuModal = function() {
     var c = document.getElementById('mainMenuItems');
     if (c) {
         c.innerHTML = '<div style="text-align:center;padding:40px;color:#666;">加载中...</div>';
-        fetch('/api/menu', { headers: { 'Authorization': 'Basic ' + btoa('admin:admin') } })
+        fetch('/api/menu')
             .then(function(r) { return r.json(); })
             .then(function(data) {
                 if (data && data.success && data.data && data.data.items) {
@@ -547,7 +547,7 @@ window.openBotModal = function() {
     if (b) b.classList.add('open'); 
     if (typeof loadBotHistory === 'function') { loadBotHistory(); } 
     var t = localStorage.getItem('pywebdeck_bot_token'); 
-    if (t) { document.getElementById('botTokenInput').value = t; if (typeof botConnect === 'function' && !botIsConnected) { botConnect(); } } 
+    if (t) { if (typeof botConnect === 'function' && !botIsConnected) { botConnect(); } } 
 };
 window.toggleBotSettings = function() { var s = document.getElementById('botSettings'); if (s) { s.style.display = s.style.display === 'none' ? 'block' : 'none'; } };
 window.openSearchModal = function() { 
@@ -562,6 +562,7 @@ window.resetSearch = function() {
     if (input) { input.value = ''; input.focus(); }
 };
 window.openConfigModal = function() { var m = document.getElementById('configModal'); var b = document.getElementById('configBackdrop'); if (m) m.classList.add('open'); if (b) b.classList.add('open'); };
+window.logoutAuth = function() { window.location.href = '/logout'; };
 
 // 主菜单处理函数（需要在 globals.js 中定义，因为菜单项 onclick 使用）
 window.handleMainMenu = function(action) {

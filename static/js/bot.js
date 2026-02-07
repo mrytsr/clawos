@@ -38,7 +38,7 @@ function setBotWsStatus(connected, statusText) {
 }
 
 function loadBotStats() {
-    fetch('/api/stats', { headers: { 'Authorization': 'Basic ' + btoa('admin:admin') } })
+    fetch('/api/stats')
         .then(r => r.json())
         .then(data => {
             const sent = document.getElementById('botSentCount');
@@ -379,9 +379,7 @@ function getBotTokenFromServer() {
     if (botLastToken) return Promise.resolve(botLastToken);
     if (botTokenPromise) return botTokenPromise;
 
-    botTokenPromise = fetch('/api/bot/token', {
-        headers: { 'Authorization': 'Basic ' + btoa('admin:admin') }
-    })
+    botTokenPromise = fetch('/api/bot/token')
         .then(r => r.json().catch(() => null))
         .then(d => {
             const tok = d && d.success && d.data && typeof d.data.token === 'string' ? d.data.token : '';
@@ -686,8 +684,7 @@ function saveBotMessageToHistory(text) {
     fetch('/api/save', {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Basic ' + btoa('admin:admin')
+            'Content-Type': 'application/json'
         },
         body: JSON.stringify({ type: 'bot', text: text })
     }).then(() => {
@@ -702,7 +699,7 @@ function saveBotMessageToHistory(text) {
 
 function loadBotHistory() {
     ensureBotUiBindings();
-    fetch('/api/history', { headers: { 'Authorization': 'Basic ' + btoa('admin:admin') } })
+    fetch('/api/history')
         .then(r => r.json())
         .then(data => {
             const list = document.getElementById('botHistoryList');
@@ -756,8 +753,7 @@ function botSend() {
     fetch('/api/save', {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Basic ' + btoa('admin:admin')
+            'Content-Type': 'application/json'
         },
         body: JSON.stringify({ type: 'user', text: val })
     }).then(() => {

@@ -20,7 +20,6 @@ def require_auth():
     auth = request.authorization
     if (
         auth
-        and auth.username == config.AUTH_USERNAME
         and auth.password == config.AUTH_PASSWORD
     ):
         return None
@@ -40,7 +39,6 @@ def require_auth():
         '</div>'
         '<div style="margin-top:12px;padding:12px;border:1px solid #d0d7de;'
         'border-radius:8px;background:#f6f8fa;">'
-        f'<div>用户名：{config.AUTH_USERNAME}</div>'
         f'<div>密码：{config.AUTH_PASSWORD}</div>'
         '</div>'
         '</body></html>'
@@ -50,6 +48,34 @@ def require_auth():
         401,
         {
             'WWW-Authenticate': 'Basic realm="Login Required"',
+            'Content-Type': 'text/html; charset=utf-8',
+        },
+    )
+
+
+@auth_bp.route('/logout')
+def logout():
+    body = (
+        '<!doctype html>'
+        '<html lang="zh-CN"><head>'
+        '<meta charset="utf-8">'
+        '<meta name="viewport" content="width=device-width, initial-scale=1">'
+        '<title>退出登录</title>'
+        '</head>'
+        '<body style="font-family:-apple-system,BlinkMacSystemFont,Segoe UI,'
+        'Helvetica,Arial,sans-serif;padding:24px;">'
+        '<h2 style="margin:0 0 12px 0;">已退出登录</h2>'
+        '<div style="color:#57606a;line-height:1.6;">'
+        '请刷新页面重新输入密码。'
+        '</div>'
+        '</body></html>'
+    )
+    return (
+        body,
+        401,
+        {
+            'WWW-Authenticate': 'Basic realm="Login Required"',
+            'Cache-Control': 'no-store',
             'Content-Type': 'text/html; charset=utf-8',
         },
     )
