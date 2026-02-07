@@ -8,7 +8,7 @@ CONVERSATION_FILE = os.path.join(SCRIPT_DIR, 'data', 'conversations.json')
 TRASH_DIR = os.path.join(ROOT_DIR, '_trash')
 
 AUTH_USERNAME = 'admin'
-AUTH_PASSWORD = 'admin'
+AUTH_PASSWORD = '46e9b994b1cd055'
 
 SERVER_HOST = '0.0.0.0'
 SERVER_PORT = int(os.getenv('SERVER_PORT', '6002'))

@@ -240,6 +240,20 @@ def _api_file_info(ctx):
     status = {'无效路径': 403, '文件不存在': 404}.get(message, 400)
     return api_error(message, status=status)
 
+def _api_bot_token(_ctx):
+    cfg_path = os.path.expanduser('~/.openclaw/openclaw.json')
+    payload = json_utils.load_json(cfg_path, {})
+    token = ''
+    if isinstance(payload, dict):
+        gateway = payload.get('gateway')
+        if isinstance(gateway, dict):
+            auth = gateway.get('auth')
+            if isinstance(auth, dict):
+                tok = auth.get('token')
+                if isinstance(tok, str):
+                    token = tok
+    return api_ok({'token': token})
+
 
 api_bp = Blueprint('api', __name__)
 
@@ -297,3 +311,8 @@ def api_trash_restore(name):
 @api_bp.route('/api/file/info')
 def api_file_info():
     return _api_file_info(_get_ctx())
+
+
+@api_bp.route('/api/bot/token')
+def api_bot_token():
+    return _api_bot_token(_get_ctx())

@@ -13,6 +13,7 @@ let botReconnectBackoffMs = 800;
 let botLastPairingRequestId = null;
 let botAutoScrollEnabled = true;
 let botUiBound = false;
+let botTokenPromise = null;
 
 // Generate UUID for IDs
 function generateUUID() {
@@ -98,7 +99,7 @@ function ensureBotSocket() {
     }
 
     try {
-        const h = 'ws://' + window.location.host + ':18789';
+        const h = 'ws://' + window.location.hostname + ':18789';
         botSocket = new WebSocket(h);
     } catch (e) {
         console.error('WebSocket Init Error:', e);
@@ -283,10 +284,8 @@ async function sendBotConnect(challenge) {
         botConnectTimer = null;
     }
     setBotWsStatus(false, '鉴权中...');
-    
-    // Read token from UI input
-    const tokenInput = document.getElementById('botTokenInput');
-    const token = tokenInput ? tokenInput.value.trim() : botLastToken;
+
+    const token = await getBotTokenFromServer();
     
     const nonce = challenge && typeof challenge.nonce === 'string'
         ? challenge.nonce
@@ -374,6 +373,30 @@ async function sendBotConnect(challenge) {
         }
         setBotWsStatus(false, msg);
     }
+}
+
+function getBotTokenFromServer() {
+    if (botLastToken) return Promise.resolve(botLastToken);
+    if (botTokenPromise) return botTokenPromise;
+
+    botTokenPromise = fetch('/api/bot/token', {
+        headers: { 'Authorization': 'Basic ' + btoa('admin:admin') }
+    })
+        .then(r => r.json().catch(() => null))
+        .then(d => {
+            const tok = d && d.success && d.data && typeof d.data.token === 'string' ? d.data.token : '';
+            botLastToken = tok || '';
+            return botLastToken;
+        })
+        .catch(() => {
+            botLastToken = '';
+            return '';
+        })
+        .finally(() => {
+            botTokenPromise = null;
+        });
+
+    return botTokenPromise;
 }
 
 function handleBotEvent(data) {
@@ -723,9 +746,7 @@ function botSend() {
     
     if (!botIsConnected) {
         showToast('请先连接助手', 'error');
-        const tokenInput = document.getElementById('botTokenInput');
-        const token = tokenInput ? tokenInput.value.trim() : botLastToken;
-        botConnect(token);
+        botConnect();
         return;
     }
 
@@ -767,8 +788,7 @@ function botSend() {
     });
 }
 
-function botConnect(token) {
-    botLastToken = token;
+function botConnect() {
     const ws = ensureBotSocket();
     if (ws && ws.readyState === WebSocket.OPEN) {
         queueBotConnect();
