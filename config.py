@@ -2,7 +2,7 @@ import os
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
-ROOT_DIR = '..'
+ROOT_DIR = os.path.dirname(os.path.dirname(SCRIPT_DIR))
 #ROOT_DIR = '/home/tjx'
 CONVERSATION_FILE = os.path.join(SCRIPT_DIR, 'data', 'conversations.json')
 TRASH_DIR = os.path.join(ROOT_DIR, '_trash')
