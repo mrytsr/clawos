@@ -334,11 +334,14 @@ function openArchiveCreateDialog(paths, outputDir) {
 function shareText(text) {
     var t = typeof text === 'string' ? text : '';
     if (!t) return;
-    if (navigator.share) {
+    if (navigator.share && navigator.canShare && navigator.canShare({ text: t })) {
+        // 优先使用原生分享（仅移动设备）
         navigator.share({ text: t }).catch(function() {});
         return;
     }
-    showToast('当前浏览器不支持分享', 'warning');
+    // 不支持原生分享时，自动复制到剪贴板
+    copyToClipboard(t);
+    showToast('链接已复制到剪贴板', 'success');
 }
 
 function shareMenuDownloadUrl() {

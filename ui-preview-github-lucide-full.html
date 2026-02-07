@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>clawOS</title>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root {
+            --gh-bg: #ffffff;
+            --gh-bg-secondary: #f6f8fa;
+            --gh-border: #d0d7de;
+            --gh-border-light: #e8ebee;
+            --gh-border-focus: #0969da;
+            --gh-text-primary: #24292f;
+            --gh-text-secondary: #57606a;
+            --gh-text-muted: #8b949e;
+            --gh-primary: #0969da;
+            --gh-success: #1a7f37;
+            --gh-danger: #cf222e;
+            --gh-warning: #9a6700;
+            --gh-orange: #bf8700;
+            
+            --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
+            --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            
+            --radius-sm: 6px;
+            --radius-md: 6px;
+            --radius-lg: 8px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: var(--gh-bg-secondary);
+            font-family: var(--font-sans);
+            color: var(--gh-text-primary);
+            font-size: 14px;
+            line-height: 1.5;
+            min-height: 100vh;
+            padding-bottom: 80px;
+        }
+
+        .lucide { width: 16px; height: 16px; stroke-width: 2; stroke: currentColor; fill: none; flex-shrink: 0; }
+        .lucide.sm { width: 14px; height: 14px; }
+        .lucide.lg { width: 20px; height: 20px; }
+        .lucide.xl { width: 24px; height: 24px; }
+        .lucide.gray { color: var(--gh-text-muted); }
+        .lucide.success { color: var(--gh-success); }
+        .lucide.primary { color: var(--gh-primary); }
+        .lucide.danger { color: var(--gh-danger); }
+
+        /* 头部 */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            background: var(--gh-bg);
+            border-bottom: 1px solid var(--gh-border-light);
+            position: sticky;
+            top: 0;
+            z-index: 50;
+        }
+        .header-title { display: flex; align-items: center; gap: 8px; font-size: 18px; font-weight: 600; }
+        .header-actions { display: flex; gap: 6px; }
+        .icon-btn {
+            display: flex; align-items: center; justify-content: center;
+            width: 32px; height: 32px;
+            border: 1px solid rgba(31, 35, 40, 0.15);
+            border-radius: var(--radius-md);
+            background: var(--gh-bg);
+            color: var(--gh-text-secondary);
+            cursor: pointer;
+        }
+        .icon-btn:hover { background: var(--gh-bg-secondary); color: var(--gh-text-primary); }
+
+        /* Tab */
+        .tabs {
+            display: flex;
+            gap: 0;
+            padding: 0 16px;
+            background: var(--gh-bg);
+            border-bottom: 1px solid var(--gh-border);
+            overflow-x: auto;
+        }
+        .tab {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 10px 14px;
+            font-size: 14px;
+            color: var(--gh-text-secondary);
+            border-bottom: 2px solid transparent;
+            margin-bottom: -1px;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .tab:hover { color: var(--gh-text-primary); }
+        .tab.active { color: var(--gh-text-primary); font-weight: 600; border-bottom-color: var(--gh-danger); }
+
+        /* 卡片 */
+        .card { 
+            margin: 0 0 12px; 
+            background: var(--gh-bg); 
+            border-bottom: 1px solid var(--gh-border-light); 
+        }
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 16px;
+            background: var(--gh-bg-secondary);
+        }
+        .card-title { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 14px; }
+        .card-body { padding: 0; }
+
+        /* 列表项 */
+        .list-item {
+            display: flex;
+            align-items: center;
+            padding: 10px 16px;
+            border-bottom: 1px solid var(--gh-border-light);
+            gap: 12px;
+            cursor: pointer;
+        }
+        .list-item:last-child { border-bottom: none; }
+        .list-item:hover { background: var(--gh-bg-secondary); }
+        .list-icon {
+            width: 32px; height: 32px;
+            display: flex; align-items: center; justify-content: center;
+            border-radius: var(--radius-md);
+            flex-shrink: 0;
+        }
+        .list-info { flex: 1; min-width: 0; }
+        .list-name { font-weight: 500; font-size: 14px; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .list-meta { font-size: 12px; color: var(--gh-text-muted); display: flex; align-items: center; gap: 8px; }
+
+        /* 标签 */
+        .label {
+            display: inline-flex; align-items: center;
+            padding: 0 6px;
+            font-size: 11px; font-weight: 500;
+            border-radius: 999px;
+        }
+        .label-primary { background: rgba(9, 105, 218, 0.1); color: var(--gh-primary); }
+        .label-success { background: rgba(26, 127, 55, 0.1); color: var(--gh-success); }
+        .label-gray { background: rgba(31, 35, 40, 0.08); color: var(--gh-text-secondary); border: 1px solid rgba(31, 35, 40, 0.1); }
+
+        /* 按钮 */
+        .btn {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 5px 12px;
+            font-size: 13px; font-weight: 500;
+            border: 1px solid rgba(31, 35, 40, 0.15);
+            border-radius: var(--radius-md);
+            background: var(--gh-bg);
+            color: var(--gh-text-primary);
+            cursor: pointer;
+        }
+        .btn:hover { background: var(--gh-bg-secondary); }
+        .btn-sm { padding: 3px 10px; font-size: 12px; }
+
+        /* 进度条 */
+        .progress-wrap { margin-top: 6px; }
+        .progress { height: 6px; background: var(--gh-bg-secondary); border-radius: 999px; overflow: hidden; }
+        .progress-fill { height: 100%; border-radius: 999px; }
+        .progress-fill.green { background: var(--gh-success); }
+        .progress-fill.orange { background: var(--gh-orange); }
+
+        /* 进程详情 */
+        .process-item { padding: 12px 16px; border-bottom: 1px solid var(--gh-border-light); }
+        .process-item:last-child { border-bottom: none; }
+        .process-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+        .process-name { display: flex; align-items: center; gap: 8px; font-weight: 500; font-size: 14px; }
+        .process-badge {
+            font-size: 12px; padding: 2px 8px; border-radius: 999px; font-weight: 500;
+        }
+        .process-badge.green { background: rgba(26, 127, 55, 0.1); color: var(--gh-success); }
+        .process-badge.orange { background: rgba(155, 103, 0, 0.1); color: var(--gh-orange); }
+        .process-meta {
+            display: flex; gap: 10px; font-size: 11px; color: var(--gh-text-muted); flex-wrap: wrap;
+        }
+        .process-meta span { display: flex; align-items: center; gap: 4px; }
+
+        /* 详情行 */
+        .detail-row {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 10px 16px;
+            border-bottom: 1px solid var(--gh-border-light);
+            font-size: 13px;
+        }
+        .detail-row:last-child { border-bottom: none; }
+        .detail-label { display: flex; align-items: center; gap: 8px; color: var(--gh-text-secondary); }
+        .detail-value { display: flex; align-items: center; gap: 6px; font-weight: 500; }
+
+        /* 底部导航 */
+        .bottom-nav {
+            position: fixed; left: 0; right: 0; bottom: 0;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding: 8px 4px 20px;
+            background: var(--gh-bg);
+            border-top: 1px solid var(--gh-border);
+            box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.05);
+            z-index: 100;
+        }
+        .nav-item {
+            display: flex; flex-direction: column; align-items: center;
+            gap: 2px;
+            padding: 4px 12px;
+            border-radius: var(--radius-md);
+            color: var(--gh-text-muted);
+            cursor: pointer;
+            min-width: 50px;
+        }
+        .nav-item:hover { color: var(--gh-text-primary); background: var(--gh-bg-secondary); }
+        .nav-item.active { color: var(--gh-primary); }
+        .nav-item .lucide { width: 20px; height: 20px; }
+        .nav-item span { font-size: 10px; }
+
+        /* 下拉菜单 */
+        .dropdown {
+            position: fixed;
+            min-width: 170px;
+            background: var(--gh-bg);
+            border: 1px solid var(--gh-border);
+            border-radius: var(--radius-lg);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+            opacity: 0;
+            visibility: hidden;
+            transform: scale(0.95);
+            z-index: 200;
+        }
+        .dropdown.open {
+            opacity: 1;
+            visibility: visible;
+            transform: scale(1);
+        }
+        .dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 14px;
+            font-size: 14px;
+            color: var(--gh-text-primary);
+            cursor: pointer;
+        }
+        .dropdown-item:first-child { border-radius: var(--radius-lg) var(--radius-lg) 0 0; }
+        .dropdown-item:last-child { border-radius: 0 0 var(--radius-lg) var(--radius-lg); }
+        .dropdown-item:hover { background: var(--gh-bg-secondary); }
+        .dropdown-item.danger { color: var(--gh-danger); }
+        .dropdown-item.danger:hover { background: rgba(207, 34, 46, 0.1); }
+        .dropdown-divider { height: 1px; background: var(--gh-border-light); margin: 4px 0; }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            top: 60px; left: 50%; transform: translateX(-50%);
+            padding: 8px 16px;
+            background: var(--gh-text-primary);
+            color: white;
+            border-radius: var(--radius-md);
+            font-size: 13px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            opacity: 0;
+            visibility: hidden;
+            z-index: 300;
+        }
+        .toast.show { opacity: 1; visibility: visible; }
+
+        /* 遮罩 */
+        .overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            opacity: 0;
+            visibility: hidden;
+            z-index: 150;
+        }
+        .overlay.show { opacity: 1; visibility: visible; }
+
+        /* 复选框 */
+        .checkbox {
+            width: 18px; height: 18px;
+            border: 2px solid var(--gh-border);
+            border-radius: 4px;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer;
+        }
+        .checkbox.checked { background: var(--gh-primary); border-color: var(--gh-primary); color: white; }
+
+        /* 文件图标 */
+        .folder { color: var(--gh-primary); }
+        .file-code { color: var(--gh-text-secondary); }
+        .image-icon { color: var(--gh-success); }
+        .archive-icon { color: var(--gh-warning); }
+
+        /* 统计行 */
+        .stats-row {
+            display: flex;
+            background: var(--gh-bg);
+            border-bottom: 1px solid var(--gh-border-light);
+        }
+        .stat-item {
+            flex: 1;
+            display: flex; align-items: center; gap: 10px;
+            padding: 10px 16px;
+            border-right: 1px solid var(--gh-border-light);
+        }
+        .stat-item:last-child { border-right: none; }
+        .stat-icon {
+            width: 32px; height: 32px;
+            display: flex; align-items: center; justify-content: center;
+            border-radius: var(--radius-md);
+        }
+        .stat-icon.cpu { background: rgba(9, 105, 218, 0.1); color: var(--gh-primary); }
+        .stat-icon.memory { background: rgba(26, 127, 55, 0.1); color: var(--        .stat-value { font-size: 16px;gh-success); }
+ font-weight: 600; }
+        .stat-label { font-size: 11px; color: var(--gh-text-muted); }
+
+        /* 路径显示 */
+        .path-display {
+            padding: 10px 16px;
+            font-size: 14px;
+            color: var(--gh-text-secondary);
+            background: var(--gh-bg-secondary);
+            border-bottom: 1px solid var(--gh-border-light);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-family: var(--font-mono);
+        }
+        .path-display .lucide { flex-shrink: 0; }
+        .path-display span {
+            flex: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+    </style>
+</head>
+<body>
+    <!-- 头部 -->
+    <div class="header">
+        <div class="header-title">
+            <i data-lucide="braces" class="lucide"></i>
+            <span>clawOS</span>
+        </div>
+        <div class="header-actions">
+            <button class="icon-btn" onclick="showToast('搜索')">
+                <i data-lucide="search" class="lucide sm"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Tab -->
+    <div class="tabs">
+        <div class="tab active" onclick="switchTab('files')">
+            <i data-lucide="folder" class="lucide"></i>
+            <span>文件</span>
+        </div>
+        <div class="tab" onclick="switchTab('processes')">
+            <i data-lucide="activity" class="lucide"></i>
+            <span>进程</span>
+        </div>
+        <div class="tab" onclick="switchTab('docker')">
+            <i data-lucide="box" class="lucide"></i>
+            <span>Docker</span>
+        </div>
+        <div class="tab" onclick="switchTab('settings')">
+            <i data-lucide="settings" class="lucide"></i>
+            <span>设置</span>
+        </div>
+    </div>
+
+    <!-- 统计行 -->
+    <div class="stats-row">
+        <div class="stat-item">
+            <div class="stat-icon cpu">
+                <i data-lucide="cpu" class="lucide"></i>
+            </div>
+            <div>
+                <div class="stat-value">45%</div>
+                <div class="stat-label">CPU</div>
+            </div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-icon memory">
+                <i data-lucide="memory-stick" class="lucide"></i>
+            </div>
+            <div>
+                <div class="stat-value">8.2GB</div>
+                <div class="stat-label">内存</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab 内容：文件 -->
+    <div id="tab-files" class="tab-content">
+        <!-- 路径显示 -->
+        <div class="path-display">
+            <i data-lucide="folder" class="lucide"></i>
+            <span>/root/projects/clawos/</span>
+        </div>
+
+        <!-- 文件列表 -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">
+                    <i data-lucide="folder" class="lucide"></i>
+                    <span>clawos/</span>
+                </div>
+                <button class="btn btn-sm" onclick="showToast('上传')">
+                    <i data-lucide="upload" class="lucide sm"></i>
+                </button>
+            </div>
+            <div class="card-body">
+                <div class="list-item">
+                    <div class="checkbox" onclick="event.stopPropagation(); toggleSelect(this)">
+                        <i data-lucide="check" class="lucide sm" style="display:none;"></i>
+                    </div>
+                    <div class="list-icon folder">
+                        <i data-lucide="folder" class="lucide"></i>
+                    </div>
+                    <div class="list-info">
+                        <div class="list-name">static/</div>
+                    </div>
+                    <button class="icon-btn" onclick="event.stopPropagation(); openMenu(event, 'static')">
+                        <i data-lucide="more-horizontal" class="lucide sm gray"></i>
+                    </button>
+                </div>
+                <div class="list-item">
+                    <div class="checkbox" onclick="event.stopPropagation(); toggleSelect(this)">
+                        <i data-lucide="check" class="lucide sm" style="display:none;"></i>
+                    </div>
+                    <div class="list-icon folder">
+                        <i data-lucide="folder" class="lucide"></i>
+                    </div>
+                    <div class="list-info">
+                        <div class="list-name">templates/</div>
+                    </div>
+                    <button class="icon-btn" onclick="event.stopPropagation(); openMenu(event, 'templates')">
+                        <i data-lucide="more-horizontal" class="lucide sm gray"></i>
+                    </button>
+                </div>
+                <div class="list-item">
+                    <div class="checkbox" onclick="event.stopPropagation(); toggleSelect(this)">
+                        <i data-lucide="check" class="lucide sm" style="display:none;"></i>
+                    </div>
+                    <div class="list-icon file-code">
+                        <i data-lucide="file-code" class="lucide"></i>
+                    </div>
+                    <div class="list-info">
+                        <div class="list-name">app.py</div>
+                        <div class="list-meta">
+                            <span class="label label-primary">Python</span>
+                            <span>12KB</span>
+                        </div>
+                    </div>
+                    <button class="icon-btn" onclick="event.stopPropagation(); openMenu(event, 'app.py')">
+                        <i data-lucide="more-horizontal" class="lucide sm gray"></i>
+                    </button>
+                </div>
+                <div class="list-item">
+                    <div class="checkbox" onclick="event.stopPropagation(); toggleSelect(this)">
+                        <i data-lucide="check" class="lucide sm" style="display:none;"></i>
+                    </div>
+                    <div class="list-icon image-icon">
+                        <i data-lucide="image" class="lucide"></i>
+                    </div>
+                    <div class="list-info">
+                        <div class="list-name">screenshot.png</div>
+                        <div class="list-meta">
+                            <span class="label label-success">PNG</span>
+                            <span>2.3MB</span>
+                        </div>
+                    </div>
+                    <button class="icon-btn" onclick="event.stopPropagation(); openMenu(event, 'screenshot.png')">
+                        <i data-lucide="more-horizontal" class="lucide sm gray"></i>
+                    </button>
+                </div>
+                <div class="list-item">
+                    <div class="checkbox" onclick="event.stopPropagation(); toggleSelect(this)">
+                        <i data-lucide="check" class="lucide sm" style="display:none;"></i>
+                    </div>
+                    <div class="list-icon archive-icon">
+                        <i data-lucide="archive" class="lucide"></i>
+                    </div>
+                    <div class="list-info">
+                        <div class="list-name">backup.tar.gz</div>
+                        <div class="list-meta">
+                            <span class="label label-gray">压缩包</span>
+                            <span>156MB</span>
+                        </div>
+                    </div>
+                    <button class="icon-btn" onclick="event.stopPropagation(); openMenu(event, 'backup.tar.gz')">
+                        <i data-lucide="more-horizontal" class="lucide sm gray"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Git 分支 -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">
+                    <i data-lucide="git-branch" class="lucide"></i>
+                    <span>main</span>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="list-item" onclick="showToast('查看提交')">
+                    <i data-lucide="git-commit" class="lucide sm gray"></i>
+                    <div class="list-info">
+                        <div class="list-name">fix: 修复进程管理字段映射</div>
+                        <div class="list-meta">
+                            <span>a1b2c3d</span>
+                            <span>2小时前</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="list-item" onclick="showToast('查看提交')">
+                    <i data-lucide="git-commit" class="lucide sm gray"></i>
+                    <div class="list-info">
+                        <div class="list-name">feat: 添加文件预览功能</div>
+                        <div class="list-meta">
+                            <span>d4e5f6g</span>
+                            <span>5小时前</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab 内容：进程 -->
+    <div id="tab-processes" class="tab-content" style="display:none;">
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">
+                    <i data-lucide="activity" class="lucide"></i>
+                    <span>进程</span>
+                </div>
+                <button class="btn btn-sm">
+                    <i data-lucide="plus" class="lucide sm"></i>
+                </button>
+            </div>
+            <div class="card-body">
+                <div class="process-item">
+                    <div class="process-header">
+                        <div class="process-name">
+                            <i data-lucide="code" class="lucide" style="color: #a78bfa;"></i>
+                            <span>python3</span>
+                        </div>
+                        <span class="process-badge orange">34%</span>
+                    </div>
+                    <div class="progress-wrap">
+                        <div class="progress">
+                            <div class="progress-fill orange" style="width: 34%;"></div>
+                        </div>
+                    </div>
+                    <div class="process-meta">
+                        <span><i data-lucide="cpu" class="lucide sm gray"></i> 1.2%</span>
+                        <span><i data-lucide="clock" class="lucide sm gray"></i> 16h</span>
+                        <span><i data-lucide="network" class="lucide sm gray"></i> 5001</span>
+                    </div>
+                </div>
+                <div class="process-item">
+                    <div class="process-header">
+                        <div class="process-name">
+                            <i data-lucide="box" class="lucide" style="color: #60a5fa;"></i>
+                            <span>docker</span>
+                        </div>
+                        <span class="process-badge green">8%</span>
+                    </div>
+                    <div class="progress-wrap">
+                        <div class="progress">
+                            <div class="progress-fill green" style="width: 8%;"></div>
+                        </div>
+                    </div>
+                    <div class="process-meta">
+                        <span><i data-lucide="cpu" class="lucide sm gray"></i> 2.3%</span>
+                        <span><i data-lucide="clock" class="lucide sm gray"></i> 12h</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab 内容：Docker -->
+    <div id="tab-docker" class="tab-content" style="display:none;">
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">
+                    <i data-lucide="box" class="lucide"></i>
+                    <span>Docker</span>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="detail-row">
+                    <div class="detail-label">
+                        <i data-lucide="activity" class="lucide sm gray"></i>
+                        <span>运行中</span>
+                    </div>
+                    <div class="detail-value">
+                        <span class="label label-success">3</span>
+                    </div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">
+                        <i data-lucide="alert-circle" class="lucide sm gray"></i>
+                        <span>已停止</span>
+                    </div>
+                    <div class="detail-value">
+                        <span class="label label-gray">1</span>
+                    </div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">
+                        <i data-lucide="image" class="lucide sm gray"></i>
+                        <span>镜像</span>
+                    </div>
+                    <div class="detail-value">12</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab 内容：设置 -->
+    <div id="tab-settings" class="tab-content" style="display:none;">
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">
+                    <i data-lucide="settings" class="lucide"></i>
+                    <span>设置</span>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="detail-row" onclick="showToast('外观')">
+                    <div class="detail-label">
+                        <i data-lucide="sun" class="lucide sm gray"></i>
+                        <span>外观</span>
+                    </div>
+                    <div class="detail-value">
+                        <span>浅色</span>
+                        <i data-lucide="chevron-right" class="lucide sm gray"></i>
+                    </div>
+                </div>
+                <div class="detail-row" onclick="showToast('关于')">
+                    <div class="detail-label">
+                        <i data-lucide="info" class="lucide sm gray"></i>
+                        <span>关于</span>
+                    </div>
+                    <div class="detail-value">v1.0.0</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 底部导航 -->
+    <div class="bottom-nav">
+        <div class="nav-item active" onclick="switchTab('files')">
+            <i data-lucide="folder" class="lucide"></i>
+            <span>文件</span>
+        </div>
+        <div class="nav-item" onclick="switchTab('processes')">
+            <i data-lucide="activity" class="lucide"></i>
+            <span>进程</span>
+        </div>
+        <div class="nav-item" onclick="switchTab('docker')">
+            <i data-lucide="box" class="lucide"></i>
+            <span>Docker</span>
+        </div>
+        <div class="nav-item" onclick="switchTab('settings')">
+            <i data-lucide="settings" class="lucide"></i>
+            <span>设置</span>
+        </div>
+    </div>
+
+    <!-- 菜单 -->
+    <div class="dropdown" id="fileMenu">
+        <div class="dropdown-item" onclick="menuAction('open')">
+            <i data-lucide="folder-open" class="lucide sm"></i>
+            <span>打开</span>
+        </div>
+        <div class="dropdown-item" onclick="menuAction('edit')">
+            <i data-lucide="edit-2" class="lucide sm"></i>
+            <span>编辑</span>
+        </div>
+        <div class="dropdown-item" onclick="menuAction('copy')">
+            <i data-lucide="copy" class="lucide sm"></i>
+            <span>复制路径</span>
+        </div>
+        <div class="dropdown-divider"></div>
+        <div class="dropdown-item danger" onclick="menuAction('delete')">
+            <i data-lucide="trash-2" class="lucide sm danger"></i>
+            <span>删除</span>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+    <!-- 遮罩 -->
+    <div class="overlay" onclick="closeMenu()" id="overlay"></div>
+
+    <script>
+        lucide.createIcons();
+
+        let currentFile = '';
+
+        function switchTab(tab) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            
+            const tabs = document.querySelectorAll('.tab');
+            const navs = document.querySelectorAll('.nav-item');
+            
+            if (tab === 'files') { tabs[0].classList.add('active'); navs[0].classList.add('active'); }
+            if (tab === 'processes') { tabs[1].classList.add('active'); navs[1].classList.add('active'); }
+            if (tab === 'docker') { tabs[2].classList.add('active'); navs[2].classList.add('active'); }
+            if (tab === 'settings') { tabs[3].classList.add('active'); navs[3].classList.add('active'); }
+
+            document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
+            const content = document.getElementById('tab-' + tab);
+            if (content) content.style.display = 'block';
+        }
+
+        function openMenu(e, filename) {
+            e.stopPropagation();
+            currentFile = filename;
+            
+            const menu = document.getElementById('fileMenu');
+            const overlay = document.getElementById('overlay');
+            const btn = e.currentTarget;
+            const rect = btn.getBoundingClientRect();
+            
+            let left = rect.right + 10;
+            let top = rect.top;
+            
+            if (left + 170 > window.innerWidth) {
+                left = rect.left - 170;
+            }
+            if (top + 180 > window.innerHeight) {
+                top = window.innerHeight - 180 - 20;
+            }
+            
+            menu.style.left = left + 'px';
+            menu.style.top = top + 'px';
+            menu.classList.add('open');
+            overlay.classList.add('show');
+            lucide.createIcons();
+        }
+
+        function closeMenu() {
+            document.getElementById('fileMenu').classList.remove('open');
+            document.getElementById('overlay').classList.remove('show');
+        }
+
+        function menuAction(action) {
+            showToast(currentFile + ': ' + action);
+            closeMenu();
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 2000);
+        }
+
+        function toggleSelect(checkbox) {
+            checkbox.classList.toggle('checked');
+            const icon = checkbox.querySelector('.lucide');
+            if (icon) {
+                icon.style.display = checkbox.classList.contains('checked') ? 'block' : 'none';
+            }
+        }
+
+        document.getElementById('overlay').addEventListener('click', closeMenu);
+    </script>
+</body>
+</html>

@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>clawOS - 极简线条风格</title>
+    <style>
+        /* ============ 极简线条风格 ============ */
+        :root {
+            --bg: #fafafa;
+            --card-bg: #ffffff;
+            --text: #1a1a1a;
+            --text-secondary: #666666;
+            --line: #e5e5e5;
+            --line-dark: #333333;
+            --accent: #0066cc;
+            --radius: 4px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: var(--bg);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            color: var(--text);
+            font-size: 14px;
+            line-height: 1.6;
+            padding: 16px;
+        }
+        h1 { font-size: 18px; margin-bottom: 4px; }
+        .subtitle { font-size: 13px; color: var(--text-secondary); margin-bottom: 24px; }
+
+        .section { margin-bottom: 24px; }
+        .section-title { font-size: 11px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; border-left: 2px solid var(--line-dark); padding-left: 8px; }
+
+        /* 边框卡片 */
+        .box { background: var(--card-bg); border: 1px solid var(--line); border-radius: var(--radius); }
+        .box-header { padding: 10px 12px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; }
+        .box-title { font-size: 13px; font-weight: 600; }
+        .box-body { padding: 0; }
+
+        /* 列表 - 线条分隔 */
+        .line-item { display: flex; align-items: center; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+        .line-item:last-child { border-bottom: none; }
+        .line-item:hover { background: var(--bg); }
+        .line-icon { width: 20px; margin-right: 12px; text-align: center; }
+        .line-content { flex: 1; }
+        .line-title { font-size: 14px; }
+        .line-desc { font-size: 12px; color: var(--text-secondary); }
+
+        /* 简洁进度条 */
+        .progress-simple { height: 4px; background: var(--line); border-radius: 2px; margin: 6px 0; }
+        .progress-fill { height: 100%; background: var(--text); border-radius: 2px; }
+
+        /* 小标签 */
+        .label { display: inline-block; padding: 2px 6px; font-size: 10px; border: 1px solid var(--line); border-radius: 3px; }
+        .label-dark { background: var(--text); color: var(--bg); border-color: var(--text); }
+
+        /* 简洁按钮 */
+        .btn { display: inline-block; padding: 6px 12px; font-size: 12px; border: 1px solid var(--line-dark); border-radius: var(--radius); background: var(--card-bg); cursor: pointer; }
+        .btn-dark { background: var(--text); color: var(--bg); }
+
+        /* Tab - 下划线 */
+        .tabs { display: flex; gap: 24px; border-bottom: 1px solid var(--line); margin-bottom: 16px; }
+        .tab { padding: 8px 0; font-size: 13px; color: var(--text-secondary); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+        .tab.active { color: var(--text); border-bottom-color: var(--text); }
+
+        /* 头部 */
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+        .header-left { display: flex; align-items: center; gap: 12px; }
+        .breadcrumb { font-size: 13px; color: var(--text-secondary); }
+        .breadcrumb span { cursor: pointer; }
+        .breadcrumb span:hover { color: var(--text); }
+
+        /* 搜索 */
+        .search { margin-bottom: 16px; }
+        .search input { width: 100%; padding: 10px; font-size: 14px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--card-bg); }
+
+        /* 分隔线列表 */
+        .divider { height: 1px; background: var(--line); margin: 16px 0; }
+
+        /* 状态点 */
+        .status { width: 8px; height: 8px; border-radius: 50%; background: var(--text); }
+        .status.active { background: #00aa00; }
+        .status.warning { background: #ff9900; }
+        .status.error { background: #cc0000; }
+
+        /* 简洁网格 */
+        .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+        .grid-item { background: var(--card-bg); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px; }
+        .grid-title { font-size: 14px; font-weight: 500; margin-bottom: 4px; }
+        .grid-value { font-size: 18px; font-weight: 600; }
+        .grid-desc { font-size: 11px; color: var(--text-secondary); margin-top: 4px; }
+
+        /* 底部 */
+        .footer { display: flex; justify-content: space-around; padding: 12px 0; border-top: 1px solid var(--line); margin-top: 16px; }
+        .footer-item { font-size: 11px; color: var(--text-secondary); text-align: center; cursor: pointer; }
+        .footer-item.active { color: var(--text); font-weight: 500; }
+    </style>
+</head>
+<body>
+    <h1>clawOS</h1>
+    <p class="subtitle">极简线条风格</p>
+
+    <!-- 头部面包屑 -->
+    <div class="section">
+        <div class="section-title">面包屑</div>
+        <div class="header">
+            <div class="header-left">
+                <span class="breadcrumb">📁 home/</span>
+                <span class="breadcrumb">📁 projects/</span>
+                <span class="breadcrumb">📁 clawos/</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 搜索 -->
+    <div class="section">
+        <div class="section-title">搜索</div>
+        <div class="search">
+            <input type="text" placeholder="Search...">
+        </div>
+    </div>
+
+    <!-- Tab -->
+    <div class="section">
+        <div class="section-title">Tab</div>
+        <div class="tabs">
+            <div class="tab active">Files</div>
+            <div class="tab">Processes</div>
+            <div class="tab">Docker</div>
+        </div>
+    </div>
+
+    <!-- 统计网格 -->
+    <div class="section">
+        <div class="section-title">统计</div>
+        <div class="grid">
+            <div class="grid-item">
+                <div class="grid-title">CPU</div>
+                <div class="grid-value">45%</div>
+                <div class="grid-desc">System load</div>
+            </div>
+            <div class="grid-item">
+                <div class="grid-title">Memory</div>
+                <div class="grid-value">8.2GB</div>
+                <div class="grid-desc">51% used</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 进程列表 -->
+    <div class="section">
+        <div class="section-title">Processes</div>
+        <div class="box">
+            <div class="line-item">
+                <span class="status active"></span>
+                <div class="line-content">
+                    <div class="line-title">python3</div>
+                    <div class="line-desc">PID 1234 · 16h · 15% CPU</div>
+                </div>
+                <span class="label">15%</span>
+            </div>
+            <div class="line-item">
+                <span class="status active"></span>
+                <div class="line-content">
+                    <div class="line-title">docker</div>
+                    <div class="line-desc">PID 5678 · 12h · 8% CPU</div>
+                </div>
+                <span class="label">8%</span>
+            </div>
+            <div class="line-item">
+                <span class="status warning"></span>
+                <div class="line-content">
+                    <div class="line-title">nginx</div>
+                    <div class="line-desc">PID 9012 · 3d · 2% CPU</div>
+                </div>
+                <span class="label">2%</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 文件列表 -->
+    <div class="section">
+        <div class="section-title">Files</div>
+        <div class="box">
+            <div class="line-item">
+                <span class="line-icon">📁</span>
+                <div class="line-content">
+                    <div class="line-title">static/</div>
+                </div>
+            </div>
+            <div class="line-item">
+                <span class="line-icon">📁</span>
+                <div class="line-content">
+                    <div class="line-title">templates/</div>
+                </div>
+            </div>
+            <div class="line-item">
+                <span class="line-icon">📄</span>
+                <div class="line-content">
+                    <div class="line-title">app.py</div>
+                    <div class="line-desc">Python · 12KB</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 进度详情 -->
+    <div class="section">
+        <div class="section-title">Details</div>
+        <div class="box">
+            <div class="line-item">
+                <span class="line-content">
+                    <div class="line-title">CPU Usage</div>
+                </span>
+                <span>45%</span>
+            </div>
+            <div class="progress-simple"><div class="progress-fill" style="width: 45%;"></div></div>
+            
+            <div class="line-item">
+                <span class="line-content">
+                    <div class="line-title">Memory</div>
+                </div>
+                <span>51%</span>
+            </div>
+            <div class="progress-simple"><div class="progress-fill" style="width: 51%;"></div></div>
+        </div>
+    </div>
+
+    <!-- 底部导航 -->
+    <div class="footer">
+        <div class="footer-item active">📁 Files</div>
+        <div class="footer-item">📊 Process</div>
+        <div class="footer-item">🐳 Docker</div>
+        <div class="footer-item">⚙️ Settings</div>
+    </div>
+
+    <div style="text-align: center; padding: 32px; color: var(--text-secondary); font-size: 12px;">
+        <p>方案 B：线条分隔 · 极简网格 · 状态点</p>
+    </div>
+</body>
+</html>

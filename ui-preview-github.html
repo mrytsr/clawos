@@ -1,0 +1,964 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>clawOS UI - GitHub 风格</title>
+    <style>
+        /* ============ GitHub 风格 CSS 变量 ============ */
+        :root {
+            /* GitHub 品牌色 */
+            --gh-primary: #0969da;
+            --gh-primary-hover: #0860c7;
+            --gh-primary-light: rgba(9, 105, 218, 0.1);
+            
+            /* 背景色 */
+            --gh-bg: #ffffff;
+            --gh-bg-secondary: #f6f8fa;
+            --gh-bg-tertiary: #fafbfc;
+            
+            /* 边框色 */
+            --gh-border: #d0d7de;
+            --gh-border-light: #e8ebee;
+            --gh-border-focus: #0969da;
+            
+            /* 文字色 */
+            --gh-text-primary: #24292f;
+            --gh-text-secondary: #57606a;
+            --gh-text-muted: #8b949e;
+            
+            /* 语义色 */
+            --gh-success: #1a7f37;
+            --gh-success-light: #dafbe1;
+            --gh-warning: #9a6700;
+            --gh-warning-light: #fff8c5;
+            --gh-danger: #cf222e;
+            --gh-danger-light: #ffebe9;
+            
+            /* 分支色 */
+            --gh-branch: #1a7f37;
+            
+            /* 字号 */
+            --text-xs: 12px;
+            --text-sm: 12px;
+            --text-base: 14px;
+            --text-lg: 16px;
+            --text-xl: 20px;
+            --text-2xl: 24px;
+            
+            /* 圆角 */
+            --radius-sm: 6px;
+            --radius-md: 6px;
+            --radius-lg: 8px;
+            
+            /* 阴影 */
+            --shadow-sm: 0 1px 0 rgba(31,35,40,0.04);
+            --shadow-md: 0 3px 10px rgba(140,148,163,0.15);
+            
+            /* 字体 */
+            --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
+        }
+
+        /* ============ 全局样式 ============ */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: var(--gh-bg-secondary);
+            font-family: var(--font-sans);
+            color: var(--gh-text-primary);
+            line-height: 1.5;
+            padding: 20px;
+            font-size: 14px;
+        }
+
+        h1 {
+            color: var(--gh-text-primary);
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            color: var(--gh-text-secondary);
+            font-size: 14px;
+            margin-bottom: 24px;
+        }
+
+        /* ============ 演示区域 ============ */
+        .demo-section {
+            margin-bottom: 40px;
+        }
+
+        .demo-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--gh-text-primary);
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--gh-border);
+        }
+
+        /* ============ 按钮 ============ */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 5px 16px;
+            font-size: 14px;
+            font-weight: 500;
+            border-radius: var(--radius-md);
+            border: 1px solid rgba(31,35,40,0.15);
+            cursor: pointer;
+            transition: 0.2s;
+            background: var(--gh-bg);
+            color: var(--gh-text-primary);
+        }
+
+        .btn:hover {
+            background: var(--gh-bg-secondary);
+        }
+
+        .btn-primary {
+            background: var(--gh-success);
+            color: white;
+            border-color: rgba(31,35,40,0.15);
+        }
+
+        .btn-primary:hover {
+            background: #168f38;
+        }
+
+        .btn-danger {
+            background: var(--gh-bg);
+            color: var(--gh-danger);
+            border-color: rgba(31,35,40,0.15);
+        }
+
+        .btn-danger:hover {
+            background: var(--gh-danger-light);
+        }
+
+        .btn-sm {
+            padding: 3px 12px;
+            font-size: 12px;
+        }
+
+        /* ============ 标签 ============ */
+        .tag {
+            display: inline-flex;
+            align-items: center;
+            padding: 0 8px;
+            font-size: 12px;
+            font-weight: 500;
+            border-radius: 999px;
+            border: 1px solid transparent;
+        }
+
+        .tag-primary {
+            background: var(--gh-primary-light);
+            color: var(--gh-primary);
+            border-color: transparent;
+        }
+
+        .tag-success {
+            background: var(--gh-success-light);
+            color: var(--gh-success);
+            border-color: transparent;
+        }
+
+        .tag-danger {
+            background: var(--gh-danger-light);
+            color: var(--gh-danger);
+            border-color: transparent;
+        }
+
+        .tag-outline {
+            background: var(--gh-bg);
+            border-color: var(--gh-border);
+            color: var(--gh-text-secondary);
+        }
+
+        /* ============ 输入框 ============ */
+        .input {
+            padding: 5px 12px;
+            font-size: 14px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--gh-border);
+            background: var(--gh-bg);
+            color: var(--gh-text-primary);
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .input:focus {
+            outline: none;
+            border-color: var(--gh-border-focus);
+            box-shadow: 0 0 0 3px rgba(9, 105, 218, 0.3);
+        }
+
+        .input::placeholder {
+            color: var(--gh-text-muted);
+        }
+
+        /* ============ 下拉选择 ============ */
+        .select {
+            padding: 5px 12px;
+            font-size: 14px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--gh-border);
+            background: var(--gh-bg);
+            color: var(--gh-text-primary);
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%2357606a' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10l-5 5z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 8px center;
+            padding-right: 28px;
+        }
+
+        /* ============ 卡片 ============ */
+        .card {
+            background: var(--gh-bg);
+            border: 1px solid var(--gh-border);
+            border-radius: var(--radius-lg);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px;
+            border-bottom: 1px solid var(--gh-border-light);
+        }
+
+        .card-title {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .card-body {
+            padding: 16px;
+        }
+
+        /* ============ Tab 栏 ============ */
+        .tab-nav {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+            border-bottom: 1px solid var(--gh-border);
+            padding-bottom: 0;
+        }
+
+        .tab-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            font-size: 14px;
+            color: var(--gh-text-secondary);
+            text-decoration: none;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -1px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .tab-item:hover {
+            color: var(--gh-text-primary);
+            text-decoration: none;
+        }
+
+        .tab-item.active {
+            color: var(--gh-text-primary);
+            border-bottom-color: var(--gh-danger);
+            font-weight: 600;
+        }
+
+        .tab-item .count {
+            background: var(--gh-bg-secondary);
+            padding: 0 8px;
+            border-radius: 999px;
+            font-size: 12px;
+        }
+
+        /* ============ 列表项 ============ */
+        .list-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--gh-border-light);
+            gap: 12px;
+        }
+
+        .list-item:last-child {
+            border-bottom: none;
+        }
+
+        .list-item:hover {
+            background: var(--gh-bg-secondary);
+        }
+
+        .list-icon {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+        }
+
+        .list-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .list-title {
+            font-weight: 600;
+            color: var(--gh-text-primary);
+            font-size: 14px;
+        }
+
+        .list-meta {
+            color: var(--gh-text-muted);
+            font-size: 12px;
+        }
+
+        /* ============ 进度条 ============ */
+        .progress-container {
+            margin-bottom: 12px;
+        }
+
+        .progress-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 4px;
+            font-size: 12px;
+            color: var(--gh-text-secondary);
+        }
+
+        .progress-track {
+            height: 8px;
+            background: var(--gh-bg-secondary);
+            border-radius: 999px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            border-radius: 999px;
+            transition: width 0.3s;
+        }
+
+        /* ============ 代码块 ============ */
+        .code-block {
+            background: var(--gh-bg-secondary);
+            border: 1px solid var(--gh-border);
+            border-radius: var(--radius-md);
+            padding: 16px;
+            font-family: var(--font-mono);
+            font-size: 12px;
+            overflow-x: auto;
+            color: var(--gh-text-primary);
+        }
+
+        /* ============ 分支标签 ============ */
+        .branch-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 0 8px;
+            font-size: 12px;
+            font-weight: 500;
+            background: var(--gh-bg-secondary);
+            border: 1px solid var(--gh-border);
+            border-radius: 999px;
+            color: var(--gh-text-primary);
+        }
+
+        .branch-tag svg {
+            fill: var(--gh-success);
+        }
+
+        /* ============ 头像 ============ */
+        .avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--gh-bg-secondary);
+            border: 1px solid var(--gh-border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+
+        .avatar-sm {
+            width: 24px;
+            height: 24px;
+            font-size: 12px;
+        }
+
+        .avatar-lg {
+            width: 48px;
+            height: 48px;
+            font-size: 18px;
+        }
+
+        /* ============ 徽章 ============ */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0 8px;
+            font-size: 12px;
+            font-weight: 500;
+            border-radius: 999px;
+        }
+
+        .badge-green {
+            background: var(--gh-success-light);
+            color: var(--gh-success);
+        }
+
+        .badge-red {
+            background: var(--gh-danger-light);
+            color: var(--gh-danger);
+        }
+
+        /* ============ 文件夹 ============ */
+        .folder {
+            color: var(--gh-primary);
+        }
+
+        .file {
+            color: var(--gh-text-primary);
+        }
+
+        /* ============ 手机框架 ============ */
+        .phone-frame {
+            max-width: 375px;
+            margin: 0 auto;
+            background: var(--gh-bg);
+            border-radius: 40px;
+            padding: 20px;
+            box-shadow: var(--shadow-md);
+            border: 3px solid var(--gh-border);
+        }
+
+        .phone-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--gh-border);
+        }
+
+        .phone-title {
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        /* ============ 搜索框 ============ */
+        .search-input-wrapper {
+            position: relative;
+            margin-bottom: 16px;
+        }
+
+        .search-input-wrapper svg {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            fill: var(--gh-text-muted);
+        }
+
+        .search-input-wrapper .input {
+            width: 100%;
+            padding-left: 36px;
+            background: var(--gh-bg-secondary);
+        }
+
+        /* ============ 提交列表 ============ */
+        .commit-item {
+            display: flex;
+            gap: 12px;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--gh-border-light);
+        }
+
+        .commit-item:last-child {
+            border-bottom: none;
+        }
+
+        .commit-message {
+            font-weight: 600;
+            color: var(--gh-text-primary);
+            margin-bottom: 4px;
+        }
+
+        .commit-meta {
+            font-size: 12px;
+            color: var(--gh-text-muted);
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .commit-sha {
+            font-family: var(--font-mono);
+            color: var(--gh-primary);
+            background: var(--gh-primary-light);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 11px;
+        }
+
+        /* ============ 空状态 ============ */
+        .empty-state {
+            text-align: center;
+            padding: 32px;
+            color: var(--gh-text-muted);
+        }
+
+        .empty-state svg {
+            fill: var(--gh-text-muted);
+            margin-bottom: 12px;
+        }
+
+        /* ============ 按钮组 ============ */
+        .btn-group {
+            display: inline-flex;
+        }
+
+        .btn-group .btn {
+            border-radius: 0;
+            border-right: none;
+        }
+
+        .btn-group .btn:first-child {
+            border-radius: var(--radius-md) 0 0 var(--radius-md);
+        }
+
+        .btn-group .btn:last-child {
+            border-radius: 0 var(--radius-md) var(--radius-md) 0;
+            border-right: 1px solid rgba(31,35,40,0.15);
+        }
+    </style>
+</head>
+<body>
+    <h1>📦 clawOS UI - GitHub 风格</h1>
+    <p class="subtitle">简洁、扁平、现代的设计风格</p>
+
+    <!-- 1. 颜色系统 -->
+    <div class="demo-section">
+        <div class="demo-title">1. 颜色系统</div>
+        
+        <div class="demo-title" style="font-size: 14px; margin-top: 16px;">品牌色</div>
+        <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+            <div style="background: #0969da; color: white; padding: 12px 20px; border-radius: 8px;">
+                <div style="font-weight: 600;">Primary</div>
+                <div style="font-size: 12px; opacity: 0.8;">#0969da</div>
+            </div>
+            <div style="background: #1a7f37; color: white; padding: 12px 20px; border-radius: 8px;">
+                <div style="font-weight: 600;">Success</div>
+                <div style="font-size: 12px; opacity: 0.8;">#1a7f37</div>
+            </div>
+            <div style="background: #cf222e; color: white; padding: 12px 20px; border-radius: 8px;">
+                <div style="font-weight: 600;">Danger</div>
+                <div style="font-size: 12px; opacity: 0.8;">#cf222e</div>
+            </div>
+        </div>
+
+        <div class="demo-title" style="font-size: 14px; margin-top: 16px;">背景色</div>
+        <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+            <div style="background: #ffffff; border: 1px solid #d0d7de; padding: 12px 20px; border-radius: 8px;">
+                <div style="font-weight: 600;">White</div>
+                <div style="font-size: 12px; color: #57606a;">#ffffff</div>
+            </div>
+            <div style="background: #f6f8fa; padding: 12px 20px; border-radius: 8px;">
+                <div style="font-weight: 600;">Secondary</div>
+                <div style="font-size: 12px; color: #57606a;">#f6f8fa</div>
+            </div>
+            <div style="background: #d0d7de; padding: 12px 20px; border-radius: 8px;">
+                <div style="font-weight: 600;">Border</div>
+                <div style="font-size: 12px; color: #57606a;">#d0d7de</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. 按钮 -->
+    <div class="demo-section">
+        <div class="demo-title">2. 按钮</div>
+        <div class="btn-group" style="margin-bottom: 12px;">
+            <button class="btn">Button</button>
+            <button class="btn btn-primary">Primary</button>
+            <button class="btn btn-danger">Danger</button>
+        </div>
+        <div style="display: flex; gap: 12px;">
+            <button class="btn btn-sm">Small</button>
+            <button class="btn">Default</button>
+            <button class="btn" style="padding: 8px 16px;">Medium</button>
+        </div>
+    </div>
+
+    <!-- 3. 标签 -->
+    <div class="demo-section">
+        <div class="demo-title">3. 标签 & 徽章</div>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px;">
+            <span class="tag tag-primary">Tag</span>
+            <span class="tag tag-success">Success</span>
+            <span class="tag tag-danger">Danger</span>
+            <span class="tag tag-outline">Outline</span>
+        </div>
+        <div style="display: flex; gap: 8px;">
+            <span class="badge badge-green">✓ Verified</span>
+            <span class="badge badge-red">⚠ Deprecated</span>
+        </div>
+    </div>
+
+    <!-- 4. 输入框 -->
+    <div class="demo-section">
+        <div class="demo-title">4. 输入框 & 选择器</div>
+        <div style="max-width: 300px;">
+            <input type="text" class="input" placeholder="Search..." style="width: 100%; margin-bottom: 12px;">
+            <select class="select" style="width: 100%;">
+                <option>Select option</option>
+                <option>Option 1</option>
+                <option>Option 2</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- 5. 分支标签 -->
+    <div class="demo-section">
+        <div class="demo-title">5. 分支标签</div>
+        <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+            <span class="branch-tag">
+                <svg width="12" height="12" viewBox="0 0 16 16"><path d="M11.75 2.5a.75.75 0 100 1.5.75.75 0 000-1.5zm-2.25.75a2.25 2.25 0 113 2.122V6A2.5 2.5 0 0110 8.5H6a1 1 0 00-1 1v1.128a2.251 2.251 0 11-1.5 0V5.372a2.25 2.25 0 111.5 0v1.836A2.492 2.492 0 016 7h4a1 1 0 001-1v-.628A2.25 2.25 0 019.5 3.25zM4.25 12a.75.75 0 100 1.5.75.75 0 000-1.5zM3 3.75A.75.75 0 017.75 3h.5a.75.75 0 010 1.5h-.5A.75.75 0 013 3.75z"/></svg>
+                main
+            </span>
+            <span class="branch-tag">
+                <svg width="12" height="12" viewBox="0 0 16 16"><path d="M11.75 2.5a.75.75 0 100 1.5.75.75 0 000-1.5zm-2.25.75a2.25 2.25 0 113 2.122V6A2.5 2.5 0 0110 8.5H6a1 1 0 00-1 1v1.128a2.251 2.251 0 11-1.5 0V5.372a2.25 2.25 0 111.5 0v1.836A2.492 2.492 0 016 7h4a1 1 0 001-1v-.628A2.25 2.25 0 019.5 3.25zM4.25 12a.75.75 0 100 1.5.75.75 0 000-1.5zM3 3.75A.75.75 0 017.75 3h.5a.75.75 0 010 1.5h-.5A.75.75 0 013 3.75z"/></svg>
+                develop
+            </span>
+        </div>
+    </div>
+
+    <!-- 6. 进度条 -->
+    <div class="demo-section">
+        <div class="demo-title">6. 进度条</div>
+        <div class="progress-container" style="max-width: 300px;">
+            <div class="progress-label">
+                <span>Progress</span>
+                <span>75%</span>
+            </div>
+            <div class="progress-track">
+                <div class="progress-fill" style="width: 75%; background: var(--gh-primary);"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 7. Tab 栏 -->
+    <div class="demo-section">
+        <div class="demo-title">7. Tab 栏</div>
+        <div class="tab-nav" style="max-width: 400px;">
+            <div class="tab-item active">
+                <span>Code</span>
+            </div>
+            <div class="tab-item">
+                <span>Issues</span>
+                <span class="count">12</span>
+            </div>
+            <div class="tab-item">
+                <span>Pull requests</span>
+                <span class="count">3</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 8. 文件列表 -->
+    <div class="demo-section">
+        <div class="demo-title">8. 文件列表</div>
+        
+        <div class="card" style="max-width: 500px;">
+            <div class="card-header">
+                <div class="card-title">📁 clawos/</div>
+                <button class="btn btn-sm">Go to file</button>
+            </div>
+            <div class="list-item">
+                <div class="list-icon folder">📁</div>
+                <div class="list-content">
+                    <div class="list-title">static/</div>
+                    <div class="list-meta">Static files</div>
+                </div>
+            </div>
+            <div class="list-item">
+                <div class="list-icon folder">📁</div>
+                <div class="list-content">
+                    <div class="list-title">templates/</div>
+                    <div class="list-meta">HTML templates</div>
+                </div>
+            </div>
+            <div class="list-item">
+                <div class="list-icon file">📄</div>
+                <div class="list-content">
+                    <div class="list-title">app.py</div>
+                    <div class="list-meta">Main application file</div>
+                </div>
+                <span class="tag tag-outline">12KB</span>
+            </div>
+            <div class="list-item">
+                <div class="list-icon file">📄</div>
+                <div class="list-content">
+                    <div class="list-title">README.md</div>
+                    <div class="list-meta">Documentation</div>
+                </div>
+                <span class="tag tag-outline">2KB</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 9. 提交历史 -->
+    <div class="demo-section">
+        <div class="demo-title">9. 提交历史</div>
+        
+        <div class="card" style="max-width: 500px;">
+            <div class="card-header">
+                <div class="card-title">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="var(--gh-text-secondary)"><path d="M10.5 7.75a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0zm1.43.75a4.002 4.002 0 01-7.86 0H.75a.75.75 0 110-1.5h3.32a4.001 4.001 0 017.86 0h3.32a.75.75 0 110 1.5h-3.32z"/></svg>
+                    Latest commits
+                </div>
+                <button class="btn btn-sm">View all</button>
+            </div>
+            <div class="card-body" style="padding: 0;">
+                <div class="commit-item" style="padding: 16px;">
+                    <div class="avatar">🤖</div>
+                    <div class="list-content">
+                        <div class="commit-message">fix: 修复进程管理字段映射</div>
+                        <div class="commit-meta">
+                            <span class="commit-sha">a1b2c3d</span>
+                            <span>tjx</span>
+                            <span>2 hours ago</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="commit-item" style="padding: 16px;">
+                    <div class="avatar">📦</div>
+                    <div class="list-content">
+                        <div class="commit-message">feat: 添加文件预览功能</div>
+                        <div class="commit-meta">
+                            <span class="commit-sha">d4e5f6g</span>
+                            <span>tjx</span>
+                            <span>5 hours ago</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="commit-item" style="padding: 16px;">
+                    <div class="avatar">🎨</div>
+                    <div class="list-content">
+                        <div class="commit-message">refactor: 简化 Git 页面布局</div>
+                        <div class="commit-meta">
+                            <span class="commit-sha">g7h8i9j</span>
+                            <span>tjx</span>
+                            <span>1 day ago</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 10. 完整页面预览 -->
+    <div class="demo-section">
+        <div class="demo-title">10. 完整页面预览</div>
+        
+        <div class="phone-frame">
+            <div class="phone-header">
+                <div class="phone-title">📦 clawOS</div>
+                <button class="btn btn-sm">☀</button>
+            </div>
+
+            <!-- 搜索框 -->
+            <div class="search-input-wrapper">
+                <svg width="16" height="16" viewBox="0 0 16 16"><path d="M10.5 7.75a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0zm1.43.75a4.002 4.002 0 01-7.86 0H.75a.75.75 0 110-1.5h3.32a4.001 4.001 0 017.86 0h3.32a.75.75 0 110 1.5h-3.32z"/></svg>
+                <input type="text" class="input" placeholder="Search files...">
+            </div>
+
+            <!-- Tab -->
+            <div class="tab-nav" style="margin-bottom: 12px;">
+                <div class="tab-item active">📁 Files</div>
+                <div class="tab-item">📊 Issues</div>
+                <div class="tab-item">🔀 PRs</div>
+            </div>
+
+            <!-- 分支选择 -->
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
+                <span class="branch-tag">
+                    <svg width="12" height="12" viewBox="0 0 16 16"><path d="M11.75 2.5a.75.75 0 100 1.5.75.75 0 000-1.5zm-2.25.75a2.25 2.25 0 113 2.122V6A2.5 2.5 0 0110 8.5H6a1 1 0 00-1 1v1.128a2.251 2.251 0 11-1.5 0V5.372a2.25 2.25 0 111.5 0v1.836A2.492 2.492 0 016 7h4a1 1 0 001-1v-.628A2.25 2.25 0 019.5 3.25zM4.25 12a.75.75 0 100 1.5.75.75 0 000-1.5zM3 3.75A.75.75 0 017.75 3h.5a.75.75 0 010 1.5h-.5A.75.75 0 013 3.75z"/></svg>
+                    main
+                </span>
+                <span style="color: var(--gh-text-muted);">→</span>
+                <select class="select" style="flex: 1;">
+                    <option>develop</option>
+                </select>
+            </div>
+
+            <!-- 文件列表 -->
+            <div class="card" style="margin-bottom: 16px;">
+                <div class="list-item">
+                    <div class="list-icon folder">📁</div>
+                    <div class="list-content">
+                        <div class="list-title">static/</div>
+                    </div>
+                    <span class="tag tag-outline">-</span>
+                </div>
+                <div class="list-item">
+                    <div class="list-icon folder">📁</div>
+                    <div class="list-content">
+                        <div class="list-title">templates/</div>
+                    </div>
+                    <span class="tag tag-outline">-</span>
+                </div>
+                <div class="list-item">
+                    <div class="list-icon file">📄</div>
+                    <div class="list-content">
+                        <div class="list-title">app.py</div>
+                    </div>
+                    <span class="tag tag-outline">12KB</span>
+                </div>
+                <div class="list-item">
+                    <div class="list-icon file">📄</div>
+                    <div class="list-content">
+                        <div class="list-title">README.md</div>
+                    </div>
+                    <span class="tag tag-outline">2KB</span>
+                </div>
+            </div>
+
+            <!-- 进程卡片 -->
+            <div class="card-title" style="margin-bottom: 12px;">📊 进程管理</div>
+            
+            <div class="card" style="margin-bottom: 12px;">
+                <div style="padding: 12px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span>🚀</span>
+                            <span style="font-weight: 600;">python3</span>
+                        </div>
+                        <span class="badge badge-green">34%</span>
+                    </div>
+                    <div class="progress-track" style="margin-bottom: 8px;">
+                        <div class="progress-fill" style="width: 34%; background: var(--gh-primary);"></div>
+                    </div>
+                    <div style="display: flex; gap: 12px; font-size: 12px; color: var(--gh-text-muted);">
+                        <span>💭 1.2%</span>
+                        <span>⏱️ 16h</span>
+                        <span>📡 5001</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 底部导航 -->
+            <div style="display: flex; justify-content: space-around; border-top: 1px solid var(--gh-border); padding-top: 12px;">
+                <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--gh-text-secondary); cursor: pointer;">
+                    <span>📁</span>
+                    <span style="font-size: 10px;">Files</span>
+                </div>
+                <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--gh-primary);">
+                    <span>📊</span>
+                    <span style="font-size: 10px;">Issues</span>
+                </div>
+                <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--gh-text-secondary); cursor: pointer;">
+                    <span>🔀</span>
+                    <span style="font-size: 10px;">PRs</span>
+                </div>
+                <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--gh-text-secondary); cursor: pointer;">
+                    <span>⚙️</span>
+                    <span style="font-size: 10px;">Settings</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 11. 代码变量 -->
+    <div class="demo-section">
+        <div class="demo-title">11. CSS 变量速查</div>
+        <div class="code-block">
+/* GitHub 风格变量 */
+
+:root {
+    /* 品牌色 */
+    --gh-primary: #0969da;
+    --gh-primary-hover: #0860c7;
+    
+    /* 背景 */
+    --gh-bg: #ffffff;
+    --gh-bg-secondary: #f6f8fa;
+    
+    /* 边框 */
+    --gh-border: #d0d7de;
+    --gh-border-light: #e8ebee;
+    
+    /* 文字 */
+    --gh-text-primary: #24292f;
+    --gh-text-secondary: #57606a;
+    --gh-text-muted: #8b949e;
+    
+    /* 语义色 */
+    --gh-success: #1a7f37;
+    --gh-danger: #cf222e;
+    
+    /* 圆角 */
+    --radius-md: 6px;
+    --radius-lg: 8px;
+    
+    /* 字体 */
+    --font-mono: ui-monospace, SFMono-Regular, monospace;
+    --font-sans: -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* 按钮 */
+.btn {
+    padding: 5px 16px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+/* 卡片 */
+.card {
+    background: #fff;
+    border: 1px solid #d0d7de;
+    border-radius: 8px;
+}
+
+/* 标签 */
+.tag {
+    padding: 0 8px;
+    border-radius: 999px;
+    font-size: 12px;
+}
+
+/* 分支标签 */
+.branch-tag {
+    padding: 0 8px;
+    border-radius: 999px;
+    font-size: 12px;
+    background: #f6f8fa;
+    border: 1px solid #d0d7de;
+}
+        </div>
+    </div>
+
+    <div style="text-align: center; margin-top: 40px; padding: 20px; color: var(--gh-text-muted); font-size: 12px;">
+        <p>📁 文件位置: /home/tjx/.openclaw/workspace/clawos/ui-preview-github.html</p>
+        <p>用浏览器打开查看效果</p>
+    </div>
+</body>
+</html>

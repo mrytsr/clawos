@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>clawOS UI - Lucide Icons 完整预览</title>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        /* ============ CSS 变量 ============ */
+        :root {
+            /* 暗色主题 */
+            --bg-primary: #0f0f23;
+            --bg-secondary: #1a1a2e;
+            --bg-card: #232342;
+            --border-color: #2d2d44;
+            --border-light: #3d3d5c;
+            
+            /* 主色调 - Lucide 蓝 */
+            --primary: #3b82f6;
+            --primary-hover: #2563eb;
+            --primary-light: rgba(59, 130, 246, 0.15);
+            
+            /* 语义色 */
+            --success: #22c55e;
+            --success-light: rgba(34, 197, 94, 0.15);
+            --warning: #f59e0b;
+            --warning-light: rgba(245, 158, 11, 0.15);
+            --danger: #ef4444;
+            --danger-light: rgba(239, 68, 68, 0.15);
+            
+            /* 文字色 */
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            
+            /* 圆角 */
+            --radius-sm: 6px;
+            --radius-md: 8px;
+            --radius-lg: 12px;
+            --radius-xl: 16px;
+            
+            /* 阴影 */
+            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+            --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.25);
+            --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.3);
+            
+            /* 过渡 */
+            --transition: 0.2s ease;
+        }
+
+        /* ============ 全局样式 ============ */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+            min-height: 100vh;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", sans-serif;
+            color: var(--text-primary);
+            padding: 16px;
+        }
+
+        /* ============ 图标基础样式 ============ */
+        .lucide {
+            width: 20px;
+            height: 20px;
+            stroke-width: 2;
+            stroke: currentColor;
+            fill: none;
+            flex-shrink: 0;
+        }
+        .lucide.sm { width: 16px; height: 16px; }
+        .lucide.lg { width: 24px; height: 24px; }
+        .lucide.xl { width: 32px; height: 32px; }
+        .lucide.gray { stroke: var(--text-muted); }
+        .lucide.success { stroke: var(--success); }
+        .lucide.primary { stroke: var(--primary); }
+
+        /* ============ 页面容器 ============ */
+        .phone-frame {
+            max-width: 400px;
+            margin: 0 auto;
+            background: var(--bg-primary);
+            border-radius: 32px;
+            padding: 20px;
+            box-shadow: var(--shadow-lg);
+            border: 3px solid var(--border-color);
+        }
+
+        /* ============ 头部 ============ */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        .header-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 20px;
+            font-weight: 700;
+        }
+        .header-title .lucide {
+            color: var(--primary);
+        }
+        .header-actions {
+            display: flex;
+            gap: 8px;
+        }
+        .icon-btn {
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: var(--radius-md);
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        .icon-btn:hover {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+        .icon-btn.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        /* ============ 搜索框 ============ */
+        .search-box {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 0 14px;
+            margin-bottom: 16px;
+        }
+        .search-box .lucide {
+            color: var(--text-muted);
+            width: 18px;
+            height: 18px;
+        }
+        .search-box input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            padding: 12px 0;
+            color: var(--text-primary);
+            font-size: 14px;
+            outline: none;
+        }
+        .search-box input::placeholder {
+            color: var(--text-muted);
+        }
+
+        /* ============ Tab 栏 ============ */
+        .tabs {
+            display: flex;
+            gap: 4px;
+            background: var(--bg-card);
+            border-radius: var(--radius-lg);
+            padding: 4px;
+            margin-bottom: 16px;
+        }
+        .tab {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 10px;
+            border-radius: var(--radius-md);
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 13px;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        .tab:hover {
+            color: var(--text-primary);
+        }
+        .tab.active {
+            background: var(--primary);
+            color: white;
+        }
+        .tab .badge {
+            background: var(--danger);
+            color: white;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 999px;
+        }
+
+        /* ============ 统计卡片 ============ */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        .stat-card {
+            background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-secondary) 100%);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 14px;
+        }
+        .stat-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        .stat-icon {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: var(--radius-md);
+        }
+        .stat-icon.cpu { background: var(--primary-light); color: var(--primary); }
+        .stat-icon.memory { background: var(--success-light); color: var(--success); }
+        .stat-value {
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: 2px;
+        }
+        .stat-label {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+        .stat-bar {
+            height: 4px;
+            background: var(--border-color);
+            border-radius: 2px;
+            margin-top: 10px;
+            overflow: hidden;
+        }
+        .stat-bar-fill {
+            height: 100%;
+            border-radius: 2px;
+        }
+        .stat-bar-fill.cpu { background: var(--primary); }
+        .stat-bar-fill.memory { background: var(--success); }
+
+        /* ============ 卡片 ============ */
+        .card {
+            background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-secondary) 100%);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            margin-bottom: 12px;
+            overflow: hidden;
+        }
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 14px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .card-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        .card-title .lucide {
+            color: var(--text-secondary);
+        }
+        .card-body {
+            padding: 0;
+        }
+
+        /* ============ 列表项 ============ */
+        .list-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 14px;
+            border-bottom: 1px solid var(--border-color);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        .list-item:last-child {
+            border-bottom: none;
+        }
+        .list-item:hover {
+            background: var(--primary-light);
+        }
+        .list-icon {
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: var(--radius-md);
+            flex-shrink: 0;
+        }
+        .list-icon.folder { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
+        .list-icon.file { background: rgba(100, 116, 139, 0.2); color: var(--text-secondary); }
+        .list-icon.image { background: rgba(34, 197, 94, 0.15); color: var(--success); }
+        .list-icon.archive { background: rgba(245, 158, 11, 0.15); color: var(--warning); }
+        .list-info {
+            flex: 1;
+            min-width: 0;
+        }
+        .list-name {
+            font-weight: 500;
+            font-size: 14px;
+            margin-bottom: 2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .list-meta {
+            font-size: 12px;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .list-actions {
+            display: flex;
+            gap: 4px;
+        }
+        .list-actions .icon-btn {
+            width: 28px;
+            height: 28px;
+            border-radius: var(--radius-sm);
+        }
+
+        /* ============ 进程卡片 ============ */
+        .process-item {
+            padding: 14px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .process-item:last-child {
+            border-bottom: none;
+        }
+        .process-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .process-name {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 500;
+            font-size: 14px;
+        }
+        .process-icon {
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: var(--radius-sm);
+        }
+        .process-badge {
+            font-size: 11px;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-weight: 500;
+        }
+        .process-badge.green { background: var(--success-light); color: var(--success); }
+        .process-badge.orange { background: var(--warning-light); color: var(--warning); }
+        .process-badge.red { background: var(--danger-light); color: var(--danger); }
+        .process-bar {
+            height: 5px;
+            background: var(--border-color);
+            border-radius: 3px;
+            overflow: hidden;
+            margin: 8px 0;
+        }
+        .process-bar-fill {
+            height: 100%;
+            border-radius: 3px;
+            transition: width 0.3s ease;
+        }
+        .process-meta {
+            display: flex;
+            gap: 12px;
+            font-size: 11px;
+            color: var(--text-muted);
+            flex-wrap: wrap;
+        }
+        .process-meta span {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        /* ============ 按钮 ============ */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 14px;
+            border-radius: var(--radius-md);
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition);
+            border: none;
+        }
+        .btn.primary {
+            background: var(--primary);
+            color: white;
+        }
+        .btn.primary:hover {
+            background: var(--primary-hover);
+        }
+        .btn.ghost {
+            background: transparent;
+            color: var(--text-secondary);
+            border: 1px solid var(--border-color);
+        }
+        .btn.ghost:hover {
+            background: var(--bg-card);
+            color: var(--text-primary);
+        }
+        .btn.lg {
+            width: 100%;
+            padding: 12px;
+            font-size: 14px;
+            justify-content: center;
+        }
+
+        /* ============ 底部导航 ============ */
+        .bottom-nav {
+            display: flex;
+            justify-content: space-around;
+            background: var(--bg-card);
+            border-radius: var(--radius-xl);
+            padding: 8px;
+            margin-top: 16px;
+            border: 1px solid var(--border-color);
+        }
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            padding: 8px 12px;
+            border-radius: var(--radius-md);
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 10px;
+        }
+        .nav-item:hover {
+            color: var(--text-primary);
+        }
+        .nav-item.active {
+            color: var(--primary);
+            background: var(--primary-light);
+        }
+        .nav-item .lucide {
+            width: 22px;
+            height: 22px;
+        }
+
+        /* ============ 进度详情 ============ */
+        .progress-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .progress-row:last-child {
+            border-bottom: none;
+        }
+        .progress-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+        }
+        .progress-value {
+            font-size: 13px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        /* ============ 分隔线 ============ */
+        .divider {
+            height: 1px;
+            background: var(--border-color);
+            margin: 16px 0;
+        }
+
+        /* ============ 页面标题 ============ */
+        .section-title {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+        .section-title h3 {
+            font-size: 14px;
+            font-weight: 600;
+        }
+        .section-title .btn {
+            font-size: 12px;
+            padding: 4px 10px;
+        }
+
+        /* ============ 标签 ============ */
+        .tag {
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 4px;
+            background: var(--border-color);
+            color: var(--text-secondary);
+        }
+        .tag.primary {
+            background: var(--primary-light);
+            color: var(--primary);
+        }
+    </style>
+</head>
+<body>
+    <div class="phone-frame">
+        <!-- 头部 -->
+        <div class="header">
+            <div class="header-title">
+                <i data-lucide="braces" class="lucide xl"></i>
+                <span>clawOS</span>
+            </div>
+            <div class="header-actions">
+                <button class="icon-btn" title="主题切换">
+                    <i data-lucide="sun" class="lucide sm"></i>
+                </button>
+                <button class="icon-btn" title="设置">
+                    <i data-lucide="settings" class="lucide sm"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- 搜索框 -->
+        <div class="search-box">
+            <i data-lucide="search" class="lucide"></i>
+            <input type="text" placeholder="搜索文件、进程...">
+        </div>
+
+        <!-- Tab 栏 -->
+        <div class="tabs">
+            <button class="tab active">
+                <i data-lucide="folder" class="lucide sm"></i>
+                <span>文件</span>
+            </button>
+            <button class="tab">
+                <i data-lucide="activity" class="lucide sm"></i>
+                <span>进程</span>
+            </button>
+            <button class="tab">
+                <i data-lucide="box" class="lucide sm"></i>
+                <span>Docker</span>
+            </button>
+            <button class="tab">
+                <i data-lucide="settings" class="lucide sm"></i>
+                <span>设置</span>
+            </button>
+        </div>
+
+        <!-- 统计卡片 -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-header">
+                    <div class="stat-icon cpu">
+                        <i data-lucide="cpu" class="lucide lg"></i>
+                    </div>
+                    <div>
+                        <div class="stat-value">45%</div>
+                        <div class="stat-label">CPU 使用率</div>
+                    </div>
+                </div>
+                <div class="stat-bar">
+                    <div class="stat-bar-fill cpu" style="width: 45%;"></div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-header">
+                    <div class="stat-icon memory">
+                        <i data-lucide="memory-stick" class="lucide lg"></i>
+                    </div>
+                    <div>
+                        <div class="stat-value">8.2GB</div>
+                        <div class="stat-label">内存使用</div>
+                    </div>
+                </div>
+                <div class="stat-bar">
+                    <div class="stat-bar-fill memory" style="width: 51%;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 文件列表 -->
+        <div class="section-title">
+            <h3>
+                <i data-lucide="folder" class="lucide" style="margin-right: 6px;"></i>
+                文件
+            </h3>
+            <button class="btn ghost">
+                <i data-lucide="upload" class="lucide sm"></i>
+                上传
+            </button>
+        </div>
+        <div class="card">
+            <div class="card-body">
+                <div class="list-item">
+                    <div class="list-icon folder">
+                        <i data-lucide="folder" class="lucide"></i>
+                    </div>
+                    <div class="list-info">
+                        <div class="list-name">static/</div>
+                        <div class="list-meta">
+                            <i data-lucide="hard-drive" class="lucide sm"></i>
+                            <span>文件夹</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="list-item">
+                    <div class="list-icon folder">
+                        <i data-lucide="folder" class="lucide"></i>
+                    </div>
+                    <div class="list-info">
+                        <div class="list-name">templates/</div>
+                        <div class="list-meta">
+                            <i data-lucide="hard-drive" class="lucide sm"></i>
+                            <span>文件夹</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="list-item">
+                    <div class="list-icon file">
+                        <i data-lucide="file-code" class="lucide"></i>
+                    </div>
+                    <div class="list-info">
+                        <div class="list-name">app.py</div>
+                        <div class="list-meta">
+                            <span class="tag primary">Python</span>
+                            <span>12KB</span>
+                        </div>
+                    </div>
+                    <div class="list-actions">
+                        <button class="icon-btn" title="复制">
+                            <i data-lucide="copy" class="lucide sm"></i>
+                        </button>
+                        <button class="icon-btn" title="更多">
+                            <i data-lucide="more-vertical" class="lucide sm"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="list-item">
+                    <div class="list-icon image">
+                        <i data-lucide="image" class="lucide"></i>
+                    </div>
+                    <div class="list-info">
+                        <div class="list-name">screenshot.png</div>
+                        <div class="list-meta">
+                            <span class="tag primary">PNG</span>
+                            <span>2.3MB</span>
+                        </div>
+                    </div>
+                    <div class="list-actions">
+                        <button class="icon-btn" title="下载">
+                            <i data-lucide="download" class="lucide sm"></i>
+                        </button>
+                        <button class="icon-btn" title="更多">
+                            <i data-lucide="more-vertical" class="lucide sm"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="list-item">
+                    <div class="list-icon archive">
+                        <i data-lucide="archive" class="lucide"></i>
+                    </div>
+                    <div class="list-info">
+                        <div class="list-name">backup.tar.gz</div>
+                        <div class="list-meta">
+                            <span class="tag">压缩包</span>
+                            <span>156MB</span>
+                        </div>
+                    </div>
+                    <div class="list-actions">
+                        <button class="icon-btn" title="解压">
+                            <i data-lucide="unarchive" class="lucide sm"></i>
+                        </button>
+                        <button class="icon-btn" title="更多">
+                            <i data-lucide="more-vertical" class="lucide sm"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 进程管理 -->
+        <div class="section-title">
+            <h3>
+                <i data-lucide="activity" class="lucide" style="margin-right: 6px;"></i>
+                进程管理
+            </h3>
+            <button class="btn ghost">
+                <i data-lucide="plus" class="lucide sm"></i>
+                新建
+            </button>
+        </div>
+        <div class="card">
+            <div class="card-body">
+                <div class="process-item">
+                    <div class="process-header">
+                        <div class="process-name">
+                            <div class="process-icon" style="background: rgba(139, 92, 246, 0.2); color: #a78bfa;">
+                                <i data-lucide="code" class="lucide sm"></i>
+                            </div>
+                            <span>python3</span>
+                        </div>
+                        <span class="process-badge orange">34%</span>
+                    </div>
+                    <div class="process-bar">
+                        <div class="process-bar-fill" style="width: 34%; background: var(--warning);"></div>
+                    </div>
+                    <div class="process-meta">
+                        <span><i data-lucide="cpu" class="lucide sm"></i> 1.2%</span>
+                        <span><i data-lucide="clock" class="lucide sm"></i> 16h</span>
+                        <span><i data-lucide="network" class="lucide sm"></i> 5001</span>
+                        <span><i data-lucide="hash" class="lucide sm"></i> PID 1234</span>
+                    </div>
+                </div>
+                <div class="process-item">
+                    <div class="process-header">
+                        <div class="process-name">
+                            <div class="process-icon" style="background: rgba(59, 130, 246, 0.2); color: #60a5fa;">
+                                <i data-lucide="box" class="lucide sm"></i>
+                            </div>
+                            <span>docker</span>
+                        </div>
+                        <span class="process-badge green">8%</span>
+                    </div>
+                    <div class="process-bar">
+                        <div class="process-bar-fill" style="width: 8%; background: var(--success);"></div>
+                    </div>
+                    <div class="process-meta">
+                        <span><i data-lucide="cpu" class="lucide sm"></i> 2.3%</span>
+                        <span><i data-lucide="clock" class="lucide sm"></i> 12h</span>
+                        <span><i data-lucide="network" class="lucide sm"></i> -</span>
+                        <span><i data-lucide="hash" class="lucide sm"></i> PID 5678</span>
+                    </div>
+                </div>
+                <div class="process-item">
+                    <div class="process-header">
+                        <div class="process-name">
+                            <div class="process-icon" style="background: rgba(34, 197, 94, 0.2); color: var(--success);">
+                                <i data-lucide="database" class="lucide sm"></i>
+                            </div>
+                            <span>mysqld</span>
+                        </div>
+                        <span class="process-badge green">5%</span>
+                    </div>
+                    <div class="process-bar">
+                        <div class="process-bar-fill" style="width: 5%; background: var(--success);"></div>
+                    </div>
+                    <div class="process-meta">
+                        <span><i data-lucide="cpu" class="lucide sm"></i> 8.5%</span>
+                        <span><i data-lucide="clock" class="lucide sm"></i> 3d</span>
+                        <span><i data-lucide="network" class="lucide sm"></i> 3306</span>
+                        <span><i data-lucide="hash" class="lucide sm"></i> PID 9012</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 详细信息 -->
+        <div class="section-title">
+            <h3>
+                <i data-lucide="info" class="lucide" style="margin-right: 6px;"></i>
+                系统信息
+            </h3>
+        </div>
+        <div class="card">
+            <div class="card-body">
+                <div class="progress-row">
+                    <div class="progress-label">
+                        <i data-lucide="wifi" class="lucide sm gray"></i>
+                        <span>网络状态</span>
+                    </div>
+                    <div class="progress-value" style="color: var(--success);">
+                        <i data-lucide="check-circle" class="lucide sm success"></i>
+                        已连接
+                    </div>
+                </div>
+                <div class="progress-row">
+                    <div class="progress-label">
+                        <i data-lucide="database" class="lucide sm gray"></i>
+                        <span>磁盘使用</span>
+                    </div>
+                    <div class="progress-value">256GB / 512GB</div>
+                </div>
+                <div class="progress-row">
+                    <div class="progress-label">
+                        <i data-lucide="users" class="lucide sm gray"></i>
+                        <span>活跃用户</span>
+                    </div>
+                    <div class="progress-value">3</div>
+                </div>
+                <div class="progress-row">
+                    <div class="progress-label">
+                        <i data-lucide="refresh-cw" class="lucide sm gray"></i>
+                        <span>运行时间</span>
+                    </div>
+                    <div class="progress-value">15d 6h 32m</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 底部导航 -->
+        <div class="bottom-nav">
+            <div class="nav-item active">
+                <i data-lucide="folder" class="lucide"></i>
+                <span>文件</span>
+            </div>
+            <div class="nav-item">
+                <i data-lucide="activity" class="lucide"></i>
+                <span>进程</span>
+            </div>
+            <div class="nav-item">
+                <i data-lucide="box" class="lucide"></i>
+                <span>Docker</span>
+            </div>
+            <div class="nav-item">
+                <i data-lucide="settings" class="lucide"></i>
+                <span>设置</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 初始化 Lucide Icons
+        lucide.createIcons();
+    </script>
+</body>
+</html>

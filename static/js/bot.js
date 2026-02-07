@@ -99,7 +99,7 @@ function ensureBotSocket() {
 
     try {
         //const h = 'ws://127.0.0.1:18789'
-        const h = 'wss://179.utjx.cn'
+        const h = 'ws://179.utjx.cn:18789'
         botSocket = new WebSocket(h);
     } catch (e) {
         console.error('WebSocket Init Error:', e);
