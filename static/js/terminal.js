@@ -56,6 +56,14 @@ function keySeq(key) {
     if (key === 'enter') return '\r';
     if (key === 'up') return '\x1b[A';
     if (key === 'down') return '\x1b[B';
+    if (key === 'left') return '\x1b[D';
+    if (key === 'right') return '\x1b[C';
+    if (key === 'home') return '\x1b[H';
+    if (key === 'end') return '\x1b[F';
+    if (key === 'pgup') return '\x1b[5~';
+    if (key === 'pgdn') return '\x1b[6~';
+    if (key === 'slash') return '/';
+    if (key === 'dash') return '-';
     if (key === 'backspace') return '\x7f';
     return '';
 }
@@ -134,10 +142,6 @@ function updateTerminalDrawerLayout() {
 
 function openTerminal(path, isDir) {
     closeMenuModal();
-    if (typeof window !== 'undefined' && window.SERVER_IS_WINDOWS) {
-        showToast('服务端环境不支持 Web 终端（需要 Linux PTY/termios）', 'warning');
-        return;
-    }
     isTermOpen = true;
     
     // 计算路径

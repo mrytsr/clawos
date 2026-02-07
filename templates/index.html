@@ -1132,15 +1132,25 @@
         </style>
         <div id="terminal-container" style="flex:1;overflow:hidden;background:#000;"></div>
         <!-- 虚拟键盘 -->
-        <div class="terminal-keyboard" style="background:#222;padding:6px;display:flex;flex-wrap:wrap;gap:4px;user-select:none;border-top:1px solid #333;flex-shrink:0;">
-            <button type="button" tabindex="-1" data-mod="ctrl" class="term-key" onmousedown="handleKeyBtn(event, 'ctrl')" ontouchstart="handleKeyBtn(event, 'ctrl')">Ctrl</button>
-            <button type="button" tabindex="-1" data-mod="alt" class="term-key" onmousedown="handleKeyBtn(event, 'alt')" ontouchstart="handleKeyBtn(event, 'alt')">Alt</button>
-            <button type="button" tabindex="-1" class="term-key" onmousedown="handleKeyBtn(event, 'tab')" ontouchstart="handleKeyBtn(event, 'tab')">Tab</button>
-            <button type="button" tabindex="-1" class="term-key" onmousedown="handleKeyBtn(event, 'esc')" ontouchstart="handleKeyBtn(event, 'esc')">Esc</button>
-            <button type="button" tabindex="-1" class="term-key" onmousedown="handleKeyBtn(event, 'enter')" ontouchstart="handleKeyBtn(event, 'enter')">↵</button>
-            <button type="button" tabindex="-1" class="term-key" onmousedown="handleKeyBtn(event, 'up')" ontouchstart="handleKeyBtn(event, 'up')">↑</button>
-            <button type="button" tabindex="-1" class="term-key" onmousedown="handleKeyBtn(event, 'down')" ontouchstart="handleKeyBtn(event, 'down')">↓</button>
-            <button type="button" tabindex="-1" class="term-key" onmousedown="handleKeyBtn(event, 'backspace')" ontouchstart="handleKeyBtn(event, 'backspace')">⌫</button>
+        <div class="terminal-keyboard" style="background:#222;padding:6px;display:flex;flex-direction:column;gap:6px;user-select:none;border-top:1px solid #333;flex-shrink:0;">
+            <div style="display:flex;gap:6px;">
+                <button type="button" tabindex="-1" class="term-key" onmousedown="handleKeyBtn(event, 'esc')" ontouchstart="handleKeyBtn(event, 'esc')">ESC</button>
+                <button type="button" tabindex="-1" class="term-key" onmousedown="handleKeyBtn(event, 'slash')" ontouchstart="handleKeyBtn(event, 'slash')">/</button>
+                <button type="button" tabindex="-1" class="term-key" onmousedown="handleKeyBtn(event, 'dash')" ontouchstart="handleKeyBtn(event, 'dash')">—</button>
+                <button type="button" tabindex="-1" class="term-key" onmousedown="handleKeyBtn(event, 'home')" ontouchstart="handleKeyBtn(event, 'home')">HOME</button>
+                <button type="button" tabindex="-1" class="term-key" onmousedown="handleKeyBtn(event, 'up')" ontouchstart="handleKeyBtn(event, 'up')">↑</button>
+                <button type="button" tabindex="-1" class="term-key" onmousedown="handleKeyBtn(event, 'end')" ontouchstart="handleKeyBtn(event, 'end')">END</button>
+                <button type="button" tabindex="-1" class="term-key" onmousedown="handleKeyBtn(event, 'pgup')" ontouchstart="handleKeyBtn(event, 'pgup')">PGUP</button>
+            </div>
+            <div style="display:flex;gap:6px;">
+                <button type="button" tabindex="-1" class="term-key" onmousedown="handleKeyBtn(event, 'tab')" ontouchstart="handleKeyBtn(event, 'tab')">TAB</button>
+                <button type="button" tabindex="-1" data-mod="ctrl" class="term-key" onmousedown="handleKeyBtn(event, 'ctrl')" ontouchstart="handleKeyBtn(event, 'ctrl')">CTRL</button>
+                <button type="button" tabindex="-1" data-mod="alt" class="term-key" onmousedown="handleKeyBtn(event, 'alt')" ontouchstart="handleKeyBtn(event, 'alt')">ALT</button>
+                <button type="button" tabindex="-1" class="term-key" onmousedown="handleKeyBtn(event, 'left')" ontouchstart="handleKeyBtn(event, 'left')">←</button>
+                <button type="button" tabindex="-1" class="term-key" onmousedown="handleKeyBtn(event, 'down')" ontouchstart="handleKeyBtn(event, 'down')">↓</button>
+                <button type="button" tabindex="-1" class="term-key" onmousedown="handleKeyBtn(event, 'right')" ontouchstart="handleKeyBtn(event, 'right')">→</button>
+                <button type="button" tabindex="-1" class="term-key" onmousedown="handleKeyBtn(event, 'pgdn')" ontouchstart="handleKeyBtn(event, 'pgdn')">PGDN</button>
+            </div>
         </div>
     </div>
 
