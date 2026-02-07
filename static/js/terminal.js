@@ -8,6 +8,8 @@ let isTermOpen = false;
 let ctrlMode = false;
 let altMode = false;
 let _vvBound = false;
+let _pendingOpenActions = null;
+let _requestedCwd = '';
 
 function focusTerminal() {
     if (term && typeof term.focus === 'function') term.focus();
@@ -28,6 +30,49 @@ function sendToTerminal(input) {
     if (socket && socket.connected) {
         socket.emit('input', { input: input });
     }
+}
+
+function normalizeRelPathForWorkspace(path) {
+    return (path || '').toString().replace(/\\/g, '/').replace(/^\/+/, '').replace(/\/+$/, '');
+}
+
+function bashDoubleQuote(str) {
+    const s = (str || '').toString();
+    return '"' + s.replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"';
+}
+
+function quoteIfNeeded(str) {
+    const s = (str || '').toString();
+    if (!s) return '';
+    if (/^[A-Za-z0-9_.\-]+$/.test(s)) return s;
+    return bashDoubleQuote(s);
+}
+
+function tryRunPendingOpenActions() {
+    if (!_pendingOpenActions) return;
+    if (!socket || !socket.connected) return;
+
+    const actions = _pendingOpenActions;
+    _pendingOpenActions = null;
+
+    if (actions.cdPath) {
+        sendToTerminal('cd -- ' + bashDoubleQuote(actions.cdPath) + '\r');
+    }
+
+    if (actions.prefillText) {
+        setTimeout(() => {
+            sendToTerminal(actions.prefillText);
+            focusTerminal();
+        }, 120);
+        return;
+    }
+
+    focusTerminal();
+}
+
+function setPendingOpenActions(actions) {
+    _pendingOpenActions = actions || null;
+    tryRunPendingOpenActions();
 }
 
 function syncModifierButtons() {
@@ -145,18 +190,28 @@ function openTerminal(path, isDir) {
     isTermOpen = true;
     
     // 计算路径
-    let termPath = '/root/.openclaw/workspace';
-    if (path) {
+    const workspaceRoot = '/root/.openclaw/workspace';
+    const rel = normalizeRelPathForWorkspace(path);
+    let termPath = workspaceRoot;
+    let cdPath = workspaceRoot;
+    let prefillText = '';
+    if (rel) {
         if (isDir) {
-            termPath = '/root/.openclaw/workspace/' + path;
+            termPath = workspaceRoot + '/' + rel;
+            cdPath = termPath;
         } else {
-            const lastSlash = path.lastIndexOf('/');
-            termPath = lastSlash > 0 ? '/root/.openclaw/workspace/' + path.substring(0, lastSlash) : '/root/.openclaw/workspace';
+            const lastSlash = rel.lastIndexOf('/');
+            const dirRel = lastSlash >= 0 ? rel.substring(0, lastSlash) : '';
+            const base = lastSlash >= 0 ? rel.substring(lastSlash + 1) : rel;
+            termPath = dirRel ? (workspaceRoot + '/' + dirRel) : workspaceRoot;
+            cdPath = termPath;
+            prefillText = quoteIfNeeded(base);
         }
     }
     
     const pathEl = document.getElementById('termPath');
     if (pathEl) pathEl.textContent = termPath;
+    _requestedCwd = termPath;
     
     const drawer = document.getElementById('terminalDrawer');
     const backdrop = document.getElementById('terminalBackdrop');
@@ -169,6 +224,12 @@ function openTerminal(path, isDir) {
         termInitialized = true;
     } else if (socket && !socket.connected) {
         socket.connect();
+    }
+
+    if (rel) {
+        setPendingOpenActions({ cdPath: cdPath, prefillText: prefillText });
+    } else {
+        setPendingOpenActions(null);
     }
     
     setTimeout(() => {
@@ -211,9 +272,13 @@ function initTerminal(cwd) {
         if (isTermOpen) {
             term.write('\r\n\x1b[32m*** 已连接 ***\x1b[0m\r\n');
         }
-        socket.emit('create_terminal', { cwd: cwd });
+        socket.emit('create_terminal', { cwd: (_requestedCwd || cwd) });
         fitAddon.fit();
         socket.emit('resize', { cols: term.cols, rows: term.rows });
+        setTimeout(() => {
+            if (!isTermOpen) return;
+            tryRunPendingOpenActions();
+        }, 80);
     });
 
     socket.on('output', (data) => {
