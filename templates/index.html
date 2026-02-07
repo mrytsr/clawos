@@ -397,7 +397,8 @@
             z-index: 2000;
             display: flex;
             flex-direction: column;
-            max-height: 85vh;
+            height: 80vh;
+            max-height: 80vh;
         }
         #terminalDrawer.open {
             transform: translateY(0);
@@ -1120,28 +1121,6 @@
             <span style="font-size:14px;">🖥️ 终端</span>
             <button class="drawer-close-btn" onclick="closeTerminal()">&times;</button>
         </div>
-        <!-- 虚拟键盘 -->
-        <div class="terminal-keyboard" style="background:#222;padding:6px;display:flex;flex-wrap:wrap;gap:4px;user-select:none;border-bottom:1px solid #333;">
-            <button type="button" tabindex="-1" class="term-key" onmousedown="handleKeyBtn(event, 'ctrl')" ontouchstart="handleKeyBtn(event, 'ctrl')">Ctrl</button>
-            <button type="button" tabindex="-1" class="term-key" onmousedown="handleKeyBtn(event, 'alt')" ontouchstart="handleKeyBtn(event, 'alt')">Alt</button>
-            <button type="button" tabindex="-1" class="term-key" onmousedown="handleKeyBtn(event, 'tab')" ontouchstart="handleKeyBtn(event, 'tab')">Tab</button>
-            <button type="button" tabindex="-1" class="term-key" onmousedown="handleKeyBtn(event, 'esc')" ontouchstart="handleKeyBtn(event, 'esc')">Esc</button>
-            <button type="button" tabindex="-1" class="term-key" onmousedown="handleKeyBtn(event, 'enter')" ontouchstart="handleKeyBtn(event, 'enter')">↵</button>
-            <button type="button" tabindex="-1" class="term-key" onmousedown="handleKeyBtn(event, 'up')" ontouchstart="handleKeyBtn(event, 'up')">↑</button>
-            <button type="button" tabindex="-1" class="term-key" onmousedown="handleKeyBtn(event, 'down')" ontouchstart="handleKeyBtn(event, 'down')">↓</button>
-            <button type="button" tabindex="-1" class="term-key" onmousedown="handleKeyBtn(event, 'backspace')" ontouchstart="handleKeyBtn(event, 'backspace')">⌫</button>
-        </div>
-        <!-- Ctrl组合键 -->
-        <div class="terminal-ctrl-keys" id="ctrlKeysArea" style="background:#1a1a1a;padding:6px;display:none;flex-wrap:wrap;gap:3px;border-bottom:1px solid #333;user-select:none;">
-            <span style="color:#888;font-size:12px;width:100%;margin-bottom:4px;">组合键：</span>
-            <button type="button" tabindex="-1" class="term-key term-key-small" onmousedown="handleCtrlBtn(event, 'a')" ontouchstart="handleCtrlBtn(event, 'a')">A</button>
-            <button type="button" tabindex="-1" class="term-key term-key-small" onmousedown="handleCtrlBtn(event, 'c')" ontouchstart="handleCtrlBtn(event, 'c')">C</button>
-            <button type="button" tabindex="-1" class="term-key term-key-small" onmousedown="handleCtrlBtn(event, 'd')" ontouchstart="handleCtrlBtn(event, 'd')">D</button>
-            <button type="button" tabindex="-1" class="term-key term-key-small" onmousedown="handleCtrlBtn(event, 'l')" ontouchstart="handleCtrlBtn(event, 'l')">L</button>
-            <button type="button" tabindex="-1" class="term-key term-key-small" onmousedown="handleCtrlBtn(event, 'p')" ontouchstart="handleCtrlBtn(event, 'p')">P</button>
-            <button type="button" tabindex="-1" class="term-key term-key-small" onmousedown="handleCtrlBtn(event, 'u')" ontouchstart="handleCtrlBtn(event, 'u')">U</button>
-            <button type="button" tabindex="-1" class="term-key term-key-small" onmousedown="handleCtrlBtn(event, 'z')" ontouchstart="handleCtrlBtn(event, 'z')">Z</button>
-        </div>
         <style>
             .terminal-keyboard .term-key, .terminal-ctrl-keys .term-key {
                 background:#444;border:none;color:#fff;padding:8px 10px;border-radius:4px;font-size:13px;cursor:pointer;min-width:36px;touch-action:manipulation;transition:all 0.15s;-webkit-tap-highlight-color:transparent;
@@ -1152,6 +1131,17 @@
             @media (min-width:768px) { .terminal-keyboard, .terminal-ctrl-keys { display:none !important; } }
         </style>
         <div id="terminal-container" style="flex:1;overflow:hidden;background:#000;"></div>
+        <!-- 虚拟键盘 -->
+        <div class="terminal-keyboard" style="background:#222;padding:6px;display:flex;flex-wrap:wrap;gap:4px;user-select:none;border-top:1px solid #333;flex-shrink:0;">
+            <button type="button" tabindex="-1" data-mod="ctrl" class="term-key" onmousedown="handleKeyBtn(event, 'ctrl')" ontouchstart="handleKeyBtn(event, 'ctrl')">Ctrl</button>
+            <button type="button" tabindex="-1" data-mod="alt" class="term-key" onmousedown="handleKeyBtn(event, 'alt')" ontouchstart="handleKeyBtn(event, 'alt')">Alt</button>
+            <button type="button" tabindex="-1" class="term-key" onmousedown="handleKeyBtn(event, 'tab')" ontouchstart="handleKeyBtn(event, 'tab')">Tab</button>
+            <button type="button" tabindex="-1" class="term-key" onmousedown="handleKeyBtn(event, 'esc')" ontouchstart="handleKeyBtn(event, 'esc')">Esc</button>
+            <button type="button" tabindex="-1" class="term-key" onmousedown="handleKeyBtn(event, 'enter')" ontouchstart="handleKeyBtn(event, 'enter')">↵</button>
+            <button type="button" tabindex="-1" class="term-key" onmousedown="handleKeyBtn(event, 'up')" ontouchstart="handleKeyBtn(event, 'up')">↑</button>
+            <button type="button" tabindex="-1" class="term-key" onmousedown="handleKeyBtn(event, 'down')" ontouchstart="handleKeyBtn(event, 'down')">↓</button>
+            <button type="button" tabindex="-1" class="term-key" onmousedown="handleKeyBtn(event, 'backspace')" ontouchstart="handleKeyBtn(event, 'backspace')">⌫</button>
+        </div>
     </div>
 
     <!-- 进程管理抽屉样式（复制终端抽屉） -->

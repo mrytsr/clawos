@@ -7,6 +7,7 @@ let termInitialized = false;
 let isTermOpen = false;
 let ctrlMode = false;
 let altMode = false;
+let _vvBound = false;
 
 function focusTerminal() {
     if (term && typeof term.focus === 'function') term.focus();
@@ -29,18 +30,16 @@ function sendToTerminal(input) {
     }
 }
 
-function setCtrlAreaVisible(visible) {
-    const area = document.getElementById('ctrlKeysArea');
-    if (!area) return;
-    area.style.display = visible ? 'flex' : 'none';
-}
-
-function syncKeyButtonState(key, active, el) {
-    const btn = el || null;
-    if (btn && btn.classList) {
-        if (active) btn.classList.add('active');
-        else btn.classList.remove('active');
-    }
+function syncModifierButtons() {
+    const drawer = document.getElementById('terminalDrawer');
+    if (!drawer || typeof drawer.querySelectorAll !== 'function') return;
+    const btns = drawer.querySelectorAll('.terminal-keyboard [data-mod]');
+    btns.forEach((b) => {
+        const mod = b.getAttribute('data-mod');
+        const active = (mod === 'ctrl' && ctrlMode) || (mod === 'alt' && altMode);
+        if (active) b.classList.add('active');
+        else b.classList.remove('active');
+    });
 }
 
 function stopBtnEvent(e) {
@@ -61,23 +60,50 @@ function keySeq(key) {
     return '';
 }
 
+function applyModifiersToData(data) {
+    if (!data) return '';
+    const first = data[0];
+    const rest = data.length > 1 ? data.slice(1) : '';
+
+    let out = data;
+    if (ctrlMode) {
+        const c = String(first).toLowerCase();
+        const code = c.charCodeAt(0);
+        if (code >= 97 && code <= 122) {
+            out = String.fromCharCode(code - 96) + rest;
+        } else {
+            out = data;
+        }
+        ctrlMode = false;
+        altMode = false;
+        syncModifierButtons();
+        return out;
+    }
+
+    if (altMode) {
+        out = '\x1b' + data;
+        ctrlMode = false;
+        altMode = false;
+        syncModifierButtons();
+        return out;
+    }
+
+    return out;
+}
+
 function handleKeyBtn(e, key) {
     stopBtnEvent(e);
     if (key === 'ctrl') {
         ctrlMode = !ctrlMode;
         if (ctrlMode && altMode) altMode = false;
-        syncKeyButtonState('ctrl', ctrlMode, e && e.currentTarget);
-        setCtrlAreaVisible(ctrlMode);
+        syncModifierButtons();
         focusTerminal();
         return false;
     }
     if (key === 'alt') {
         altMode = !altMode;
-        if (altMode && ctrlMode) {
-            ctrlMode = false;
-            setCtrlAreaVisible(false);
-        }
-        syncKeyButtonState('alt', altMode, e && e.currentTarget);
+        if (altMode && ctrlMode) ctrlMode = false;
+        syncModifierButtons();
         focusTerminal();
         return false;
     }
@@ -88,22 +114,22 @@ function handleKeyBtn(e, key) {
     return false;
 }
 
-function handleCtrlBtn(e, keyChar) {
-    stopBtnEvent(e);
-    const c = String(keyChar || '').toLowerCase();
-    if (c.length !== 1) {
-        focusTerminal();
-        return false;
+function updateTerminalDrawerLayout() {
+    const drawer = document.getElementById('terminalDrawer');
+    if (!drawer) return;
+
+    const vv = window.visualViewport;
+    if (vv) {
+        const overlap = Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop));
+        drawer.style.bottom = overlap ? (String(overlap) + 'px') : '';
+        const desired = Math.max(240, Math.round(vv.height * 0.8));
+        drawer.style.height = String(desired) + 'px';
+        drawer.style.maxHeight = String(desired) + 'px';
+    } else {
+        drawer.style.bottom = '';
+        drawer.style.height = '';
+        drawer.style.maxHeight = '';
     }
-    const code = c.charCodeAt(0);
-    if (code < 97 || code > 122) {
-        focusTerminal();
-        return false;
-    }
-    const ctrlCode = code - 96;
-    sendToTerminal(String.fromCharCode(ctrlCode));
-    focusTerminal();
-    return false;
 }
 
 function openTerminal(path, isDir) {
@@ -148,6 +174,18 @@ function openTerminal(path, isDir) {
             if (socket && socket.connected) {
                 socket.emit('resize', { cols: term.cols, rows: term.rows });
             }
+        }
+        updateTerminalDrawerLayout();
+        if (!_vvBound && window.visualViewport) {
+            _vvBound = true;
+            window.visualViewport.addEventListener('resize', function() {
+                if (!isTermOpen) return;
+                updateTerminalDrawerLayout();
+            });
+            window.visualViewport.addEventListener('scroll', function() {
+                if (!isTermOpen) return;
+                updateTerminalDrawerLayout();
+            });
         }
         focusTerminal();
     }, 300);
@@ -195,7 +233,8 @@ function initTerminal(cwd) {
 
     term.onData((data) => {
         if (socket && socket.connected) {
-            socket.emit('input', { input: data });
+            const out = applyModifiersToData(data);
+            socket.emit('input', { input: out });
         }
     });
     
@@ -218,6 +257,15 @@ function initTerminal(cwd) {
 
 function closeTerminal() {
     isTermOpen = false;
+    ctrlMode = false;
+    altMode = false;
+    syncModifierButtons();
+    const drawerEl = document.getElementById('terminalDrawer');
+    if (drawerEl) {
+        drawerEl.style.bottom = '';
+        drawerEl.style.height = '';
+        drawerEl.style.maxHeight = '';
+    }
     const drawer = document.getElementById('terminalDrawer');
     const backdrop = document.getElementById('terminalBackdrop');
     if (drawer) drawer.classList.remove('open');
@@ -232,4 +280,3 @@ window.openTerminal = openTerminal;
 window.closeTerminal = closeTerminal;
 window.termInitialized = termInitialized;
 window.handleKeyBtn = handleKeyBtn;
-window.handleCtrlBtn = handleCtrlBtn;
