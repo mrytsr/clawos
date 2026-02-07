@@ -39,7 +39,7 @@ def _get_ctx():
         root_dir=config.ROOT_DIR,
         conversation_file=config.CONVERSATION_FILE,
         trash_dir=config.TRASH_DIR,
-        terminal_supported=os.name != 'nt',
+        terminal_supported=True,
     )
 
 
