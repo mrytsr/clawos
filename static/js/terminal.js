@@ -10,6 +10,7 @@ let altMode = false;
 let _vvBound = false;
 let _pendingOpenActions = null;
 let _requestedCwd = '';
+let _gestureBound = false;
 
 function focusTerminal() {
     if (term && typeof term.focus === 'function') term.focus();
@@ -30,6 +31,148 @@ function sendToTerminal(input) {
     if (socket && socket.connected) {
         socket.emit('input', { input: input });
     }
+}
+
+function bindTerminalGestures() {
+    if (_gestureBound) return;
+    const container = document.getElementById('terminal-container');
+    if (!container) return;
+
+    const minFont = 10;
+    const maxFont = 24;
+    const swipeMinPx = 70;
+    const swipeMaxDyPx = 50;
+    const swipeMinAbsDxOverDy = 1.6;
+
+    let pinchStartDist = 0;
+    let pinchStartFont = 0;
+    let pinchActive = false;
+    let rafId = 0;
+    let pendingFont = 0;
+
+    let swipeStartX = 0;
+    let swipeStartY = 0;
+    let swipeDx = 0;
+    let swipeDy = 0;
+    let swipeActive = false;
+    let swipeTracking = false;
+
+    function clampFont(n) {
+        return Math.max(minFont, Math.min(maxFont, n));
+    }
+
+    function touchDist(t1, t2) {
+        const dx = t1.clientX - t2.clientX;
+        const dy = t1.clientY - t2.clientY;
+        return Math.sqrt(dx * dx + dy * dy);
+    }
+
+    function applyFontSize(size) {
+        if (!term) return;
+        const next = clampFont(Math.round(size));
+        if (term.options && term.options.fontSize === next) return;
+        term.options.fontSize = next;
+        if (fitAddon) fitAddon.fit();
+        if (socket && socket.connected && term) {
+            socket.emit('resize', { cols: term.cols, rows: term.rows });
+        }
+    }
+
+    function scheduleFont(size) {
+        pendingFont = size;
+        if (rafId) return;
+        rafId = window.requestAnimationFrame(() => {
+            rafId = 0;
+            applyFontSize(pendingFont);
+        });
+    }
+
+    container.addEventListener('touchstart', (e) => {
+        if (!e || !e.touches) return;
+        if (e.touches.length === 2) {
+            pinchActive = true;
+            swipeTracking = false;
+            swipeActive = false;
+            pinchStartDist = touchDist(e.touches[0], e.touches[1]);
+            pinchStartFont = (term && term.options && typeof term.options.fontSize === 'number') ? term.options.fontSize : 14;
+            try { e.preventDefault(); } catch (_) {}
+            return;
+        }
+        if (e.touches.length === 1) {
+            swipeTracking = true;
+            swipeActive = false;
+            swipeStartX = e.touches[0].clientX;
+            swipeStartY = e.touches[0].clientY;
+            swipeDx = 0;
+            swipeDy = 0;
+        }
+    }, { passive: false });
+
+    container.addEventListener('touchmove', (e) => {
+        if (!e || !e.touches) return;
+        if (pinchActive && e.touches.length === 2) {
+            const d = touchDist(e.touches[0], e.touches[1]);
+            if (pinchStartDist > 0) {
+                const ratio = d / pinchStartDist;
+                scheduleFont(pinchStartFont * ratio);
+            }
+            try { e.preventDefault(); } catch (_) {}
+            return;
+        }
+        if (swipeTracking && e.touches.length === 1) {
+            swipeDx = e.touches[0].clientX - swipeStartX;
+            swipeDy = e.touches[0].clientY - swipeStartY;
+            const adx = Math.abs(swipeDx);
+            const ady = Math.abs(swipeDy);
+            if (!swipeActive && adx > 12 && adx > ady) {
+                swipeActive = true;
+            }
+            if (swipeActive) {
+                try { e.preventDefault(); } catch (_) {}
+            }
+        }
+    }, { passive: false });
+
+    container.addEventListener('touchend', (e) => {
+        if (!e) return;
+        if (pinchActive) {
+            if (!e.touches || e.touches.length < 2) {
+                pinchActive = false;
+                pinchStartDist = 0;
+                pinchStartFont = 0;
+            }
+            return;
+        }
+        if (swipeTracking) {
+            const adx = Math.abs(swipeDx);
+            const ady = Math.abs(swipeDy);
+            const absDxOverDy = ady ? (adx / ady) : 999;
+            if (swipeActive && adx >= swipeMinPx && ady <= swipeMaxDyPx && absDxOverDy >= swipeMinAbsDxOverDy) {
+                if (swipeDx < 0) {
+                    sendToTerminal('\x02n');
+                } else {
+                    sendToTerminal('\x02p');
+                }
+                focusTerminal();
+            }
+            swipeTracking = false;
+            swipeActive = false;
+            swipeDx = 0;
+            swipeDy = 0;
+        }
+    }, { passive: true });
+
+    container.addEventListener('touchcancel', () => {
+        pinchActive = false;
+        swipeTracking = false;
+        swipeActive = false;
+        pinchStartDist = 0;
+        pinchStartFont = 0;
+        swipeDx = 0;
+        swipeDy = 0;
+    }, { passive: true });
+
+    _gestureBound = true;
 }
 
 function normalizeRelPathForWorkspace(path) {
@@ -265,6 +408,7 @@ function initTerminal(cwd) {
     fitAddon = new FitAddon.FitAddon();
     term.loadAddon(fitAddon);
     term.open(document.getElementById('terminal-container'));
+    bindTerminalGestures();
     
     socket = io('/term', { reconnection: true, reconnectionAttempts: 5, reconnectionDelay: 1000 });
     
