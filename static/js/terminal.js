@@ -5,6 +5,106 @@ let fitAddon = null;
 let socket = null;
 let termInitialized = false;
 let isTermOpen = false;
+let ctrlMode = false;
+let altMode = false;
+
+function focusTerminal() {
+    if (term && typeof term.focus === 'function') term.focus();
+    const container = document.getElementById('terminal-container');
+    if (!container || typeof container.querySelector !== 'function') return;
+    const ta = container.querySelector('textarea');
+    if (ta && typeof ta.focus === 'function') {
+        try {
+            ta.focus({ preventScroll: true });
+        } catch (e) {
+            ta.focus();
+        }
+    }
+}
+
+function sendToTerminal(input) {
+    if (!input) return;
+    if (socket && socket.connected) {
+        socket.emit('input', { input: input });
+    }
+}
+
+function setCtrlAreaVisible(visible) {
+    const area = document.getElementById('ctrlKeysArea');
+    if (!area) return;
+    area.style.display = visible ? 'flex' : 'none';
+}
+
+function syncKeyButtonState(key, active, el) {
+    const btn = el || null;
+    if (btn && btn.classList) {
+        if (active) btn.classList.add('active');
+        else btn.classList.remove('active');
+    }
+}
+
+function stopBtnEvent(e) {
+    if (!e) return;
+    if (typeof e.preventDefault === 'function') e.preventDefault();
+    if (typeof e.stopPropagation === 'function') e.stopPropagation();
+    const t = e.currentTarget;
+    if (t && typeof t.blur === 'function') t.blur();
+}
+
+function keySeq(key) {
+    if (key === 'tab') return '\t';
+    if (key === 'esc') return '\x1b';
+    if (key === 'enter') return '\r';
+    if (key === 'up') return '\x1b[A';
+    if (key === 'down') return '\x1b[B';
+    if (key === 'backspace') return '\x7f';
+    return '';
+}
+
+function handleKeyBtn(e, key) {
+    stopBtnEvent(e);
+    if (key === 'ctrl') {
+        ctrlMode = !ctrlMode;
+        if (ctrlMode && altMode) altMode = false;
+        syncKeyButtonState('ctrl', ctrlMode, e && e.currentTarget);
+        setCtrlAreaVisible(ctrlMode);
+        focusTerminal();
+        return false;
+    }
+    if (key === 'alt') {
+        altMode = !altMode;
+        if (altMode && ctrlMode) {
+            ctrlMode = false;
+            setCtrlAreaVisible(false);
+        }
+        syncKeyButtonState('alt', altMode, e && e.currentTarget);
+        focusTerminal();
+        return false;
+    }
+
+    const seq = keySeq(key);
+    if (seq) sendToTerminal(seq);
+    focusTerminal();
+    return false;
+}
+
+function handleCtrlBtn(e, keyChar) {
+    stopBtnEvent(e);
+    const c = String(keyChar || '').toLowerCase();
+    if (c.length !== 1) {
+        focusTerminal();
+        return false;
+    }
+    const code = c.charCodeAt(0);
+    if (code < 97 || code > 122) {
+        focusTerminal();
+        return false;
+    }
+    const ctrlCode = code - 96;
+    sendToTerminal(String.fromCharCode(ctrlCode));
+    focusTerminal();
+    return false;
+}
 
 function openTerminal(path, isDir) {
     closeMenuModal();
@@ -49,6 +149,7 @@ function openTerminal(path, isDir) {
                 socket.emit('resize', { cols: term.cols, rows: term.rows });
             }
         }
+        focusTerminal();
     }, 300);
 }
 
@@ -130,3 +231,5 @@ function closeTerminal() {
 window.openTerminal = openTerminal;
 window.closeTerminal = closeTerminal;
 window.termInitialized = termInitialized;
+window.handleKeyBtn = handleKeyBtn;
+window.handleCtrlBtn = handleCtrlBtn;
