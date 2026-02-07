@@ -14,6 +14,8 @@ let botLastPairingRequestId = null;
 let botAutoScrollEnabled = true;
 let botUiBound = false;
 let botTokenPromise = null;
+let botSeenEventKeys = new Map();
+let botCompletedRunIds = new Map();
 
 // Generate UUID for IDs
 function generateUUID() {
@@ -398,6 +400,34 @@ function getBotTokenFromServer() {
 }
 
 function handleBotEvent(data) {
+    const markAndCheckSeen = (key) => {
+        if (!key) return false;
+        if (botSeenEventKeys.has(key)) return true;
+        botSeenEventKeys.set(key, Date.now());
+        if (botSeenEventKeys.size > 1200) {
+            const over = botSeenEventKeys.size - 1000;
+            for (let i = 0; i < over; i++) {
+                const firstKey = botSeenEventKeys.keys().next().value;
+                if (typeof firstKey === 'undefined') break;
+                botSeenEventKeys.delete(firstKey);
+            }
+        }
+        return false;
+    };
+
+    const markRunCompleted = (runId) => {
+        if (!runId) return;
+        botCompletedRunIds.set(runId, Date.now());
+        if (botCompletedRunIds.size > 600) {
+            const over = botCompletedRunIds.size - 500;
+            for (let i = 0; i < over; i++) {
+                const firstKey = botCompletedRunIds.keys().next().value;
+                if (typeof firstKey === 'undefined') break;
+                botCompletedRunIds.delete(firstKey);
+            }
+        }
+    };
+
     const extractTextFromChatMessage = (message) => {
         if (!message) return null;
         if (typeof message === 'string') return message;
@@ -436,8 +466,17 @@ function handleBotEvent(data) {
     if (data.event === 'chat' && data.payload) {
         const p = data.payload;
         if (!isForActiveSession(p)) return;
+        const runId = typeof p.runId === 'string' ? p.runId : null;
+        const seq = typeof p.seq === 'number' ? p.seq : null;
         const state = p.state;
         const msg = p.message;
+        if (runId && (state === 'final' || state === 'error' || state === 'aborted')) {
+            if (botCompletedRunIds.has(runId)) return;
+        }
+        if (runId && seq !== null && typeof state === 'string') {
+            const key = `chat:${runId}:${seq}:${state}`;
+            if (markAndCheckSeen(key)) return;
+        }
         if (msg && typeof msg.role === 'string' && msg.role !== 'assistant') {
             return;
         }
@@ -459,17 +498,20 @@ function handleBotEvent(data) {
             if (currentBotResponse) {
                 saveBotMessageToHistory(currentBotResponse);
             }
+            if (runId) markRunCompleted(runId);
             currentBotResponse = '';
             currentRunId = null;
             return;
         }
         if (state === 'error') {
             showToast(p.errorMessage ? String(p.errorMessage) : '对话出错', 'error');
+            if (runId) markRunCompleted(runId);
             currentBotResponse = '';
             currentRunId = null;
             return;
         }
         if (state === 'aborted') {
+            if (runId) markRunCompleted(runId);
             currentBotResponse = '';
             currentRunId = null;
             return;
