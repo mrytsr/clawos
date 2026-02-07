@@ -167,15 +167,14 @@ function openTerminal(path, isDir) {
     if (!termInitialized) {
         initTerminal(termPath);
         termInitialized = true;
-    } else if (socket) {
-        socket.disconnect();
+    } else if (socket && !socket.connected) {
         socket.connect();
     }
     
     setTimeout(() => {
         if (fitAddon) {
             fitAddon.fit();
-            if (socket && socket.connected) {
+            if (socket && socket.connected && term) {
                 socket.emit('resize', { cols: term.cols, rows: term.rows });
             }
         }
@@ -274,9 +273,6 @@ function closeTerminal() {
     const backdrop = document.getElementById('terminalBackdrop');
     if (drawer) drawer.classList.remove('open');
     if (backdrop) backdrop.classList.remove('open');
-    if (socket) {
-        socket.disconnect();
-    }
 }
 
 // 导出
