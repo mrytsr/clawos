@@ -333,7 +333,11 @@ function openTerminal(path, isDir) {
     isTermOpen = true;
     
     // 计算路径
-    const workspaceRoot = '/root/.openclaw/workspace';
+    const rootEl = document.getElementById('rootDir');
+    const workspaceRoot = ((rootEl && rootEl.value) ? rootEl.value : '/root/.openclaw/workspace')
+        .toString()
+        .replace(/\\/g, '/')
+        .replace(/\/+$/, '');
     const rel = normalizeRelPathForWorkspace(path);
     let termPath = workspaceRoot;
     let cdPath = workspaceRoot;
