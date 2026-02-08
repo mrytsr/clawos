@@ -331,13 +331,19 @@ function cloneItem() {
         .catch(() => showToast('克隆失败', 'error'));
 }
 
-function downloadFile(path) { window.location.href = `/download/${encodeURIComponent(path)}`; }
-function copyDownloadUrl(path) { 
-    const url = window.location.origin + '/download/' + encodeURIComponent(path);
-    copyToClipboard(url, '复制成功');
+if (typeof window.downloadFile !== 'function') {
+    window.downloadFile = function(path) { window.location.href = `/download/${encodeURIComponent(path)}`; };
 }
-function copyFilePath(path) { 
-    copyToClipboard(path, '复制成功');
+if (typeof window.copyDownloadUrl !== 'function') {
+    window.copyDownloadUrl = function(path) {
+        const url = window.location.origin + '/download/' + encodeURIComponent(path);
+        copyToClipboard(url, '复制成功');
+    };
+}
+if (typeof window.copyFilePath !== 'function') {
+    window.copyFilePath = function(path) {
+        copyToClipboard(path, '复制成功');
+    };
 }
 
 // 通用复制函数
