@@ -169,6 +169,8 @@ def login():
 def require_auth():
     if request.endpoint == 'static':
         return None
+    if request.path == '/favicon.ico':
+        return None
     if request.path.startswith('/login'):
         return None
     if request.path.startswith('/@vite'):

@@ -34,6 +34,11 @@ socketio = SocketIO(
 _template_root_dir = config.ROOT_DIR
 
 
+@app.get('/favicon.ico')
+def favicon():
+    return app.send_static_file('favicon.ico')
+
+
 @app.template_global()
 def get_relative_path(path):
     return path_utils.get_relative_path(path, _template_root_dir)
