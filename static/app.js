@@ -220,16 +220,20 @@ window.createMenuNewFolder = function() {
         '新建文件夹',
         '请输入文件夹名称',
         '例如：assets',
-        '',
+        'new_folder',
         '创建',
         function(name) {
-            if (!name) return;
+            const pickedName = (typeof name === 'string') ? name.trim() : '';
+            if (!pickedName) {
+                showToast('名称不能为空', 'warning');
+                return;
+            }
             const currentPath = document.getElementById('currentBrowsePath') ? document.getElementById('currentBrowsePath').value : '';
             const url = currentPath ? '/mkdir/' + encodeURIComponent(currentPath) : '/mkdir';
             fetch(url, {
                 method: 'POST',
                 headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders()),
-                body: JSON.stringify({ name: name })
+                body: JSON.stringify({ name: pickedName })
             })
                 .then(r => r.json())
                 .then(data => {
@@ -250,16 +254,20 @@ window.createMenuNewFile = function() {
         '新建文件',
         '请输入文件名',
         '例如：README.md',
-        '',
+        'new_file.txt',
         '创建',
         function(name) {
-            if (!name) return;
+            const pickedName = (typeof name === 'string') ? name.trim() : '';
+            if (!pickedName) {
+                showToast('名称不能为空', 'warning');
+                return;
+            }
             const currentPath = document.getElementById('currentBrowsePath') ? document.getElementById('currentBrowsePath').value : '';
             const url = currentPath ? '/touch/' + encodeURIComponent(currentPath) : '/touch';
             fetch(url, {
                 method: 'POST',
                 headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders()),
-                body: JSON.stringify({ name: name })
+                body: JSON.stringify({ name: pickedName })
             })
                 .then(r => r.json())
                 .then(data => {
