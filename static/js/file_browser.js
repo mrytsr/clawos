@@ -100,6 +100,20 @@ function showMenuModal(path, name, isDir, opts) {
     }
 }
 
+function openCurrentFolderMenu(ev) {
+    if (ev && typeof ev.preventDefault === 'function') ev.preventDefault();
+    if (ev && typeof ev.stopPropagation === 'function') ev.stopPropagation();
+    var pathEl = document.getElementById('currentBrowsePath');
+    var nameEl = document.getElementById('currentBrowseName');
+    var path = pathEl ? String(pathEl.value || '') : '';
+    var name = nameEl ? String(nameEl.value || '') : '';
+    if (!name) {
+        var p = (path || '').replace(/\\/g, '/').replace(/\/+$/, '');
+        name = p ? p.split('/').pop() : '根目录';
+    }
+    showMenuModal(path, name, true);
+}
+
 function closeMenuModal() {
     setSearchModalInteractive(true);
     setMenuTopLayer(false);
@@ -714,7 +728,7 @@ function attachFileItemDefaultHandlers() {
 
             if (isDir) {
                 var dirUrl = path ? ('/browse/' + encodePathForUrl(path)) : '/browse/';
-                window.open(dirUrl, '_blank', 'noopener');
+                window.location.assign(dirUrl);
                 return;
             }
 
@@ -993,6 +1007,7 @@ function formatSize(size) {
 
 // 导出到 window
 window.showMenuModal = showMenuModal;
+window.openCurrentFolderMenu = openCurrentFolderMenu;
 window.closeMenuModal = closeMenuModal;
 window.closeMenuOnBackdrop = closeMenuOnBackdrop;
 window.startDrag = startDrag;

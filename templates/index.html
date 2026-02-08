@@ -213,6 +213,14 @@
             color: #24292f;
             border-color: #1b1f2426;
         }
+        .breadcrumb-folder-menu-btn {
+            width: 20px;
+            height: 20px;
+            font-size: var(--global-font-size, 14px);
+            display: inline-flex;
+            padding: 0;
+            margin: 0 6px;
+        }
 
         .empty-directory {
             text-align: center;
@@ -724,6 +732,7 @@
         }
     </style>
     <input type="hidden" id="currentBrowsePath" value="{{ get_relative_path(current_dir) }}">
+    <input type="hidden" id="currentBrowseName" value="{{ os.path.basename(current_dir) }}">
     <input type="hidden" id="rootDir" value="{{ ROOT_DIR }}">
 </head>
 <body>
@@ -745,11 +754,16 @@
                 {% if breadcrumbs %}
                     <span class="crumb-sep">/</span>
                 {% else %}
-                     <strong>({{ items|length }})</strong>
+                    <button type="button" class="menu-btn breadcrumb-folder-menu-btn" onclick="openCurrentFolderMenu(event)" aria-label="打开当前文件夹菜单" title="菜单"><span>⋮</span></button>
+                    <strong>({{ items|length }})</strong>
                 {% endif %}
                 {% for crumb in breadcrumbs %}
                     {% if loop.last %}
-                        <strong>{{ crumb.name }} ({{ items|length }})</strong>
+                        <strong>
+                            {{ crumb.name }}
+                            <button type="button" class="menu-btn breadcrumb-folder-menu-btn" onclick="openCurrentFolderMenu(event)" aria-label="打开当前文件夹菜单" title="菜单"><span>⋮</span></button>
+                            ({{ items|length }})
+                        </strong>
                     {% else %}
                         <a href="{{ url_for('file.browse', path=get_relative_path(crumb.path)) }}">{{ crumb.name }}</a>
                         <span class="crumb-sep">/</span>
