@@ -169,7 +169,7 @@ function endDrag() {
 function handleMenuAction(action) {
     setTimeout(() => {
         switch(action) {
-            case 'download': downloadFile(window.currentItemPath); break;
+            case 'download': downloadFile(window.currentItemPath, { name: window.currentItemName }); break;
             case 'edit': openEditor(window.currentItemPath); break;
             case 'copyUrl': copyDownloadUrl(window.currentItemPath); break;
             case 'copyPath': copyFilePath(window.currentItemPath); break;
@@ -744,7 +744,7 @@ function attachFileItemDefaultHandlers() {
             var officeExts = ['.xls', '.xlsx', '.doc', '.docx', '.ppt', '.pptx'];
 
             if (!ext) {
-                window.open('/download/' + encodePathForUrl(path), '_blank', 'noopener');
+                downloadFile(path, { name: name, openInNewTab: true });
                 return;
             }
             if (imageExts.indexOf(ext) >= 0) {
@@ -898,8 +898,77 @@ function cloneItem() {
 }
 
 // 下载
-function downloadFile(path) {
-    window.location.href = `/download/${encodeURIComponent(path)}`;
+function getDownloadDisplayName(path, preferredName) {
+    if (preferredName) return preferredName;
+    if (window.currentItemName) return window.currentItemName;
+    var p = (path || '').replace(/\\/g, '/').replace(/\/+$/, '');
+    if (!p) return '';
+    return p.split('/').pop() || '';
+}
+
+function getFileSizeTextFromDom(path) {
+    var p = String(path || '');
+    var sizeText = '';
+    document.querySelectorAll('.file-item[data-path]').forEach(function(el) {
+        if (!el || !el.dataset) return;
+        if (String(el.dataset.path || '') !== p) return;
+        var sizeEl = el.querySelector('.file-size');
+        if (!sizeEl) return;
+        var t = String(sizeEl.textContent || '').trim();
+        if (t && t !== '-') sizeText = t;
+    });
+    return sizeText;
+}
+
+function downloadFile(path, opts) {
+    var p = typeof path === 'string' ? path : '';
+    if (!p) return;
+    var o = opts && typeof opts === 'object' ? opts : {};
+    var name = getDownloadDisplayName(p, o.name || '');
+    var openInNewTab = !!o.openInNewTab;
+    var url = '/download/' + encodePathForUrl(p);
+
+    var headers = (typeof window.authHeaders === 'function') ? window.authHeaders() : null;
+    var fetchOpts = headers ? { headers: headers } : undefined;
+    fetch('/api/file/info?path=' + encodeURIComponent(p), fetchOpts)
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            var info = data && data.success ? data.data : null;
+            if (info && info.is_dir) {
+                showToast('不能下载文件夹', 'warning');
+                return;
+            }
+
+            var sizeText = '';
+            if (info && typeof info.size_human === 'string' && info.size_human) sizeText = info.size_human;
+            if (!sizeText && info && typeof info.size === 'number' && isFinite(info.size)) sizeText = formatSize(info.size);
+            if (!sizeText) sizeText = getFileSizeTextFromDom(p);
+
+            var lines = [];
+            lines.push('确认下载？');
+            if (name) lines.push('名称：' + name);
+            if (sizeText) lines.push('大小：' + sizeText);
+            if (info && (info.mtime || info.modified)) lines.push('修改：' + String(info.mtime || info.modified));
+            lines.push('路径：' + p);
+
+            var ok = window.confirm(lines.join('\n'));
+            if (!ok) return;
+
+            if (openInNewTab) window.open(url, '_blank', 'noopener');
+            else window.location.href = url;
+        })
+        .catch(function() {
+            var sizeText = getFileSizeTextFromDom(p);
+            var lines = [];
+            lines.push('确认下载？');
+            if (name) lines.push('名称：' + name);
+            if (sizeText) lines.push('大小：' + sizeText);
+            lines.push('路径：' + p);
+            var ok = window.confirm(lines.join('\n'));
+            if (!ok) return;
+            if (openInNewTab) window.open(url, '_blank', 'noopener');
+            else window.location.href = url;
+        });
 }
 
 function copyDownloadUrl(path) {
