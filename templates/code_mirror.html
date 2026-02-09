@@ -28,7 +28,7 @@
 </head>
 <body>
     <div class="header">
-        <a href="{{ url_for('browser.browse', path=get_relative_path(current_dir)) }}" class="back-btn">←</a>
+        <a href="#" class="back-btn" onclick="history.back(); return false;">←</a>
         <h1 style="margin: 0; font-size: 0.95rem; flex-grow: 1; text-align: center; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ filename }}</h1>
         <div class="header-buttons">
             <a href="{{ url_for('edit.edit_file', path=file_path) }}" class="btn">✏️ 编辑</a>

@@ -81,7 +81,7 @@
         <div class="card">
             <div class="header">
                 <span>共 {{ items|length }} 个项目</span>
-                <a href="{{ url_for('browser.browse') }}" class="btn btn-back">←</a>
+                <a href="#" class="btn btn-back" onclick="history.back(); return false;">←</a>
             </div>
             
             {% if items %}

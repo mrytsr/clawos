@@ -904,6 +904,10 @@ function attachFileItemDefaultHandlers() {
                 if (typeof window.openPreview === 'function') window.openPreview(path, name);
                 return;
             }
+            if (mdExts.indexOf(ext) >= 0) {
+                window.open('/view/' + encodePathForUrl(path), '_blank', 'noopener');
+                return;
+            }
             // 所有其他文件都用 /serve/ 让浏览器原生预览
             window.open('/serve/' + encodePathForUrl(path), '_blank', 'noopener');
         });

@@ -55,7 +55,7 @@
 </head>
 <body>
     <div class="header">
-        <a href="{{ url_for('browser.browse', path=get_relative_path(current_dir)) }}" class="back-btn">←</a>
+        <a href="#" class="back-btn" onclick="history.back(); return false;">←</a>
         <h1 style="margin: 0; font-size: 1rem; flex-grow: 1; text-align: center;">{{ filename }}</h1>
         <div class="header-buttons">
             <button class="edit-btn" onclick="toggleSourceMode()" id="sourceBtn">📄 源码</button>

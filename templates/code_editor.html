@@ -157,7 +157,7 @@
 </head>
 <body>
     <div class="editor-header">
-        <a href="{{ url_for('browser.browse', path=get_relative_path(current_dir)) }}" class="editor-btn">←</a>
+        <a href="#" class="editor-btn" onclick="history.back(); return false;">←</a>
         <div class="editor-title-wrap">
             <h1 class="editor-title" id="editorTitleText">{{ filename }}:0</h1>
             <button id="editorRefBtn" class="editor-btn" type="button" title="复制引用" onmousedown="event.preventDefault()">引用</button>
