@@ -15,6 +15,8 @@ let _termLayoutRaf = 0;
 let _lastTermFitAt = 0;
 let _lastDrawerBottomPx = null;
 let _lastDrawerHeightPx = null;
+let _termOutBuf = '';
+let _termOutRaf = 0;
 
 function focusTerminal() {
     if (term && typeof term.focus === 'function') term.focus();
@@ -35,6 +37,28 @@ function sendToTerminal(input) {
     if (socket && socket.connected) {
         socket.emit('input', { input: input });
     }
+}
+
+function flushTerminalOutput() {
+    _termOutRaf = 0;
+    if (!isTermOpen) {
+        _termOutBuf = '';
+        return;
+    }
+    if (!term || !_termOutBuf) return;
+    const buf = _termOutBuf;
+    _termOutBuf = '';
+    term.write(buf);
+}
+
+function scheduleTerminalWrite(chunk) {
+    if (!chunk) return;
+    _termOutBuf += chunk;
+    if (_termOutBuf.length > 512 * 1024) {
+        _termOutBuf = _termOutBuf.slice(-256 * 1024);
+    }
+    if (_termOutRaf) return;
+    _termOutRaf = window.requestAnimationFrame(flushTerminalOutput);
 }
 
 function bindTerminalGestures() {
@@ -491,7 +515,7 @@ function initTerminal(cwd) {
 
     socket.on('output', (data) => {
         if (isTermOpen) {
-            term.write(data.data);
+            scheduleTerminalWrite(data && data.data ? data.data : '');
         }
     });
 
@@ -528,6 +552,11 @@ function closeTerminal() {
     ctrlMode = false;
     altMode = false;
     syncModifierButtons();
+    if (_termOutRaf) {
+        window.cancelAnimationFrame(_termOutRaf);
+        _termOutRaf = 0;
+    }
+    _termOutBuf = '';
     if (_termLayoutRaf) {
         window.cancelAnimationFrame(_termLayoutRaf);
         _termLayoutRaf = 0;

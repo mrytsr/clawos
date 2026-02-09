@@ -3,6 +3,10 @@ const os = require('node:os');
 
 let pty = null;
 let ptyProcess = null;
+let outBuf = '';
+let outTimer = null;
+const OUT_FLUSH_MS = 16;
+const OUT_MAX_BUF = 64 * 1024;
 
 function send(obj) {
   try {
@@ -14,6 +18,17 @@ function send(obj) {
   }
 }
 
+function flushOut() {
+  if (!outBuf) return;
+  const payload = outBuf;
+  outBuf = '';
+  if (outTimer) {
+    clearTimeout(outTimer);
+    outTimer = null;
+  }
+  send({ type: 'output', data: payload });
+}
+
 function startPty(opts) {
   if (ptyProcess) return;
   const shell =
@@ -23,6 +38,10 @@ function startPty(opts) {
   const cwd = (opts && typeof opts.cwd === 'string' && opts.cwd) ? opts.cwd : process.cwd();
   const cols = (opts && Number.isFinite(opts.cols) && opts.cols > 0) ? opts.cols : 80;
   const rows = (opts && Number.isFinite(opts.rows) && opts.rows > 0) ? opts.rows : 24;
+  const nextEnv = { ...process.env, TERM: 'xterm-256color', CHERE_INVOKING: '1' };
+  if (!nextEnv.LANG) nextEnv.LANG = 'C.UTF-8';
+  if (!nextEnv.LC_ALL) nextEnv.LC_ALL = 'C.UTF-8';
+  if (!nextEnv.LC_CTYPE) nextEnv.LC_CTYPE = 'C.UTF-8';
 
   pty = require('node-pty');
   try {
@@ -31,7 +50,7 @@ function startPty(opts) {
       cols,
       rows,
       cwd,
-      env: { ...process.env, TERM: 'xterm-256color', CHERE_INVOKING: '1' }
+      env: nextEnv
     });
   } catch (e) {
     send({ type: 'output', data: '\r\n*** 启动终端失败: ' + String(e && e.message ? e.message : e) + ' ***\r\n' });
@@ -39,10 +58,19 @@ function startPty(opts) {
   }
 
   ptyProcess.onData((data) => {
-    send({ type: 'output', data: data });
+    if (!data) return;
+    outBuf += data;
+    if (outBuf.length >= OUT_MAX_BUF) {
+      flushOut();
+      return;
+    }
+    if (!outTimer) {
+      outTimer = setTimeout(flushOut, OUT_FLUSH_MS);
+    }
   });
 
   ptyProcess.onExit((ev) => {
+    flushOut();
     send({ type: 'exit', exitCode: ev && ev.exitCode, signal: ev && ev.signal });
     process.exit(0);
   });

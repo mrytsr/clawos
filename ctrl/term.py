@@ -1,10 +1,13 @@
 import importlib
+import collections
 import json
 import os
 import select
 import shutil
 import struct
 import subprocess
+import threading
+import time
 
 from flask import request
 
@@ -162,6 +165,13 @@ def register_term_socketio(socketio, terminal_root_dir=None):
 
         if _terminal_backend_type == 'node-pty':
             cwd = _safe_cwd(data)
+            bridge_env = os.environ.copy()
+            if not bridge_env.get('LANG'):
+                bridge_env['LANG'] = 'C.UTF-8'
+            if not bridge_env.get('LC_ALL'):
+                bridge_env['LC_ALL'] = 'C.UTF-8'
+            if not bridge_env.get('LC_CTYPE'):
+                bridge_env['LC_CTYPE'] = 'C.UTF-8'
 
             process = subprocess.Popen(
                 [_node_bin, _node_bridge],
@@ -171,9 +181,19 @@ def register_term_socketio(socketio, terminal_root_dir=None):
                 text=True,
                 bufsize=1,
                 cwd=config.SCRIPT_DIR,
-                env=os.environ.copy(),
+                env=bridge_env,
             )
-            _terminal_sessions[request.sid] = {'kind': 'node-pty', 'process': process}
+            out_q = collections.deque()
+            out_lock = threading.Lock()
+            out_ready = threading.Event()
+            _terminal_sessions[request.sid] = {
+                'kind': 'node-pty',
+                'process': process,
+                'out_q': out_q,
+                'out_lock': out_lock,
+                'out_ready': out_ready,
+                'out_dropped': 0,
+            }
 
             try:
                 init = {
@@ -189,7 +209,7 @@ def register_term_socketio(socketio, terminal_root_dir=None):
             except Exception:
                 pass
 
-            def _read_nodepty_output(proc, sid):
+            def _read_nodepty_output(proc, sid, q, lock, ready):
                 try:
                     while True:
                         if sid not in _terminal_sessions:
@@ -200,19 +220,82 @@ def register_term_socketio(socketio, terminal_root_dir=None):
                         if not line:
                             break
                         raw = line.rstrip('\n')
+                        payload = ''
                         try:
                             msg = json.loads(raw)
                             if isinstance(msg, dict) and msg.get('type') == 'output':
-                                socketio.emit('output', {'data': msg.get('data', '')}, room=sid, namespace='/term')
+                                payload = msg.get('data', '') or ''
                             else:
-                                socketio.emit('output', {'data': raw + '\r\n'}, room=sid, namespace='/term')
+                                payload = raw + '\r\n'
                         except Exception:
-                            socketio.emit('output', {'data': raw + '\r\n'}, room=sid, namespace='/term')
-                        socketio.sleep(0)
+                            payload = raw + '\r\n'
+
+                        if payload:
+                            with lock:
+                                q.append(payload)
+                                if len(q) > 400:
+                                    while len(q) > 300:
+                                        q.popleft()
+                                    s = _terminal_sessions.get(sid) or {}
+                                    try:
+                                        s['out_dropped'] = int(s.get('out_dropped') or 0) + 1
+                                    except Exception:
+                                        pass
+                            ready.set()
                 except Exception:
                     pass
+                finally:
+                    try:
+                        ready.set()
+                    except Exception:
+                        pass
 
-            socketio.start_background_task(_read_nodepty_output, process, request.sid)
+            def _emit_nodepty_output(sid, q, lock, ready):
+                last_emit_at = 0.0
+                while True:
+                    if sid not in _terminal_sessions:
+                        break
+                    try:
+                        if not ready.wait(timeout=0.25):
+                            pass
+                    except Exception:
+                        socketio.sleep(0.01)
+
+                    ready.clear()
+
+                    buf = []
+                    dropped = 0
+                    with lock:
+                        while q:
+                            buf.append(q.popleft())
+                        s = _terminal_sessions.get(sid) or {}
+                        dropped = int(s.get('out_dropped') or 0)
+                        s['out_dropped'] = 0
+                    if dropped:
+                        buf.insert(0, '\r\n\x1b[33m*** 输出过快，已丢弃部分内容 ***\x1b[0m\r\n')
+
+                    if buf:
+                        now = time.time()
+                        if now - last_emit_at < 0.016:
+                            socketio.sleep(0.016)
+                        last_emit_at = time.time()
+                        socketio.emit('output', {'data': ''.join(buf)}, room=sid, namespace='/term')
+
+                    proc = None
+                    try:
+                        s = _terminal_sessions.get(sid)
+                        if s:
+                            proc = s.get('process')
+                    except Exception:
+                        proc = None
+                    if proc and proc.poll() is not None:
+                        with lock:
+                            if not q:
+                                break
+                    socketio.sleep(0)
+
+            socketio.start_background_task(_read_nodepty_output, process, request.sid, out_q, out_lock, out_ready)
+            socketio.start_background_task(_emit_nodepty_output, request.sid, out_q, out_lock, out_ready)
             return
 
         cwd = _safe_cwd(data)
