@@ -1239,6 +1239,279 @@ function formatSize(size) {
     return (size / 1024 / 1024 / 1024).toFixed(1) + ' GB';
 }
 
+function openSearchResultFolder(path, isDir) {
+    var p = (path || '').toString().replace(/\\/g, '/').replace(/^\/+/, '').replace(/\/+$/, '');
+    var dir = '';
+    if (isDir) {
+        var idx = p.lastIndexOf('/');
+        dir = idx >= 0 ? p.slice(0, idx) : '';
+    } else {
+        var idx2 = p.lastIndexOf('/');
+        dir = idx2 >= 0 ? p.slice(0, idx2) : '';
+    }
+    var enc = (typeof encodePathForUrl === 'function') ? encodePathForUrl(dir) : encodeURIComponent(dir).replace(/%2F/g, '/');
+    window.location.href = dir ? ('/browse/' + enc) : '/browse/';
+    return false;
+}
+
+function openSearchResultMenu(ev, el) {
+    if (ev && typeof ev.stopPropagation === 'function') ev.stopPropagation();
+    if (!el || !el.dataset) return false;
+    var path = decodeURIComponent(el.dataset.path || '');
+    var name = decodeURIComponent(el.dataset.name || '');
+    var isDir = (el.dataset.isDir || '').toLowerCase() === 'true';
+    if (typeof window.showMenuModal === 'function') {
+        var rect = null;
+        try {
+            rect = el.getBoundingClientRect ? el.getBoundingClientRect() : null;
+        } catch (e) {
+            rect = null;
+        }
+        window.showMenuModal(path, name, isDir, { fromSearch: true, anchorRect: rect });
+    }
+    return false;
+}
+
+function doSearch() {
+    var input = document.getElementById('searchInput');
+    var keyword = input ? String(input.value || '').trim() : '';
+    if (!keyword) return;
+    var resultsContainer = document.getElementById('searchResults');
+    if (resultsContainer) resultsContainer.innerHTML = '<div style="text-align:center;padding:20px;color:#666;">搜索中...</div>';
+    fetch('/api/search?q=' + encodeURIComponent(keyword))
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            var results = data && data.success && data.data ? data.data.results : null;
+            if (!resultsContainer) return;
+            if (results && results.length > 0) {
+                resultsContainer.innerHTML = results.map(function(item) {
+                    var rawPath = (item && item.path ? String(item.path) : '').replace(/\\/g, '/').replace(/^\/+/, '');
+                    var rawName = item && item.name ? String(item.name) : '';
+                    var isDir = !!(item && item.is_dir);
+                    var icon = item && item.icon ? String(item.icon) : (isDir ? '📁' : '📄');
+                    var safeName = (typeof escapeHtml === 'function') ? escapeHtml(rawName) : rawName;
+                    var safePath = (typeof escapeHtml === 'function') ? escapeHtml(rawPath) : rawPath;
+                    var encPath = encodeURIComponent(rawPath);
+                    var encName = encodeURIComponent(rawName);
+                    return (
+                        '<div class="file-item search-result-item" data-path="' + safePath + '" data-name="' + safeName + '" data-is-dir="' + (isDir ? 'true' : 'false') + '">' +
+                            '<div class="file-col-icon">' +
+                                '<span class="file-icon">' + (typeof escapeHtml === 'function' ? escapeHtml(icon) : icon) + '</span>' +
+                            '</div>' +
+                            '<div class="file-col-info">' +
+                                '<div class="file-name"><span>' + safeName + '</span></div>' +
+                                '<div class="file-details-inline"><span>' + safePath + '</span></div>' +
+                            '</div>' +
+                            '<div class="file-col-actions" style="gap:8px;">' +
+                                '<a href="#" class="preview-btn" title="所在文件夹" onclick="return openSearchResultFolder(decodeURIComponent(\'' + encPath + '\'), ' + (isDir ? 'true' : 'false') + ');">📁</a>' +
+                                '<div class="menu-btn" data-path="' + encPath + '" data-name="' + encName + '" data-is-dir="' + (isDir ? 'true' : 'false') + '" onclick="return openSearchResultMenu(event, this);">' +
+                                    '<span>⋮</span>' +
+                                '</div>' +
+                            '</div>' +
+                        '</div>'
+                    );
+                }).join('');
+                attachFileItemDefaultHandlers();
+            } else {
+                resultsContainer.innerHTML = '<div style="text-align:center;padding:40px;color:#666;">未找到结果</div>';
+            }
+        })
+        .catch(function() {
+            if (resultsContainer) resultsContainer.innerHTML = '<div style="text-align:center;padding:40px;color:#cf222e;">搜索失败</div>';
+        });
+}
+
+function openTrashDrawer(callbacks) {
+    Drawer.open('trashDrawer', callbacks);
+    loadTrashList();
+}
+
+function closeTrashDrawer(callbacks) {
+    Drawer.close('trashDrawer', Object.assign({}, callbacks || {}, {
+        afterClose: function() {
+            var container = document.getElementById('trashListContainer');
+            if (container) container.innerHTML = '';
+            if (callbacks && typeof callbacks.afterClose === 'function') callbacks.afterClose();
+        }
+    }));
+}
+
+function loadTrashList() {
+    var container = document.getElementById('trashListContainer');
+    if (container) container.innerHTML = '<div style="text-align:center;padding:40px;color:#666;">🔄 加载中...</div>';
+    fetch('/api/trash/list', { headers: (typeof authHeaders === 'function') ? authHeaders() : {} })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            var items = data && data.success && data.data ? data.data.items : null;
+            if (!container) return;
+            if (!items || items.length === 0) {
+                container.innerHTML = '<div style="text-align:center;padding:40px;color:#666;">回收站是空的</div>';
+                return;
+            }
+            container.innerHTML = items.map(function(item) {
+                var rawName = item.name || '';
+                var rawDisplayName = item.display_name || item.name || '';
+                var displayName = (typeof escapeHtml === 'function') ? escapeHtml(rawDisplayName) : rawDisplayName;
+                var deletedAt = (typeof escapeHtml === 'function') ? escapeHtml(item.deleted_at || '') : (item.deleted_at || '');
+                var typeIcon = item.is_dir ? '📁' : '📄';
+                return (
+                    '<div style="padding:12px;border:1px solid #eee;border-radius:10px;margin-bottom:10px;background:#fff;display:flex;gap:12px;align-items:flex-start;">' +
+                        '<div style="font-size:18px;line-height:1;">' + typeIcon + '</div>' +
+                        '<div style="flex:1;min-width:0;">' +
+                            '<div style="font-weight:600;word-break:break-word;white-space:pre-wrap;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">' +
+                                '<span>' + displayName + '</span>' +
+                                '<button class="modal-btn modal-btn-confirm" style="padding:4px 8px;border-radius:999px;font-size:12px;" data-trash-name="' + encodeURIComponent(rawName) + '" data-trash-default="' + encodeURIComponent(rawDisplayName) + '" onclick="restoreTrashItemFromButton(this)">还原</button>' +
+                            '</div>' +
+                            '<div style="margin-top:4px;color:#666;font-size:12px;">删除时间: ' + deletedAt + '</div>' +
+                        '</div>' +
+                    '</div>'
+                );
+            }).join('');
+        })
+        .catch(function() {
+            if (container) container.innerHTML = '<div style="text-align:center;padding:40px;color:#cf222e;">加载失败</div>';
+        });
+}
+
+function restoreTrashItemFromButton(btn) {
+    if (!btn || !btn.dataset) return;
+    var rawName = decodeURIComponent(btn.dataset.trashName || '');
+    var suggested = decodeURIComponent(btn.dataset.trashDefault || '');
+    showPromptDrawer(
+        '还原',
+        '输入还原路径（相对于根目录）',
+        '例如：docs/a.txt',
+        suggested,
+        '还原',
+        function(targetPath) {
+            if (!targetPath) return;
+            fetch('/api/trash/restore/' + encodeURIComponent(rawName), {
+                method: 'POST',
+                headers: Object.assign({ 'Content-Type': 'application/json' }, (typeof authHeaders === 'function') ? authHeaders() : {}),
+                body: JSON.stringify({ target_path: targetPath })
+            })
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (data && data.success) {
+                        if (typeof showToast === 'function') showToast('还原成功', 'success');
+                        loadTrashList();
+                    } else {
+                        if (typeof showToast === 'function') showToast((data && data.error && data.error.message) || '还原失败', 'error');
+                    }
+                })
+                .catch(function() { if (typeof showToast === 'function') showToast('还原失败', 'error'); });
+        }
+    );
+}
+
+function clearTrash() {
+    showConfirmDrawer(
+        '清空回收站',
+        '确定要清空回收站吗？此操作不可恢复。',
+        '清空',
+        function() {
+            fetch('/api/trash/clear', { method: 'POST', headers: (typeof authHeaders === 'function') ? authHeaders() : {} })
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (data && data.success) {
+                        if (typeof showToast === 'function') showToast('回收站已清空', 'success');
+                        loadTrashList();
+                    } else {
+                        if (typeof showToast === 'function') showToast((data && data.error && data.error.message) || '清空失败', 'error');
+                    }
+                })
+                .catch(function() { if (typeof showToast === 'function') showToast('清空失败', 'error'); });
+        },
+        true
+    );
+}
+
+function openCreateMenuDrawer(callbacks) {
+    Drawer.open('createMenuDrawer', callbacks);
+}
+
+function closeCreateMenuDrawer(callbacks) {
+    Drawer.close('createMenuDrawer', callbacks);
+}
+
+function createMenuUpload() {
+    closeCreateMenuDrawer();
+    var input = document.getElementById('fileInputInline');
+    if (input) input.click();
+}
+
+function createMenuNewFolder() {
+    closeCreateMenuDrawer();
+    showPromptDrawer(
+        '新建文件夹',
+        '请输入文件夹名称',
+        '例如：assets',
+        'new_folder',
+        '创建',
+        function(name) {
+            var pickedName = (typeof name === 'string') ? name.trim() : '';
+            if (!pickedName) {
+                if (typeof showToast === 'function') showToast('名称不能为空', 'warning');
+                return;
+            }
+            var currentPathEl = document.getElementById('currentBrowsePath');
+            var currentPath = currentPathEl ? String(currentPathEl.value || '') : '';
+            var url = currentPath ? '/mkdir/' + encodeURIComponent(currentPath) : '/mkdir';
+            fetch(url, {
+                method: 'POST',
+                headers: Object.assign({ 'Content-Type': 'application/json' }, (typeof authHeaders === 'function') ? authHeaders() : {}),
+                body: JSON.stringify({ name: pickedName })
+            })
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (data && data.success) {
+                        if (typeof showToast === 'function') showToast('创建成功', 'success');
+                        refreshFileList();
+                    } else {
+                        if (typeof showToast === 'function') showToast((data && (data.message || (data.error && data.error.message))) || '创建失败', 'error');
+                    }
+                })
+                .catch(function() { if (typeof showToast === 'function') showToast('创建失败', 'error'); });
+        }
+    );
+}
+
+function createMenuNewFile() {
+    closeCreateMenuDrawer();
+    showPromptDrawer(
+        '新建文件',
+        '请输入文件名',
+        '例如：README.md',
+        'new_file.txt',
+        '创建',
+        function(name) {
+            var pickedName = (typeof name === 'string') ? name.trim() : '';
+            if (!pickedName) {
+                if (typeof showToast === 'function') showToast('名称不能为空', 'warning');
+                return;
+            }
+            var currentPathEl = document.getElementById('currentBrowsePath');
+            var currentPath = currentPathEl ? String(currentPathEl.value || '') : '';
+            var url = currentPath ? '/touch/' + encodeURIComponent(currentPath) : '/touch';
+            fetch(url, {
+                method: 'POST',
+                headers: Object.assign({ 'Content-Type': 'application/json' }, (typeof authHeaders === 'function') ? authHeaders() : {}),
+                body: JSON.stringify({ name: pickedName })
+            })
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (data && data.success) {
+                        if (typeof showToast === 'function') showToast('创建成功', 'success');
+                        refreshFileList();
+                    } else {
+                        if (typeof showToast === 'function') showToast((data && (data.message || (data.error && data.error.message))) || '创建失败', 'error');
+                    }
+                })
+                .catch(function() { if (typeof showToast === 'function') showToast('创建失败', 'error'); });
+        }
+    );
+}
+
 // 导出到 window
 window.showMenuModal = showMenuModal;
 window.openCurrentFolderMenu = openCurrentFolderMenu;
@@ -1272,6 +1545,19 @@ window.closeDragUploadDrawer = closeDragUploadDrawer;
 window.startDragUpload = startDragUpload;
 window.closePasteImageDrawer = closePasteImageDrawer;
 window.savePasteImage = savePasteImage;
+window.openSearchResultFolder = openSearchResultFolder;
+window.openSearchResultMenu = openSearchResultMenu;
+window.doSearch = doSearch;
+window.openTrashDrawer = openTrashDrawer;
+window.closeTrashDrawer = closeTrashDrawer;
+window.loadTrashList = loadTrashList;
+window.restoreTrashItemFromButton = restoreTrashItemFromButton;
+window.clearTrash = clearTrash;
+window.openCreateMenuDrawer = openCreateMenuDrawer;
+window.closeCreateMenuDrawer = closeCreateMenuDrawer;
+window.createMenuUpload = createMenuUpload;
+window.createMenuNewFolder = createMenuNewFolder;
+window.createMenuNewFile = createMenuNewFile;
 
 // ============ Git状态栏 ============
 

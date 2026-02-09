@@ -52,7 +52,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/default.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
-    <script src="{{ url_for('static', filename='app.js') }}"></script>
 </head>
 <body>
     <div class="header">
@@ -60,7 +59,7 @@
         <h1 style="margin: 0; font-size: 1rem; flex-grow: 1; text-align: center;">{{ filename }}</h1>
         <div class="header-buttons">
             <button class="edit-btn" onclick="toggleSourceMode()" id="sourceBtn">📄 源码</button>
-            <a href="{{ url_for('file.edit_file', path=file_path) }}" class="edit-btn">✏️ 编辑</a>
+            <a href="{{ url_for('edit.edit_file', path=file_path) }}" class="edit-btn">✏️ 编辑</a>
             <a href="{{ url_for('file.download_file', path=file_path) }}" class="download-btn">📥</a>
         </div>
     </div>

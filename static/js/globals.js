@@ -60,7 +60,7 @@ function authHeaders() {
     return {};
 }
 
-;(function() {
+(function() {
     if (window.__scrollLockInited) return;
     window.__scrollLockInited = true;
 
@@ -191,6 +191,16 @@ document.addEventListener('keydown', function(e) {
         return;
     }
     closeTopmostDrawer();
+});
+
+document.addEventListener('keydown', function(e) {
+    if (!e) return;
+    var target = e.target;
+    var inTextField = !!(target && typeof target.matches === 'function' && target.matches('input, textarea'));
+    if ((e.ctrlKey && e.key === 'f') || (e.key === '/' && !inTextField)) {
+        e.preventDefault();
+        if (typeof window.openSearchModal === 'function') window.openSearchModal();
+    }
 });
 
 window.showTaskListener = function(text) {
@@ -572,6 +582,21 @@ window.resetSearch = function() {
 };
 window.openConfigModal = function() { var m = document.getElementById('configModal'); var b = document.getElementById('configBackdrop'); if (m) m.classList.add('open'); if (b) b.classList.add('open'); };
 window.logoutAuth = function() { window.location.href = '/logout'; };
+
+window.actionToModalMap = {
+    'git': { modal: 'gitModal', load: 'loadGitList', open: 'openGitModal' },
+    'process': { modal: 'processModal', load: 'loadProcessList', open: 'openProcessModal' },
+    'system-package': { modal: 'systemPackageModal', load: 'loadSystemPackageList', open: 'openSystemPackageModal' },
+    'pip': { modal: 'pipModal', load: 'loadPipList', open: 'openPipModal' },
+    'npm': { modal: 'npmModal', load: 'loadNpmList', open: 'openNpmModal' },
+    'docker': { modal: 'dockerModal', load: 'loadDockerTabs', open: 'openDockerModal' },
+    'systemd': { modal: 'systemdModal', load: 'loadSystemdList', open: 'openSystemdModal' },
+    'disk': { modal: 'diskModal', load: 'loadDiskList', open: 'openDiskModal' },
+    'network': { modal: 'networkModal', load: 'loadNetworkList', open: 'openNetworkModal' },
+    'gpu': { modal: 'gpuModal', load: 'loadGpuInfo', open: 'openGpuModal' },
+    'ollama': { modal: 'ollamaModal', load: 'loadOllamaModels', open: 'openOllamaModal' },
+    'openclaw': { modal: 'openclawModal', load: 'loadOpenclawConfig', open: 'openOpenclawModal' }
+};
 
 // 主菜单处理函数（需要在 globals.js 中定义，因为菜单项 onclick 使用）
 window.handleMainMenu = function(action) {

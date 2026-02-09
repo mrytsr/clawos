@@ -5,9 +5,9 @@
   "main": "index.js",
   "scripts": {
     "test": "node --test",
-    "test:e2e": "playwright test",
-    "lint": "npx --yes eslint@9.39.2 static/js/**/*.js static/*.js --ignore-pattern **/*.min.js",
-    "lint:fix": "npx --yes eslint@9.39.2 static/js/**/*.js static/*.js --fix --ignore-pattern **/*.min.js"
+    "test:e2e": "node -e \"const fs=require('fs');const path=require('path');const root=path.join(process.cwd(),'tests','e2e');const ex=fs.existsSync(root)&&fs.statSync(root).isDirectory();function hasTests(dir){for(const ent of fs.readdirSync(dir,{withFileTypes:true})){const p=path.join(dir,ent.name);if(ent.isDirectory()){if(hasTests(p))return true;}else if(/\\.(spec|test)\\.(js|ts|jsx|tsx)$/.test(ent.name))return true;}return false;}if(!ex||!hasTests(root)){console.log('tests/e2e 下没有 Playwright 用例，跳过');process.exit(0);} \" && playwright test",
+    "lint": "npx --yes eslint@9.39.2 static/js/**/*.js --ignore-pattern **/*.min.js",
+    "lint:fix": "npx --yes eslint@9.39.2 static/js/**/*.js --fix --ignore-pattern **/*.min.js"
   },
   "keywords": [],
   "author": "",

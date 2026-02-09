@@ -34,7 +34,7 @@
         <a href="{{ url_for('browser.browse', path=get_relative_path(current_dir)) }}" class="back-btn">←</a>
         <h1 style="margin: 0; font-size: 0.95rem; flex-grow: 1; text-align: center; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ filename }}</h1>
         <div class="header-buttons">
-            <a href="{{ url_for('file.edit_file', path=file_path) }}" class="edit-btn">✏️</a>
+            <a href="{{ url_for('edit.edit_file', path=file_path) }}" class="edit-btn">✏️</a>
             <a href="{{ url_for('file.download_file', path=file_path) }}" class="download-btn">📥</a>
         </div>
     </div>

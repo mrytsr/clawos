@@ -3,7 +3,6 @@ import os
 from flask import Blueprint, jsonify, redirect, render_template, request, url_for
 
 import config
-from lib import file_utils
 
 
 edit_bp = Blueprint('edit', __name__)
@@ -50,18 +49,6 @@ def edit_file(path):
     current_dir = os.path.dirname((path or '').replace('\\', '/'))
     filename = os.path.basename(full_path)
 
-    if ext_lower in file_utils.MARKDOWN_EXTENSIONS:
-        return render_template(
-            'markdown_editor.html',
-            content=content,
-            filename=filename,
-            file_path=(path or '').replace('\\', '/'),
-            current_dir=current_dir,
-            extension=ext_lower,
-            ROOT_DIR=root_dir,
-            os=os,
-        )
-
     return render_template(
         'code_editor.html',
         content=content,
@@ -95,4 +82,3 @@ def save_file(path):
         return jsonify({'success': True, 'message': '保存成功', 'path': rel})
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
-
