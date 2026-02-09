@@ -521,22 +521,31 @@ window.openMainMenuModal = function() {
     }
     var c = document.getElementById('mainMenuItems');
     if (c) {
-        c.innerHTML = '<div style="text-align:center;padding:40px;color:#666;">加载中...</div>';
-        fetch('/api/menu')
-            .then(function(r) { return r.json(); })
-            .then(function(data) {
-                if (data && data.success && data.data && data.data.items) {
-                    c.innerHTML = data.data.items.map(function(item) {
-                        return '<div class="modal-item menu-item" data-action="' + item.action + '"><span style="margin-right:12px;">' + item.icon + '</span>' + item.text + '</div>';
-                    }).join('');
-                    c.querySelectorAll('.menu-item[data-action]').forEach(function(el) {
-                        el.addEventListener('click', function(e) {
-                            e.stopPropagation();
-                            window.handleMainMenu(el.dataset.action);
-                        });
-                    });
-                }
-            }).catch(function() { c.innerHTML = '<div style="text-align:center;padding:40px;color:#cf222e;">加载失败</div>'; });
+        var items = [
+            { action: 'bot', icon: '🤖', text: 'claw对话' },
+            { action: 'terminal', icon: '🖥️', text: '终端' },
+            { action: 'config', icon: '⚙️', text: '配置' },
+            { action: 'process', icon: '📊', text: '进程管理' },
+            { action: 'gpu', icon: '🖥️', text: '显卡' },
+            { action: 'ollama', icon: '🦙', text: 'Ollama' },
+            { action: 'openclaw', icon: '⚙️', text: 'OpenClaw' },
+            { action: 'system-package', icon: '📦', text: '系统包管理' },
+            { action: 'pip', icon: '🐍', text: 'pip包管理' },
+            { action: 'npm', icon: '📦', text: 'npm包管理' },
+            { action: 'docker', icon: '🐳', text: 'docker管理' },
+            { action: 'systemd', icon: '🔧', text: 'systemd管理' },
+            { action: 'disk', icon: '💾', text: '磁盘管理' },
+            { action: 'network', icon: '🌐', text: '网络管理' }
+        ];
+        c.innerHTML = items.map(function(item) {
+            return '<div class="modal-item menu-item" data-action="' + item.action + '"><span style="margin-right:12px;">' + item.icon + '</span>' + item.text + '</div>';
+        }).join('');
+        c.querySelectorAll('.menu-item[data-action]').forEach(function(el) {
+            el.addEventListener('click', function(e) {
+                e.stopPropagation();
+                window.handleMainMenu(el.dataset.action);
+            });
+        });
     }
 };
 

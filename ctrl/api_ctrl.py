@@ -43,32 +43,6 @@ def _get_ctx():
     )
 
 
-def _api_menu(ctx):
-    """Return top menu entries."""
-
-    items = [
-        {'action': 'bot', 'icon': '🤖', 'text': 'claw对话'},
-        {'action': 'config', 'icon': '⚙️', 'text': '配置'},
-        {'action': 'git', 'icon': '🔀', 'text': 'Git管理'},
-        {'action': 'process', 'icon': '📊', 'text': '进程管理'},
-        {'action': 'gpu', 'icon': '🖥️', 'text': '显卡'},
-        {'action': 'ollama', 'icon': '🦙', 'text': 'Ollama'},
-        {'action': 'openclaw', 'icon': '⚙️', 'text': 'OpenClaw'},
-        {'action': 'system-package', 'icon': '📦', 'text': '系统包管理'},
-        {'action': 'pip', 'icon': '🐍', 'text': 'pip包管理'},
-        {'action': 'npm', 'icon': '📦', 'text': 'npm包管理'},
-        {'action': 'docker', 'icon': '🐳', 'text': 'docker管理'},
-        {'action': 'systemd', 'icon': '🔧', 'text': 'systemd管理'},
-        {'action': 'disk', 'icon': '💾', 'text': '磁盘管理'},
-        {'action': 'network', 'icon': '🌐', 'text': '网络管理'},
-    ]
-
-    if ctx.terminal_supported:
-        items.insert(1, {'action': 'terminal', 'icon': '🖥️', 'text': '终端'})
-
-    return api_ok({'items': items})
-
-
 def _api_test_socket(_ctx):
     """Connectivity test endpoint."""
 
@@ -256,11 +230,6 @@ def _api_bot_token(_ctx):
 
 
 api_bp = Blueprint('api', __name__)
-
-
-@api_bp.route('/api/menu')
-def api_menu():
-    return _api_menu(_get_ctx())
 
 
 @api_bp.route('/api/test_socket')
