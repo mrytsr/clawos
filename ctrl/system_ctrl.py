@@ -4,6 +4,9 @@ import re
 import subprocess
 from flask import Blueprint, Response, render_template, request, jsonify
 
+import config
+from lib.ai_client import AiClient
+
 try:
     import psutil
 except ImportError:
@@ -295,7 +298,6 @@ def api_git_list():
 @system_bp.route('/api/git/status')
 def api_git_status():
     """获取当前目录的Git状态"""
-    import config
     path = request.args.get('path', '')
     
     # 解析绝对路径
@@ -323,7 +325,6 @@ def api_git_status():
 @system_bp.route('/api/git/repo-status')
 def api_git_repo_status():
     """获取任意路径的仓库信息（状态+日志），用于Git管理抽屉"""
-    import config
     path = request.args.get('path', '')
     
     # 解析绝对路径
@@ -350,7 +351,6 @@ def api_git_repo_status():
 
 @system_bp.route('/api/git/log')
 def api_git_log():
-    import config
     path = request.args.get('path', '')
 
     if path:
@@ -374,8 +374,6 @@ def api_git_log():
 
 @system_bp.route('/api/git/commit-list')
 def api_git_commit_list():
-    import config
-
     path = request.args.get('path', '')
     max_count = request.args.get('max_count', 50)
     page = request.args.get('page', 1)
@@ -432,8 +430,6 @@ def api_git_commit_list():
 
 @system_bp.route('/api/git/push-changes', methods=['POST'])
 def api_git_push_changes():
-    import config
-
     payload = request.get_json(silent=True) or {}
     path = payload.get('path') or request.args.get('path', '')
 
@@ -467,16 +463,13 @@ def api_git_push_changes():
 
     system_prompt = (
         '你是一个为 Git 生成 commit message 的助手。'
-        '只输出一行 commit message，不要包含引号，不要换行，不要 Markdown。'
-        '尽量使用 conventional commits 前缀（feat/fix/chore/docs/refactor/test/style）。'
+        '只输出一行中文提交说明，不要包含引号，不要换行，不要 Markdown。'
         '长度不超过 72 个字符。'
     )
     question = '根据下面的 git diff（已 stage），生成最合适的一行 commit message：\n\n' + diff_text
 
     commit_msg = None
     try:
-        from lib.ai_client import AiClient
-
         commit_msg = AiClient().ask(question=question, system_prompt=system_prompt)
     except Exception:
         commit_msg = None
@@ -486,7 +479,7 @@ def api_git_push_changes():
     if (msg.startswith('"') and msg.endswith('"')) or (msg.startswith("'") and msg.endswith("'")):
         msg = msg[1:-1].strip()
     if not msg:
-        msg = 'chore: update'
+        msg = '更新变更'
     if len(msg) > 72:
         msg = msg[:72].rstrip()
 
@@ -529,7 +522,6 @@ def api_git_commit():
     # 确定仓库路径
     if repo_path_param:
         # 使用repoPath参数
-        import config
         if repo_path_param.startswith(config.ROOT_DIR):
             repo_path = repo_path_param
         else:
@@ -575,7 +567,6 @@ def api_git_commit_patch():
     
     # 确定仓库路径
     if repo_path_param:
-        import config
         if repo_path_param.startswith(config.ROOT_DIR):
             repo_path = repo_path_param
         else:
@@ -614,7 +605,6 @@ def git_commit_page():
     
     # 确定仓库路径
     if repo_path_param:
-        import config
         if repo_path_param.startswith(config.ROOT_DIR):
             repo_path = repo_path_param
         else:
@@ -649,7 +639,6 @@ def git_commit_page():
 
 @system_bp.route('/commit/<commit_hash>')
 def commit_page(commit_hash):
-    import config
     repo_path_param = request.args.get('repoPath') or ''
 
     if repo_path_param:
