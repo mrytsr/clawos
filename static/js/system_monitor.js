@@ -538,6 +538,672 @@ window.loadGitList = function(specificRepoPath) {
             }
         });
 };
+
+function __setContainerHtml(id, html) {
+    const el = document.getElementById(id);
+    if (!el) return null;
+    el.innerHTML = html;
+    return el;
+}
+
+function __loadingHtml(label) {
+    return '<div style="text-align:center;padding:40px;color:#666;">🔄 ' + escapeHtml(label || '加载中...') + '</div>';
+}
+
+function __emptyHtml(label) {
+    return '<div style="text-align:center;padding:40px;color:#666;">' + escapeHtml(label || '暂无数据') + '</div>';
+}
+
+function __errorHtml(label) {
+    return '<div style="text-align:center;padding:40px;color:#cf222e;">' + escapeHtml(label || '加载失败') + '</div>';
+}
+
+function __postJson(url, payload) {
+    return fetch(url, {
+        method: 'POST',
+        headers: Object.assign({ 'Content-Type': 'application/json' }, (typeof authHeaders === 'function') ? authHeaders() : {}),
+        body: JSON.stringify(payload || {})
+    }).then(function(r) { return r.json(); });
+}
+
+function __fmtPct(n) {
+    const v = typeof n === 'number' && Number.isFinite(n) ? n : 0;
+    return (Math.round(v * 10) / 10).toFixed(1);
+}
+
+function __fmtInt(n) {
+    const v = typeof n === 'number' && Number.isFinite(n) ? n : 0;
+    return String(Math.round(v));
+}
+
+window.loadProcessList = function() {
+    const container = __setContainerHtml('processListContainer', __loadingHtml('加载中...'));
+    fetch('/api/process/list', { headers: authHeaders() })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            const payload = apiData(data);
+            if (!container) return;
+            const processes = payload && Array.isArray(payload.processes) ? payload.processes : [];
+            const stats = payload && payload.stats ? payload.stats : {};
+            if (!processes.length) {
+                container.innerHTML = __emptyHtml('暂无进程数据');
+                return;
+            }
+
+            const cpuPct = typeof stats.cpu_percent === 'number' ? stats.cpu_percent : null;
+            const memUsed = typeof stats.memory_used === 'number' ? stats.memory_used : null;
+            const memTotal = typeof stats.memory_total === 'number' ? stats.memory_total : null;
+            const memPct = typeof stats.memory_percent === 'number' ? stats.memory_percent : null;
+            const procCount = typeof stats.process_count === 'number' ? stats.process_count : processes.length;
+
+            const header = '<div style="padding:14px 16px;border-bottom:1px solid #eee;background:#f6f8fa;">'
+                + '<div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;justify-content:space-between;">'
+                + '<div style="font-weight:600;">总进程：' + escapeHtml(String(procCount)) + '</div>'
+                + '<div style="display:flex;gap:10px;flex-wrap:wrap;font-size:12px;color:#57606a;">'
+                + '<span>CPU：' + (cpuPct === null ? '-' : escapeHtml(__fmtPct(cpuPct)) + '%') + '</span>'
+                + '<span>内存：' + (memUsed === null || memTotal === null ? '-' : escapeHtml(formatSize(memUsed)) + ' / ' + escapeHtml(formatSize(memTotal)) + (memPct === null ? '' : ' (' + escapeHtml(__fmtPct(memPct)) + '%)')) + '</span>'
+                + '</div>'
+                + '</div>'
+                + '</div>';
+
+            const rows = processes.map(function(p) {
+                const pid = p.pid;
+                const cpu = typeof p.cpu_percent === 'number' ? p.cpu_percent : 0;
+                const mem = typeof p.memory_percent === 'number' ? p.memory_percent : 0;
+                const rss = typeof p.memory_rss === 'number' ? p.memory_rss : 0;
+                const user = p.user || '-';
+                const cmd = p.command || p.full_command || '-';
+                const elapsed = p.elapsed || '-';
+                const safePid = escapeHtml(String(pid));
+                return '<div style="padding:12px 16px;border-bottom:1px solid #eee;">'
+                    + '<div style="display:flex;gap:12px;align-items:flex-start;justify-content:space-between;">'
+                    + '<div style="min-width:0;">'
+                    + '<div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + escapeHtml(String(cmd)) + '</div>'
+                    + '<div style="margin-top:4px;font-size:12px;color:#57606a;display:flex;gap:10px;flex-wrap:wrap;">'
+                    + '<span>PID ' + safePid + '</span>'
+                    + '<span>' + escapeHtml(String(user)) + '</span>'
+                    + '<span>CPU ' + escapeHtml(__fmtPct(cpu)) + '%</span>'
+                    + '<span>MEM ' + escapeHtml(__fmtPct(mem)) + '%</span>'
+                    + '<span>' + escapeHtml(formatSize(rss)) + '</span>'
+                    + '<span>' + escapeHtml(String(elapsed)) + '</span>'
+                    + '</div>'
+                    + '</div>'
+                    + '<div style="display:flex;gap:8px;flex-shrink:0;">'
+                    + '<button type="button" data-action="proc-detail" data-pid="' + safePid + '" style="border:1px solid #d0d7de;background:#fff;border-radius:8px;padding:6px 10px;cursor:pointer;">详情</button>'
+                    + '<button type="button" data-action="proc-kill" data-pid="' + safePid + '" style="border:1px solid #cf222e;background:#fff;border-radius:8px;padding:6px 10px;cursor:pointer;color:#cf222e;">结束</button>'
+                    + '</div>'
+                    + '</div>'
+                    + '</div>';
+            }).join('');
+
+            container.innerHTML = header + rows;
+
+            Array.from(container.querySelectorAll('button[data-action="proc-detail"]')).forEach(function(btn) {
+                btn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const pid = parseInt(btn.getAttribute('data-pid') || '0', 10);
+                    if (!pid) return;
+                    window.openProcessDetailModal(pid);
+                });
+            });
+
+            Array.from(container.querySelectorAll('button[data-action="proc-kill"]')).forEach(function(btn) {
+                btn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const pid = parseInt(btn.getAttribute('data-pid') || '0', 10);
+                    if (!pid) return;
+                    const ok = window.confirm('确认结束进程 PID ' + String(pid) + ' ?');
+                    if (!ok) return;
+                    fetch('/api/process/kill/' + encodeURIComponent(String(pid)), { method: 'POST', headers: authHeaders() })
+                        .then(function(r) { return r.json(); })
+                        .then(function(data) {
+                            const payload = apiData(data);
+                            if (payload && payload.message && typeof window.showToast === 'function') window.showToast(payload.message, 'success');
+                            window.loadProcessList();
+                        })
+                        .catch(function() {
+                            if (typeof window.showToast === 'function') window.showToast('结束失败', 'error');
+                        });
+                });
+            });
+        })
+        .catch(function() {
+            if (container) container.innerHTML = __errorHtml('加载失败');
+        });
+};
+
+window.openProcessDetailModal = function(pid) {
+    Drawer.open('processDetailModal');
+    const container = __setContainerHtml('processDetailContent', __loadingHtml('加载中...'));
+    fetch('/api/process/ports/' + encodeURIComponent(String(pid)), { headers: authHeaders() })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            const payload = apiData(data);
+            if (!container) return;
+            const ports = payload && Array.isArray(payload.ports) ? payload.ports : [];
+            const rows = ports.length
+                ? ports.map(function(p) {
+                    return '<div style="padding:10px 12px;border:1px solid #d0d7de;border-radius:8px;background:#fff;display:flex;justify-content:space-between;gap:10px;">'
+                        + '<div style="font-weight:600;">' + escapeHtml(String(p.protocol || '-')) + ' ' + escapeHtml(String(p.port || '-')) + '</div>'
+                        + '<div style="font-size:12px;color:#57606a;text-align:right;">' + escapeHtml(String(p.state || '-')) + (p.program ? ' · ' + escapeHtml(String(p.program)) : '') + '</div>'
+                        + '</div>';
+                }).join('<div style="height:8px;"></div>')
+                : __emptyHtml('未发现监听端口');
+
+            container.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">'
+                + '<div style="font-weight:600;">PID ' + escapeHtml(String(pid)) + '</div>'
+                + '<div style="display:flex;gap:8px;">'
+                + '<button type="button" id="procDetailRefreshBtn" style="border:1px solid #d0d7de;background:#fff;border-radius:8px;padding:6px 10px;cursor:pointer;">刷新</button>'
+                + '<button type="button" id="procDetailKillBtn" style="border:1px solid #cf222e;background:#fff;border-radius:8px;padding:6px 10px;cursor:pointer;color:#cf222e;">结束</button>'
+                + '</div>'
+                + '</div>'
+                + rows;
+
+            const refreshBtn = document.getElementById('procDetailRefreshBtn');
+            if (refreshBtn) refreshBtn.addEventListener('click', function() { window.openProcessDetailModal(pid); });
+            const killBtn = document.getElementById('procDetailKillBtn');
+            if (killBtn) killBtn.addEventListener('click', function() {
+                const ok = window.confirm('确认结束进程 PID ' + String(pid) + ' ?');
+                if (!ok) return;
+                fetch('/api/process/kill/' + encodeURIComponent(String(pid)), { method: 'POST', headers: authHeaders() })
+                    .then(function(r) { return r.json(); })
+                    .then(function(data) {
+                        const payload = apiData(data);
+                        if (payload && payload.message && typeof window.showToast === 'function') window.showToast(payload.message, 'success');
+                        Drawer.close('processDetailModal');
+                        window.loadProcessList();
+                    })
+                    .catch(function() {
+                        if (typeof window.showToast === 'function') window.showToast('结束失败', 'error');
+                    });
+            });
+        })
+        .catch(function() {
+            if (container) container.innerHTML = __errorHtml('加载失败');
+        });
+};
+
+window.loadSystemPackageList = function() {
+    const container = __setContainerHtml('systemPackageListContainer', __loadingHtml('加载中...'));
+    fetch('/api/system-packages/list', { headers: authHeaders() })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            const payload = apiData(data);
+            if (!container) return;
+            const packages = payload && Array.isArray(payload.packages) ? payload.packages : [];
+            if (!packages.length) {
+                container.innerHTML = __emptyHtml('暂无系统包数据');
+                return;
+            }
+            container.innerHTML = '<div style="display:flex;flex-direction:column;gap:10px;">' + packages.map(function(p) {
+                const name = p.name || '-';
+                const version = p.version || '';
+                const manager = p.manager || '';
+                return '<div style="border:1px solid #d0d7de;border-radius:10px;background:#fff;padding:12px 14px;display:flex;justify-content:space-between;gap:12px;align-items:center;">'
+                    + '<div style="min-width:0;">'
+                    + '<div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + escapeHtml(String(name)) + '</div>'
+                    + '<div style="font-size:12px;color:#57606a;margin-top:2px;">' + escapeHtml(String(version)) + (manager ? ' · ' + escapeHtml(String(manager)) : '') + '</div>'
+                    + '</div>'
+                    + '<button type="button" data-action="sys-pkg-uninstall" data-name="' + escapeHtml(String(name)) + '" data-manager="' + escapeHtml(String(manager)) + '" style="border:1px solid #cf222e;background:#fff;border-radius:8px;padding:6px 10px;cursor:pointer;color:#cf222e;flex-shrink:0;">卸载</button>'
+                    + '</div>';
+            }).join('') + '</div>';
+
+            Array.from(container.querySelectorAll('button[data-action="sys-pkg-uninstall"]')).forEach(function(btn) {
+                btn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const name = btn.getAttribute('data-name') || '';
+                    const manager = btn.getAttribute('data-manager') || '';
+                    if (!name) return;
+                    const ok = window.confirm('确认卸载 ' + name + ' ?');
+                    if (!ok) return;
+                    __postJson('/api/system-packages/uninstall', { name: name, manager: manager })
+                        .then(function(data) {
+                            const payload = apiData(data);
+                            const msg = payload && payload.message ? payload.message : '已提交';
+                            if (typeof window.showToast === 'function') window.showToast(msg, 'success');
+                            window.loadSystemPackageList();
+                        })
+                        .catch(function() {
+                            if (typeof window.showToast === 'function') window.showToast('卸载失败', 'error');
+                        });
+                });
+            });
+        })
+        .catch(function() {
+            if (container) container.innerHTML = __errorHtml('加载失败（可能不支持此系统）');
+        });
+};
+
+function __renderPkgList(containerId, opts) {
+    const options = opts || {};
+    const title = options.title || '';
+    const listUrl = options.listUrl || '';
+    const installUrl = options.installUrl || '';
+    const uninstallUrl = options.uninstallUrl || '';
+    const container = __setContainerHtml(containerId, __loadingHtml('加载中...'));
+    fetch(listUrl, { headers: authHeaders() })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            const payload = apiData(data);
+            if (!container) return;
+            const packages = payload && Array.isArray(payload.packages) ? payload.packages : [];
+
+            const header = '<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px;">'
+                + '<input id="' + escapeHtml(containerId) + '_installInput" type="text" placeholder="输入包名，例如 ' + escapeHtml(title) + '" style="flex:1;min-width:180px;padding:10px 12px;border:1px solid #d0d7de;border-radius:10px;font-size:14px;">'
+                + '<button type="button" id="' + escapeHtml(containerId) + '_installBtn" style="border:1px solid #0969da;background:#0969da;color:#fff;border-radius:10px;padding:10px 14px;cursor:pointer;">安装</button>'
+                + '</div>';
+
+            if (!packages.length) {
+                container.innerHTML = header + __emptyHtml('暂无已安装包');
+            } else {
+                const rows = '<div style="display:flex;flex-direction:column;gap:10px;">' + packages.map(function(p) {
+                    const name = p.name || '-';
+                    const version = p.version || '';
+                    return '<div style="border:1px solid #d0d7de;border-radius:10px;background:#fff;padding:12px 14px;display:flex;justify-content:space-between;gap:12px;align-items:center;">'
+                        + '<div style="min-width:0;">'
+                        + '<div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + escapeHtml(String(name)) + '</div>'
+                        + '<div style="font-size:12px;color:#57606a;margin-top:2px;">' + escapeHtml(String(version)) + '</div>'
+                        + '</div>'
+                        + '<button type="button" data-action="pkg-uninstall" data-name="' + escapeHtml(String(name)) + '" style="border:1px solid #cf222e;background:#fff;border-radius:8px;padding:6px 10px;cursor:pointer;color:#cf222e;flex-shrink:0;">卸载</button>'
+                        + '</div>';
+                }).join('') + '</div>';
+                container.innerHTML = header + rows;
+            }
+
+            const inputEl = document.getElementById(containerId + '_installInput');
+            const installBtn = document.getElementById(containerId + '_installBtn');
+            if (installBtn) {
+                installBtn.addEventListener('click', function() {
+                    const pkg = inputEl ? (inputEl.value || '').trim() : '';
+                    if (!pkg) return;
+                    installBtn.disabled = true;
+                    installBtn.textContent = '安装中...';
+                    __postJson(installUrl, { package: pkg })
+                        .then(function(data) {
+                            const payload = apiData(data);
+                            const msg = payload && payload.message ? payload.message : '已提交';
+                            if (typeof window.showToast === 'function') window.showToast(msg, 'success');
+                            __renderPkgList(containerId, options);
+                        })
+                        .catch(function() {
+                            if (typeof window.showToast === 'function') window.showToast('安装失败', 'error');
+                        })
+                        .finally(function() {
+                            installBtn.disabled = false;
+                            installBtn.textContent = '安装';
+                        });
+                });
+            }
+
+            Array.from(container.querySelectorAll('button[data-action="pkg-uninstall"]')).forEach(function(btn) {
+                btn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const name = btn.getAttribute('data-name') || '';
+                    if (!name) return;
+                    const ok = window.confirm('确认卸载 ' + name + ' ?');
+                    if (!ok) return;
+                    __postJson(uninstallUrl, { package: name })
+                        .then(function(data) {
+                            const payload = apiData(data);
+                            const msg = payload && payload.message ? payload.message : '已提交';
+                            if (typeof window.showToast === 'function') window.showToast(msg, 'success');
+                            __renderPkgList(containerId, options);
+                        })
+                        .catch(function() {
+                            if (typeof window.showToast === 'function') window.showToast('卸载失败', 'error');
+                        });
+                });
+            });
+        })
+        .catch(function() {
+            if (container) container.innerHTML = __errorHtml('加载失败');
+        });
+}
+
+window.loadPipList = function() {
+    __renderPkgList('pipListContainer', {
+        title: 'requests',
+        listUrl: '/api/pip/list',
+        installUrl: '/api/pip/install',
+        uninstallUrl: '/api/pip/uninstall'
+    });
+};
+
+window.loadNpmList = function() {
+    __renderPkgList('npmListContainer', {
+        title: 'eslint',
+        listUrl: '/api/npm/list',
+        installUrl: '/api/npm/install',
+        uninstallUrl: '/api/npm/uninstall'
+    });
+};
+
+window.loadDockerTabs = function(tab) {
+    const t = (tab || 'images') === 'containers' ? 'containers' : 'images';
+    const imagesEl = document.getElementById('dockerImagesContainer');
+    const containersEl = document.getElementById('dockerContainersContainer');
+    const tabs = Array.from(document.querySelectorAll('#dockerModal .docker-tab'));
+    tabs.forEach(function(btn) {
+        const isActive = (btn.getAttribute('data-tab') || '') === t;
+        if (isActive) btn.classList.add('active');
+        else btn.classList.remove('active');
+        btn.style.borderBottomColor = isActive ? '#0969da' : 'transparent';
+        btn.style.color = isActive ? '#0969da' : '#24292f';
+        btn.style.fontWeight = isActive ? '600' : '400';
+    });
+    if (imagesEl) imagesEl.style.display = t === 'images' ? 'block' : 'none';
+    if (containersEl) containersEl.style.display = t === 'containers' ? 'block' : 'none';
+
+    if (t === 'images') {
+        if (imagesEl) imagesEl.innerHTML = __loadingHtml('加载镜像...');
+        fetch('/api/docker/images', { headers: authHeaders() })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                const payload = apiData(data);
+                if (!imagesEl) return;
+                const images = payload && Array.isArray(payload.images) ? payload.images : [];
+                if (!images.length) {
+                    imagesEl.innerHTML = __emptyHtml('暂无镜像');
+                    return;
+                }
+                imagesEl.innerHTML = '<div style="display:flex;flex-direction:column;gap:10px;">' + images.map(function(img) {
+                    const repo = img.repository || '-';
+                    const tag = img.tag || '';
+                    const id = img.id || '';
+                    const size = img.size || '';
+                    const created = img.created || '';
+                    return '<div style="border:1px solid #d0d7de;border-radius:10px;background:#fff;padding:12px 14px;display:flex;justify-content:space-between;gap:12px;align-items:center;">'
+                        + '<div style="min-width:0;">'
+                        + '<div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + escapeHtml(String(repo)) + (tag ? ':' + escapeHtml(String(tag)) : '') + '</div>'
+                        + '<div style="font-size:12px;color:#57606a;margin-top:2px;">' + escapeHtml(String(id)) + (size ? ' · ' + escapeHtml(String(size)) : '') + (created ? ' · ' + escapeHtml(String(created)) : '') + '</div>'
+                        + '</div>'
+                        + '<button type="button" data-action="docker-img-rm" data-id="' + escapeHtml(String(id)) + '" style="border:1px solid #cf222e;background:#fff;border-radius:8px;padding:6px 10px;cursor:pointer;color:#cf222e;flex-shrink:0;">删除</button>'
+                        + '</div>';
+                }).join('') + '</div>';
+
+                Array.from(imagesEl.querySelectorAll('button[data-action="docker-img-rm"]')).forEach(function(btn) {
+                    btn.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        const id = btn.getAttribute('data-id') || '';
+                        if (!id) return;
+                        const ok = window.confirm('确认删除镜像 ' + id + ' ?');
+                        if (!ok) return;
+                        __postJson('/api/docker/image/rm', { id: id })
+                            .then(function(data) {
+                                const payload = apiData(data);
+                                const msg = payload && payload.message ? payload.message : '已提交';
+                                if (typeof window.showToast === 'function') window.showToast(msg, 'success');
+                                window.loadDockerTabs('images');
+                            })
+                            .catch(function() {
+                                if (typeof window.showToast === 'function') window.showToast('删除失败', 'error');
+                            });
+                    });
+                });
+            })
+            .catch(function() {
+                if (imagesEl) imagesEl.innerHTML = __errorHtml('加载失败（Docker 可能未安装）');
+            });
+    } else {
+        if (containersEl) containersEl.innerHTML = __loadingHtml('加载容器...');
+        fetch('/api/docker/containers', { headers: authHeaders() })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                const payload = apiData(data);
+                if (!containersEl) return;
+                const containers = payload && Array.isArray(payload.containers) ? payload.containers : [];
+                if (!containers.length) {
+                    containersEl.innerHTML = __emptyHtml('暂无容器');
+                    return;
+                }
+                containersEl.innerHTML = '<div style="display:flex;flex-direction:column;gap:10px;">' + containers.map(function(c) {
+                    const id = c.id || '';
+                    const name = c.name || '';
+                    const image = c.image || '';
+                    const status = c.status || '';
+                    const ports = c.ports || '';
+                    const running = status.toLowerCase().indexOf('up') >= 0;
+                    const actionText = running ? '停止' : '启动';
+                    const actionType = running ? 'stop' : 'start';
+                    return '<div style="border:1px solid #d0d7de;border-radius:10px;background:#fff;padding:12px 14px;display:flex;justify-content:space-between;gap:12px;align-items:flex-start;">'
+                        + '<div style="min-width:0;">'
+                        + '<div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + escapeHtml(String(name || id)) + '</div>'
+                        + '<div style="font-size:12px;color:#57606a;margin-top:2px;word-break:break-all;">' + escapeHtml(String(image)) + '</div>'
+                        + '<div style="font-size:12px;color:#57606a;margin-top:2px;word-break:break-all;">' + escapeHtml(String(status)) + (ports ? ' · ' + escapeHtml(String(ports)) : '') + '</div>'
+                        + '</div>'
+                        + '<div style="display:flex;gap:8px;flex-shrink:0;">'
+                        + '<button type="button" data-action="docker-ctr-act" data-id="' + escapeHtml(String(id)) + '" data-op="' + escapeHtml(String(actionType)) + '" style="border:1px solid #0969da;background:#fff;border-radius:8px;padding:6px 10px;cursor:pointer;color:#0969da;">' + escapeHtml(String(actionText)) + '</button>'
+                        + '<button type="button" data-action="docker-ctr-rm" data-id="' + escapeHtml(String(id)) + '" style="border:1px solid #cf222e;background:#fff;border-radius:8px;padding:6px 10px;cursor:pointer;color:#cf222e;">删除</button>'
+                        + '</div>'
+                        + '</div>';
+                }).join('') + '</div>';
+
+                Array.from(containersEl.querySelectorAll('button[data-action="docker-ctr-act"]')).forEach(function(btn) {
+                    btn.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        const id = btn.getAttribute('data-id') || '';
+                        const op = btn.getAttribute('data-op') || '';
+                        if (!id || !op) return;
+                        const url = op === 'stop' ? '/api/docker/container/stop' : '/api/docker/container/start';
+                        __postJson(url, { id: id })
+                            .then(function(data) {
+                                const payload = apiData(data);
+                                const msg = payload && payload.message ? payload.message : '已提交';
+                                if (typeof window.showToast === 'function') window.showToast(msg, 'success');
+                                window.loadDockerTabs('containers');
+                            })
+                            .catch(function() {
+                                if (typeof window.showToast === 'function') window.showToast('操作失败', 'error');
+                            });
+                    });
+                });
+
+                Array.from(containersEl.querySelectorAll('button[data-action="docker-ctr-rm"]')).forEach(function(btn) {
+                    btn.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        const id = btn.getAttribute('data-id') || '';
+                        if (!id) return;
+                        const ok = window.confirm('确认删除容器 ' + id + ' ?');
+                        if (!ok) return;
+                        __postJson('/api/docker/container/rm', { id: id, force: true })
+                            .then(function(data) {
+                                const payload = apiData(data);
+                                const msg = payload && payload.message ? payload.message : '已提交';
+                                if (typeof window.showToast === 'function') window.showToast(msg, 'success');
+                                window.loadDockerTabs('containers');
+                            })
+                            .catch(function() {
+                                if (typeof window.showToast === 'function') window.showToast('删除失败', 'error');
+                            });
+                    });
+                });
+            })
+            .catch(function() {
+                if (containersEl) containersEl.innerHTML = __errorHtml('加载失败（Docker 可能未安装）');
+            });
+    }
+};
+
+function __systemdControl(service, action) {
+    const svc = String(service || '');
+    const act = String(action || '');
+    if (!svc || !act) return;
+    if (typeof window.showTaskListener === 'function') window.showTaskListener('正在执行 ' + act + ' …');
+    __postJson('/api/systemd/control', { service: svc, action: act })
+        .then(function(data) {
+            const payload = apiData(data);
+            const taskId = payload && payload.taskId ? payload.taskId : null;
+            if (!taskId || !window.TaskPoller || typeof window.TaskPoller.start !== 'function') {
+                if (typeof window.hideTaskListener === 'function') window.hideTaskListener();
+                window.loadSystemdList();
+                return;
+            }
+            if (window.__activeTaskPoller && typeof window.__activeTaskPoller.cancel === 'function') {
+                window.__activeTaskPoller.cancel();
+                window.__activeTaskPoller = null;
+            }
+            window.__activeTaskPoller = window.TaskPoller.start(taskId, {
+                intervalMs: 900,
+                timeoutMs: 30 * 1000,
+                onUpdate: function(evt) {
+                    if (!evt) return;
+                    const st = evt.status;
+                    if (typeof window.showTaskListener === 'function') window.showTaskListener('systemd ' + act + '：' + (st || 'running') + ' …');
+                }
+            });
+            window.__activeTaskPoller.promise.then(function(res) {
+                window.__activeTaskPoller = null;
+                if (typeof window.hideTaskListener === 'function') window.hideTaskListener();
+                if (!res || !res.ok) {
+                    if (typeof window.showToast === 'function') window.showToast('操作失败', 'error');
+                    window.loadSystemdList();
+                    return;
+                }
+                if (typeof window.showToast === 'function') window.showToast('操作完成', 'success');
+                window.loadSystemdList();
+            });
+        })
+        .catch(function() {
+            if (typeof window.hideTaskListener === 'function') window.hideTaskListener();
+            if (typeof window.showToast === 'function') window.showToast('操作失败', 'error');
+        });
+}
+
+window.loadSystemdList = function() {
+    const container = __setContainerHtml('systemdListContainer', __loadingHtml('加载中...'));
+    fetch('/api/systemd/list', { headers: authHeaders() })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            const payload = apiData(data);
+            if (!container) return;
+            const services = payload && Array.isArray(payload.services) ? payload.services : [];
+            if (!services.length) {
+                container.innerHTML = __emptyHtml('暂无服务数据');
+                return;
+            }
+            container.innerHTML = '<div style="display:flex;flex-direction:column;gap:10px;">' + services.map(function(s) {
+                const name = s.name || '-';
+                const desc = s.description || '';
+                const active = s.active || '';
+                const sub = s.sub || '';
+                const enabled = !!s.enabled;
+                const isActive = String(active).toLowerCase() === 'active';
+                const badgeColor = isActive ? '#2da44e' : '#cf222e';
+                const badgeText = isActive ? 'active' : (active || 'inactive');
+                return '<div style="border:1px solid #d0d7de;border-radius:10px;background:#fff;padding:12px 14px;">'
+                    + '<div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;">'
+                    + '<div style="min-width:0;">'
+                    + '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">'
+                    + '<div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + escapeHtml(String(name)) + '</div>'
+                    + '<span style="font-size:11px;padding:2px 8px;border-radius:999px;background:' + badgeColor + ';color:#fff;">' + escapeHtml(String(badgeText)) + '</span>'
+                    + (enabled ? '<span style="font-size:11px;padding:2px 8px;border-radius:999px;background:#ddf4ff;color:#0969da;">enabled</span>' : '')
+                    + '</div>'
+                    + (desc ? '<div style="font-size:12px;color:#57606a;margin-top:2px;word-break:break-word;">' + escapeHtml(String(desc)) + '</div>' : '')
+                    + '<div style="font-size:12px;color:#57606a;margin-top:2px;">' + escapeHtml(String(active)) + (sub ? ' (' + escapeHtml(String(sub)) + ')' : '') + '</div>'
+                    + '</div>'
+                    + '<div style="display:flex;gap:8px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end;">'
+                    + '<button type="button" data-action="systemd" data-op="start" data-name="' + escapeHtml(String(name)) + '" style="border:1px solid #2da44e;background:#fff;border-radius:8px;padding:6px 10px;cursor:pointer;color:#2da44e;">启动</button>'
+                    + '<button type="button" data-action="systemd" data-op="stop" data-name="' + escapeHtml(String(name)) + '" style="border:1px solid #cf222e;background:#fff;border-radius:8px;padding:6px 10px;cursor:pointer;color:#cf222e;">停止</button>'
+                    + '<button type="button" data-action="systemd" data-op="restart" data-name="' + escapeHtml(String(name)) + '" style="border:1px solid #0969da;background:#fff;border-radius:8px;padding:6px 10px;cursor:pointer;color:#0969da;">重启</button>'
+                    + '</div>'
+                    + '</div>'
+                    + '</div>';
+            }).join('') + '</div>';
+
+            Array.from(container.querySelectorAll('button[data-action="systemd"]')).forEach(function(btn) {
+                btn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const op = btn.getAttribute('data-op') || '';
+                    const name = btn.getAttribute('data-name') || '';
+                    if (!op || !name) return;
+                    __systemdControl(name, op);
+                });
+            });
+        })
+        .catch(function() {
+            if (container) container.innerHTML = __errorHtml('加载失败（可能不支持此系统）');
+        });
+};
+
+window.loadDiskList = function() {
+    const container = __setContainerHtml('diskListContainer', __loadingHtml('加载中...'));
+    fetch('/api/disk/list', { headers: authHeaders() })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            const payload = apiData(data);
+            if (!container) return;
+            const disks = payload && Array.isArray(payload.disks) ? payload.disks : [];
+            if (!disks.length) {
+                container.innerHTML = __emptyHtml('暂无磁盘数据');
+                return;
+            }
+            container.innerHTML = '<div style="display:flex;flex-direction:column;gap:10px;">' + disks.map(function(d) {
+                const dev = d.device || '-';
+                const total = d.total || '-';
+                const used = d.used || '-';
+                const avail = d.available || '-';
+                const pct = d.use_percent || '-';
+                const mp = d.mountpoint || '-';
+                const fs = d.fstype || '';
+                return '<div style="border:1px solid #d0d7de;border-radius:10px;background:#fff;padding:12px 14px;">'
+                    + '<div style="font-weight:600;word-break:break-all;">' + escapeHtml(String(dev)) + '</div>'
+                    + '<div style="font-size:12px;color:#57606a;margin-top:2px;word-break:break-all;">挂载：' + escapeHtml(String(mp)) + (fs ? ' · ' + escapeHtml(String(fs)) : '') + '</div>'
+                    + '<div style="display:flex;gap:10px;flex-wrap:wrap;font-size:12px;color:#57606a;margin-top:6px;">'
+                    + '<span>已用 ' + escapeHtml(String(used)) + '</span>'
+                    + '<span>可用 ' + escapeHtml(String(avail)) + '</span>'
+                    + '<span>总量 ' + escapeHtml(String(total)) + '</span>'
+                    + '<span>使用率 ' + escapeHtml(String(pct)) + '%</span>'
+                    + '</div>'
+                    + '</div>';
+            }).join('') + '</div>';
+        })
+        .catch(function() {
+            if (container) container.innerHTML = __errorHtml('加载失败（可能不支持此系统）');
+        });
+};
+
+window.loadNetworkList = function() {
+    const container = __setContainerHtml('networkListContainer', __loadingHtml('加载中...'));
+    fetch('/api/network/list', { headers: authHeaders() })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            const payload = apiData(data);
+            if (!container) return;
+            const interfaces = payload && Array.isArray(payload.interfaces) ? payload.interfaces : [];
+            if (!interfaces.length) {
+                container.innerHTML = __emptyHtml('暂无网络信息');
+                return;
+            }
+            container.innerHTML = '<div style="display:flex;flex-direction:column;gap:10px;">' + interfaces.map(function(n) {
+                const name = n.name || '-';
+                const state = n.state || '-';
+                const ipv4 = n.ipv4 || '';
+                const ipv6 = n.ipv6 || '';
+                const mac = n.mac || '';
+                const mtu = n.mtu || '';
+                const bc = n.broadcast || '';
+                const up = String(state).toUpperCase() === 'UP';
+                const badgeColor = up ? '#2da44e' : '#cf222e';
+                return '<div style="border:1px solid #d0d7de;border-radius:10px;background:#fff;padding:12px 14px;">'
+                    + '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">'
+                    + '<div style="font-weight:600;">' + escapeHtml(String(name)) + '</div>'
+                    + '<span style="font-size:11px;padding:2px 8px;border-radius:999px;background:' + badgeColor + ';color:#fff;">' + escapeHtml(String(state)) + '</span>'
+                    + (mtu ? '<span style="font-size:11px;padding:2px 8px;border-radius:999px;background:#f6f8fa;color:#57606a;">MTU ' + escapeHtml(String(mtu)) + '</span>' : '')
+                    + '</div>'
+                    + '<div style="font-size:12px;color:#57606a;margin-top:6px;display:flex;flex-direction:column;gap:4px;">'
+                    + (ipv4 ? '<div>IPv4：' + escapeHtml(String(ipv4)) + '</div>' : '')
+                    + (ipv6 ? '<div>IPv6：' + escapeHtml(String(ipv6)) + '</div>' : '')
+                    + (mac ? '<div>MAC：' + escapeHtml(String(mac)) + '</div>' : '')
+                    + (bc ? '<div>Broadcast：' + escapeHtml(String(bc)) + '</div>' : '')
+                    + '</div>'
+                    + '</div>';
+            }).join('') + '</div>';
+        })
+        .catch(function() {
+            if (container) container.innerHTML = __errorHtml('加载失败（可能不支持此系统）');
+        });
+};
+
 window.closeGitModal = function() { Drawer.close('gitModal'); };
 window.openGitModal = function() { Drawer.open('gitModal'); loadGitList(); };
 window.openProcessModal = function() { Drawer.open('processModal'); loadProcessList(); };
