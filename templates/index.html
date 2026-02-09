@@ -8,26 +8,26 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/default.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.min.css" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
-    <script src="{{ url_for('static', filename='js/clipboard.min.js') }}"></script>
+    <script src="/static/js/clipboard.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.min.js"></script>
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="/static/css/style.css">
     <!-- 全局函数预加载（必须在最前） -->
-    <script src="{{ url_for('static', filename='js/globals.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/clipboard.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/task_poller.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/task_actions.js') }}"></script>
+    <script src="/static/js/globals.js"></script>
+    <script src="/static/js/file_clipboard.js"></script>
+    <script src="/static/js/task_poller.js"></script>
+    <script src="/static/js/task_actions.js"></script>
     <script>
         window.SERVER_IS_WINDOWS = {{ 'true' if server_is_windows() else 'false' }};
     </script>
     <!-- 功能模块 -->
-    <script src="{{ url_for('static', filename='js/utils.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/terminal.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/preview.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/bot.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/file_browser.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/system_monitor.js') }}"></script>
+    <script src="/static/js/terminal.js"></script>
+    <script src="/static/js/preview.js"></script>
+    <script src="/static/js/bot.js"></script>
+    <script src="/static/js/file_browser.js"></script>
+    <script src="/static/js/git.js"></script>
+    <script src="/static/js/system_monitor.js"></script>
 </head>
 <style>
         * {

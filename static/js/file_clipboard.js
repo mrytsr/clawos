@@ -232,7 +232,6 @@
             filenameEl.textContent = fileText;
             bar.style.display = 'flex';
             bar.setAttribute('aria-hidden', 'false');
-            // Force reflow
             void bar.offsetWidth;
             bar.classList.add('visible');
         }
@@ -256,11 +255,9 @@
             return;
         }
 
-        // Get current path from DOM (assuming input#currentBrowsePath exists)
         var currentPathInput = document.getElementById('currentBrowsePath');
         var targetDir = currentPathInput ? currentPathInput.value : '';
 
-        // Construct API payload
         var endpoint = state.op === 'cut' ? '/api/batch/move' : '/api/batch/copy';
         var payload = {
             paths: state.paths,
@@ -279,7 +276,6 @@
             if (data.success) {
                 clear();
                 removeDom();
-                // Show toast
                 if (window.showToast) {
                     var msg = '';
                     if (state.count === 1) {
@@ -290,12 +286,10 @@
                     }
                     window.showToast(msg, 'success');
                 }
-                // Refresh list
                 if (window.refreshFileList) {
                     window.refreshFileList();
                 }
             } else {
-                // Keep bar, show error
                 if (window.showToast) {
                     var errMsg = (data && data.error && data.error.message) || data.message || '未知错误';
                     window.showToast('操作失败: ' + errMsg, 'error');
@@ -320,7 +314,6 @@
         }
     }
 
-    // Auto init on load
     if (typeof document !== 'undefined') {
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', init);
@@ -331,7 +324,7 @@
 
     return {
         set: set,
-        write: set, // Alias for backward compatibility if needed
+        write: set,
         read: read,
         clear: clear,
         show: show,

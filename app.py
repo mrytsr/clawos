@@ -21,7 +21,7 @@ from ctrl.system_ctrl import system_bp
 from ctrl.task_ctrl import task_bp
 from ctrl.term import register_term_socketio
 
-app = Flask(__name__, static_folder='static', template_folder='templates')
+app = Flask(__name__, static_folder='static', static_url_path='/static', template_folder='templates')
 app.config['SECRET_KEY'] = os.urandom(24).hex()
 socketio = SocketIO(
     app,

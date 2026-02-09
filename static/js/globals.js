@@ -1,3 +1,55 @@
+function escapeHtml(text) {
+    if (!text) return '';
+    return String(text)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+function showUploadStatus(message) {
+    var statusDiv = document.getElementById('uploadStatus');
+    if (statusDiv) {
+        statusDiv.textContent = message;
+        statusDiv.style.display = 'block';
+        setTimeout(function() {
+            statusDiv.style.display = 'none';
+        }, 3000);
+    }
+}
+
+function showToast(message, type) {
+    var t = type || 'info';
+    var container = document.getElementById('toastContainer');
+    if (!container) return;
+
+    var toast = document.createElement('div');
+    toast.className = 'toast toast-' + t;
+
+    var icons = {
+        success: '✅',
+        error: '❌',
+        warning: '⚠️',
+        info: 'ℹ️'
+    };
+
+    toast.innerHTML =
+        '<span style="font-size: 18px;">' + (icons[t] || icons.info) + '</span>' +
+        '<span class="toast-message">' + escapeHtml(message) + '</span>';
+
+    container.appendChild(toast);
+
+    setTimeout(function() {
+        toast.classList.add('toast-out');
+        setTimeout(function() { toast.remove(); }, 300);
+    }, 3000);
+}
+
+window.showToast = showToast;
+window.escapeHtml = escapeHtml;
+window.showUploadStatus = showUploadStatus;
+
 // ============ 统一抽屉控制器 ============
 function dispatchDrawerEvent(modalId, eventName, detail) {
     var el = document.getElementById(modalId);

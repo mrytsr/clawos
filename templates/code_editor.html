@@ -150,15 +150,17 @@
         }
     </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/default.min.css">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="/static/css/style.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <script src="/static/js/clipboard.min.js"></script>
+    <script src="/static/js/globals.js"></script>
 </head>
 <body>
     <div class="editor-header">
         <a href="{{ url_for('browser.browse', path=get_relative_path(current_dir)) }}" class="editor-btn">←</a>
         <div class="editor-title-wrap">
             <h1 class="editor-title" id="editorTitleText">{{ filename }}:0</h1>
-            <button id="editorRefBtn" class="editor-btn" type="button" title="复制引用" onclick="copyReference()">引用</button>
+            <button id="editorRefBtn" class="editor-btn" type="button" title="复制引用" onmousedown="event.preventDefault()">引用</button>
         </div>
         <div class="header-buttons">
             <button class="editor-btn" onclick="saveFile()">💾</button>
@@ -172,6 +174,7 @@
         <textarea id="editor">{{ content }}</textarea>
         <div id="saveStatus" class="save-status"></div>
     </div>
+    <div id="toastContainer" class="toast-container"></div>
 
     <script>
         // 根据文件类型设置编辑器模式
@@ -225,6 +228,7 @@
         var __titleEl = document.getElementById('editorTitleText');
         var __refBtn = document.getElementById('editorRefBtn');
         var __rafPending = false;
+        var __refClipboard = null;
 
         function __isSafeRelPath(p) {
             if (typeof p !== 'string') return false;
@@ -258,13 +262,12 @@
         }
 
         function __computeLine() {
-            if (!__editorHasFocus) return 0;
             try {
                 var c = editor.getCursor();
                 if (!c || typeof c.line !== 'number') return 0;
                 return c.line + 1;
             } catch (e) {
-                return 0;
+                return __currentLine || 0;
             }
         }
 
@@ -308,17 +311,54 @@
             }, 450);
         }
 
-        function copyReference() {
-            __updateTitleNow();
-            if (!__refBtn || __refBtn.disabled) {
-                if (window.showToast) window.showToast(__refBtn ? (__refBtn.title || '不可用') : '不可用', 'warning');
-                return;
+        function __computeLineForReference() {
+            try {
+                var c = editor.getCursor();
+                if (c && typeof c.line === 'number') return c.line + 1;
+            } catch (e) {}
+            return __currentLine || 0;
+        }
+
+        function __getReferenceText() {
+            var line = __computeLineForReference();
+            if (line > 0) __currentLine = line;
+            if (__titleEl) __titleEl.textContent = (__baseFilename || 'title.txt') + ':' + (__currentLine || 0);
+            __updateRefBtnState();
+            return __relPath + ':' + (__currentLine || 0);
+        }
+
+        function __initReferenceCopy() {
+            if (!__refBtn) return;
+
+            __refBtn.setAttribute('tabindex', '-1');
+
+            function __keepEditorFocus(e) {
+                if (e) {
+                    if (typeof e.preventDefault === 'function') e.preventDefault();
+                    if (typeof e.stopPropagation === 'function') e.stopPropagation();
+                }
+                try { editor.focus(); } catch (e2) {}
             }
-            var textToCopy = __relPath + ':' + __currentLine;
-            navigator.clipboard.writeText(textToCopy).then(function() {
+
+            __refBtn.addEventListener('pointerdown', __keepEditorFocus, { passive: false });
+            __refBtn.addEventListener('mousedown', __keepEditorFocus, { passive: false });
+            __refBtn.addEventListener('click', __keepEditorFocus, { passive: false });
+
+            if (typeof ClipboardJS !== 'function') return;
+            if (__refClipboard && typeof __refClipboard.destroy === 'function') {
+                __refClipboard.destroy();
+                __refClipboard = null;
+            }
+            __refClipboard = new ClipboardJS(__refBtn, {
+                text: function() {
+                    return __getReferenceText();
+                }
+            });
+            __refClipboard.on('success', function() {
                 __flashRefBtn('copied');
                 if (window.showToast) window.showToast('已复制', 'success');
-            }).catch(function() {
+            });
+            __refClipboard.on('error', function() {
                 __flashRefBtn('copy-failed');
                 if (window.showToast) window.showToast('复制失败', 'error');
             });
@@ -391,6 +431,8 @@
         // 页面加载时应用保存的字体大小
         const savedFontSize = localStorage.getItem('pywebdeck_font_size') || '14';
         document.documentElement.style.setProperty('--global-font-size', savedFontSize + 'px');
+
+        __initReferenceCopy();
     </script>
 </body>
 </html>
