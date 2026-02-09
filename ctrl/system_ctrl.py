@@ -285,30 +285,92 @@ def api_git_list():
     return api_ok({'repos': result})
 
 
+@system_bp.route('/api/git/status')
+def api_git_status():
+    """获取当前目录的Git状态"""
+    import config
+    path = request.args.get('path', '')
+    
+    # 解析绝对路径
+    if path:
+        full_path = os.path.normpath(os.path.join(config.ROOT_DIR, path))
+    else:
+        full_path = config.ROOT_DIR
+    
+    # 安全检查
+    if not full_path.startswith(os.path.normpath(config.ROOT_DIR)):
+        return api_error('Invalid path', status=403)
+    
+    result = git_utils.get_git_status_detailed(full_path)
+    if result:
+        return api_ok(result)
+    else:
+        return api_ok({'is_repo': False})
+
+
+@system_bp.route('/api/git/repo-status')
+def api_git_repo_status():
+    """获取任意路径的仓库信息（状态+日志），用于Git管理抽屉"""
+    import config
+    path = request.args.get('path', '')
+    
+    # 解析绝对路径
+    if path:
+        full_path = os.path.normpath(os.path.join(config.ROOT_DIR, path))
+    else:
+        full_path = config.ROOT_DIR
+    
+    # 安全检查
+    if not full_path.startswith(os.path.normpath(config.ROOT_DIR)):
+        return api_error('Invalid path', status=403)
+    
+    result = git_utils.get_git_repo_info(full_path, max_logs=50)
+    if result:
+        return api_ok(result)
+    else:
+        return api_ok({'is_repo': False})
+
+
 @system_bp.route('/api/git/commit')
 def api_git_commit():
+    # 支持repoId（兼容）或repoPath（新）
     repo_id = request.args.get('repoId')
+    repo_path_param = request.args.get('repoPath')
     commit_hash = request.args.get('hash')
     include = request.args.get('include', 'summary')
-    if not repo_id or not commit_hash:
-        return api_error('Missing repoId or hash', status=400)
-
-    repo_path = git_utils.resolve_repo_path(repo_id)
+    
+    # 确定仓库路径
+    if repo_path_param:
+        # 使用repoPath参数
+        import config
+        if repo_path_param.startswith(config.ROOT_DIR):
+            repo_path = repo_path_param
+        else:
+            repo_path = os.path.normpath(os.path.join(config.ROOT_DIR, repo_path_param))
+    elif repo_id:
+        # 使用repoId（兼容旧版）
+        repo_path = git_utils.resolve_repo_path(repo_id)
+    else:
+        return api_error('Missing repoId or repoPath', status=400)
+    
     if not repo_path:
-        return api_error('Invalid repoId', status=400)
+        return api_error('Invalid repository', status=400)
+    
+    if not commit_hash:
+        return api_error('Missing hash', status=400)
 
     log_text = git_utils.get_commit_log_text(repo_path, commit_hash)
     if not log_text:
         return api_error('Failed to get commit log', status=400)
 
     if include == 'summary':
-        return api_ok({'repoId': repo_id, 'hash': commit_hash, 'log': log_text})
+        return api_ok({'repoPath': repo_path, 'hash': commit_hash, 'log': log_text})
 
     numstat = git_utils.get_commit_numstat(repo_path, commit_hash) or []
     diff_text = git_utils.get_commit_diff_text(repo_path, commit_hash) or ''
     return api_ok(
         {
-            'repoId': repo_id,
+            'repoPath': repo_path,
             'hash': commit_hash,
             'log': log_text,
             'numstat': numstat,
@@ -319,14 +381,28 @@ def api_git_commit():
 
 @system_bp.route('/api/git/commit/patch')
 def api_git_commit_patch():
+    # 支持repoId（兼容）或repoPath（新）
     repo_id = request.args.get('repoId')
+    repo_path_param = request.args.get('repoPath')
     commit_hash = request.args.get('hash')
-    if not repo_id or not commit_hash:
-        return api_error('Missing repoId or hash', status=400)
-
-    repo_path = git_utils.resolve_repo_path(repo_id)
+    
+    # 确定仓库路径
+    if repo_path_param:
+        import config
+        if repo_path_param.startswith(config.ROOT_DIR):
+            repo_path = repo_path_param
+        else:
+            repo_path = os.path.normpath(os.path.join(config.ROOT_DIR, repo_path_param))
+    elif repo_id:
+        repo_path = git_utils.resolve_repo_path(repo_id)
+    else:
+        return api_error('Missing repoId or repoPath', status=400)
+    
     if not repo_path:
-        return api_error('Invalid repoId', status=400)
+        return api_error('Invalid repository', status=400)
+    
+    if not commit_hash:
+        return api_error('Missing hash', status=400)
 
     patch_text = git_utils.get_commit_patch_text(repo_path, commit_hash)
     if not patch_text:
@@ -341,20 +417,36 @@ def api_git_commit_patch():
 
 @system_bp.route('/git/commit')
 def git_commit_page():
+    # 支持repoId（兼容）或repoPath（新）
     repo_id = request.args.get('repoId')
+    repo_path_param = request.args.get('repoPath')
     commit_hash = request.args.get('hash')
-    if not repo_id or not commit_hash:
-        return api_error('Missing repoId or hash', status=400)
-
-    repo_path = git_utils.resolve_repo_path(repo_id)
+    
+    if not commit_hash:
+        return api_error('Missing hash', status=400)
+    
+    # 确定仓库路径
+    if repo_path_param:
+        import config
+        if repo_path_param.startswith(config.ROOT_DIR):
+            repo_path = repo_path_param
+        else:
+            repo_path = os.path.normpath(os.path.join(config.ROOT_DIR, repo_path_param))
+        # 生成一个假的repo_id（用于patch URL）
+        repo_id = f"path_{hash(repo_path) % 100000}"
+    elif repo_id:
+        repo_path = git_utils.resolve_repo_path(repo_id)
+    else:
+        return api_error('Missing repoId or repoPath', status=400)
+    
     if not repo_path:
-        return api_error('Invalid repoId', status=400)
+        return api_error('Invalid repository', status=400)
 
     repo_name = os.path.basename(repo_path) or repo_path
     log_text = git_utils.get_commit_log_text(repo_path, commit_hash) or ''
     numstat = git_utils.get_commit_numstat(repo_path, commit_hash) or []
     diff_text = git_utils.get_commit_diff_text(repo_path, commit_hash) or ''
-    patch_url = f'/api/git/commit/patch?repoId={repo_id}&hash={commit_hash}'
+    patch_url = f'/api/git/commit/patch?repoPath={repo_path}&hash={commit_hash}'
 
     return render_template(
         'git_commit.html',

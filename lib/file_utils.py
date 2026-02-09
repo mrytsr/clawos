@@ -17,12 +17,33 @@ CODE_EXTENSIONS = {
 
 
 def get_file_info(path):
-    """获取文件信息"""
-    stat = os.stat(path)
+    """获取文件信息，处理符号链接失效的情况"""
+    try:
+        # 优先使用 os.stat() 获取目标文件信息
+        stat = os.stat(path)
+        is_link = os.path.islink(path)
+        target_exists = os.path.exists(path) if is_link else True
+    except (FileNotFoundError, OSError):
+        # 符号链接失效或文件不存在，使用 os.lstat() 获取链接本身信息
+        try:
+            stat = os.lstat(path)
+            is_link = True
+            target_exists = False
+        except (FileNotFoundError, OSError):
+            # 完全无法获取信息，返回默认值
+            return {
+                'size': 0,
+                'modified': '-',
+                'is_dir': False,
+                'is_broken_link': True
+            }
+    
     return {
         'size': stat.st_size,
         'modified': datetime.fromtimestamp(stat.st_mtime).strftime('%Y-%m-%d %H:%M:%S'),
-        'is_dir': os.path.isdir(path)
+        'is_dir': os.path.isdir(path) if target_exists else False,
+        'is_link': is_link,
+        'target_exists': target_exists
     }
 
 
@@ -34,7 +55,15 @@ def list_directory(directory):
             if item in HIDDEN_FOLDERS:
                 continue
             item_path = os.path.join(directory, item)
-            if os.path.isdir(item_path):
+            is_symlink = os.path.islink(item_path)
+            
+            # 处理符号链接失效的情况
+            try:
+                is_dir = os.path.isdir(item_path)  # os.path.isdir() 会跟随软链接
+            except (OSError, FileNotFoundError):
+                is_dir = False
+            
+            if is_dir:
                 info = get_file_info(item_path)
                 items.append({
                     'name': item,
@@ -44,7 +73,8 @@ def list_directory(directory):
                     'modified': info['modified'],
                     'is_dir': True,
                     'is_image': False,
-                    'extension': ''
+                    'extension': '',
+                    'is_symlink': is_symlink
                 })
             else:
                 _, ext = os.path.splitext(item)
@@ -58,7 +88,8 @@ def list_directory(directory):
                     'modified': info['modified'],
                     'is_dir': False,
                     'is_image': is_image,
-                    'extension': ext.lower()
+                    'extension': ext.lower(),
+                    'is_symlink': is_symlink
                 })
     except PermissionError:
         pass
@@ -84,6 +115,15 @@ def get_file_details(path, root_dir):
             pwd = None
         stat = os.stat(full_path)
         is_dir = os.path.isdir(full_path)
+
+        # 检查是否是软链接
+        is_symlink = os.path.islink(full_path)
+        link_target = ''
+        if is_symlink:
+            try:
+                link_target = os.readlink(full_path)
+            except Exception:
+                link_target = '?'
 
         perms = oct(stat.st_mode)[-3:]
 
@@ -116,6 +156,8 @@ def get_file_details(path, root_dir):
                 'path': path,
                 'name': os.path.basename(full_path),
                 'is_dir': is_dir,
+                'is_symlink': is_symlink,
+                'link_target': link_target,
                 'size': size,
                 'size_human': size_human,
                 'permissions': perms,

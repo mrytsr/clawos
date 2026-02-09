@@ -2,8 +2,8 @@ import os
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
-ROOT_DIR = os.path.dirname(os.path.dirname(SCRIPT_DIR))
-#ROOT_DIR = '/home/tjx'
+ROOT_DIR = os.path.expanduser('~')  # 动态获取当前用户home目录
+# ROOT_DIR = '/home/tjx'  # 硬编码示例
 CONVERSATION_FILE = os.path.join(SCRIPT_DIR, 'data', 'conversations.json')
 TRASH_DIR = os.path.join(ROOT_DIR, '_trash')
 

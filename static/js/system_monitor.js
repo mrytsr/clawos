@@ -1,420 +1,65 @@
-// ============ 系统监控加载函数模块 ============
-/* global fetch, escapeHtml, Drawer, loadGitList, loadProcessList, loadSystemPackageList, loadPipList, loadNpmList, loadDockerTabs, loadSystemdList, loadDiskList, loadNetworkList, loadGpuInfo, loadOllamaModels, loadOpenclawConfig, formatBytes, sortProcesses, filterProcesses, showProcessDetail, authHeaders */
-
-///<reference path="../globals.d.ts" />
-
-function apiData(resp) {
-    return resp && resp.success ? resp.data : null;
-}
-
-function formatBytes(bytes) {
-    bytes = Number(bytes) || 0;
-    if (bytes < 1024) return bytes + ' B';
-    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-    if (bytes < 1024 * 1024 * 1024) return (bytes / 1024 / 1024).toFixed(1) + ' MB';
-    return (bytes / 1024 / 1024 / 1024).toFixed(2) + ' GB';
-}
-
-// 进程管理
-window.loadProcessList = function() {
-    const container = document.getElementById('processListContainer');
-    if (container) container.innerHTML = '<div style="text-align:center;padding:40px;color:#666;">🔄 加载中...</div>';
-    fetch('/api/process/list', { headers: authHeaders() })
-        .then(r => r.json())
-        .then(data => {
-            const payload = apiData(data);
-            if (payload && container) {
-                const stats = payload.stats || {};
-                const processes = payload.processes || [];
-                
-                const memUsed = formatBytes(stats.memory_used || 0);
-                const memTotal = formatBytes(stats.memory_total || 1);
-                const memPercent = stats.memory_percent || 0;
-                const cpuPercent = stats.cpu_percent || 0;
-                const processCount = stats.process_count || 0;
-                
-                const statsHtml = '<div style="display:flex;flex-wrap:wrap;gap:8px;padding:12px;background:#f6f8fa;border-bottom:1px solid #eee;">' +
-                    '<span>💻 CPU: ' + cpuPercent + '%</span>' +
-                    '<span>🧠 ' + memUsed + '/' + memTotal + ' (' + memPercent + '%)</span>' +
-                    '<span>📊 ' + processCount + ' 进程</span>' +
-                    '</div>' +
-                    '<div style="display:flex;gap:8px;padding:8px 12px;border-bottom:1px solid #eee;">' +
-                    '<select id="processSortSelect" onchange="sortProcesses(this.value)" style="flex:1;padding:8px;border:1px solid #ddd;border-radius:6px;font-size:13px;">' +
-                    '<option value="cpu" selected>按 CPU 使用率</option>' +
-                    '<option value="memory">按内存使用率</option>' +
-                    '<option value="pid">按 PID</option>' +
-                    '<option value="name">按进程名</option>' +
-                    '</select>' +
-                    '<input type="text" id="processSearchInput" ' +
-                    'placeholder="🔍 搜索..." ' +
-                    'oninput="filterProcesses()" ' +
-                    'style="flex:2;padding:8px;border:1px solid #ddd;border-radius:6px;font-size:13px;">' +
-                    '</div>' +
-                    '<div id="processCardsContainer"></div>';
-                
-                container.innerHTML = statsHtml;
-                
-                window._processData = processes;
-                renderProcessCards(processes.slice(0, 100), 'cpu');
-            }
-        })
-        .catch(function() {
-            if (container) container.innerHTML = '<div style="text-align:center;padding:40px;color:#cf222e;">加载失败</div>';
-        });
-};
-
-function renderProcessCards(processList, sortBy) {
-    const cardsContainer = document.getElementById('processCardsContainer');
-    if (!cardsContainer) return;
+window.loadGitList = function(specificRepoPath) {
+    const container = document.getElementById('gitListContainer');
+    if (container) container.innerHTML = '<div style="text-align:center;padding:20px;color:#666;">🔄 加载中...</div>';
     
-    const sorted = processList.slice().sort(function(a, b) {
-        if (sortBy === 'cpu') return (b.cpu_percent || 0) - (a.cpu_percent || 0);
-        if (sortBy === 'memory') return (b.memory_percent || 0) - (a.memory_percent || 0);
-        if (sortBy === 'pid') return (a.pid || 0) - (b.pid || 0);
-        if (sortBy === 'name') return (a.command || '').localeCompare(b.command || '');
-        return 0;
-    });
-    
-    const limited = sorted.slice(0, 100);
-    
-    if (limited.length === 0) {
-        cardsContainer.innerHTML = '<div style="text-align:center;padding:40px;color:#666;">没有找到进程</div>';
+    // 如果指定了路径，直接获取该仓库的信息
+    if (specificRepoPath) {
+        fetch('/api/git/repo-status?path=' + encodeURIComponent(specificRepoPath), { headers: authHeaders() })
+            .then(r => r.json())
+            .then(data => {
+                const payload = apiData(data);
+                if (container) {
+                    if (payload && payload.is_repo) {
+                        const repo = payload;
+                        const branch = repo.branch || 'unknown';
+                        const commit = repo.commit || '';
+                        const repoStatus = repo.status || {};
+                        const hasChanges = repoStatus.has_changes || false;
+                        
+                        // 状态显示
+                        let statusText = hasChanges ? '✗ Dirty' : '✓ Clean';
+                        let statusClass = hasChanges ? 'dirty' : 'clean';
+                        let changeInfo = '';
+                        if (hasChanges) {
+                            const changes = [];
+                            if (repoStatus.untracked > 0) changes.push('[+' + repoStatus.untracked + ']');
+                            if (repoStatus.modified > 0) changes.push('[~' + repoStatus.modified + ']');
+                            if (repoStatus.deleted > 0) changes.push('[-' + repoStatus.deleted + ']');
+                            if (changes.length > 0) changeInfo = ' ' + changes.join(' ');
+                        }
+                        
+                        // 日志列表
+                        const logs = repo.logs || [];
+                        let logsHtml = '';
+                        if (logs.length === 0) {
+                            logsHtml = '<div style="padding:16px;text-align:center;color:#666;">暂无提交记录</div>';
+                        } else {
+                            logsHtml = logs.map(function(log) {
+                                const time = escapeHtml(log.committed_at || '');
+                                const subject = escapeHtml(log.subject || '');
+                                const shortHash = escapeHtml(String(log.hash || '').slice(0, 7));
+                                const hash = escapeHtml(log.hash || '');
+                                const repoPath = escapeHtml(specificRepoPath);
+                                return '<div class="git-item" data-hash="' + hash + '" onclick="loadGitCommitDetail(\'' + repoPath + '\', \'' + hash + '\')"><div class="git-meta"><span class="git-time">' + time + '</span><span class="git-hash" data-hash="' + hash + '" data-repo="' + repoPath + '">' + shortHash + '</span><span style="background:#ddf4ff;color:#0969da;padding:1px 6px;border-radius:999px;font-size:10px;">' + escapeHtml(branch) + '</span></div><div class="git-subject" title="' + subject + '">' + (subject || '-') + '</div></div>';
+                            }).join('');
+                        }
+                        
+                        // 头部信息
+                        const headerHtml = '<div style="padding:12px 16px;background:#f6f8fa;border-bottom:1px solid #d0d7de;border-radius:8px 8px 0 0;"><div style="font-size:14px;font-weight:600;color:#24292f;margin-bottom:8px;">📦 ' + escapeHtml(repo.name) + '</div><div style="font-size:12px;color:#57606a;">分支: <span style="background:#ddf4ff;color:#0969da;padding:1px 6px;border-radius:999px;font-size:10px;">' + escapeHtml(branch) + '</span> <span style="font-family:ui-monospace;color:#57606a;">@' + escapeHtml(commit) + '</span></div><div style="font-size:12px;color:#57606a;margin-top:4px;word-break:break-all;">路径: ' + escapeHtml(repo.path) + '</div><div style="font-size:12px;color:' + (hasChanges ? '#cf222e' : '#2da44e') + ';margin-top:4px;">' + statusText + changeInfo + '</div></div>';
+                        
+                        container.innerHTML = '<div class="git-shell">' + headerHtml + '<div class="git-list" id="gitLogList">' + logsHtml + '</div></div>';
+                    } else {
+                        container.innerHTML = '<div style="padding:16px;text-align:center;color:#cf222e;">此目录不是Git仓库</div>';
+                    }
+                }
+            })
+            .catch(function() {
+                if (container) container.innerHTML = '<div style="padding:16px;text-align:center;color:#cf222e;">加载失败</div>';
+            });
         return;
     }
     
-    cardsContainer.innerHTML = limited.map(function(p, index) {
-        return renderProcessCard(p, index + 1);
-    }).join('');
-}
-
-window.sortProcesses = function(sortBy) {
-    if (!window._processData) return;
-    const searchKeyword = document.getElementById('processSearchInput').value.toLowerCase();
-    let filtered = window._processData;
-    if (searchKeyword) {
-        filtered = window._processData.filter(function(p) {
-            return (p.command || '').toLowerCase().includes(searchKeyword) || 
-                   (p.full_command || '').toLowerCase().includes(searchKeyword);
-        });
-    }
-    renderProcessCards(filtered, sortBy);
-};
-
-window.filterProcesses = function() {
-    const sortBy = document.getElementById('processSortSelect').value;
-    sortProcesses(sortBy);
-};
-
-function renderProcessCard(p, index) {
-    const cpuPercent = p.cpu_percent || 0;
-    const memPercent = p.memory_percent || 0;
-    const command = p.command || '?';
-    const fullCommand = p.full_command || command;
-    const pid = p.pid || 0;
-    const elapsed = p.elapsed || '0:00';
-    const icon = getProcessIcon(command);
-    const ports = p.ports || [];
-    
-    let cpuColor = '#07c160';
-    if (cpuPercent > 80) cpuColor = '#cf222e';
-    else if (cpuPercent > 50) cpuColor = '#d29922';
-    
-    let displayPath = fullCommand;
-    if (displayPath.length > 50) displayPath = displayPath.substring(0, 50) + '...';
-    
-    return '<div class="process-card" data-name="' + (p.command || '').toLowerCase() + '" onclick="showProcessDetail(' + pid + ')" style="cursor:pointer;padding:12px;border-bottom:1px solid #eee;">' +
-        '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">' +
-        '<span style="color:#999;font-size:12px;width:24px;">' + index + '.</span>' +
-        '<span>' + icon + '</span>' +
-        '<span style="font-weight:500;font-size:14px;flex:1;">' + escapeHtml(command) + '</span>' +
-        (cpuPercent > 0 ? '<span style="font-size:12px;color:#666;">' + cpuPercent.toFixed(1) + '%</span>' : '') +
-        '</div>' +
-        '<div style="height:4px;background:#e1e4e8;border-radius:2px;overflow:hidden;margin:6px 0 4px 32px;">' +
-        '<div style="height:100%;width:' + cpuPercent + '%;background-color:' + cpuColor + ';border-radius:2px;"></div>' +
-        '</div>' +
-        '<div style="display:flex;flex-wrap:wrap;gap:8px;font-size:11px;color:#666;margin-left:32px;">' +
-        '<span>💭 ' + memPercent.toFixed(1) + '%</span>' +
-        '<span>⏱️ ' + elapsed + '</span>' +
-        '<span>👤 ' + escapeHtml(p.user || '?') + '</span>' +
-        '<span style="font-family:monospace;">PID:' + pid + '</span>' +
-        '</div>' +
-        '</div>';
-}
-
-window.showProcessDetail = function(pid) {
-    if (!window._processData) return;
-    const p = window._processData.find(function(proc) { return proc.pid === pid; });
-    if (!p) return;
-    
-    const detailHtml = '<div style="padding:16px;">' +
-        '<h3 style="margin:0 0 16px 0;font-size:16px;">' + getProcessIcon(p.command || '') + ' ' + escapeHtml(p.command || '?') + '</h3>' +
-        '<div style="font-size:13px;line-height:1.8;">' +
-        '<div><span style="color:#666;">PID:</span> ' + p.pid + '</div>' +
-        '<div><span style="color:#666;">CPU:</span> ' + (p.cpu_percent || 0).toFixed(1) + '%</div>' +
-        '<div><span style="color:#666;">内存:</span> ' + (p.memory_percent || 0).toFixed(1) + '%</div>' +
-        '<div><span style="color:#666;">运行时长:</span> ' + (p.elapsed || '-') + '</div>' +
-        '<div><span style="color:#666;">用户:</span> ' + (p.user || '-') + '</div>' +
-        '<div style="margin-top:12px;"><span style="color:#666;">命令:</span><br><code style="font-size:11px;word-break:break-all;background:#f6f8fa;padding:8px;border-radius:4px;display:block;margin-top:4px;">' + escapeHtml(p.full_command || '-') + '</code></div>' +
-        '</div>' +
-        '</div>';
-    
-    document.getElementById('processDetailContent').innerHTML = detailHtml;
-    Drawer.open('processDetailModal');
-};
-
-function getProcessIcon(cmd) {
-    var lower = (cmd || '').toLowerCase();
-    var icons = {
-        'chrome': '🚀',
-        'firefox': '🦊',
-        'python': '🐍',
-        'python3': '🐍',
-        'node': '📦',
-        'npm': '📦',
-        'pnpm': '📦',
-        'ssh': '🔐',
-        'docker': '🐳',
-        'nginx': '🌐',
-        'apache': '🌐',
-        'systemd': '⚙️',
-        'mysqld': '🗄️',
-        'postgres': '🗄️',
-        'redis': '🔴',
-        'file_server': '📁',
-        'claws': '🦞',
-        'openclaw': '🦞',
-    };
-    for (var key in icons) {
-        if (icons.hasOwnProperty(key) && lower.includes(key)) {
-            return icons[key];
-        }
-    }
-    return '⚫';
-}
-
-// 系统包管理
-window.loadSystemPackageList = function() {
-    const container = document.getElementById('systemPackageListContainer');
-    if (container) container.innerHTML = '<div style="text-align:center;padding:40px;color:#666;">🔄 加载中...（系统包较多，请稍候）</div>';
-    fetch('/api/system-packages/list', { headers: authHeaders() })
-        .then(r => r.json())
-        .then(data => {
-            const payload = apiData(data);
-            if (payload) {
-                const container = document.getElementById('systemPackageListContainer');
-                if (container && payload.packages) {
-                    let html = '<table style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr style="background:#f6f8fa;"><th style="padding:8px;text-align:left;">包名</th><th style="padding:8px;text-align:left;">版本</th></tr></thead><tbody>';
-                    payload.packages.slice(0,100).forEach(p => {
-                        html += '<tr style="border-bottom:1px solid #eee;"><td style="padding:8px;">' + p.name + '</td><td style="padding:8px;">' + p.version + '</td></tr>';
-                    });
-                    html += '</tbody></table>';
-                    container.innerHTML = html;
-                }
-            }
-        });
-};
-
-// Pip 包管理
-window.loadPipList = function() {
-    const container = document.getElementById('pipListContainer');
-    if (container) container.innerHTML = '<div style="text-align:center;padding:40px;color:#666;">🔄 加载中...</div>';
-    fetch('/api/pip/list', { headers: authHeaders() })
-        .then(r => r.json())
-        .then(data => {
-            const payload = apiData(data);
-            if (payload) {
-                const container = document.getElementById('pipListContainer');
-                if (container && payload.packages) {
-                    let html = '<table style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr style="background:#f6f8fa;"><th style="padding:8px;text-align:left;">包名</th><th style="padding:8px;text-align:left;">版本</th></tr></thead><tbody>';
-                    payload.packages.slice(0,100).forEach(p => {
-                        html += '<tr style="border-bottom:1px solid #eee;"><td style="padding:8px;">' + p.name + '</td><td style="padding:8px;">' + p.version + '</td></tr>';
-                    });
-                    html += '</tbody></table>';
-                    container.innerHTML = html;
-                }
-            }
-        });
-};
-
-// NPM 包管理
-window.loadNpmList = function() {
-    const container = document.getElementById('npmListContainer');
-    if (container) container.innerHTML = '<div style="text-align:center;padding:40px;color:#666;">🔄 加载中...</div>';
-    fetch('/api/npm/list', { headers: authHeaders() })
-        .then(r => r.json())
-        .then(data => {
-            const payload = apiData(data);
-            if (payload) {
-                const container = document.getElementById('npmListContainer');
-                if (container && payload.packages) {
-                    let html = '<table style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr style="background:#f6f8fa;"><th style="padding:8px;text-align:left;">包名</th><th style="padding:8px;text-align:left;">版本</th></tr></thead><tbody>';
-                    payload.packages.slice(0,100).forEach(p => {
-                        html += '<tr style="border-bottom:1px solid #eee;"><td style="padding:8px;">' + p.name + '</td><td style="padding:8px;">' + p.version + '</td></tr>';
-                    });
-                    html += '</tbody></table>';
-                    container.innerHTML = html;
-                }
-            }
-        });
-};
-
-// Docker 标签切换
-window.loadDockerTabs = function(tab) {
-    const imagesContainer = document.getElementById('dockerImagesContainer');
-    const containersContainer = document.getElementById('dockerContainersContainer');
-    
-    if (tab === 'images') {
-        imagesContainer.style.display = 'block';
-        containersContainer.style.display = 'none';
-        if (imagesContainer) imagesContainer.innerHTML = '<div style="text-align:center;padding:40px;color:#666;">🔄 加载中...</div>';
-        fetch('/api/docker/images', { headers: authHeaders() })
-            .then(r => r.json())
-            .then(data => {
-                const payload = apiData(data);
-                if (payload && imagesContainer && payload.images) {
-                    let html = '<table style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr style="background:#f6f8fa;"><th style="padding:8px;text-align:left;">镜像</th><th style="padding:8px;text-align:left;">ID</th><th style="padding:8px;text-align:left;">大小</th><th style="padding:8px;text-align:left;">创建时间</th></tr></thead><tbody>';
-                    payload.images.forEach(img => {
-                        html += '<tr style="border-bottom:1px solid #eee;"><td style="padding:8px;font-family:monospace;">' + (img.repository || img.tag || '?') + '</td><td style="padding:8px;font-family:monospace;font-size:12px;">' + (img.id ? img.id.substring(0,12) : '') + '</td><td style="padding:8px;">' + img.size + '</td><td style="padding:8px;">' + img.created + '</td></tr>';
-                    });
-                    html += '</tbody></table>';
-                    imagesContainer.innerHTML = html;
-                }
-            });
-    } else {
-        imagesContainer.style.display = 'none';
-        containersContainer.style.display = 'block';
-        if (containersContainer) containersContainer.innerHTML = '<div style="text-align:center;padding:40px;color:#666;">🔄 加载中...</div>';
-        fetch('/api/docker/containers', { headers: authHeaders() })
-            .then(r => r.json())
-            .then(data => {
-                const payload = apiData(data);
-                if (payload && containersContainer && payload.containers) {
-                    let html = '<table style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr style="background:#f6f8fa;"><th style="padding:8px;text-align:left;">容器</th><th style="padding:8px;text-align:left;">状态</th><th style="padding:8px;text-align:left;">镜像</th></tr></thead><tbody>';
-                    payload.containers.forEach(c => {
-                        html += '<tr style="border-bottom:1px solid #eee;"><td style="padding:8px;font-family:monospace;">' + (c.names || (c.id ? c.id.substring(0,12) : '')) + '</td><td style="padding:8px;color:' + (c.state==='running'?'#07c160':'#cf222e') + '">' + c.state + '</td><td style="padding:8px;">' + c.image + '</td></tr>';
-                    });
-                    html += '</tbody></table>';
-                    containersContainer.innerHTML = html;
-                }
-            });
-    }
-};
-
-// Systemd 服务
-window.loadSystemdList = function() {
-    const container = document.getElementById('systemdListContainer');
-    if (container) container.innerHTML = '<div style="text-align:center;padding:40px;color:#666;">🔄 加载中...</div>';
-    fetch('/api/systemd/list', { headers: authHeaders() })
-        .then(r => r.json())
-        .then(data => {
-            const payload = apiData(data);
-            if (payload) {
-                const container = document.getElementById('systemdListContainer');
-                if (container && payload.services) {
-                    let html = '<table style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr style="background:#f6f8fa;"><th style="padding:8px;text-align:left;">服务</th><th style="padding:8px;text-align:left;">状态</th><th style="padding:8px;text-align:left;">自启</th><th style="padding:8px;text-align:left;">操作</th></tr></thead><tbody>';
-                    payload.services.slice(0,50).forEach(s => {
-                        const isRunning = s.active && s.active.includes('active');
-                        const timeAgo = formatTimeAgo(s.active_since);
-                        html += '<tr style="border-bottom:1px solid #eee;">' +
-                            '<td style="padding:8px;font-family:monospace;font-size:12px;">' + s.name.replace('.service', '') + (timeAgo ? '<br><span style="color:#666;font-size:11px;">' + timeAgo + '</span>' : '') + '</td>' +
-                            '<td style="padding:8px;color:' + (isRunning ? '#07c160' : '#cf222e') + '">' + (s.status || '-') + '</td>' +
-                            '<td style="padding:8px;">' + (s.enabled ? '✓' : '✗') + '</td>' +
-                            '<td style="padding:8px;">' +
-                            '<button onclick="controlSystemdService(\'' + s.name + '\', \'start\')" style="background:#07c160;color:#fff;border:none;padding:4px 8px;border-radius:4px;cursor:pointer;margin-right:4px;font-size:11px;" title="启动">▶</button>' +
-                            '<button onclick="controlSystemdService(\'' + s.name + '\', \'stop\')" style="background:#cf222e;color:#fff;border:none;padding:4px 8px;border-radius:4px;cursor:pointer;margin-right:4px;font-size:11px;" title="停止">⏹</button>' +
-                            '<button onclick="controlSystemdService(\'' + s.name + '\', \'restart\')" style="background:#0969da;color:#fff;border:none;padding:4px 8px;border-radius:4px;cursor:pointer;font-size:11px;" title="重启">🔄</button>' +
-                            '</td>' +
-                            '</tr>';
-                    });
-                    html += '</tbody></table>';
-                    container.innerHTML = html;
-                }
-            }
-        });
-};
-
-// 格式化时间差
-function formatTimeAgo(isoTime) {
-    if (!isoTime) return null;
-    try {
-        const start = new Date(isoTime);
-        const now = new Date();
-        const diffMs = now - start;
-        const diffSecs = Math.floor(diffMs / 1000);
-        
-        if (diffSecs < 60) {
-            return diffSecs + 's ago';
-        } else if (diffSecs < 3600) {
-            return Math.floor(diffSecs / 60) + 'm ago';
-        } else if (diffSecs < 86400) {
-            return Math.floor(diffSecs / 3600) + 'h ago';
-        } else {
-            return Math.floor(diffSecs / 86400) + 'd ago';
-        }
-    } catch (e) {
-        return null;
-    }
-}
-
-window.controlSystemdService = function(service, action) {
-    (async () => {
-        if (!window.TaskActions || typeof window.TaskActions.controlSystemdService !== 'function') {
-            showToast('操作失败', 'error');
-            return;
-        }
-        const result = await window.TaskActions.controlSystemdService(service, action);
-        if (result && result.ok) loadSystemdList();
-    })();
-};
-
-// 磁盘管理
-window.loadDiskList = function() {
-    const container = document.getElementById('diskListContainer');
-    if (container) container.innerHTML = '<div style="text-align:center;padding:40px;color:#666;">🔄 加载中...</div>';
-    fetch('/api/disk/list', { headers: authHeaders() })
-        .then(r => r.json())
-        .then(data => {
-            const payload = apiData(data);
-            if (payload) {
-                const container = document.getElementById('diskListContainer');
-                if (container && payload.disks) {
-                    let html = '<table style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr style="background:#f6f8fa;"><th style="padding:8px;text-align:left;">设备</th><th style="padding:8px;text-align:left;">总计</th><th style="padding:8px;text-align:left;">已用</th><th style="padding:8px;text-align:left;">可用</th><th style="padding:8px;text-align:left;">挂载点</th></tr></thead><tbody>';
-                    payload.disks.forEach(d => {
-                        html += '<tr style="border-bottom:1px solid #eee;"><td style="padding:8px;">' + d.device + '</td><td style="padding:8px;">' + d.total + '</td><td style="padding:8px;">' + d.used + '</td><td style="padding:8px;">' + d.available + '</td><td style="padding:8px;">' + d.mountpoint + '</td></tr>';
-                    });
-                    html += '</tbody></table>';
-                    container.innerHTML = html;
-                }
-            }
-        });
-};
-
-// 网络管理
-window.loadNetworkList = function() {
-    const container = document.getElementById('networkListContainer');
-    if (container) container.innerHTML = '<div style="text-align:center;padding:40px;color:#666;">🔄 加载中...</div>';
-    fetch('/api/network/list', { headers: authHeaders() })
-        .then(r => r.json())
-        .then(data => {
-            const payload = apiData(data);
-            if (payload) {
-                const container = document.getElementById('networkListContainer');
-                if (container && payload.interfaces) {
-                    let html = '<table style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr style="background:#f6f8fa;"><th style="padding:8px;text-align:left;">接口</th><th style="padding:8px;text-align:left;">状态</th><th style="padding:8px;text-align:left;">IPV4</th><th style="padding:8px;text-align:left;">MAC</th></tr></thead><tbody>';
-                    payload.interfaces.forEach(i => {
-                        html += '<tr style="border-bottom:1px solid #eee;"><td style="padding:8px;">' + i.name + '</td><td style="padding:8px;color:' + (i.state === 'UP' ? '#07c160' : '#cf222e') + '">' + i.state + '</td><td style="padding:8px;">' + (i.ipv4 || '-') + '</td><td style="padding:8px;">' + (i.mac || '-') + '</td></tr>';
-                    });
-                    html += '</tbody></table>';
-                    container.innerHTML = html;
-                }
-            }
-        });
-};
-
-// Git 管理（简化版 - 单列表布局）
-window.loadGitList = function() {
-    const container = document.getElementById('gitListContainer');
-    if (container) container.innerHTML = '<div style="text-align:center;padding:20px;color:#666;">🔄 加载中...</div>';
+    // 原版：使用下拉选择多个仓库
     fetch('/api/git/list', { headers: authHeaders() })
         .then(r => r.json())
         .then(data => {
@@ -423,18 +68,13 @@ window.loadGitList = function() {
                 const container = document.getElementById('gitListContainer');
                 if (container) {
                     window.__gitRepos = payload.repos || [];
-                    const css = '<style>.git-shell { display:flex; flex-direction:column; gap:10px; }.git-top { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }.git-select { padding:8px 12px; border:1px solid #d0d7de; border-radius:8px; background:#fff; font-size:14px; flex:1; }.git-list { max-height: calc(70vh - 100px); overflow:auto; }.git-item { padding:10px 12px; border-bottom:1px solid #eee; cursor:pointer; display:flex; flex-direction:column; gap:4px; }.git-item:hover { background:#f6f8fa; }.git-item.active { background:#ddf4ff; }.git-meta { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }.git-time { font-size:12px; color:#0969da; font-family: ui-monospace, monospace; }.git-hash { font-size:11px; color:#57606a; font-family: ui-monospace, monospace; text-decoration:underline; cursor:pointer; }.git-hash:hover { color:#0969da; }.git-subject { font-size:13px; color:#24292f; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }</style>';
+                    const css = '<style>.git-shell { display:flex; flex-direction:column; gap:10px; }.git-top { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }.git-select { padding:8px 12px; border:1px solid #d0d7de; border-radius:8px; background:#fff; font-size:14px; flex:1; }.git-list { max-height: calc(70vh - 100px); overflow:auto; }.git-item { padding:10px 12px; border-bottom:1px solid #eee; cursor:pointer; display:flex; flex-direction:column; gap:4px; }.git-item:hover { background:#f6f8fa; }.git-item.active { background:#ddf4ff; }.git-meta { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }.git-time { font-size:12px; color:#0969da; font-family: ui-monospace, monospace; }.git-hash { font-size:11px; color:#57606a; font-family: ui-monospace, monospace; cursor:pointer; }.git-hash:hover { color:#0969da; text-decoration:underline; }.git-subject { font-size:13px; color:#24292f; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }</style>';
                     const html = css + '<div class="git-shell"><div class="git-top"><span style="font-size:12px;color:#57606a;">仓库</span><select id="gitRepoSelect" class="git-select"></select></div><div class="git-list" id="gitCommitList"></div></div>';
                     container.innerHTML = html;
 
                     const repos = window.__gitRepos || [];
                     const select = document.getElementById('gitRepoSelect');
                     const listEl = document.getElementById('gitCommitList');
-                    const state = { repoId: null, hash: null };
-
-                    function commitPageUrl(repoId, hash) {
-                        return '/git/commit?repoId=' + encodeURIComponent(repoId) + '&hash=' + encodeURIComponent(hash);
-                    }
 
                     function renderRepo(repo) {
                         if (!repo) return;
@@ -452,7 +92,7 @@ window.loadGitList = function() {
                             const subject = escapeHtml(log.subject || '');
                             const shortHash = escapeHtml(String(log.hash || '').slice(0, 7));
                             const hash = escapeHtml(log.hash || '');
-                            return '<div class="git-item" data-hash="' + hash + '" onclick="window.open(\'' + commitPageUrl(repo.id, hash) + '\', \'_blank\')"><div class="git-meta"><span class="git-time">' + time + '</span><span class="git-hash" data-open="1">' + shortHash + '</span><span style="background:#ddf4ff;color:#0969da;padding:1px 6px;border-radius:999px;font-size:10px;">' + escapeHtml(branch) + '</span></div><div class="git-subject" title="' + subject + '">' + (subject || '-') + '</div></div>';
+                            return '<div class="git-item" data-hash="' + hash + '" onclick="loadGitCommitDetail(\'' + repo.id + '\', \'' + hash + '\')"><div class="git-meta"><span class="git-time">' + time + '</span><span class="git-hash" data-hash="' + hash + '" data-repo="' + repo.id + '">' + shortHash + '</span><span style="background:#ddf4ff;color:#0969da;padding:1px 6px;border-radius:999px;font-size:10px;">' + escapeHtml(branch) + '</span></div><div class="git-subject" title="' + subject + '">' + (subject || '-') + '</div></div>';
                         }).join('');
                     }
 
@@ -474,7 +114,6 @@ window.loadGitList = function() {
             }
         });
 };
-
 window.closeGitModal = function() { Drawer.close('gitModal'); };
 window.openGitModal = function() { Drawer.open('gitModal'); loadGitList(); };
 window.openProcessModal = function() { Drawer.open('processModal'); loadProcessList(); };

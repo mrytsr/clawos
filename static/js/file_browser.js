@@ -1031,12 +1031,26 @@ window.showDetails = function(path, name) {
         .then(data => {
             if (data && data.success && content) {
                 const info = data.data;
+                
+                // 构建类型显示
+                let typeHtml = info.is_dir ? '📁 文件夹' : '📄 文件';
+                if (info.is_symlink) {
+                    typeHtml += ' → <span style="color:#58a6ff;">软链接</span>';
+                }
+                
+                // 构建软链接目标行
+                let linkRowHtml = '';
+                if (info.is_symlink && info.link_target) {
+                    linkRowHtml = `<tr style="border-bottom:1px solid #eee;"><td style="padding:10px;color:#666;">软链接目标</td><td style="padding:10px;font-family:monospace;word-break:break-all;color:#58a6ff;">${escapeHtml(info.link_target)}</td></tr>`;
+                }
+                
                 content.innerHTML = `
                     <div style="padding: 16px 0;">
                         <div style="font-size: 18px; font-weight: bold; margin-bottom: 16px; word-break: break-all;">${escapeHtml(name)}</div>
                         <table style="width:100%;border-collapse:collapse;font-size:14px;">
                             <tr style="border-bottom:1px solid #eee;"><td style="padding:10px;color:#666;">路径</td><td style="padding:10px;font-family:monospace;word-break:break-all;">${escapeHtml(path)}</td></tr>
-                            <tr style="border-bottom:1px solid #eee;"><td style="padding:10px;color:#666;">类型</td><td style="padding:10px;">${info.is_dir ? '📁 文件夹' : '📄 文件'}</td></tr>
+                            <tr style="border-bottom:1px solid #eee;"><td style="padding:10px;color:#666;">类型</td><td style="padding:10px;">${typeHtml}</td></tr>
+                            ${linkRowHtml}
                             <tr style="border-bottom:1px solid #eee;"><td style="padding:10px;color:#666;">大小</td><td style="padding:10px;">${info.size_human || formatSize(info.size)}</td></tr>
                             <tr style="border-bottom:1px solid #eee;"><td style="padding:10px;color:#666;">权限</td><td style="padding:10px;font-family:monospace;">${info.permissions || '未知'}</td></tr>
                             <tr style="border-bottom:1px solid #eee;"><td style="padding:10px;color:#666;">所有者</td><td style="padding:10px;">${info.owner || '未知'}</td></tr>
@@ -1107,3 +1121,130 @@ window.closeDragUploadDrawer = closeDragUploadDrawer;
 window.startDragUpload = startDragUpload;
 window.closePasteImageDrawer = closePasteImageDrawer;
 window.savePasteImage = savePasteImage;
+
+// ============ Git状态栏 ============
+
+// 获取当前路径（从URL或面包屑）
+function getCurrentPathFromUrl() {
+    var pathMatch = window.location.pathname.match(/\/browse\/(.*)/);
+    if (pathMatch && pathMatch[1]) {
+        return decodeURIComponent(pathMatch[1]);
+    }
+    return '';
+}
+
+// 加载Git状态
+function loadGitStatusBar() {
+    var path = getCurrentPathFromUrl();
+    var bar = document.getElementById('gitStatusBar');
+    if (!bar) return;
+    
+    // 首先检查当前路径是否是git仓库
+    fetch('/api/git/status?path=' + encodeURIComponent(path))
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data && data.success && data.data && data.data.is_repo) {
+                showGitStatusBar(data.data);
+            } else {
+                // 当前路径不是git仓库，检查配置的仓库中是否有匹配的
+                return fetch('/api/git/list', { headers: authHeaders() })
+                    .then(function(r) { return r.json(); })
+                    .then(function(listData) {
+                        if (listData && listData.success && listData.data && listData.data.repos) {
+                            // 查找匹配的仓库（当前路径在仓库内）
+                            var repos = listData.data.repos;
+                            for (var i = 0; i < repos.length; i++) {
+                                var repo = repos[i];
+                                if (repo.path && (path === '' || path === '/' || path === '.' || repo.path === path || repo.path.startsWith(path + '/') || path.startsWith(repo.path))) {
+                                    // 使用仓库信息显示状态栏
+                                    showGitStatusBar({
+                                        branch: repo.status ? repo.status.branch : 'unknown',
+                                        has_changes: repo.status ? repo.status.has_changes : false,
+                                        untracked: repo.status ? repo.status.untracked || 0 : 0,
+                                        added: repo.status ? repo.status.added || 0 : 0,
+                                        modified: repo.status ? repo.status.modified || 0 : 0,
+                                        deleted: repo.status ? repo.status.deleted || 0 : 0,
+                                        commit: repo.status ? repo.status.commit : ''
+                                    });
+                                    return;
+                                }
+                            }
+                        }
+                        // 没有找到匹配的仓库，隐藏状态栏
+                        bar.style.display = 'none';
+                    });
+            }
+        })
+        .catch(function() {
+            bar.style.display = 'none';
+        });
+}
+
+function showGitStatusBar(status) {
+    var bar = document.getElementById('gitStatusBar');
+    if (!bar) return;
+    
+    // 分支名
+    var branchEl = document.getElementById('gitStatusBranch');
+    if (branchEl) {
+        branchEl.textContent = status.branch || 'unknown';
+    }
+    
+    // 状态指示器
+    var indicatorEl = document.getElementById('gitStatusIndicator');
+    if (indicatorEl) {
+        indicatorEl.textContent = status.has_changes ? '✗' : '●';
+        indicatorEl.className = 'git-status-indicator ' + (status.has_changes ? 'dirty' : 'clean');
+    }
+    
+    // 统计信息
+    var statsEl = document.getElementById('gitStatusStats');
+    if (statsEl && status.has_changes) {
+        var stats = [];
+        if (status.untracked > 0) stats.push('<span class="git-stat git-stat-untracked">[+' + status.untracked + ']</span>');
+        if (status.added > 0) stats.push('<span class="git-stat git-stat-added">[A:' + status.added + ']</span>');
+        if (status.modified > 0) stats.push('<span class="git-stat git-stat-modified">[~' + status.modified + ']</span>');
+        if (status.deleted > 0) stats.push('<span class="git-stat git-stat-deleted">[-' + status.deleted + ']</span>');
+        statsEl.innerHTML = stats.join('');
+    } else if (statsEl) {
+        statsEl.innerHTML = '<span style="color:#2da44e;">Clean</span>';
+    }
+    
+    // 显示状态栏
+    bar.style.display = 'flex';
+}
+
+// 从状态栏打开Git管理抽屉
+function openGitModalFromBar() {
+    if (typeof window.openGitModal === 'function') {
+        // 传递当前路径，找到对应的仓库
+        var path = getCurrentPathFromUrl();
+        var rootDirEl = document.getElementById('rootDir');
+        var rootDir = rootDirEl ? rootDirEl.value : '';
+        
+        // 构建完整路径
+        var fullPath = rootDir;
+        if (path) {
+            // 确保路径格式正确
+            fullPath = (rootDir ? rootDir + '/' + path : path).replace(/\/+/g, '/');
+        }
+        
+        // 调用Git管理，传入当前路径
+        if (typeof window.loadGitList === 'function') {
+            Drawer.open('gitModal');
+            window.loadGitList(fullPath);
+        }
+    }
+}
+
+// 页面加载时初始化
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(loadGitStatusBar, 100);
+});
+
+// 页面可见性变化时刷新（从其他标签页切回）
+document.addEventListener('visibilitychange', function() {
+    if (!document.hidden && document.getElementById('gitStatusBar')) {
+        loadGitStatusBar();
+    }
+});

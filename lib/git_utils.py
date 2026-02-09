@@ -97,6 +97,161 @@ def get_git_status(repo_path):
         return None
 
 
+def get_git_status_detailed(repo_path):
+    """获取仓库的详细git状态 (用于文件列表页面)"""
+    try:
+        if not _is_git_repo(repo_path):
+            return None
+        
+        # 获取分支
+        branch_result = _run_git(repo_path, ['rev-parse', '--abbrev-ref', 'HEAD'], timeout=5)
+        branch = branch_result.stdout.strip() if branch_result.returncode == 0 else 'unknown'
+        
+        # 获取状态统计
+        status_result = _run_git(repo_path, ['status', '--porcelain'], timeout=10)
+        porcelain = status_result.stdout.strip() if status_result.returncode == 0 else ''
+        
+        # 统计各类文件
+        added = 0      # 新增 A
+        modified = 0  # 修改 M
+        deleted = 0    # 删除 D
+        untracked = 0 # 未追踪 ?
+        
+        if porcelain:
+            for line in porcelain.splitlines():
+                line = line.strip()
+                if not line:
+                    continue
+                status = line[:1] if len(line) >= 1 else ''
+                # 判断状态类型
+                if status == 'A' or status == '?' or status == ' ':
+                    # 未追踪或新增
+                    if line.startswith('??'):
+                        untracked += 1
+                    elif line.startswith('A '):
+                        added += 1
+                    elif line.startswith(' M') or line.startswith('M '):
+                        modified += 1
+                    elif line.startswith(' D') or line.startswith('D '):
+                        deleted += 1
+                elif status == 'M':
+                    modified += 1
+                elif status == 'D':
+                    deleted += 1
+                elif status == 'A':
+                    added += 1
+        
+        # 简化计数逻辑（porcelain格式）
+        added = len([l for l in porcelain.splitlines() if l.startswith('A ') or l.startswith('A' + chr(0))])
+        modified = len([l for l in porcelain.splitlines() if l.startswith(' M') or l.startswith('M ')])
+        deleted = len([l for l in porcelain.splitlines() if l.startswith(' D') or l.startswith('D ')])
+        untracked = len([l for l in porcelain.splitlines() if l.startswith('??')])
+        
+        # 是否有改动
+        has_changes = bool(porcelain)
+        
+        # 获取当前commit hash
+        hash_result = _run_git(repo_path, ['rev-parse', 'HEAD'], timeout=5)
+        commit_hash = hash_result.stdout.strip()[:8] if hash_result.returncode == 0 else ''
+        
+        return {
+            'is_repo': True,
+            'branch': branch,
+            'commit': commit_hash,
+            'added': added,
+            'modified': modified,
+            'deleted': deleted,
+            'untracked': untracked,
+            'has_changes': has_changes,
+            'total_changes': added + modified + deleted + untracked
+        }
+    except Exception as e:
+        print(f"Error getting detailed git status from {repo_path}: {e}")
+        return None
+
+
+def get_git_repo_info(repo_path, max_logs=50):
+    """获取仓库完整信息（状态+日志），用于Git管理抽屉"""
+    try:
+        if not _is_git_repo(repo_path):
+            return None
+        
+        import os
+        name = os.path.basename(repo_path)
+        
+        # 获取分支
+        branch_result = _run_git(repo_path, ['rev-parse', '--abbrev-ref', 'HEAD'], timeout=5)
+        branch = branch_result.stdout.strip() if branch_result.returncode == 0 else 'unknown'
+        
+        # 获取commit hash
+        hash_result = _run_git(repo_path, ['rev-parse', 'HEAD'], timeout=5)
+        commit_hash = hash_result.stdout.strip()[:8] if hash_result.returncode == 0 else ''
+        
+        # 获取状态统计
+        status_result = _run_git(repo_path, ['status', '--porcelain'], timeout=10)
+        porcelain = status_result.stdout.strip() if status_result.returncode == 0 else ''
+        
+        # 统计
+        added = modified = deleted = untracked = 0
+        if porcelain:
+            for line in porcelain.splitlines():
+                line = line.strip()
+                if not line:
+                    continue
+                if line.startswith('??'):
+                    untracked += 1
+                elif line.startswith('A '):
+                    added += 1
+                elif line.startswith(' M') or line.startswith('M '):
+                    modified += 1
+                elif line.startswith(' D') or line.startswith('D '):
+                    deleted += 1
+        
+        has_changes = bool(porcelain)
+        
+        # 获取日志
+        fmt = '%H%x09%ad%x09%s'
+        log_cmd = [
+            'log',
+            '-n', str(max_logs),
+            '--date=format:%Y-%m-%d %H:%M:%S',
+            f'--pretty=format:{fmt}',
+        ]
+        log_result = _run_git(repo_path, log_cmd, timeout=10)
+        logs = []
+        if log_result.returncode == 0:
+            for line in log_result.stdout.splitlines():
+                raw = line.strip('\n').strip('\r')
+                if not raw:
+                    continue
+                parts = raw.split('\t', 2)
+                if len(parts) >= 2:
+                    logs.append({
+                        'hash': parts[0].strip(),
+                        'committed_at': parts[1].strip(),
+                        'subject': parts[2].strip() if len(parts) > 2 else ''
+                    })
+        
+        return {
+            'is_repo': True,
+            'path': repo_path,
+            'name': name,
+            'branch': branch,
+            'commit': commit_hash,
+            'status': {
+                'has_changes': has_changes,
+                'untracked': untracked,
+                'added': added,
+                'modified': modified,
+                'deleted': deleted
+            },
+            'logs': logs
+        }
+    except Exception as e:
+        print(f"Error getting git repo info from {repo_path}: {e}")
+        return None
+
+
 def resolve_repo_path(repo_id):
     try:
         idx = int(repo_id)
