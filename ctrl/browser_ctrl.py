@@ -5,7 +5,7 @@ import tarfile
 import zipfile
 from datetime import datetime
 
-from flask import Blueprint, jsonify, redirect, render_template, request, url_for
+from flask import Blueprint, jsonify, redirect, render_template, request, send_from_directory, url_for
 
 import config
 from ctrl.task_ctrl import create_task, update_task
@@ -145,25 +145,35 @@ def _prune_pins_for_deleted_item(root_dir, full_path, is_dir):
 @browser_bp.route('/browse/')
 @browser_bp.route('/browse/<path:path>')
 def browse(path=''):
-    root_dir, _trash_dir = _get_paths()
-    if path == '.' or path == '':
-        current_dir = root_dir
-    else:
-        current_dir = os.path.join(root_dir, path)
-    current_dir = os.path.normpath(current_dir)
-    if not current_dir.startswith(root_dir):
-        current_dir = root_dir
-    if not os.path.exists(current_dir) or not os.path.isdir(current_dir):
-        return "目录不存在", 404
+    templates_dir = os.path.join(config.SCRIPT_DIR, 'templates')
+    return send_from_directory(templates_dir, 'index.html')
 
-    items = file_utils.list_directory(current_dir)
+
+@browser_bp.route('/api/browse/state')
+def api_browse_state():
+    dir_rel = (request.args.get('path') or '').strip()
+    root_dir, full_dir, err = _resolve_safe_dir(dir_rel, ensure_exists=False)
+    if err:
+        status = 404 if err == '目录不存在' else 400
+        return jsonify({'success': False, 'error': {'message': err}}), status
+
+    items = file_utils.list_directory(full_dir)
+    items_rel = []
     item_names = set()
     for it in items:
-        if isinstance(it, dict) and it.get('name'):
-            item_names.add(str(it.get('name')))
+        if not isinstance(it, dict):
+            continue
+        name = str(it.get('name') or '')
+        item_names.add(name)
+        p = it.get('path')
+        rel_path = path_utils.get_relative_path(p, root_dir)
+        normalized = dict(it)
+        normalized['path'] = rel_path
+        items_rel.append(normalized)
 
-    rel_dir = path_utils.get_relative_path(current_dir, root_dir)
-    pin_dir = _normalize_pin_dir(rel_dir)
+    current_dir_rel = path_utils.get_relative_path(full_dir, root_dir)
+    pin_dir = _normalize_pin_dir(current_dir_rel)
+
     store = _load_pin_store()
     pins_all = store.get('pins', []) if isinstance(store, dict) else []
     initial_pins = []
@@ -181,26 +191,36 @@ def browse(path=''):
             t = 0
         initial_pins.append({'name': name, 'pinned_at': t})
     initial_pins.sort(key=lambda x: int(x.get('pinned_at') or 0), reverse=True)
+
+    breadcrumbs = []
+    for c in path_utils.get_breadcrumbs(full_dir, root_dir):
+        if not isinstance(c, dict):
+            continue
+        name = str(c.get('name') or '').strip()
+        p = c.get('path')
+        rel = path_utils.get_relative_path(p, root_dir)
+        breadcrumbs.append({'name': name, 'path': rel})
+
     initial_git_status = None
     try:
-        initial_git_status = git_utils.get_git_status_detailed(current_dir)
+        initial_git_status = git_utils.get_git_status_detailed(full_dir)
     except Exception:
         initial_git_status = None
 
-    breadcrumbs = path_utils.get_breadcrumbs(current_dir, root_dir)
-    return render_template(
-        'index.html',
-        items=items,
-        current_dir=current_dir,
-        breadcrumbs=breadcrumbs,
-        initial_pin_dir=pin_dir,
-        initial_pins=initial_pins,
-        initial_git_status=initial_git_status,
-        message=request.args.get('message'),
-        msg_type=request.args.get('msg_type', 'success'),
-        ROOT_DIR=root_dir,
-        os=os,
-    )
+    return jsonify({
+        'success': True,
+        'data': {
+            'items': items_rel,
+            'breadcrumbs': breadcrumbs,
+            'current_dir': current_dir_rel,
+            'current_dir_name': os.path.basename(full_dir),
+            'root_dir': root_dir,
+            'pin_dir': pin_dir,
+            'pins': initial_pins,
+            'git_status': initial_git_status,
+            'server_is_windows': os.name == 'nt',
+        }
+    })
 
 
 @browser_bp.route('/api/pin/list')
@@ -1038,4 +1058,3 @@ def trash_restore(name):
         return jsonify({'success': True, 'message': '还原成功'})
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
-

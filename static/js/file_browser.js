@@ -876,8 +876,13 @@ function attachFileItemDefaultHandlers() {
             if (!path && !name) return;
 
             if (isDir) {
-                var dirUrl = path ? ('/browse/' + encodePathForUrl(path)) : '/browse/';
-                window.location.assign(dirUrl);
+                var nav = window.BrowseNavigator;
+                if (nav && typeof nav.navigateTo === 'function') {
+                    nav.navigateTo(path || '', { replace: false });
+                } else {
+                    var dirUrl = path ? ('/browse/' + encodePathForUrl(path)) : '/browse/';
+                    window.location.assign(dirUrl);
+                }
                 return;
             }
 
