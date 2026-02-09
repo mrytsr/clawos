@@ -14,7 +14,6 @@ import config
 TERMINAL_PREEXEC_FN = getattr(os, 'setsid', None)
 
 _terminal_root_dir = config.ROOT_DIR
-_terminal_supported = True
 _terminal_sessions = {}
 fcntl = None
 pty = None
@@ -22,17 +21,65 @@ termios = None
 
 _node_bin = shutil.which('node') if os.name == 'nt' else None
 _node_bridge = os.path.join(config.SCRIPT_DIR, 'win_pty_bridge.js')
+_git_bash_path = ''
+_terminal_backend_type = None
+_terminal_backend_detail = {'type': None, 'missing': [], 'message': ''}
 
-if os.name != 'nt' and _terminal_supported:
+def _probe_node_pty_installed(node_bin):
+    if not node_bin:
+        return False
     try:
-        fcntl = importlib.import_module('fcntl')
-        pty = importlib.import_module('pty')
-        termios = importlib.import_module('termios')
+        r = subprocess.run(
+            [node_bin, '-e', "require('node-pty');process.exit(0)"],
+            cwd=config.SCRIPT_DIR,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            timeout=2,
+        )
+        return r.returncode == 0
     except Exception:
-        _terminal_supported = False
-        fcntl = None
-        pty = None
-        termios = None
+        return False
+
+
+def _detect_terminal_backend():
+    global fcntl, pty, termios, _terminal_backend_type, _terminal_backend_detail, _git_bash_path
+
+    if os.name != 'nt':
+        try:
+            fcntl = importlib.import_module('fcntl')
+            pty = importlib.import_module('pty')
+            termios = importlib.import_module('termios')
+            _terminal_backend_type = 'pty'
+            _terminal_backend_detail = {'type': 'pty', 'missing': [], 'message': ''}
+            return
+        except Exception:
+            fcntl = None
+            pty = None
+            termios = None
+
+    missing = []
+    if os.name == 'nt':
+        if not _node_bin:
+            missing.append('Node.js')
+        if not os.path.exists(_node_bridge):
+            missing.append('win_pty_bridge.js')
+        _git_bash_path = _find_git_bash_path()
+        if not _git_bash_path:
+            missing.append('Git Bash')
+        if _node_bin and not _probe_node_pty_installed(_node_bin):
+            missing.append('node-pty')
+        if not missing:
+            _terminal_backend_type = 'node-pty'
+            _terminal_backend_detail = {'type': 'node-pty', 'missing': [], 'message': ''}
+            return
+
+    _terminal_backend_type = None
+    _terminal_backend_detail = {
+        'type': None,
+        'missing': missing,
+        'message': '',
+    }
 
 
 def _find_git_bash_path():
@@ -65,6 +112,9 @@ def _find_git_bash_path():
     return ''
 
 
+_detect_terminal_backend()
+
+
 def register_term_socketio(socketio, terminal_root_dir=None):
     global _terminal_root_dir
     if terminal_root_dir:
@@ -85,14 +135,32 @@ def register_term_socketio(socketio, terminal_root_dir=None):
         return
 
     def term_create_terminal(data):
-        if os.name == 'nt':
-            if not _node_bin or not os.path.exists(_node_bridge):
+        if _terminal_backend_type is None:
+            if os.name == 'nt':
+                missing = list(_terminal_backend_detail.get('missing') or [])
+                parts = []
+                if 'Node.js' in missing:
+                    parts.append('Node.js')
+                if 'node-pty' in missing:
+                    parts.append('node-pty（npm i node-pty）')
+                if 'Git Bash' in missing:
+                    parts.append('Git Bash')
+                if 'win_pty_bridge.js' in missing:
+                    parts.append('win_pty_bridge.js（项目文件缺失）')
+                hint = '、'.join(parts) if parts else '依赖组件'
                 message = (
-                    '\r\n\x1b[31m*** 当前系统未启用 Web 终端（Windows 需要 Node.js + node-pty）***\x1b[0m\r\n'
+                    '\r\n\x1b[31m*** 当前环境：Windows（终端后端：None）***\x1b[0m\r\n'
+                    + '\r\n\x1b[31m*** 需要安装/满足：' + hint + ' 才能启用 Web 终端 ***\x1b[0m\r\n'
                 )
-                socketio.emit('output', {'data': message}, room=request.sid, namespace='/term')
-                return
+            else:
+                message = (
+                    '\r\n\x1b[31m*** 当前环境：非 Windows（终端后端：None）***\x1b[0m\r\n'
+                    + '\r\n\x1b[31m*** 需要 Python 标准库 fcntl/pty/termios 才能启用 Web 终端 ***\x1b[0m\r\n'
+                )
+            socketio.emit('output', {'data': message}, room=request.sid, namespace='/term')
+            return
 
+        if _terminal_backend_type == 'node-pty':
             cwd = _safe_cwd(data)
 
             process = subprocess.Popen(
@@ -105,17 +173,16 @@ def register_term_socketio(socketio, terminal_root_dir=None):
                 cwd=config.SCRIPT_DIR,
                 env=os.environ.copy(),
             )
-            _terminal_sessions[request.sid] = {'kind': 'nodepty', 'process': process}
+            _terminal_sessions[request.sid] = {'kind': 'node-pty', 'process': process}
 
             try:
-                bash = _find_git_bash_path()
                 init = {
                     'type': 'init',
                     'cwd': cwd,
                     'cols': 80,
                     'rows': 24,
-                    'shell': bash or 'bash.exe',
-                    'args': ['-i'],
+                    'shell': _git_bash_path,
+                    'args': ['--noprofile', '--norc', '-i'],
                 }
                 process.stdin.write(json.dumps(init, ensure_ascii=False) + '\n')
                 process.stdin.flush()
@@ -125,7 +192,6 @@ def register_term_socketio(socketio, terminal_root_dir=None):
             def _read_nodepty_output(proc, sid):
                 try:
                     while True:
-                        socketio.sleep(0.01)
                         if sid not in _terminal_sessions:
                             break
                         if proc.poll() is not None:
@@ -148,14 +214,6 @@ def register_term_socketio(socketio, terminal_root_dir=None):
             socketio.start_background_task(_read_nodepty_output, process, request.sid)
             return
 
-        if not _terminal_supported or pty is None:
-            message = (
-                '\r\n\x1b[31m*** 当前系统不支持 Web 终端（需要 Linux '
-                'PTY/termios）***\x1b[0m\r\n'
-            )
-            socketio.emit('output', {'data': message}, room=request.sid, namespace='/term')
-            return
-
         cwd = _safe_cwd(data)
 
         master, slave = pty.openpty()
@@ -168,7 +226,7 @@ def register_term_socketio(socketio, terminal_root_dir=None):
             cwd=cwd,
             env={**os.environ, "TERM": "xterm-256color"},
         )
-        _terminal_sessions[request.sid] = {'fd': master, 'process': process}
+        _terminal_sessions[request.sid] = {'kind': 'pty', 'fd': master, 'process': process}
         os.close(slave)
 
         def _read_terminal_output(fd, sid):
@@ -196,7 +254,7 @@ def register_term_socketio(socketio, terminal_root_dir=None):
 
     def term_on_input(data):
         session = _terminal_sessions.get(request.sid)
-        if session and session.get('kind') == 'nodepty':
+        if session and session.get('kind') == 'node-pty':
             proc = session.get('process')
             if proc and proc.stdin:
                 try:
@@ -211,7 +269,7 @@ def register_term_socketio(socketio, terminal_root_dir=None):
 
     def term_on_resize(data):
         session = _terminal_sessions.get(request.sid)
-        if session and session.get('kind') == 'nodepty':
+        if session and session.get('kind') == 'node-pty':
             proc = session.get('process')
             if proc and proc.stdin:
                 try:
@@ -224,8 +282,6 @@ def register_term_socketio(socketio, terminal_root_dir=None):
                     proc.stdin.flush()
                 except Exception:
                     pass
-            return
-        if not _terminal_supported or fcntl is None or termios is None:
             return
         if session:
             fd = session['fd']
@@ -243,7 +299,7 @@ def register_term_socketio(socketio, terminal_root_dir=None):
         session = _terminal_sessions.get(request.sid)
         if session:
             try:
-                if session.get('kind') == 'nodepty':
+                if session.get('kind') == 'node-pty':
                     proc = session.get('process')
                     if proc and proc.stdin:
                         try:

@@ -253,62 +253,18 @@ function __isPinnedName(name) {
     return Object.prototype.hasOwnProperty.call(__pinState.byName, String(name));
 }
 
-function __ensurePinButtons(dirRel) {
-    var dir = normalizeRelPath(dirRel);
-    var list = document.querySelector('.file-list');
-    if (!list) return;
+function __removeInlinePinButtons() {
+    document.querySelectorAll('.file-list .file-name button.pin-btn').forEach(function(btn) {
+        if (btn && btn.parentNode) btn.parentNode.removeChild(btn);
+    });
+}
 
+function __applyPinnedClasses() {
     document.querySelectorAll('.file-list .file-item[data-name]').forEach(function(el) {
         var name = String(el.dataset && el.dataset.name ? el.dataset.name : '');
         if (!name) return;
-        var nameRow = el.querySelector('.file-name');
-        if (!nameRow) return;
-
-        var btn = null;
-        var candidates = nameRow.querySelectorAll('button.pin-btn');
-        for (var i = 0; i < candidates.length; i++) {
-            var c = candidates[i];
-            if (c && c.dataset && c.dataset.pinName === name) {
-                btn = c;
-                break;
-            }
-        }
-        if (!btn) {
-            btn = document.createElement('button');
-            btn.type = 'button';
-            btn.className = 'pin-btn';
-            btn.dataset.pinName = name;
-            btn.addEventListener('click', function(ev) {
-                ev.preventDefault();
-                ev.stopPropagation();
-                if (btn.disabled) return;
-                btn.disabled = true;
-                __togglePin(dir, name)
-                    .then(function(data) {
-                        if (!data || !data.success || !data.data) {
-                            showToast('置顶操作失败', 'error');
-                            return;
-                        }
-                        var pins = Array.isArray(data.data.pins) ? data.data.pins : [];
-                        __rebuildPinMap(pins);
-                        __applyPinsToDom(dir);
-                        showToast(data.data.pinned ? '已置顶' : '已取消置顶', 'success');
-                    })
-                    .catch(function() {
-                        showToast('置顶操作失败', 'error');
-                    })
-                    .finally(function() {
-                        btn.disabled = false;
-                    });
-            });
-
-            nameRow.appendChild(btn);
-        }
-
-        var pinned = __isPinnedName(name);
-        btn.textContent = pinned ? '取消置顶' : '置顶';
-        if (pinned) btn.classList.add('is-pinned');
-        else btn.classList.remove('is-pinned');
+        if (__isPinnedName(name)) el.classList.add('is-pinned');
+        else el.classList.remove('is-pinned');
     });
 }
 
@@ -337,7 +293,8 @@ function __applyPinOrder() {
 }
 
 function __applyPinsToDom(dirRel) {
-    __ensurePinButtons(dirRel);
+    __removeInlinePinButtons();
+    __applyPinnedClasses();
     __applyPinOrder();
 }
 

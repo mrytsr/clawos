@@ -88,6 +88,12 @@
         .file-item:hover {
             background-color: #f6f8fa;
         }
+        .file-item.is-pinned {
+            background-color: #f3f4f6;
+        }
+        .file-item.is-pinned:hover {
+            background-color: #eef1f4;
+        }
 
         /* 三列布局 */
         .file-col-icon {

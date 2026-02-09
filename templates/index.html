@@ -95,21 +95,19 @@
             display: none;  /* 默认隐藏，由JS控制显示 */
             align-items: center;
             justify-content: space-between;
-            padding: 8px 16px;
-            margin: 0 16px 8px 16px;
-            background: linear-gradient(135deg, #f6f8fa 0%, #eaeef2 100%);
-            border-radius: 8px;
+            padding: 10px 16px;
+            margin: 0;
+            background: #f6f8fa;
+            border-radius: 0;
             cursor: pointer;
-            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
             font-size: 13px;
-            transition: all 0.2s ease;
-            border: 1px solid #d0d7de;
+            transition: background-color 0.2s ease;
+            border: 0;
+            border-bottom: 1px solid #d0d7de;
         }
         .git-status-bar:hover {
-            background: linear-gradient(135deg, #eaeef2 0%, #ddf4ff 100%);
-            border-color: #0969da;
-            transform: translateY(-1px);
-            box-shadow: 0 2px 8px rgba(9, 105, 218, 0.15);
+            background: #eef2f6;
         }
         .git-status-content {
             display: flex;
@@ -122,6 +120,7 @@
         .git-branch {
             font-weight: 600;
             color: #24292f;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
         }
         .git-status-indicator {
             font-size: 12px;
@@ -143,32 +142,39 @@
             border-radius: 6px;
             font-size: 12px;
             font-weight: 500;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
         }
         .git-stat-added {
-            background: #ddf4ff;
+            background: rgba(9, 105, 218, 0.10);
             color: #0969da;
-            border: 1px solid #0969da;
+            border: 1px solid rgba(9, 105, 218, 0.35);
         }
         .git-stat-modified {
-            background: #fff8c5;
+            background: rgba(154, 103, 0, 0.10);
             color: #9a6700;
-            border: 1px solid #d29922;
+            border: 1px solid rgba(154, 103, 0, 0.35);
         }
         .git-stat-deleted {
-            background: #ffebe9;
+            background: rgba(207, 34, 46, 0.10);
             color: #cf222e;
-            border: 1px solid #cf222e;
+            border: 1px solid rgba(207, 34, 46, 0.35);
         }
         .git-stat-untracked {
-            background: #f6f8fa;
+            background: rgba(87, 96, 106, 0.08);
             color: #57606a;
-            border: 1px solid #d0d7de;
+            border: 1px solid rgba(87, 96, 106, 0.25);
         }
         .git-action-btn {
-            padding: 4px 8px;
-            border-radius: 6px;
-            opacity: 0.7;
-            transition: opacity 0.2s;
+            padding: 4px 10px;
+            border-radius: 999px;
+            opacity: 0.75;
+            transition: opacity 0.2s, background-color 0.2s;
+            border: 1px solid rgba(27, 31, 36, 0.15);
+            background: rgba(255, 255, 255, 0.6);
+        }
+        .git-action-btn:hover {
+            background: rgba(255, 255, 255, 0.95);
+            opacity: 1;
         }
         .git-status-bar:hover .git-action-btn {
             opacity: 1;
