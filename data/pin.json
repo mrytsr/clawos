@@ -1,26 +1,6 @@
 {
   "pins": [
     {
-      "dir": "Desktop/boss_greet",
-      "name": "config_dev",
-      "pinned_at": 1770610916041
-    },
-    {
-      "dir": "Desktop",
-      "name": "clawos",
-      "pinned_at": 1770611694669
-    },
-    {
-      "dir": "Desktop/clawos",
-      "name": "lib",
-      "pinned_at": 1770611865578
-    },
-    {
-      "dir": "",
-      "name": "Desktop",
-      "pinned_at": 1770614467808
-    },
-    {
       "dir": "",
       "name": "clawos",
       "pinned_at": 1770616478175

@@ -700,40 +700,110 @@ window.openNetworkModal = function() { Drawer.open('networkModal'); loadNetworkL
 window.loadGpuInfo = function() {
     const container = document.getElementById('gpuInfoContainer');
     if (container) container.innerHTML = '<div style="text-align:center;padding:40px;color:#666;">🔄 加载中...</div>';
+    
     fetch('/api/gpu/info', { headers: authHeaders() })
         .then(r => r.json())
         .then(data => {
             const payload = apiData(data);
-            if (payload && container) {
-                const p = payload.parsed || {};
-                const raw = payload.raw || '';
-                const gpuName = p.name || 'Unknown GPU';
-                const memoryUsed = p.memory_used || 0;
-                const memoryTotal = p.memory_total || 1;
-                const memoryPercent = p.memory_percent || 0;
-                const temp = p.temperature || 0;
-                const powerUsed = p.power_used || 0;
-                const powerTotal = p.power_total || 260;
-                const util = p.utilization || 0;
-                const driver = p.driver || 'Unknown';
-                const cuda = p.cuda || 'Unknown';
-                
-                const memoryBar = renderProgressBar(memoryUsed, memoryTotal, 'MiB');
-                const powerBar = renderProgressBar(powerUsed, powerTotal, 'W');
-                const utilBar = renderProgressBar(util, 100, '%');
-                const rawHtml = raw
-                    ? '<div style="margin-top:12px;">' +
-                        '<div style="font-size:13px;color:#666;margin-bottom:6px;">nvidia-smi 原始输出</div>' +
-                        '<pre style="margin:0;white-space:pre;overflow:auto;background:#fff;border:1px solid #d0d7de;border-radius:8px;padding:12px;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:12px;line-height:1.5;">' +
-                        escapeHtml(String(raw)) +
-                        '</pre>' +
-                    '</div>'
-                    : '';
-                
-                container.innerHTML = '<div style="background:#f6f8fa;padding:12px 16px;border-radius:8px;margin-bottom:12px;"><div style="font-size:18px;font-weight:600;margin-bottom:4px;">' + escapeHtml(gpuName) + '</div><div style="font-size:12px;color:#666;">驱动: ' + escapeHtml(driver) + ' | CUDA: ' + escapeHtml(cuda) + '</div></div><div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:16px;"><div style="background:#fff;border:1px solid #d0d7de;border-radius:8px;padding:12px;text-align:center;"><div style="font-size:24px;font-weight:600;color:' + (temp > 70 ? '#cf222e' : '#24292f') + '">' + temp + '°C</div><div style="font-size:12px;color:#666;margin-top:4px;">温度</div></div><div style="background:#fff;border:1px solid #d0d7de;border-radius:8px;padding:12px;text-align:center;"><div style="font-size:24px;font-weight:600;color:#24292f">' + util + '%</div><div style="font-size:12px;color:#666;margin-top:4px;">利用率</div></div></div><div style="margin-bottom:12px;"><div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px;"><span>显存 ' + memoryUsed + ' / ' + memoryTotal + ' MiB</span><span>' + memoryPercent + '%</span></div><div style="height:8px;background:#e1e4e8;border-radius:4px;overflow:hidden;">' + memoryBar + '</div></div><div style="margin-bottom:12px;"><div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px;"><span>功耗 ' + powerUsed + ' / ' + powerTotal + ' W</span><span>' + Math.round(powerUsed / powerTotal * 100) + '%</span></div><div style="height:8px;background:#e1e4e8;border-radius:4px;overflow:hidden;">' + powerBar + '</div></div><div style="margin-bottom:12px;"><div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px;"><span>GPU 利用率</span><span>' + util + '%</span></div><div style="height:8px;background:#e1e4e8;border-radius:4px;overflow:hidden;">' + utilBar + '</div></div>' + rawHtml;
+            if (!payload || !container) return;
+            
+            const gpu = payload.gpu || {};
+            const processes = payload.processes || [];
+            
+            // 计算颜色
+            const tempColor = gpu.temperature > 70 ? '#cf222e' : gpu.temperature > 50 ? '#d29922' : '#24292f';
+            const memPercent = gpu.memory_used / gpu.memory_total * 100;
+            const memColor = memPercent > 80 ? '#cf222e' : memPercent > 50 ? '#d29922' : '#2da44e';
+            const powerPercent = gpu.power_total > 0 ? gpu.power_used / gpu.power_total * 100 : 0;
+            const powerColor = powerPercent > 80 ? '#cf222e' : powerPercent > 50 ? '#d29922' : '#2da44e';
+            const utilColor = gpu.utilization > 80 ? '#cf222e' : gpu.utilization > 50 ? '#d29922' : '#2da44e';
+            
+            let html = '';
+            
+            // ========== GPU标题卡片 ==========
+            html += '<div style="background:linear-gradient(135deg, #1a7f37 0%, #2da44e 100%);color:#fff;padding:16px;border-radius:12px;margin-bottom:16px;">';
+            html += '<div style="font-size:18px;font-weight:600;margin-bottom:4px;">' + escapeHtml(gpu.name || 'Unknown GPU') + '</div>';
+            html += '<div style="font-size:12px;opacity:0.9;">驱动 ' + escapeHtml(gpu.driver || '-') + ' | CUDA ' + escapeHtml(gpu.cuda || '-') + '</div>';
+            html += '</div>';
+            
+            // ========== 状态指标卡片 ==========
+            html += '<div style="margin-bottom:16px;">';
+            html += '<div style="font-size:13px;color:#666;margin-bottom:8px;padding-left:4px;">状态</div>';
+            html += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;">';
+            
+            // 温度
+            html += '<div style="background:#fff;border:1px solid #d0d7de;border-radius:8px;padding:12px;text-align:center;">';
+            html += '<div style="font-size:22px;font-weight:600;color:' + tempColor + ';">' + (gpu.temperature || 0) + '°</div>';
+            html += '<div style="font-size:11px;color:#666;margin-top:2px;">温度</div>';
+            html += '</div>';
+            
+            // 风扇
+            html += '<div style="background:#fff;border:1px solid #d0d7de;border-radius:8px;padding:12px;text-align:center;">';
+            html += '<div style="font-size:22px;font-weight:600;color:' + utilColor + ';">' + (gpu.fan_percent || 0) + '%</div>';
+            html += '<div style="font-size:11px;color:#666;margin-top:2px;">风扇</div>';
+            html += '</div>';
+            
+            // 利用率
+            html += '<div style="background:#fff;border:1px solid #d0d7de;border-radius:8px;padding:12px;text-align:center;">';
+            html += '<div style="font-size:22px;font-weight:600;color:' + utilColor + ';">' + (gpu.utilization || 0) + '%</div>';
+            html += '<div style="font-size:11px;color:#666;margin-top:2px;">GPU</div>';
+            html += '</div>';
+            
+            html += '</div></div>';
+            
+            // ========== 显存卡片 ==========
+            const memPercentDisplay = Math.round(memPercent * 10) / 10;
+            html += '<div style="margin-bottom:16px;">';
+            html += '<div style="font-size:13px;color:#666;margin-bottom:8px;padding-left:4px;">显存</div>';
+            html += '<div style="background:#fff;border:1px solid #d0d7de;border-radius:8px;padding:12px;">';
+            html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">';
+            html += '<span style="font-size:14px;font-weight:500;">' + (gpu.memory_used || 0) + ' / ' + (gpu.memory_total || 1) + ' MiB</span>';
+            html += '<span style="font-size:13px;color:' + memColor + ';">' + memPercentDisplay + '%</span>';
+            html += '</div>';
+            html += '<div style="height:8px;background:#e1e4e8;border-radius:4px;overflow:hidden;">';
+            html += '<div style="width:' + memPercent + '%;height:100%;background:' + memColor + ';transition:width 0.3s;"></div>';
+            html += '</div>';
+            html += '</div></div>';
+            
+            // ========== 功耗卡片 ==========
+            html += '<div style="margin-bottom:16px;">';
+            html += '<div style="font-size:13px;color:#666;margin-bottom:8px;padding-left:4px;">功耗</div>';
+            html += '<div style="background:#fff;border:1px solid #d0d7de;border-radius:8px;padding:12px;">';
+            html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">';
+            html += '<span style="font-size:14px;font-weight:500;">' + (gpu.power_used || 0) + ' / ' + (gpu.power_total || 0) + ' W</span>';
+            html += '<span style="font-size:13px;color:' + powerColor + ';">' + Math.round(powerPercent) + '%</span>';
+            html += '</div>';
+            html += '<div style="height:8px;background:#e1e4e8;border-radius:4px;overflow:hidden;">';
+            html += '<div style="width:' + (powerPercent > 0 ? powerPercent : 0) + '%;height:100%;background:' + powerColor + ';transition:width 0.3s;"></div>';
+            html += '</div>';
+            html += '</div></div>';
+            
+            // ========== 进程卡片 ==========
+            html += '<div style="margin-bottom:16px;">';
+            html += '<div style="font-size:13px;color:#666;margin-bottom:8px;padding-left:4px;">进程 (' + processes.length + ')</div>';
+            html += '<div style="background:#fff;border:1px solid #d0d7de;border-radius:8px;overflow:hidden;">';
+            
+            if (processes.length === 0) {
+                html += '<div style="padding:16px;text-align:center;color:#666;">无GPU进程</div>';
+            } else {
+                processes.forEach(function(proc, idx) {
+                    const typeIcon = proc.type === 'C' ? '🧮' : proc.type === 'G' ? '🖥️' : '📦';
+                    html += '<div style="padding:10px 12px;' + (idx < processes.length - 1 ? 'border-bottom:1px solid #eee;' : '') + 'display:flex;justify-content:space-between;align-items:center;">';
+                    html += '<div style="display:flex;align-items:center;gap:8px;overflow:hidden;">';
+                    html += '<span>' + typeIcon + '</span>';
+                    html += '<span style="font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:180px;">' + escapeHtml(proc.name || 'Unknown') + '</span>';
+                    html += '</div>';
+                    html += '<span style="font-size:12px;color:#57606a;font-family:ui-monospace;">' + proc.memory + 'MiB</span>';
+                    html += '</div>';
+                });
             }
+            
+            html += '</div></div>';
+            
+            container.innerHTML = html;
         })
-        .catch(function() {
+        .catch(function(err) {
+            console.error(err);
             if (container) container.innerHTML = '<div style="text-align:center;padding:40px;color:#cf222e;">加载失败（可能无GPU或nvidia-smi未安装）</div>';
         });
 };

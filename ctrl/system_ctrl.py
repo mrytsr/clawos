@@ -293,50 +293,68 @@ def api_gpu_info():
     try:
         result = subprocess.run(['nvidia-smi'], capture_output=True, text=True, timeout=10)
         output = result.stdout or result.stderr
-        # 解析关键信息
-        gpu_info = {}
+        gpu_info = {
+            'name': 'Unknown GPU',
+            'driver': 'Unknown',
+            'cuda': 'Unknown',
+            'temperature': 0,
+            'fan_percent': 0,
+            'power_used': 0,
+            'power_total': 0,
+            'memory_used': 0,
+            'memory_total': 1,
+            'utilization': 0
+        }
+        processes = []
         lines = output.split('\n')
         
         # 提取GPU名称
         for line in lines:
-            if 'GeForce' in line or 'RTX' in line or 'NVIDIA' in line:
-                gpu_info['name'] = line.strip()
+            if 'GeForce' in line or 'RTX' in line:
+                # 提取型号，格式如 "  0  NVIDIA GeForce RTX 2080 Ti     Off"
+                match = re.search(r'(\d+)\s+(NVIDIA\s+GeForce\s+RTX[\s\d]+)', line)
+                if match:
+                    gpu_info['name'] = match.group(2).strip()
+                else:
+                    # 备选方案：取最后一段
+                    parts = line.split('|')
+                    for p in reversed(parts):
+                        if 'GeForce' in p or 'RTX' in p:
+                            gpu_info['name'] = p.replace('Off', '').strip()
+                            break
                 break
         
         # 提取显存、温度、功耗
         for line in lines:
             if 'MiB /' in line:
-                # 提取显存使用情况
-                match = re.search(r'(\d+)MiB / (\d+)MiB', line)
+                match = re.search(r'(\d+)MiB /  (\d+)MiB', line)
                 if match:
-                    used = int(match.group(1))
-                    total = int(match.group(2))
-                    gpu_info['memory_used'] = used
-                    gpu_info['memory_total'] = total
-                    gpu_info['memory_percent'] = round(used / total * 100, 1)
+                    gpu_info['memory_used'] = int(match.group(1))
+                    gpu_info['memory_total'] = int(match.group(2))
                 break
         
         for line in lines:
             if 'W / ' in line:
-                match = re.search(r'(\d+)W / (\d+)W', line)
+                match = re.search(r'(\d+)W /  (\d+)W', line)
                 if match:
                     gpu_info['power_used'] = int(match.group(1))
                     gpu_info['power_total'] = int(match.group(2))
                 break
         
         for line in lines:
-            temp = line.strip()
-            if temp and 'C' in temp:
-                match = re.search(r'(\d+)C', temp)
-                if match:
-                    gpu_info['temperature'] = int(match.group(1))
-                break
-        
-        for line in lines:
-            if '%' in line and 'Default' in line:
-                match = re.search(r'(\d+)%', line)
-                if match:
-                    gpu_info['utilization'] = int(match.group(1))
+            if 'C' in line and '%' in line:
+                # 找温度
+                temp_match = re.search(r'(\d+)C', line)
+                if temp_match:
+                    gpu_info['temperature'] = int(temp_match.group(1))
+                # 找利用率
+                util_match = re.search(r'\|\s+(\d+)%\s+Default', line)
+                if util_match:
+                    gpu_info['utilization'] = int(util_match.group(1))
+                # 找风扇
+                fan_match = re.search(r'^\|\s*(\d+)%', line)
+                if fan_match:
+                    gpu_info['fan_percent'] = int(fan_match.group(1))
                 break
         
         # 驱动版本
@@ -355,12 +373,32 @@ def api_gpu_info():
                     gpu_info['cuda'] = match.group(1)
                 break
         
-        return api_ok({'raw': output, 'parsed': gpu_info})
+        # 提取进程列表
+        in_processes = False
+        for line in lines:
+            if 'Processes:' in line:
+                in_processes = True
+                continue
+            if in_processes:
+                if line.startswith('+') or not line.strip() or 'GPU   GI' in line:
+                    continue
+                # 格式: |    0   N/A  N/A            1426      G   /usr/lib/xorg/Xorg                       12MiB |
+                match = re.search(r'\|\s*\d+\s+N/A\s+N/A\s+(\d+)\s+(\w)\s+([^\|]+?)\s+(\d+)MiB\s*\|', line)
+                if match:
+                    processes.append({
+                        'pid': match.group(1),
+                        'type': match.group(2),
+                        'name': match.group(3).strip(),
+                        'memory': int(match.group(4))
+                    })
+                elif line.startswith('+---'):
+                    break
+        
+        return api_ok({'gpu': gpu_info, 'processes': processes})
     except subprocess.TimeoutExpired:
         return api_error('nvidia-smi超时', status=500)
     except Exception as e:
         return api_error(str(e), status=500)
-
 
 @system_bp.route('/api/ollama/models')
 def api_ollama_models():
