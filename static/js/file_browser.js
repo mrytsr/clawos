@@ -58,6 +58,7 @@ function showMenuModal(path, name, isDir, opts) {
     window.currentItemName = name;
     window.currentItemIsDir = isDir;
     document.getElementById('menuTitle').textContent = name;
+    if (typeof updateMenuPinButton === 'function') updateMenuPinButton();
     var editEl = document.getElementById('menuEditItem');
     if (editEl) {
         editEl.style.display = isDir ? 'none' : '';
@@ -214,6 +215,197 @@ function getParentDir(path) {
 function getCurrentBrowsePath() {
     var el = document.getElementById('currentBrowsePath');
     return el ? normalizeRelPath(el.value || '') : '';
+}
+
+var __pinState = { dir: '', byName: {} };
+
+function __pinHeaders() {
+    var h = {};
+    if (typeof window.authHeaders === 'function') {
+        try {
+            Object.assign(h, window.authHeaders() || {});
+        } catch (e) {}
+    }
+    return h;
+}
+
+function __togglePin(dirRel, name) {
+    var dir = normalizeRelPath(dirRel);
+    return fetch('/api/pin/toggle', {
+        method: 'POST',
+        headers: Object.assign({ 'Content-Type': 'application/json' }, __pinHeaders()),
+        body: JSON.stringify({ dir: dir, name: name })
+    })
+        .then(function(r) { return r.json().catch(function() { return null; }); });
+}
+
+function __rebuildPinMap(pins) {
+    var m = {};
+    (Array.isArray(pins) ? pins : []).forEach(function(p) {
+        if (!p || !p.name) return;
+        var t = typeof p.pinned_at === 'number' ? p.pinned_at : parseInt(p.pinned_at, 10) || 0;
+        m[String(p.name)] = t;
+    });
+    __pinState.byName = m;
+}
+
+function __isPinnedName(name) {
+    return Object.prototype.hasOwnProperty.call(__pinState.byName, String(name));
+}
+
+function __ensurePinButtons(dirRel) {
+    var dir = normalizeRelPath(dirRel);
+    var list = document.querySelector('.file-list');
+    if (!list) return;
+
+    document.querySelectorAll('.file-list .file-item[data-name]').forEach(function(el) {
+        var name = String(el.dataset && el.dataset.name ? el.dataset.name : '');
+        if (!name) return;
+        var nameRow = el.querySelector('.file-name');
+        if (!nameRow) return;
+
+        var btn = null;
+        var candidates = nameRow.querySelectorAll('button.pin-btn');
+        for (var i = 0; i < candidates.length; i++) {
+            var c = candidates[i];
+            if (c && c.dataset && c.dataset.pinName === name) {
+                btn = c;
+                break;
+            }
+        }
+        if (!btn) {
+            btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'pin-btn';
+            btn.dataset.pinName = name;
+            btn.addEventListener('click', function(ev) {
+                ev.preventDefault();
+                ev.stopPropagation();
+                if (btn.disabled) return;
+                btn.disabled = true;
+                __togglePin(dir, name)
+                    .then(function(data) {
+                        if (!data || !data.success || !data.data) {
+                            showToast('置顶操作失败', 'error');
+                            return;
+                        }
+                        var pins = Array.isArray(data.data.pins) ? data.data.pins : [];
+                        __rebuildPinMap(pins);
+                        __applyPinsToDom(dir);
+                        showToast(data.data.pinned ? '已置顶' : '已取消置顶', 'success');
+                    })
+                    .catch(function() {
+                        showToast('置顶操作失败', 'error');
+                    })
+                    .finally(function() {
+                        btn.disabled = false;
+                    });
+            });
+
+            nameRow.appendChild(btn);
+        }
+
+        var pinned = __isPinnedName(name);
+        btn.textContent = pinned ? '取消置顶' : '置顶';
+        if (pinned) btn.classList.add('is-pinned');
+        else btn.classList.remove('is-pinned');
+    });
+}
+
+function __applyPinOrder() {
+    var list = document.querySelector('.file-list');
+    if (!list) return;
+
+    var pinnedEls = [];
+    document.querySelectorAll('.file-list .file-item[data-name]').forEach(function(el) {
+        var name = String(el.dataset && el.dataset.name ? el.dataset.name : '');
+        if (!name) return;
+        if (!__isPinnedName(name)) return;
+        pinnedEls.push({ el: el, name: name, t: __pinState.byName[name] || 0 });
+    });
+
+    if (!pinnedEls.length) return;
+
+    pinnedEls.sort(function(a, b) { return (b.t || 0) - (a.t || 0); });
+    var first = list.firstChild;
+    pinnedEls.forEach(function(item) {
+        if (item.el && item.el.parentNode === list) {
+            list.insertBefore(item.el, first);
+            first = item.el.nextSibling;
+        }
+    });
+}
+
+function __applyPinsToDom(dirRel) {
+    __ensurePinButtons(dirRel);
+    __applyPinOrder();
+}
+
+function updateMenuPinButton() {
+    var btn = document.getElementById('menuPinBtn');
+    if (!btn) return;
+
+    var path = normalizeRelPath(window.currentItemPath || '');
+    var name = String(window.currentItemName || '').trim();
+    var isDir = !!window.currentItemIsDir;
+
+    if (!path || !name || name === '根目录') {
+        btn.style.display = 'none';
+        return;
+    }
+
+    var dirRel = getParentDir(path);
+    if (dirRel === path && isDir) {
+        btn.style.display = 'none';
+        return;
+    }
+    if (normalizeRelPath(dirRel) !== getCurrentBrowsePath()) {
+        btn.style.display = 'none';
+        return;
+    }
+
+    btn.style.display = '';
+    var applyState = function(pinned) {
+        btn.textContent = pinned ? '取消置顶' : '置顶';
+        if (pinned) btn.classList.add('is-pinned');
+        else btn.classList.remove('is-pinned');
+    };
+    applyState(__isPinnedName(name));
+
+    btn.onclick = function(ev) {
+        if (ev && typeof ev.preventDefault === 'function') ev.preventDefault();
+        if (ev && typeof ev.stopPropagation === 'function') ev.stopPropagation();
+        if (btn.disabled) return;
+        btn.disabled = true;
+        __togglePin(dirRel, name)
+            .then(function(data) {
+                if (!data || !data.success || !data.data) {
+                    showToast('置顶操作失败', 'error');
+                    return;
+                }
+                var pins = Array.isArray(data.data.pins) ? data.data.pins : [];
+                __rebuildPinMap(pins);
+                __applyPinsToDom(getCurrentBrowsePath());
+                applyState(!!data.data.pinned);
+                showToast(data.data.pinned ? '已置顶' : '已取消置顶', 'success');
+            })
+            .catch(function() {
+                showToast('置顶操作失败', 'error');
+            })
+            .finally(function() {
+                btn.disabled = false;
+            });
+    };
+}
+
+function initPinsForCurrentDir() {
+    var dir = getCurrentBrowsePath();
+    __pinState.dir = dir;
+    var pins = Array.isArray(window.__INITIAL_PINS__) ? window.__INITIAL_PINS__ : [];
+    var pinDir = typeof window.__INITIAL_PIN_DIR__ === 'string' ? normalizeRelPath(window.__INITIAL_PIN_DIR__) : '';
+    if (pinDir !== dir) pins = [];
+    __rebuildPinMap(pins);
+    __applyPinsToDom(dir);
 }
 
 function formatTimestampYYYYMMDDHHMMSS() {
@@ -764,10 +956,12 @@ function attachFileItemDefaultHandlers() {
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', function() {
         attachFileItemDefaultHandlers();
+        initPinsForCurrentDir();
         initDragUploadAndPaste();
     });
 } else {
     attachFileItemDefaultHandlers();
+    initPinsForCurrentDir();
     initDragUploadAndPaste();
 }
 
@@ -1135,49 +1329,15 @@ function getCurrentPathFromUrl() {
 
 // 加载Git状态
 function loadGitStatusBar() {
-    var path = getCurrentPathFromUrl();
     var bar = document.getElementById('gitStatusBar');
     if (!bar) return;
-    
-    // 首先检查当前路径是否是git仓库
-    fetch('/api/git/status?path=' + encodeURIComponent(path))
-        .then(function(r) { return r.json(); })
-        .then(function(data) {
-            if (data && data.success && data.data && data.data.is_repo) {
-                showGitStatusBar(data.data);
-            } else {
-                // 当前路径不是git仓库，检查配置的仓库中是否有匹配的
-                return fetch('/api/git/list', { headers: authHeaders() })
-                    .then(function(r) { return r.json(); })
-                    .then(function(listData) {
-                        if (listData && listData.success && listData.data && listData.data.repos) {
-                            // 查找匹配的仓库（当前路径在仓库内）
-                            var repos = listData.data.repos;
-                            for (var i = 0; i < repos.length; i++) {
-                                var repo = repos[i];
-                                if (repo.path && (path === '' || path === '/' || path === '.' || repo.path === path || repo.path.startsWith(path + '/') || path.startsWith(repo.path))) {
-                                    // 使用仓库信息显示状态栏
-                                    showGitStatusBar({
-                                        branch: repo.status ? repo.status.branch : 'unknown',
-                                        has_changes: repo.status ? repo.status.has_changes : false,
-                                        untracked: repo.status ? repo.status.untracked || 0 : 0,
-                                        added: repo.status ? repo.status.added || 0 : 0,
-                                        modified: repo.status ? repo.status.modified || 0 : 0,
-                                        deleted: repo.status ? repo.status.deleted || 0 : 0,
-                                        commit: repo.status ? repo.status.commit : ''
-                                    });
-                                    return;
-                                }
-                            }
-                        }
-                        // 没有找到匹配的仓库，隐藏状态栏
-                        bar.style.display = 'none';
-                    });
-            }
-        })
-        .catch(function() {
-            bar.style.display = 'none';
-        });
+
+    var status = window.__INITIAL_GIT_STATUS__ || null;
+    if (status && status.is_repo) {
+        showGitStatusBar(status);
+        return;
+    }
+    bar.style.display = 'none';
 }
 
 function showGitStatusBar(status) {

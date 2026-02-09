@@ -821,6 +821,11 @@
     <input type="hidden" id="currentBrowsePath" value="{{ get_relative_path(current_dir) }}">
     <input type="hidden" id="currentBrowseName" value="{{ os.path.basename(current_dir) }}">
     <input type="hidden" id="rootDir" value="{{ ROOT_DIR }}">
+    <script>
+        window.__INITIAL_PIN_DIR__ = {{ (initial_pin_dir or '')|tojson }};
+        window.__INITIAL_PINS__ = {{ (initial_pins or [])|tojson }};
+        window.__INITIAL_GIT_STATUS__ = {{ (initial_git_status or None)|tojson }};
+    </script>
 </head>
 <body>
     <div id="taskListenerBar" class="task-listener-bar" role="status" aria-live="polite" aria-hidden="true" style="display:none;">
@@ -1079,7 +1084,10 @@
     <div id="menuModal" class="drawer">
         <div class="drawer-handle"></div>
         <div class="drawer-header">
-            <div class="drawer-title" id="menuTitle">菜单</div>
+            <div style="display:flex;align-items:center;gap:10px;min-width:0;">
+                <div class="drawer-title" id="menuTitle">菜单</div>
+                <button type="button" class="pin-btn" id="menuPinBtn" style="display:none;">置顶</button>
+            </div>
             <button class="drawer-close-btn" onclick="closeMenuModal()">&times;</button>
         </div>
         <div class="drawer-content">

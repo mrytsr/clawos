@@ -35,6 +35,36 @@ if os.name != 'nt' and _terminal_supported:
         termios = None
 
 
+def _find_git_bash_path():
+    explicit = os.environ.get('GIT_BASH') or os.environ.get('GIT_BASH_PATH') or ''
+    if explicit and os.path.exists(explicit):
+        return explicit
+
+    which = shutil.which('bash.exe') or shutil.which('bash')
+    if which and os.path.exists(which):
+        return which
+
+    program_files = [
+        os.environ.get('ProgramFiles') or '',
+        os.environ.get('ProgramFiles(x86)') or '',
+        os.environ.get('LocalAppData') or '',
+    ]
+    suffixes = [
+        os.path.join('Git', 'bin', 'bash.exe'),
+        os.path.join('Git', 'usr', 'bin', 'bash.exe'),
+        os.path.join('Programs', 'Git', 'bin', 'bash.exe'),
+        os.path.join('Programs', 'Git', 'usr', 'bin', 'bash.exe'),
+    ]
+    for base in program_files:
+        if not base:
+            continue
+        for s in suffixes:
+            cand = os.path.join(base, s)
+            if os.path.exists(cand):
+                return cand
+    return ''
+
+
 def register_term_socketio(socketio, terminal_root_dir=None):
     global _terminal_root_dir
     if terminal_root_dir:
@@ -78,13 +108,14 @@ def register_term_socketio(socketio, terminal_root_dir=None):
             _terminal_sessions[request.sid] = {'kind': 'nodepty', 'process': process}
 
             try:
+                bash = _find_git_bash_path()
                 init = {
                     'type': 'init',
                     'cwd': cwd,
                     'cols': 80,
                     'rows': 24,
-                    'shell': 'powershell.exe',
-                    'args': ['-NoLogo'],
+                    'shell': bash or 'bash.exe',
+                    'args': ['-i'],
                 }
                 process.stdin.write(json.dumps(init, ensure_ascii=False) + '\n')
                 process.stdin.flush()

@@ -25,13 +25,18 @@ function startPty(opts) {
   const rows = (opts && Number.isFinite(opts.rows) && opts.rows > 0) ? opts.rows : 24;
 
   pty = require('node-pty');
-  ptyProcess = pty.spawn(shell, args, {
-    name: 'xterm-256color',
-    cols,
-    rows,
-    cwd,
-    env: process.env
-  });
+  try {
+    ptyProcess = pty.spawn(shell, args, {
+      name: 'xterm-256color',
+      cols,
+      rows,
+      cwd,
+      env: { ...process.env, TERM: 'xterm-256color', CHERE_INVOKING: '1' }
+    });
+  } catch (e) {
+    send({ type: 'output', data: '\r\n*** 启动终端失败: ' + String(e && e.message ? e.message : e) + ' ***\r\n' });
+    process.exit(1);
+  }
 
   ptyProcess.onData((data) => {
     send({ type: 'output', data: data });

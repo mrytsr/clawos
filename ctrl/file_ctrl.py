@@ -19,8 +19,10 @@ from flask import (
 )
 
 import config
-from lib import file_utils, path_utils
+from lib import file_utils, git_utils, json_utils, path_utils
 from ctrl.task_ctrl import create_task, update_task
+
+PIN_FILE = os.path.join(config.SCRIPT_DIR, 'data', 'pin.json')
 
 
 file_bp = Blueprint('file', __name__)
@@ -48,12 +50,45 @@ def browse(path=''):
         return "目录不存在", 404
 
     items = file_utils.list_directory(current_dir)
+    item_names = set()
+    for it in items:
+        if isinstance(it, dict) and it.get('name'):
+            item_names.add(str(it.get('name')))
+
+    rel_dir = path_utils.get_relative_path(current_dir, root_dir)
+    pin_dir = _normalize_pin_dir(rel_dir)
+    store = _load_pin_store()
+    pins_all = store.get('pins', []) if isinstance(store, dict) else []
+    initial_pins = []
+    for it in pins_all:
+        if not isinstance(it, dict):
+            continue
+        if it.get('dir') != pin_dir:
+            continue
+        name = str(it.get('name') or '').strip()
+        if not name or name not in item_names:
+            continue
+        try:
+            t = int(it.get('pinned_at') or 0)
+        except Exception:
+            t = 0
+        initial_pins.append({'name': name, 'pinned_at': t})
+    initial_pins.sort(key=lambda x: int(x.get('pinned_at') or 0), reverse=True)
+    initial_git_status = None
+    try:
+        initial_git_status = git_utils.get_git_status_detailed(current_dir)
+    except Exception:
+        initial_git_status = None
+
     breadcrumbs = path_utils.get_breadcrumbs(current_dir, root_dir)
     return render_template(
         'index.html',
         items=items,
         current_dir=current_dir,
         breadcrumbs=breadcrumbs,
+        initial_pin_dir=pin_dir,
+        initial_pins=initial_pins,
+        initial_git_status=initial_git_status,
         message=request.args.get('message'),
         msg_type=request.args.get('msg_type', 'success'),
         ROOT_DIR=root_dir,
@@ -327,6 +362,139 @@ def _resolve_safe_dir(path, ensure_exists=False):
     if not os.path.exists(full_path) or not os.path.isdir(full_path):
         return None, None, "目录不存在"
     return root_dir, full_path, None
+
+
+def _normalize_pin_dir(dir_path):
+    p = (dir_path or '').strip()
+    p = p.lstrip('/\\').replace('\\', '/')
+    p = p.strip('/')
+    if p in {'.', '/'}:
+        return ''
+    return p
+
+
+def _load_pin_store():
+    data = json_utils.load_json(PIN_FILE, default={'pins': []})
+    pins = data.get('pins') if isinstance(data, dict) else None
+    if not isinstance(pins, list):
+        pins = []
+    normalized = []
+    for it in pins:
+        if not isinstance(it, dict):
+            continue
+        d = _normalize_pin_dir(it.get('dir'))
+        n = str(it.get('name') or '').strip()
+        t = it.get('pinned_at')
+        if not n or any(sep in n for sep in ['/', '\\']) or '..' in n:
+            continue
+        try:
+            t_int = int(t)
+        except Exception:
+            continue
+        normalized.append({'dir': d, 'name': n, 'pinned_at': t_int})
+    return {'pins': normalized}
+
+
+def _save_pin_store(store):
+    pins = store.get('pins') if isinstance(store, dict) else None
+    if not isinstance(pins, list):
+        pins = []
+    json_utils.save_json(PIN_FILE, {'pins': pins})
+
+
+@file_bp.route('/api/pin/list')
+def api_pin_list():
+    dir_rel = _normalize_pin_dir(request.args.get('dir', ''))
+    _root_dir, full_dir, err = _resolve_safe_dir(dir_rel, ensure_exists=False)
+    if err:
+        return jsonify({'success': False, 'error': {'message': err}}), 400
+
+    store = _load_pin_store()
+    pins = store['pins']
+    filtered = []
+    changed = False
+    for it in pins:
+        if it.get('dir') != dir_rel:
+            continue
+        name = it.get('name')
+        if not name:
+            continue
+        full_item = os.path.normpath(os.path.join(full_dir, name))
+        if not full_item.startswith(os.path.normpath(full_dir)):
+            changed = True
+            continue
+        if not os.path.exists(full_item):
+            changed = True
+            continue
+        filtered.append({'name': name, 'pinned_at': int(it.get('pinned_at') or 0)})
+
+    filtered.sort(key=lambda x: int(x.get('pinned_at') or 0), reverse=True)
+    if changed:
+        keep = []
+        for it in pins:
+            if it.get('dir') != dir_rel:
+                keep.append(it)
+                continue
+            n = it.get('name')
+            if not n:
+                continue
+            full_item = os.path.normpath(os.path.join(full_dir, n))
+            if not full_item.startswith(os.path.normpath(full_dir)):
+                continue
+            if not os.path.exists(full_item):
+                continue
+            keep.append(it)
+        store['pins'] = keep
+        _save_pin_store(store)
+
+    return jsonify({'success': True, 'data': {'dir': dir_rel, 'pins': filtered}})
+
+
+@file_bp.route('/api/pin/toggle', methods=['POST'])
+def api_pin_toggle():
+    payload = request.get_json(silent=True) or {}
+    dir_rel = _normalize_pin_dir(payload.get('dir') or request.args.get('dir', ''))
+    name = str(payload.get('name') or request.args.get('name', '')).strip()
+
+    if not name:
+        return jsonify({'success': False, 'error': {'message': '缺少名称'}}), 400
+    if any(sep in name for sep in ['/', '\\']) or '..' in name:
+        return jsonify({'success': False, 'error': {'message': '非法名称'}}), 400
+
+    _root_dir, full_dir, err = _resolve_safe_dir(dir_rel, ensure_exists=False)
+    if err:
+        return jsonify({'success': False, 'error': {'message': err}}), 400
+
+    full_item = os.path.normpath(os.path.join(full_dir, name))
+    if not full_item.startswith(os.path.normpath(full_dir)):
+        return jsonify({'success': False, 'error': {'message': '非法路径'}}), 403
+    if not os.path.exists(full_item):
+        return jsonify({'success': False, 'error': {'message': '文件不存在'}}), 404
+
+    store = _load_pin_store()
+    pins = store['pins']
+    exists = False
+    next_pins = []
+    for it in pins:
+        if it.get('dir') == dir_rel and it.get('name') == name:
+            exists = True
+            continue
+        next_pins.append(it)
+
+    pinned = False
+    pinned_at = None
+    if not exists:
+        pinned = True
+        pinned_at = int(datetime.now().timestamp() * 1000)
+        next_pins.append({'dir': dir_rel, 'name': name, 'pinned_at': pinned_at})
+
+    store['pins'] = next_pins
+    _save_pin_store(store)
+
+    current = [it for it in next_pins if it.get('dir') == dir_rel]
+    current.sort(key=lambda x: int(x.get('pinned_at') or 0), reverse=True)
+    resp_pins = [{'name': it.get('name'), 'pinned_at': int(it.get('pinned_at') or 0)} for it in current if it.get('name')]
+    return jsonify({'success': True, 'data': {'dir': dir_rel, 'name': name, 'pinned': pinned, 'pinned_at': pinned_at, 'pins': resp_pins}})
 
 
 def _is_archive_name(name):

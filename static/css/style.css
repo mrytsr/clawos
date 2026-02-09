@@ -134,6 +134,28 @@
             color: #0969da;
             text-decoration: underline;
         }
+        .pin-btn {
+            border: 1px solid #0969da;
+            background: #ddf4ff;
+            color: #0969da;
+            border-radius: 6px;
+            padding: 2px 8px;
+            cursor: pointer;
+            font-size: 12px;
+            line-height: 18px;
+            flex-shrink: 0;
+        }
+        .pin-btn.is-pinned {
+            border-color: #cf222e;
+            background: #ffebe9;
+            color: #cf222e;
+        }
+        .pin-btn:disabled {
+            border-color: #d0d7de;
+            background: #f6f8fa;
+            color: #57606a;
+            cursor: not-allowed;
+        }
         .file-details-inline {
             font-size: var(--global-font-size, 12px);
             color: #57606a;
