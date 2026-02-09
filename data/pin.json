@@ -14,6 +14,11 @@
       "dir": "Desktop/clawos",
       "name": "lib",
       "pinned_at": 1770611865578
+    },
+    {
+      "dir": "",
+      "name": "Desktop",
+      "pinned_at": 1770614467808
     }
   ]
 }

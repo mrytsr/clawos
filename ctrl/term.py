@@ -208,6 +208,7 @@ def register_term_socketio(socketio, terminal_root_dir=None):
                                 socketio.emit('output', {'data': raw + '\r\n'}, room=sid, namespace='/term')
                         except Exception:
                             socketio.emit('output', {'data': raw + '\r\n'}, room=sid, namespace='/term')
+                        socketio.sleep(0)
                 except Exception:
                     pass
 

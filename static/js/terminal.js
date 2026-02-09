@@ -11,6 +11,10 @@ let _vvBound = false;
 let _pendingOpenActions = null;
 let _requestedCwd = '';
 let _gestureBound = false;
+let _termLayoutRaf = 0;
+let _lastTermFitAt = 0;
+let _lastDrawerBottomPx = null;
+let _lastDrawerHeightPx = null;
 
 function focusTerminal() {
     if (term && typeof term.focus === 'function') term.focus();
@@ -312,32 +316,80 @@ function handleKeyBtn(e, key) {
 
 function updateTerminalDrawerLayout() {
     const drawer = document.getElementById('terminalDrawer');
-    if (!drawer) return;
+    if (!drawer) return false;
 
     const auxKb = document.getElementById('terminalAuxKeyboard') || drawer.querySelector('.terminal-keyboard');
     const vv = window.visualViewport;
+    let changed = false;
+    let keyboardOpen = false;
     if (vv) {
         const overlap = Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop));
-        drawer.style.bottom = overlap ? (String(overlap) + 'px') : '';
         const desired = Math.max(240, Math.round(vv.height * 0.95));
-        drawer.style.height = String(desired) + 'px';
-        drawer.style.maxHeight = String(desired) + 'px';
+        const bottomPx = overlap ? overlap : 0;
 
-        const keyboardOpen = overlap >= 80;
+        if (_lastDrawerBottomPx !== bottomPx) {
+            drawer.style.bottom = bottomPx ? (String(bottomPx) + 'px') : '';
+            _lastDrawerBottomPx = bottomPx;
+            changed = true;
+        }
+        if (_lastDrawerHeightPx !== desired) {
+            drawer.style.height = String(desired) + 'px';
+            drawer.style.maxHeight = String(desired) + 'px';
+            _lastDrawerHeightPx = desired;
+            changed = true;
+        }
+
+        keyboardOpen = overlap >= 80;
+        if (keyboardOpen) drawer.classList.add('kbd-open');
+        else drawer.classList.remove('kbd-open');
+
         if (auxKb) {
             if (keyboardOpen) auxKb.classList.add('visible');
             else auxKb.classList.remove('visible');
             auxKb.style.visibility = keyboardOpen ? 'visible' : 'hidden';
         }
     } else {
-        drawer.style.bottom = '';
-        drawer.style.height = '';
-        drawer.style.maxHeight = '';
+        if (_lastDrawerBottomPx !== null) {
+            drawer.style.bottom = '';
+            _lastDrawerBottomPx = null;
+            changed = true;
+        }
+        if (_lastDrawerHeightPx !== null) {
+            drawer.style.height = '';
+            drawer.style.maxHeight = '';
+            _lastDrawerHeightPx = null;
+            changed = true;
+        }
+        drawer.classList.remove('kbd-open');
         if (auxKb) {
             auxKb.classList.remove('visible');
             auxKb.style.visibility = 'hidden';
         }
     }
+    return changed;
+}
+
+function scheduleTerminalDrawerLayoutUpdate() {
+    if (_termLayoutRaf) return;
+    _termLayoutRaf = window.requestAnimationFrame(() => {
+        _termLayoutRaf = 0;
+        if (!isTermOpen) return;
+
+        const drawerEl = document.getElementById('terminalDrawer');
+        const changed = updateTerminalDrawerLayout();
+        if (!changed) return;
+        if (!drawerEl || !drawerEl.classList.contains('open')) return;
+        if (!fitAddon || !term) return;
+
+        const now = Date.now();
+        if (now - _lastTermFitAt < 80) return;
+        _lastTermFitAt = now;
+
+        fitAddon.fit();
+        if (socket && socket.connected) {
+            socket.emit('resize', { cols: term.cols, rows: term.rows });
+        }
+    });
 }
 
 function openTerminal(path, isDir) {
@@ -390,24 +442,19 @@ function openTerminal(path, isDir) {
     } else {
         setPendingOpenActions(null);
     }
-    
+
+    scheduleTerminalDrawerLayoutUpdate();
     setTimeout(() => {
-        if (fitAddon) {
-            fitAddon.fit();
-            if (socket && socket.connected && term) {
-                socket.emit('resize', { cols: term.cols, rows: term.rows });
-            }
-        }
-        updateTerminalDrawerLayout();
+        scheduleTerminalDrawerLayoutUpdate();
         if (!_vvBound && window.visualViewport) {
             _vvBound = true;
             window.visualViewport.addEventListener('resize', function() {
                 if (!isTermOpen) return;
-                updateTerminalDrawerLayout();
+                scheduleTerminalDrawerLayoutUpdate();
             });
             window.visualViewport.addEventListener('scroll', function() {
                 if (!isTermOpen) return;
-                updateTerminalDrawerLayout();
+                scheduleTerminalDrawerLayoutUpdate();
             });
         }
         focusTerminal();
@@ -433,6 +480,7 @@ function initTerminal(cwd) {
             term.write('\r\n\x1b[32m*** 已连接 ***\x1b[0m\r\n');
         }
         socket.emit('create_terminal', { cwd: (_requestedCwd || cwd) });
+        updateTerminalDrawerLayout();
         fitAddon.fit();
         socket.emit('resize', { cols: term.cols, rows: term.rows });
         setTimeout(() => {
@@ -472,15 +520,7 @@ function initTerminal(cwd) {
         }
     });
     
-    window.addEventListener('resize', () => {
-        const drawerEl = document.getElementById('terminalDrawer');
-        if (fitAddon && drawerEl && drawerEl.classList.contains('open')) {
-            fitAddon.fit();
-            if (socket && socket.connected) {
-                socket.emit('resize', { cols: term.cols, rows: term.rows });
-            }
-        }
-    });
+    window.addEventListener('resize', scheduleTerminalDrawerLayoutUpdate);
 }
 
 function closeTerminal() {
@@ -488,12 +528,19 @@ function closeTerminal() {
     ctrlMode = false;
     altMode = false;
     syncModifierButtons();
+    if (_termLayoutRaf) {
+        window.cancelAnimationFrame(_termLayoutRaf);
+        _termLayoutRaf = 0;
+    }
     const drawerEl = document.getElementById('terminalDrawer');
     if (drawerEl) {
         drawerEl.style.bottom = '';
         drawerEl.style.height = '';
         drawerEl.style.maxHeight = '';
+        drawerEl.classList.remove('kbd-open');
     }
+    _lastDrawerBottomPx = null;
+    _lastDrawerHeightPx = null;
     const drawer = document.getElementById('terminalDrawer');
     const backdrop = document.getElementById('terminalBackdrop');
     if (drawer) drawer.classList.remove('open');

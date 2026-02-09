@@ -494,12 +494,16 @@
             background: #1a1a1a;
             border-radius: 16px 16px 0 0;
             transform: translateY(110%);
-            transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), height 0.2s ease, max-height 0.2s ease, bottom 0.2s ease;
+            transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), height 0.12s ease-out, max-height 0.12s ease-out, bottom 0.12s ease-out;
             z-index: 2000;
             display: flex;
             flex-direction: column;
             height: 95vh;
             max-height: 95vh;
+            will-change: transform, height, bottom;
+        }
+        #terminalDrawer.kbd-open {
+            transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
         }
         #terminalDrawer.open {
             transform: translateY(0);
