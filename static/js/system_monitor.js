@@ -641,52 +641,128 @@ window.openOllamaModal = function() { Drawer.open('ollamaModal'); loadOllamaMode
 window.loadOpenclawConfig = function() {
     const container = document.getElementById('openclawConfigContainer');
     if (container) container.innerHTML = '<div style="text-align:center;padding:40px;color:#666;">🔄 加载中...</div>';
-    fetch('/api/openclaw/config', { headers: authHeaders() })
+    
+    fetch('/api/openclaw/status', { headers: authHeaders() })
         .then(r => r.json())
         .then(data => {
             const payload = apiData(data);
-            if (payload && container) {
-                const version = payload.version || 'Unknown';
-                const modelCount = payload.models?.count || 0;
-                const models = payload.models?.list || [];
-                const channels = payload.channels || {};
-                const gateway = payload.gateway || {};
-                const auth = payload.auth || {};
-                
-                let html = '<div style="background:#f6f8fa;padding:12px 16px;border-radius:8px;margin-bottom:16px;"><div style="font-size:16px;font-weight:600;">OpenClaw ' + escapeHtml(version) + '</div></div>';
-                
-                // 模型数量
-                html += '<div style="margin-bottom:16px;"><div style="font-size:13px;color:#666;margin-bottom:8px;">模型 (' + modelCount + ')</div><div style="display:flex;flex-direction:column;gap:6px;">';
-                models.slice(0, 8).forEach(function(m) {
-                    const isReasoning = m.reasoning;
-                    html += '<div style="background:#fff;border:1px solid #d0d7de;border-radius:6px;padding:8px 12px;font-size:13px;display:flex;align-items:center;gap:8px;">' + (isReasoning ? '<span style="font-size:10px;background:#ddf4ff;color:#0969da;padding:1px 4px;border-radius:3px;">推理</span>' : '') + '<span>' + escapeHtml(m.name || m.id) + '</span></div>';
-                });
-                if (models.length > 8) {
-                    html += '<div style="font-size:12px;color:#666;text-align:center;padding:8px;">...共 ' + modelCount + ' 个模型</div>';
-                }
-                html += '</div></div>';
-                
-                // 渠道
-                html += '<div style="margin-bottom:16px;"><div style="font-size:13px;color:#666;margin-bottom:8px;">渠道</div><div style="display:flex;flex-wrap:wrap;gap:8px;">';
-                Object.entries(channels).forEach(function(cfgs) {
-                    const name = cfgs[0];
-                    const cfg = cfgs[1];
-                    const enabled = cfg.enabled;
-                    html += '<span style="font-size:12px;padding:4px 8px;border-radius:4px;background:' + (enabled ? '#dafbe1' : '#ffebe9') + ';color:' + (enabled ? '#1a7f37' : '#cf222e') + ';">' + escapeHtml(name) + ' ' + (enabled ? '✓' : '✗') + '</span>';
-                });
-                html += '</div></div>';
-                
-                // 网关
-                html += '<div style="margin-bottom:16px;"><div style="font-size:13px;color:#666;margin-bottom:8px;">网关</div><div style="background:#fff;border:1px solid #d0d7de;border-radius:8px;padding:12px;"><div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span>端口</span><span style="font-family:monospace;">' + (gateway.port || '-') + '</span></div><div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span>绑定</span><span>' + (gateway.bind || '-') + '</span></div><div style="display:flex;justify-content:space-between;"><span>Tailscale</span><span style="color:' + (gateway.tailscale === 'off' ? '#cf222e' : '#07c160') + ';">' + (gateway.tailscale || '-') + '</span></div></div></div>';
-                
-                container.innerHTML = html;
+            if (!payload || !container) return;
+            
+            let html = '';
+            
+            // ========== 概览卡片 ==========
+            const ov = payload.overview || {};
+            html += '<div style="margin-bottom:16px;">';
+            html += '<div style="font-size:13px;color:#666;margin-bottom:8px;padding-left:4px;">概览</div>';
+            html += '<div style="background:#fff;border:1px solid #d0d7de;border-radius:8px;overflow:hidden;">';
+            html += '<div style="padding:10px 12px;border-bottom:1px solid #eee;display:flex;justify-content:space-between;align-items:center;"><span style="color:#666;font-size:13px;">版本</span><span style="font-weight:500;font-size:14px;">' + escapeHtml(ov.version || '-') + '</span></div>';
+            html += '<div style="padding:10px 12px;border-bottom:1px solid #eee;display:flex;justify-content:space-between;align-items:center;"><span style="color:#666;font-size:13px;">系统</span><span style="font-size:12px;color:#57606a;max-width:200px;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + escapeHtml(ov.os || '-') + '</span></div>';
+            html += '<div style="padding:10px 12px;border-bottom:1px solid #eee;display:flex;justify-content:space-between;align-items:center;"><span style="color:#666;font-size:13px;">Node</span><span style="font-weight:500;font-size:14px;">' + escapeHtml(ov.node || '-') + '</span></div>';
+            html += '<div style="padding:10px 12px;border-bottom:1px solid #eee;display:flex;justify-content:space-between;align-items:center;"><span style="color:#666;font-size:13px;">仪表板</span><a href="' + escapeHtml(ov.dashboard || '#') + '" target="_blank" style="color:#0969da;font-size:13px;">打开 ↗</a></div>';
+            html += '<div style="padding:10px 12px;display:flex;justify-content:space-between;align-items:center;"><span style="color:#666;font-size:13px;">频道</span><span style="font-size:13px;">' + escapeHtml(ov.channel || '-') + '</span></div>';
+            html += '</div></div>';
+            
+            // ========== Gateway卡片 ==========
+            const gw = payload.gateway || {};
+            const gwStatus = gw.service_running ? '🟢 运行中' : '🔴 已停止';
+            const gwPortClass = gw.port_used ? 'color:#cf222e;' : 'color:#2da44e;';
+            html += '<div style="margin-bottom:16px;">';
+            html += '<div style="font-size:13px;color:#666;margin-bottom:8px;padding-left:4px;">Gateway</div>';
+            html += '<div style="background:#fff;border:1px solid #d0d7de;border-radius:8px;overflow:hidden;">';
+            html += '<div style="padding:10px 12px;border-bottom:1px solid #eee;display:flex;justify-content:space-between;align-items:center;"><span style="color:#666;font-size:13px;">状态</span><span>' + gwStatus + '</span></div>';
+            html += '<div style="padding:10px 12px;border-bottom:1px solid #eee;display:flex;justify-content:space-between;align-items:center;"><span style="color:#666;font-size:13px;">端口</span><span style="' + gwPortClass + 'font-size:14px;">' + (gw.port || '-') + (gw.port_used ? ' (被占用)' : '') + '</span></div>';
+            if (gw.latency_ms !== null) {
+                html += '<div style="padding:10px 12px;border-bottom:1px solid #eee;display:flex;justify-content:space-between;align-items:center;"><span style="color:#666;font-size:13px;">延迟</span><span>' + gw.latency_ms + 'ms</span></div>';
             }
+            if (gw.service_pid) {
+                html += '<div style="padding:10px 12px;display:flex;justify-content:space-between;align-items:center;"><span style="color:#666;font-size:13px;">PID</span><span style="font-family:ui-monospace;font-size:13px;">' + gw.service_pid + '</span></div>';
+            }
+            html += '</div></div>';
+            
+            // ========== Agents卡片 ==========
+            const agents = payload.agents || [];
+            html += '<div style="margin-bottom:16px;">';
+            html += '<div style="font-size:13px;color:#666;margin-bottom:8px;padding-left:4px;">Agents (' + agents.length + ')</div>';
+            html += '<div style="background:#fff;border:1px solid #d0d7de;border-radius:8px;overflow:hidden;">';
+            agents.forEach(function(agent, idx) {
+                const statusColor = agent.status === 'pending' ? '#cf222e' : '#2da44e';
+                html += '<div style="padding:10px 12px;' + (idx < agents.length - 1 ? 'border-bottom:1px solid #eee;' : '') + '">';
+                html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">';
+                html += '<span style="font-weight:500;font-size:14px;">' + escapeHtml(agent.name || agent.id) + '</span>';
+                html += '<span style="font-size:11px;padding:1px 6px;border-radius:999px;background:#ffebe9;color:#cf222e;">' + (agent.sessions || 0) + ' 会话</span>';
+                html += '</div>';
+                html += '<div style="font-size:12px;color:#57606a;">' + (agent.active_ago || '-') + '</div>';
+                html += '</div>';
+            });
+            html += '</div></div>';
+            
+            // ========== Channels卡片 ==========
+            const channels = payload.channels || {};
+            const channelNames = Object.keys(channels);
+            html += '<div style="margin-bottom:16px;">';
+            html += '<div style="font-size:13px;color:#666;margin-bottom:8px;padding-left:4px;">Channels</div>';
+            html += '<div style="background:#fff;border:1px solid #d0d7de;border-radius:8px;overflow:hidden;">';
+            channelNames.forEach(function(ch, idx) {
+                const cfg = channels[ch];
+                const statusIcon = cfg.status === 'ok' ? '🟢' : (cfg.enabled ? '🟡' : '🔴');
+                const statusText = cfg.status === 'ok' ? '已连接' : (cfg.enabled ? '待配置' : '已禁用');
+                html += '<div style="padding:10px 12px;' + (idx < channelNames.length - 1 ? 'border-bottom:1px solid #eee;' : '') + 'display:flex;justify-content:space-between;align-items:center;">';
+                html += '<div style="display:flex;align-items:center;gap:8px;">';
+                html += '<span>' + statusIcon + '</span>';
+                html += '<span style="font-weight:500;font-size:14px;text-transform:capitalize;">' + escapeHtml(ch) + '</span>';
+                html += '</div>';
+                html += '<div style="text-align:right;">';
+                html += '<div style="font-size:13px;">' + statusText + '</div>';
+                if (cfg.accounts_total > 0) {
+                    html += '<div style="font-size:11px;color:#57606a;">' + cfg.accounts_ok + '/' + cfg.accounts_total + ' 账户</div>';
+                }
+                html += '</div>';
+                html += '</div>';
+            });
+            html += '</div></div>';
+            
+            // ========== 诊断卡片 ==========
+            const diag = payload.diagnosis || {};
+            const warnings = diag.warnings || [];
+            const checks = diag.checks || {};
+            
+            html += '<div style="margin-bottom:16px;">';
+            html += '<div style="font-size:13px;color:#666;margin-bottom:8px;padding-left:4px;">诊断</div>';
+            html += '<div style="background:#fff;border:1px solid #d0d7de;border-radius:8px;overflow:hidden;">';
+            
+            // Warnings
+            if (warnings.length > 0) {
+                warnings.forEach(function(w, idx) {
+                    html += '<div style="padding:10px 12px;' + (idx < warnings.length - 1 ? 'border-bottom:1px solid #eee;' : '') + 'display:flex;align-items:center;gap:8px;">';
+                    html += '<span>⚠️</span>';
+                    html += '<span style="font-size:13px;">' + escapeHtml(w.message) + '</span>';
+                    html += '</div>';
+                });
+            } else {
+                html += '<div style="padding:10px 12px;display:flex;align-items:center;gap:8px;color:#2da44e;">';
+                html += '<span>✅</span>';
+                html += '<span style="font-size:13px;">无警告</span>';
+                html += '</div>';
+            }
+            
+            // Skills check
+            const skills = checks.skills || {};
+            if (skills.eligible !== undefined) {
+                html += '<div style="padding:10px 12px;border-top:1px solid #eee;display:flex;justify-content:space-between;align-items:center;">';
+                html += '<span style="color:#666;font-size:13px;">Skills</span>';
+                html += '<span>' + skills.eligible + ' 个已安装</span>';
+                html += '</div>';
+            }
+            
+            html += '</div></div>';
+            
+            container.innerHTML = html;
         })
-        .catch(function() {
+        .catch(function(err) {
+            console.error(err);
             if (container) container.innerHTML = '<div style="text-align:center;padding:40px;color:#cf222e;">加载失败</div>';
         });
 };
-
 window.openOpenclawModal = function() { Drawer.open('openclawModal'); loadOpenclawConfig(); };
 
 window.__gitCommitListTestApi = {

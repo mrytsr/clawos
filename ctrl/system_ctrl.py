@@ -464,3 +464,172 @@ def api_openclaw_config():
         return api_error('配置文件解析失败', status=500)
     except Exception as e:
         return api_error(str(e), status=500)
+@system_bp.route('/api/openclaw/status')
+def api_openclaw_status():
+    """获取OpenClaw完整状态"""
+    import socket
+    import os
+    import json
+    import subprocess
+    import datetime
+    
+    result = {
+        'overview': {},
+        'gateway': {},
+        'agents': [],
+        'channels': {},
+        'diagnosis': {
+            'warnings': [],
+            'checks': {}
+        }
+    }
+    
+    # 1. 概览信息
+    result['overview'] = {
+        'version': '2026.2.2',
+        'os': f'{os.uname().sysname} {os.uname().release} {os.uname().machine}',
+        'node': subprocess.run(['node', '--version'], capture_output=True, text=True).stdout.strip().replace('v', ''),
+        'dashboard': 'http://127.0.0.1:18789/',
+        'tailscale': 'off',
+        'channel': 'stable'
+    }
+    
+    # 2. Gateway状态
+    gateway_port = 18789
+    port_used = False
+    try:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(1)
+        conn_result = sock.connect_ex(('127.0.0.1', gateway_port))
+        port_used = (conn_result == 0)
+        sock.close()
+    except:
+        pass
+    
+    # 检查Gateway进程
+    gateway_process = None
+    try:
+        ps_result = subprocess.run(
+            ['ps', 'aux'], capture_output=True, text=True
+        )
+        for line in ps_result.stdout.split('\n'):
+            if 'openclaw-gateway' in line and 'grep' not in line:
+                parts = line.split()
+                if len(parts) > 1:
+                    gateway_process = {
+                        'pid': int(parts[1]),
+                        'running': True
+                    }
+                break
+    except:
+        pass
+    
+    result['gateway'] = {
+        'port': gateway_port,
+        'port_used': port_used,
+        'auth': True,
+        'latency_ms': None,
+        'service_running': gateway_process is not None,
+        'service_pid': gateway_process['pid'] if gateway_process else None
+    }
+    
+    # 测试Gateway连接延迟
+    if port_used:
+        import time
+        start = time.time()
+        try:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.settimeout(2)
+            sock.connect(('127.0.0.1', gateway_port))
+            sock.close()
+            result['gateway']['latency_ms'] = int((time.time() - start) * 1000)
+        except:
+            pass
+    
+    # 3. Agents状态
+    agents_dir = os.path.expanduser('~/.openclaw/agents')
+    agents = []
+    if os.path.exists(agents_dir):
+        for agent_id in os.listdir(agents_dir):
+            agent_path = os.path.join(agents_dir, agent_id)
+            sessions_file = os.path.join(agent_path, 'sessions', 'sessions.json')
+            sessions_count = 0
+            active_ago = None
+            try:
+                if os.path.exists(sessions_file):
+                    with open(sessions_file, 'r') as f:
+                        sessions = json.load(f)
+                    sessions_count = len(sessions.get('sessions', []))
+                    # 获取最后活跃时间
+                    sessions_dir = os.path.join(agent_path, 'sessions')
+                    if os.path.exists(sessions_dir):
+                        mtimes = []
+                        for f in os.listdir(sessions_dir):
+                            fpath = os.path.join(sessions_dir, f)
+                            if os.path.isfile(fpath):
+                                mtimes.append(os.path.getmtime(fpath))
+                        if mtimes:
+                            max_mtime = max(mtimes)
+                            diff = datetime.datetime.now() - datetime.datetime.fromtimestamp(max_mtime)
+                            if diff.days > 0:
+                                active_ago = f'{diff.days}d ago'
+                            elif diff.seconds > 3600:
+                                active_ago = f'{diff.seconds // 3600}h ago'
+                            elif diff.seconds > 60:
+                                active_ago = f'{diff.seconds // 60}m ago'
+                            else:
+                                active_ago = 'just now'
+            except:
+                pass
+            
+            agents.append({
+                'id': agent_id,
+                'name': agent_id,
+                'sessions': sessions_count,
+                'active_ago': active_ago,
+                'status': 'pending'
+            })
+    
+    result['agents'] = agents
+    
+    # 4. Channels状态（从配置文件读取）
+    try:
+        OPENCLAW_CONFIG_PATH = os.path.expanduser('~/.openclaw/openclaw.json')
+        if os.path.exists(OPENCLAW_CONFIG_PATH):
+            with open(OPENCLAW_CONFIG_PATH, 'r') as f:
+                config = json.load(f)
+            channels = config.get('channels', {})
+            for ch_name, ch_data in channels.items():
+                enabled = ch_data.get('enabled', False)
+                accounts = ch_data.get('accounts', [])
+                accounts_ok = sum(1 for a in accounts if a.get('status') == 'ok')
+                result['channels'][ch_name] = {
+                    'enabled': enabled,
+                    'status': 'ok' if enabled else 'not_configured',
+                    'accounts_total': len(accounts),
+                    'accounts_ok': accounts_ok if enabled else 0
+                }
+    except:
+        pass
+    
+    # 5. 诊断信息
+    if port_used:
+        result['diagnosis']['warnings'].append({
+            'message': f'端口{gateway_port}被占用',
+            'level': 'warning'
+        })
+    
+    # 检查Skills
+    skills_dir = os.path.expanduser('~/.openclaw/skills')
+    skills_eligible = 0
+    if os.path.exists(skills_dir):
+        for root, dirs, files in os.walk(skills_dir):
+            if 'SKILL.md' in files:
+                skills_eligible += 1
+    
+    result['diagnosis']['checks']['skills'] = {
+        'eligible': skills_eligible,
+        'missing': 0
+    }
+    
+    return api_ok(result)
