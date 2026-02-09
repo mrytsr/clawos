@@ -102,7 +102,7 @@ def _render_login_page(error_message=None):
 def login():
     if request.method == 'GET':
         if _is_request_authed():
-            return redirect(url_for('file.browse'))
+            return redirect(url_for('browser.browse'))
         return _render_login_page(), 200, {'Content-Type': 'text/html; charset=utf-8'}
 
     password = (request.form.get('password') or '').strip()
@@ -122,7 +122,7 @@ def login():
             data['sessions'] = sessions
             _save_auth_store(data)
 
-        resp = redirect(url_for('file.browse'))
+        resp = redirect(url_for('browser.browse'))
         resp.set_cookie(
             AUTH_COOKIE_NAME,
             token,

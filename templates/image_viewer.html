@@ -67,7 +67,7 @@
     </div>
     <div class="actions">
         <a href="{{ url_for('file.download_file', path=file_path) }}" class="btn btn-primary">下载</a>
-        <a href="{{ url_for('file.browse', path=current_dir) }}" class="btn btn-secondary">返回目录</a>
+        <a href="{{ url_for('browser.browse', path=current_dir) }}" class="btn btn-secondary">返回目录</a>
     </div>
 </body>
 </html>

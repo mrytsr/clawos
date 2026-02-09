@@ -13,7 +13,10 @@ from ctrl.api_ctrl import api_bp
 from ctrl.api_ctrl import _ApiContext
 from ctrl.auth_ctrl import auth_bp
 from ctrl.batch_ctrl import batch_bp
+from ctrl.browser_ctrl import browser_bp
+from ctrl.edit_ctrl import edit_bp
 from ctrl.file_ctrl import file_bp
+from ctrl.git_ctrl import git_bp
 from ctrl.system_ctrl import system_bp
 from ctrl.task_ctrl import task_bp
 from ctrl.term import register_term_socketio
@@ -69,8 +72,11 @@ app.extensions['api_ctx'] = _ApiContext(
 app.register_blueprint(auth_bp)
 app.register_blueprint(api_bp)
 app.register_blueprint(batch_bp)
+app.register_blueprint(git_bp)
 app.register_blueprint(system_bp)
 app.register_blueprint(task_bp)
+app.register_blueprint(browser_bp)
+app.register_blueprint(edit_bp)
 app.register_blueprint(file_bp)
 register_term_socketio(socketio, terminal_root_dir=config.ROOT_DIR)
 

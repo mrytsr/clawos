@@ -40,6 +40,22 @@
             gap: 0.3rem;
             flex-wrap: wrap;
         }
+        .editor-title-wrap {
+            flex-grow: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            min-width: 0;
+        }
+        .editor-title {
+            margin: 0;
+            font-size: 0.95rem;
+            max-width: 200px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
         .editor-btn {
             padding: 0.3rem 0.5rem;
             background-color: rgba(255,255,255,0.2);
@@ -52,6 +68,16 @@
         }
         .editor-btn:hover {
             background-color: rgba(255,255,255,0.3);
+        }
+        .editor-btn[disabled] {
+            opacity: 0.55;
+            cursor: not-allowed;
+        }
+        .editor-btn.copied {
+            background-color: rgba(72, 187, 120, 0.45);
+        }
+        .editor-btn.copy-failed {
+            background-color: rgba(245, 101, 101, 0.45);
         }
         .editor-container {
             padding: 0.5rem;
@@ -91,8 +117,11 @@
 </head>
 <body>
     <div class="editor-header">
-        <a href="{{ url_for('file.browse', path=get_relative_path(current_dir)) }}" class="editor-btn">←</a>
-        <h1 style="margin: 0; font-size: 0.95rem; flex-grow: 1; text-align: center; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ filename }}</h1>
+        <a href="{{ url_for('browser.browse', path=get_relative_path(current_dir)) }}" class="editor-btn">←</a>
+        <div class="editor-title-wrap">
+            <h1 class="editor-title" id="editorTitleText">{{ filename }}:0</h1>
+            <button id="editorRefBtn" class="editor-btn" type="button" title="复制引用" onclick="copyReference()">引用</button>
+        </div>
         <div class="header-buttons">
             <button class="editor-btn" onclick="saveFile()">💾</button>
             <button class="editor-btn" onclick="undo()">↩</button>
@@ -127,6 +156,113 @@
             }
         });
 
+        var __baseFilename = {{ filename|tojson }};
+        var __relPath = {{ file_path|tojson }};
+        var __editorHasFocus = false;
+        var __currentLine = 0;
+        var __dirty = false;
+        var __titleEl = document.getElementById('editorTitleText');
+        var __refBtn = document.getElementById('editorRefBtn');
+        var __rafPending = false;
+
+        function __isSafeRelPath(p) {
+            if (typeof p !== 'string') return false;
+            var s = p.replace(/\\/g, '/').trim();
+            if (!s) return false;
+            if (s.indexOf(':') !== -1) return false;
+            if (s.startsWith('/') || s.startsWith('\\')) return false;
+            if (s === '.' || s.startsWith('./') || s.startsWith('../') || s.indexOf('/../') !== -1) return false;
+            return true;
+        }
+
+        function __updateRefBtnState() {
+            if (!__refBtn) return;
+            if (!__baseFilename) {
+                __refBtn.disabled = true;
+                __refBtn.title = '无打开文件';
+                return;
+            }
+            if (!__isSafeRelPath(__relPath)) {
+                __refBtn.disabled = true;
+                __refBtn.title = 'root-dir 解析失败';
+                return;
+            }
+            if (__dirty) {
+                __refBtn.disabled = true;
+                __refBtn.title = '文件未保存';
+                return;
+            }
+            __refBtn.disabled = false;
+            __refBtn.title = '复制引用';
+        }
+
+        function __computeLine() {
+            if (!__editorHasFocus) return 0;
+            try {
+                var c = editor.getCursor();
+                if (!c || typeof c.line !== 'number') return 0;
+                return c.line + 1;
+            } catch (e) {
+                return 0;
+            }
+        }
+
+        function __updateTitleNow() {
+            __currentLine = __computeLine();
+            if (__titleEl) __titleEl.textContent = (__baseFilename || 'title.txt') + ':' + __currentLine;
+            __updateRefBtnState();
+        }
+
+        function __scheduleTitleUpdate() {
+            if (__rafPending) return;
+            __rafPending = true;
+            requestAnimationFrame(function() {
+                __rafPending = false;
+                __updateTitleNow();
+            });
+        }
+
+        editor.on('focus', function() {
+            __editorHasFocus = true;
+            __scheduleTitleUpdate();
+        });
+        editor.on('blur', function() {
+            __editorHasFocus = false;
+            __scheduleTitleUpdate();
+        });
+        editor.on('cursorActivity', __scheduleTitleUpdate);
+        editor.on('change', function() {
+            __dirty = true;
+            __updateRefBtnState();
+        });
+        __updateTitleNow();
+
+        function __flashRefBtn(kind) {
+            if (!__refBtn) return;
+            __refBtn.classList.remove('copied');
+            __refBtn.classList.remove('copy-failed');
+            __refBtn.classList.add(kind);
+            setTimeout(function() {
+                if (__refBtn) __refBtn.classList.remove(kind);
+            }, 450);
+        }
+
+        function copyReference() {
+            __updateTitleNow();
+            if (!__refBtn || __refBtn.disabled) {
+                if (window.showToast) window.showToast(__refBtn ? (__refBtn.title || '不可用') : '不可用', 'warning');
+                return;
+            }
+            var textToCopy = __relPath + ':' + __currentLine;
+            navigator.clipboard.writeText(textToCopy).then(function() {
+                __flashRefBtn('copied');
+                if (window.showToast) window.showToast('已复制', 'success');
+            }).catch(function() {
+                __flashRefBtn('copy-failed');
+                if (window.showToast) window.showToast('复制失败', 'error');
+            });
+        }
+
         function saveFile() {
             const content = editor.getValue();
             const statusDiv = document.getElementById('saveStatus');
@@ -141,6 +277,8 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
+                    __dirty = false;
+                    __updateRefBtnState();
                     statusDiv.textContent = '文件保存成功！';
                     statusDiv.className = 'save-status save-success';
                     statusDiv.style.display = 'block';

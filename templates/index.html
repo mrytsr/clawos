@@ -845,14 +845,14 @@
     <div class="container">
         <div class="breadcrumb">
             <!-- 嵌入式上传按钮 -->
-            <form method="post" action="{{ url_for('file.upload_file', path=get_relative_path(current_dir)) }}" enctype="multipart/form-data" id="uploadForm">
+            <form method="post" action="{{ url_for('browser.upload_file', path=get_relative_path(current_dir)) }}" enctype="multipart/form-data" id="uploadForm">
                 <input type="file" name="file" id="fileInputInline" onchange="handleFileSelect(event)" style="display: none;">
                 <div class="upload-btn-inline" onclick="openCreateMenuDrawer()" title="创建">+</div>
             </form>
 
             <div class="breadcrumb-left">
                 <a href="#" onclick="openTrashDrawer(); return false;" style="color: #dc3545; text-decoration: none;" title="回收站">🗑️</a>
-                <a href="{{ url_for('file.browse') }}" style="color: #ffc107; text-decoration: none;" title="根目录">🏠</a>
+                <a href="{{ url_for('browser.browse') }}" style="color: #ffc107; text-decoration: none;" title="根目录">🏠</a>
                 {% if breadcrumbs %}
                     <span class="crumb-sep">/</span>
                 {% else %}
@@ -867,7 +867,7 @@
                             ({{ items|length }})
                         </strong>
                     {% else %}
-                        <a href="{{ url_for('file.browse', path=get_relative_path(crumb.path)) }}">{{ crumb.name }}</a>
+                        <a href="{{ url_for('browser.browse', path=get_relative_path(crumb.path)) }}">{{ crumb.name }}</a>
                         <span class="crumb-sep">/</span>
                     {% endif %}
                 {% endfor %}
