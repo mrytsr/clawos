@@ -104,6 +104,8 @@ function __gitListCss() {
         '.git-hash:hover { color:#0969da; text-decoration:underline; }' +
         '.git-author { font-size:12px; color:#57606a; }' +
         '.git-subject { font-size:13px; color:#24292f; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }' +
+        '.git-diff-btn { border:1px solid #d0d7de; background:#fff; border-radius:6px; padding:4px 10px; cursor:pointer; font-size:12px; }' +
+        '.git-diff-btn:hover { background:#f6f8fa; }' +
         '.git-push-btn { border:1px solid #d0d7de; background:#fff; border-radius:6px; padding:4px 10px; cursor:pointer; font-size:12px; }' +
         '.git-push-btn:hover { background:#f6f8fa; }' +
         '.git-push-btn[disabled] { opacity:0.65; cursor:not-allowed; }' +
@@ -124,7 +126,7 @@ function __gitListCss() {
 function __gitDirtyLineHtml(hasChanges, statusText, changeInfo) {
     const color = hasChanges ? '#cf222e' : '#2da44e';
     const btn = hasChanges
-        ? '<button type="button" class="git-push-btn" id="gitPushBtn">推送变更</button>'
+        ? '<button type="button" class="git-diff-btn" id="gitDiffBtn">diff</button><button type="button" class="git-push-btn" id="gitPushBtn">推送变更</button>'
         : '';
     const hint = hasChanges ? '<span id="gitPushHint" style="font-size:12px;color:#57606a;"></span>' : '';
     return '<div id="gitRepoDirtyLine" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:12px;color:' + color + ';margin-top:4px;">' +
@@ -184,6 +186,19 @@ function __gitBindPushButton(repoPath) {
                     btn.textContent = prevText;
                 }
             });
+    });
+}
+
+function __gitBindDiffButton(repoPath) {
+    const btn = document.getElementById('gitDiffBtn');
+    if (!btn) return;
+    btn.addEventListener('click', function() {
+        const url = '/git/diff?repoPath=' + encodeURIComponent(String(repoPath || ''));
+        try {
+            window.open(url, '_blank', 'noopener');
+        } catch (e) {
+            window.location.href = url;
+        }
     });
 }
 
@@ -466,7 +481,10 @@ window.loadGitList = function(specificRepoPath) {
                     '</div>';
 
                 __gitMountCommitList(container, specificRepoPath, { html: headerHtml, branch: branch });
-                if (hasChanges) __gitBindPushButton(specificRepoPath);
+                if (hasChanges) {
+                    __gitBindDiffButton(specificRepoPath);
+                    __gitBindPushButton(specificRepoPath);
+                }
             })
             .catch(function() {
                 if (!container) return;

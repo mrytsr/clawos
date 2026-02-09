@@ -98,10 +98,12 @@ test('commitItemHtml renders escaped content and truncates subject to 60 chars',
 test('dirtyLineHtml renders push button only when hasChanges', () => {
     const dirty = api.dirtyLineHtml(true, '✗ Dirty', ' [+1]');
     assert.ok(dirty.includes('id="gitRepoDirtyLine"'));
+    assert.ok(dirty.includes('id="gitDiffBtn"'));
     assert.ok(dirty.includes('id="gitPushBtn"'));
     assert.ok(dirty.includes('推送变更'));
 
     const clean = api.dirtyLineHtml(false, '✓ Clean', '');
     assert.ok(clean.includes('id="gitRepoDirtyLine"'));
+    assert.ok(!clean.includes('id="gitDiffBtn"'));
     assert.ok(!clean.includes('id="gitPushBtn"'));
 });

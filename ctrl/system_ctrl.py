@@ -1,4 +1,5 @@
 import json
+import html
 import os
 import re
 import subprocess
@@ -672,6 +673,50 @@ def commit_page(commit_hash):
         diff_text=diff_text,
         patch_url=patch_url,
     )
+
+
+@system_bp.route('/git/diff')
+def git_diff_page():
+    repo_path_param = request.args.get('repoPath') or request.args.get('path') or ''
+
+    if repo_path_param:
+        if repo_path_param.startswith(config.ROOT_DIR):
+            repo_path = repo_path_param
+        else:
+            repo_path = os.path.normpath(os.path.join(config.ROOT_DIR, repo_path_param))
+    else:
+        repo_path = config.ROOT_DIR
+
+    if not repo_path.startswith(os.path.normpath(config.ROOT_DIR)):
+        return api_error('Invalid path', status=403)
+
+    diff_text = git_utils.get_git_worktree_diff_text(repo_path, max_chars=200000)
+    if diff_text is None:
+        return api_error('Not a git repository', status=400)
+
+    repo_name = os.path.basename(repo_path) or repo_path
+    safe = html.escape(diff_text or '')
+    title = html.escape(f'{repo_name} - git diff')
+
+    page = (
+        '<!DOCTYPE html><html lang="zh-CN"><head>'
+        '<meta charset="UTF-8">'
+        '<meta name="viewport" content="width=device-width, initial-scale=1.0">'
+        f'<title>{title}</title>'
+        '<style>'
+        'body{margin:0;padding:0;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;}'
+        '.hd{position:sticky;top:0;z-index:10;background:#f6f8fa;border-bottom:1px solid #d0d7de;padding:10px 14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;}'
+        '.hd .t{font-size:14px;font-weight:600;color:#24292f;}'
+        '.hd .p{font-size:12px;color:#57606a;word-break:break-all;}'
+        '.bd{padding:12px 14px;}'
+        'pre{margin:0;white-space:pre;overflow:auto;background:#fff;border:1px solid #d0d7de;border-radius:8px;padding:12px;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:12px;line-height:1.5;}'
+        '</style></head><body>'
+        f'<div class="hd"><div class="t">{title}</div><div class="p">{html.escape(repo_path)}</div></div>'
+        f'<div class="bd"><pre>{safe}</pre></div>'
+        '</body></html>'
+    )
+
+    return Response(page, mimetype='text/html; charset=utf-8')
 
 
 @system_bp.route('/api/gpu/info')

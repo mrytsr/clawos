@@ -568,6 +568,46 @@ def get_git_staged_diff_text(repo_path, max_chars=20000):
         return None
 
 
+def get_git_worktree_diff_text(repo_path, max_chars=200000):
+    try:
+        if not _is_git_repo(repo_path):
+            return None
+
+        staged = _run_git(repo_path, ['diff', '--cached', '--no-color'], timeout=20)
+        if staged.returncode != 0:
+            return None
+
+        unstaged = _run_git(repo_path, ['diff', '--no-color'], timeout=20)
+        if unstaged.returncode != 0:
+            return None
+
+        untracked = _run_git(repo_path, ['ls-files', '--others', '--exclude-standard'], timeout=10)
+        if untracked.returncode != 0:
+            return None
+
+        out = ''
+        staged_text = staged.stdout or ''
+        unstaged_text = unstaged.stdout or ''
+        untracked_text = (untracked.stdout or '').strip()
+
+        if staged_text.strip():
+            out += '===== STAGED (git diff --cached) =====\n\n' + staged_text.rstrip() + '\n\n'
+        if unstaged_text.strip():
+            out += '===== UNSTAGED (git diff) =====\n\n' + unstaged_text.rstrip() + '\n\n'
+        if untracked_text:
+            out += '===== UNTRACKED (git ls-files --others --exclude-standard) =====\n\n' + untracked_text + '\n'
+
+        if not out.strip():
+            out = '(no changes)\n'
+
+        if max_chars and len(out) > int(max_chars):
+            return out[: int(max_chars)] + '\n\n... (truncated)\n'
+        return out
+    except Exception as e:
+        print(f"Error getting worktree diff from {repo_path}: {e}")
+        return None
+
+
 def git_commit(repo_path, message):
     try:
         if not _is_git_repo(repo_path):

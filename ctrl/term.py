@@ -186,6 +186,8 @@ def register_term_socketio(socketio, terminal_root_dir=None):
             out_q = collections.deque()
             out_lock = threading.Lock()
             out_ready = threading.Event()
+            in_lock = threading.Lock()
+            in_ready = threading.Event()
             _terminal_sessions[request.sid] = {
                 'kind': 'node-pty',
                 'process': process,
@@ -193,6 +195,11 @@ def register_term_socketio(socketio, terminal_root_dir=None):
                 'out_lock': out_lock,
                 'out_ready': out_ready,
                 'out_dropped': 0,
+                'in_parts': [],
+                'in_len': 0,
+                'in_resize': None,
+                'in_lock': in_lock,
+                'in_ready': in_ready,
             }
 
             try:
@@ -294,8 +301,69 @@ def register_term_socketio(socketio, terminal_root_dir=None):
                                 break
                     socketio.sleep(0)
 
+            def _write_nodepty_input(sid):
+                while True:
+                    s = _terminal_sessions.get(sid)
+                    if not s or s.get('kind') != 'node-pty':
+                        break
+                    proc = s.get('process')
+                    if not proc or not getattr(proc, 'stdin', None):
+                        break
+
+                    lock = s.get('in_lock')
+                    ready = s.get('in_ready')
+                    if not lock or not ready:
+                        break
+
+                    try:
+                        ready.wait(timeout=0.25)
+                    except Exception:
+                        socketio.sleep(0.01)
+                    ready.clear()
+
+                    resize = None
+                    parts = None
+                    with lock:
+                        resize = s.get('in_resize')
+                        s['in_resize'] = None
+                        if s.get('in_parts'):
+                            parts = s.get('in_parts')
+                            s['in_parts'] = []
+                            s['in_len'] = 0
+
+                    if resize:
+                        try:
+                            cols, rows = resize
+                            msg = {'type': 'resize', 'cols': int(cols or 0), 'rows': int(rows or 0)}
+                            proc.stdin.write(json.dumps(msg, ensure_ascii=False) + '\n')
+                            proc.stdin.flush()
+                        except Exception:
+                            pass
+
+                    if parts:
+                        try:
+                            data = ''.join(parts)
+                        except Exception:
+                            data = ''
+                        if data:
+                            off = 0
+                            while off < len(data):
+                                chunk = data[off:off + 8192]
+                                off += len(chunk)
+                                try:
+                                    msg = {'type': 'input', 'data': chunk}
+                                    proc.stdin.write(json.dumps(msg, ensure_ascii=False) + '\n')
+                                    proc.stdin.flush()
+                                except Exception:
+                                    break
+
+                    if proc.poll() is not None:
+                        break
+                    socketio.sleep(0)
+
             socketio.start_background_task(_read_nodepty_output, process, request.sid, out_q, out_lock, out_ready)
             socketio.start_background_task(_emit_nodepty_output, request.sid, out_q, out_lock, out_ready)
+            socketio.start_background_task(_write_nodepty_input, request.sid)
             return
 
         cwd = _safe_cwd(data)
@@ -339,14 +407,26 @@ def register_term_socketio(socketio, terminal_root_dir=None):
     def term_on_input(data):
         session = _terminal_sessions.get(request.sid)
         if session and session.get('kind') == 'node-pty':
-            proc = session.get('process')
-            if proc and proc.stdin:
-                try:
-                    msg = {'type': 'input', 'data': (data or {}).get('input', '')}
-                    proc.stdin.write(json.dumps(msg, ensure_ascii=False) + '\n')
-                    proc.stdin.flush()
-                except Exception:
-                    pass
+            try:
+                s = session
+                part = (data or {}).get('input', '')
+                if not isinstance(part, str) or not part:
+                    return
+                lock = s.get('in_lock')
+                ready = s.get('in_ready')
+                if not lock or not ready:
+                    return
+                with lock:
+                    cur_len = int(s.get('in_len') or 0)
+                    if cur_len > 256 * 1024:
+                        s['in_parts'] = []
+                        s['in_len'] = 0
+                        cur_len = 0
+                    s.get('in_parts').append(part)
+                    s['in_len'] = cur_len + len(part)
+                ready.set()
+            except Exception:
+                pass
             return
         if session:
             os.write(session['fd'], (data or {}).get('input', '').encode())
@@ -354,18 +434,19 @@ def register_term_socketio(socketio, terminal_root_dir=None):
     def term_on_resize(data):
         session = _terminal_sessions.get(request.sid)
         if session and session.get('kind') == 'node-pty':
-            proc = session.get('process')
-            if proc and proc.stdin:
-                try:
-                    msg = {
-                        'type': 'resize',
-                        'cols': int((data or {}).get('cols') or 0),
-                        'rows': int((data or {}).get('rows') or 0),
-                    }
-                    proc.stdin.write(json.dumps(msg, ensure_ascii=False) + '\n')
-                    proc.stdin.flush()
-                except Exception:
-                    pass
+            try:
+                s = session
+                cols = int((data or {}).get('cols') or 0)
+                rows = int((data or {}).get('rows') or 0)
+                lock = s.get('in_lock')
+                ready = s.get('in_ready')
+                if not lock or not ready:
+                    return
+                with lock:
+                    s['in_resize'] = (cols, rows)
+                ready.set()
+            except Exception:
+                pass
             return
         if session:
             fd = session['fd']
@@ -385,6 +466,12 @@ def register_term_socketio(socketio, terminal_root_dir=None):
             try:
                 if session.get('kind') == 'node-pty':
                     proc = session.get('process')
+                    try:
+                        ready = session.get('in_ready')
+                        if ready:
+                            ready.set()
+                    except Exception:
+                        pass
                     if proc and proc.stdin:
                         try:
                             proc.stdin.write(json.dumps({'type': 'close'}, ensure_ascii=False) + '\n')
