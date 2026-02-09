@@ -39,6 +39,11 @@
       "dir": "Desktop",
       "name": "clawos",
       "pinned_at": 1770650409525
+    },
+    {
+      "dir": ".openclaw",
+      "name": "openclaw.json",
+      "pinned_at": 1770656268547
     }
   ]
 }

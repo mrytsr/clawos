@@ -282,6 +282,73 @@ def api_file_info():
     return _api_file_info(_get_ctx())
 
 
+@api_bp.route('/api/file/read')
+def api_file_read():
+    """Read file content"""
+    import os
+    import config
+
+    path = request.args.get('path', '')
+    if not path:
+        return api_error('Missing path parameter')
+
+    root_dir = os.path.normpath(config.ROOT_DIR)
+    full_path = os.path.normpath(os.path.join(root_dir, path))
+
+    # Security check
+    if not full_path.startswith(root_dir):
+        return api_error('Invalid path', status=403)
+
+    if not os.path.exists(full_path):
+        return api_error('File not found', status=404)
+
+    if os.path.isdir(full_path):
+        return api_error('Cannot read directory', status=400)
+
+    try:
+        with open(full_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+
+        size = os.path.getsize(full_path)
+        return api_ok({'content': content, 'size': size})
+    except UnicodeDecodeError:
+        return api_error('Unsupported encoding', status=400)
+    except Exception as e:
+        return api_error(str(e), status=500)
+
+
+@api_bp.route('/api/file/save', methods=['POST'])
+def api_file_save():
+    """Save file content"""
+    import os
+    import config
+
+    try:
+        data = request.get_json()
+        path = data.get('path', '')
+        content = data.get('content', '')
+
+        if not path:
+            return api_error('Missing path parameter')
+
+        root_dir = os.path.normpath(config.ROOT_DIR)
+        full_path = os.path.normpath(os.path.join(root_dir, path))
+
+        # Security check
+        if not full_path.startswith(root_dir):
+            return api_error('Invalid path', status=403)
+
+        # Ensure directory exists
+        os.makedirs(os.path.dirname(full_path), exist_ok=True)
+
+        with open(full_path, 'w', encoding='utf-8') as f:
+            f.write(content)
+
+        return api_ok({'success': True, 'path': path})
+    except Exception as e:
+        return api_error(str(e), status=500)
+
+
 @api_bp.route('/api/bot/token')
 def api_bot_token():
     return _api_bot_token(_get_ctx())

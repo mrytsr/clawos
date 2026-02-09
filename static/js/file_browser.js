@@ -890,7 +890,7 @@ function attachFileItemDefaultHandlers() {
             var chromeNativeExts = [
                 '.pdf', '.mp4', '.webm', '.ogg', '.mov', '.avi', '.mkv',
                 '.mp3', '.wav', '.flac', '.aac', '.m4a', '.ico', '.webp', '.avif',
-                '.html', '.htm', '.txt', '.css', '.js', '.json', '.xml', '.svg'
+                '.html', '.htm', '.txt', '.css', '.js', '.xml', '.svg'
             ];
             var imageExts = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.svg'];
             var archiveExts = ['.zip', '.rar', '.tar', '.tgz', '.7z', '.tar.gz', '.tar.bz2', '.tar.xz'];
@@ -911,6 +911,10 @@ function attachFileItemDefaultHandlers() {
             }
             if (mdExts.indexOf(ext) >= 0) {
                 window.open('/view/' + encodePathForUrl(path), '_blank', 'noopener');
+                return;
+            }
+            if (ext === '.json') {
+                window.open('/json/editor?path=' + encodeURIComponent(path), '_blank', 'noopener');
                 return;
             }
             // 所有其他文件都用 /serve/ 让浏览器原生预览

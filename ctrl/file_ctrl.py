@@ -188,6 +188,13 @@ def serve_file(path):
     )
 
 
+@file_bp.route('/json/editor')
+def json_editor():
+    """JSON编辑器页面"""
+    path = request.args.get('path', '')
+    return render_template('json_editor.html', path=path)
+
+
 @file_bp.route('/thumbnail/<path:path>')
 def thumbnail(path):
     return serve_file(path)
