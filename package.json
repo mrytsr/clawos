@@ -6,8 +6,8 @@
   "scripts": {
     "test": "node --test",
     "test:e2e": "playwright test",
-    "lint": "eslint static/js/**/*.js static/*.js --ignore-pattern **/*.min.js",
-    "lint:fix": "eslint static/js/**/*.js static/*.js --fix --ignore-pattern **/*.min.js"
+    "lint": "npx --yes eslint@9.39.2 static/js/**/*.js static/*.js --ignore-pattern **/*.min.js",
+    "lint:fix": "npx --yes eslint@9.39.2 static/js/**/*.js static/*.js --fix --ignore-pattern **/*.min.js"
   },
   "keywords": [],
   "author": "",

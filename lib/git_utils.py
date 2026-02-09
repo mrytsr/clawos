@@ -72,6 +72,132 @@ def get_git_log(repo_path, max_count=50):
         return None
 
 
+def get_git_log_compact(repo_path, max_count=50):
+    try:
+        if not _is_git_repo(repo_path):
+            return None
+
+        fmt = '%H%x09%an%x09%ad%x09%s'
+        cmd = [
+            'log',
+            '-n',
+            str(max_count),
+            '--date=format:%Y-%m-%d %H:%M',
+            f'--pretty=format:{fmt}',
+        ]
+        result = _run_git(repo_path, cmd, timeout=10)
+        if result.returncode != 0:
+            return None
+
+        logs = []
+        for line in result.stdout.splitlines():
+            raw = line.strip('\n').strip('\r')
+            if not raw:
+                continue
+            parts = raw.split('\t', 3)
+            if len(parts) < 3:
+                continue
+            commit_hash = parts[0].strip()
+            author = parts[1].strip()
+            committed_at = parts[2].strip()
+            subject = parts[3].strip() if len(parts) > 3 else ''
+            logs.append(
+                {
+                    'hash': commit_hash,
+                    'author': author,
+                    'committed_at': committed_at,
+                    'subject': subject,
+                }
+            )
+        return logs
+    except Exception as e:
+        print(f"Error getting git log from {repo_path}: {e}")
+        return None
+
+
+def get_git_log_compact_paged(repo_path, max_count=50, page=1, per_page=20):
+    try:
+        if not _is_git_repo(repo_path):
+            return None
+
+        page = int(page) if page else 1
+        per_page = int(per_page) if per_page else 20
+        max_count = int(max_count) if max_count else 50
+
+        if page < 1:
+            page = 1
+        if per_page < 1:
+            per_page = 1
+        if max_count < 1:
+            max_count = 1
+
+        skip = (page - 1) * per_page
+        if skip >= max_count:
+            return {
+                'repo_path': repo_path,
+                'page': page,
+                'per_page': per_page,
+                'max_count': max_count,
+                'has_more': False,
+                'logs': [],
+            }
+
+        remaining = max_count - skip
+        request_count = min(remaining, per_page + 1)
+
+        fmt = '%H%x09%an%x09%ad%x09%s'
+        cmd = [
+            'log',
+            '-n',
+            str(request_count),
+            '--skip',
+            str(skip),
+            '--date=format:%Y-%m-%d %H:%M',
+            f'--pretty=format:{fmt}',
+        ]
+        result = _run_git(repo_path, cmd, timeout=10)
+        if result.returncode != 0:
+            return None
+
+        logs = []
+        for line in result.stdout.splitlines():
+            raw = line.strip('\n').strip('\r')
+            if not raw:
+                continue
+            parts = raw.split('\t', 3)
+            if len(parts) < 3:
+                continue
+            commit_hash = parts[0].strip()
+            author = parts[1].strip()
+            committed_at = parts[2].strip()
+            subject = parts[3].strip() if len(parts) > 3 else ''
+            logs.append(
+                {
+                    'hash': commit_hash,
+                    'author': author,
+                    'committed_at': committed_at,
+                    'subject': subject,
+                }
+            )
+
+        has_more = False
+        if len(logs) > per_page:
+            has_more = True
+            logs = logs[:per_page]
+
+        return {
+            'repo_path': repo_path,
+            'page': page,
+            'per_page': per_page,
+            'max_count': max_count,
+            'has_more': has_more,
+            'logs': logs,
+        }
+    except Exception as e:
+        print(f"Error getting paged git log from {repo_path}: {e}")
+        return None
+
+
 def get_git_status(repo_path):
     """获取仓库的 git 状态"""
     try:
@@ -400,3 +526,68 @@ def get_all_git_repos_info():
         }
         result.append(info)
     return result
+
+
+def get_git_status_porcelain(repo_path):
+    try:
+        if not _is_git_repo(repo_path):
+            return None
+        result = _run_git(repo_path, ['status', '--porcelain'], timeout=10)
+        if result.returncode != 0:
+            return None
+        return result.stdout or ''
+    except Exception as e:
+        print(f"Error getting porcelain git status from {repo_path}: {e}")
+        return None
+
+
+def git_stage_all(repo_path):
+    try:
+        if not _is_git_repo(repo_path):
+            return None
+        result = _run_git(repo_path, ['add', '-A'], timeout=30)
+        return result
+    except Exception as e:
+        print(f"Error staging changes in {repo_path}: {e}")
+        return None
+
+
+def get_git_staged_diff_text(repo_path, max_chars=20000):
+    try:
+        if not _is_git_repo(repo_path):
+            return None
+        result = _run_git(repo_path, ['diff', '--cached', '--no-color'], timeout=20)
+        if result.returncode != 0:
+            return None
+        text = result.stdout or ''
+        if max_chars and len(text) > int(max_chars):
+            return text[: int(max_chars)]
+        return text
+    except Exception as e:
+        print(f"Error getting staged diff from {repo_path}: {e}")
+        return None
+
+
+def git_commit(repo_path, message):
+    try:
+        if not _is_git_repo(repo_path):
+            return None
+        msg = str(message or '').strip()
+        if not msg:
+            return None
+        result = _run_git(repo_path, ['commit', '-m', msg], timeout=60)
+        return result
+    except Exception as e:
+        print(f"Error committing in {repo_path}: {e}")
+        return None
+
+
+def git_push_origin_master(repo_path):
+    try:
+        if not _is_git_repo(repo_path):
+            return None
+        result = _run_git(repo_path, ['push', 'origin', 'master'], timeout=120)
+        return result
+    except Exception as e:
+        print(f"Error pushing origin master in {repo_path}: {e}")
+        return None
