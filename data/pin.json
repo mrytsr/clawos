@@ -4,6 +4,16 @@
       "dir": "",
       "name": "clawos",
       "pinned_at": 1770616478175
+    },
+    {
+      "dir": "",
+      "name": "Desktop",
+      "pinned_at": 1770650396713
+    },
+    {
+      "dir": "Desktop",
+      "name": "clawos",
+      "pinned_at": 1770650409525
     }
   ]
 }

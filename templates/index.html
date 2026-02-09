@@ -12,15 +12,14 @@
     <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.min.js"></script>
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
     <link rel="stylesheet" href="/static/css/style.css">
     <!-- 全局函数预加载（必须在最前） -->
     <script src="/static/js/globals.js"></script>
     <script src="/static/js/file_clipboard.js"></script>
     <script src="/static/js/task_poller.js"></script>
     <script src="/static/js/task_actions.js"></script>
-    <script>
-        window.SERVER_IS_WINDOWS = {{ 'true' if server_is_windows() else 'false' }};
-    </script>
+    <script>window.SERVER_IS_WINDOWS = false;</script>
     <!-- 功能模块 -->
     <script src="/static/js/terminal.js"></script>
     <script src="/static/js/preview.js"></script>
@@ -826,13 +825,13 @@
             .breadcrumb { padding: 12px 16px; }
         }
     </style>
-    <input type="hidden" id="currentBrowsePath" value="{{ get_relative_path(current_dir) }}">
-    <input type="hidden" id="currentBrowseName" value="{{ os.path.basename(current_dir) }}">
-    <input type="hidden" id="rootDir" value="{{ ROOT_DIR }}">
+    <input type="hidden" id="currentBrowsePath" value="">
+    <input type="hidden" id="currentBrowseName" value="">
+    <input type="hidden" id="rootDir" value="">
     <script>
-        window.__INITIAL_PIN_DIR__ = {{ (initial_pin_dir or '')|tojson }};
-        window.__INITIAL_PINS__ = {{ (initial_pins or [])|tojson }};
-        window.__INITIAL_GIT_STATUS__ = {{ (initial_git_status or None)|tojson }};
+        window.__INITIAL_PIN_DIR__ = '';
+        window.__INITIAL_PINS__ = [];
+        window.__INITIAL_GIT_STATUS__ = null;
     </script>
 </head>
 <body>
@@ -840,35 +839,37 @@
         <div class="task-spinner" aria-hidden="true"></div>
         <div id="taskListenerText" class="task-listener-text">正在监听任务状态…</div>
     </div>
-    <div class="container">
+    <div class="container" id="browseApp">
         <div class="breadcrumb">
             <!-- 嵌入式上传按钮 -->
-            <form method="post" action="{{ url_for('browser.upload_file', path=get_relative_path(current_dir)) }}" enctype="multipart/form-data" id="uploadForm">
+            <form method="post" action="#" enctype="multipart/form-data" id="uploadForm">
                 <input type="file" name="file" id="fileInputInline" onchange="handleFileSelect(event)" style="display: none;">
                 <div class="upload-btn-inline" onclick="openCreateMenuDrawer()" title="创建">+</div>
             </form>
 
             <div class="breadcrumb-left">
                 <a href="#" onclick="openTrashDrawer(); return false;" style="color: #dc3545; text-decoration: none;" title="回收站">🗑️</a>
-                <a href="{{ url_for('browser.browse') }}" style="color: #ffc107; text-decoration: none;" title="根目录">🏠</a>
-                {% if breadcrumbs %}
-                    <span class="crumb-sep">/</span>
-                {% else %}
+                <a :href="browseHref('')" @click="onBreadcrumbClick('', $event)" style="color: #ffc107; text-decoration: none;" title="根目录">🏠</a>
+                <span v-if="breadcrumbs.length" class="crumb-sep">/</span>
+                <template v-if="breadcrumbs.length">
+                    <template v-for="(crumb, idx) in breadcrumbs" :key="crumb.path">
+                        <template v-if="idx === breadcrumbs.length - 1">
+                            <strong>
+                                {{ crumb.name }}
+                                <button type="button" class="menu-btn breadcrumb-folder-menu-btn" onclick="openCurrentFolderMenu(event)" aria-label="打开当前文件夹菜单" title="菜单"><span>⋮</span></button>
+                                ({{ items.length }})
+                            </strong>
+                        </template>
+                        <template v-else>
+                            <a :href="browseHref(crumb.path)" @click="onBreadcrumbClick(crumb.path, $event)">{{ crumb.name }}</a>
+                            <span class="crumb-sep">/</span>
+                        </template>
+                    </template>
+                </template>
+                <template v-else>
                     <button type="button" class="menu-btn breadcrumb-folder-menu-btn" onclick="openCurrentFolderMenu(event)" aria-label="打开当前文件夹菜单" title="菜单"><span>⋮</span></button>
-                    <strong>({{ items|length }})</strong>
-                {% endif %}
-                {% for crumb in breadcrumbs %}
-                    {% if loop.last %}
-                        <strong>
-                            {{ crumb.name }}
-                            <button type="button" class="menu-btn breadcrumb-folder-menu-btn" onclick="openCurrentFolderMenu(event)" aria-label="打开当前文件夹菜单" title="菜单"><span>⋮</span></button>
-                            ({{ items|length }})
-                        </strong>
-                    {% else %}
-                        <a href="{{ url_for('browser.browse', path=get_relative_path(crumb.path)) }}">{{ crumb.name }}</a>
-                        <span class="crumb-sep">/</span>
-                    {% endif %}
-                {% endfor %}
+                    <strong>({{ items.length }})</strong>
+                </template>
             </div>
             <div class="breadcrumb-right">
                 <button onclick="openSearchModal()" style="background: none; border: none; cursor: pointer; font-size: var(--global-font-size, 16px); opacity: 0.75; padding: 4px 6px;" title="搜索 (Ctrl+F)">🔍</button>
@@ -886,34 +887,25 @@
             <div class="git-action-btn" title="Git管理">🔧</div>
         </div>
 
-        {% if message %}
-        <div class="message {% if msg_type == 'success' %}success{% else %}error{% endif %}">
+        <div v-if="message" class="message" :class="messageTypeClass">
             {{ message }}
         </div>
-        {% endif %}
 
         <div class="files-section">
-            {% if items %}
-            <div class="file-list">
-                {% for item in items %}
-                <div class="file-item" id="file-item-{{ loop.index }}" data-path="{{ get_relative_path(item.path) }}" data-name="{{ item.name }}" data-is-dir="{{ 'true' if item.is_dir else 'false' }}" data-is-image="{{ 'true' if item.is_image else 'false' }}">
+            <div v-if="items.length" class="file-list">
+                <div class="file-item" v-for="(item, idx) in items" :key="item.path || (item.name + ':' + idx)" :id="'file-item-' + (idx + 1)" :data-path="item.path" :data-name="item.name" :data-is-dir="item.is_dir ? 'true' : 'false'" :data-is-image="item.is_image ? 'true' : 'false'">
                     <!-- 第一列：预览图或图标 + 复选框 -->
                     <div class="file-col-icon">
-                        <input type="checkbox" class="file-checkbox" data-path="{{ get_relative_path(item.path) }}" onchange="toggleItemSelection('{{ get_relative_path(item.path) }}', this)" style="margin-right: 8px; cursor: pointer;">
-                        {% if item.is_image %}
-                            <img src="{{ url_for('file.thumbnail', path=get_relative_path(item.path)) }}" alt="{{ item.name }}" class="file-thumbnail" onerror="this.style.display='none';">
-                        {% else %}
-                            <span class="file-icon">{{ item.icon }}</span>
-                        {% endif %}
+                        <input type="checkbox" class="file-checkbox" :data-path="item.path" @change="onToggleItemSelection(item.path, $event)" style="margin-right: 8px; cursor: pointer;">
+                        <img v-if="item.is_image" :src="thumbUrl(item.path)" :alt="item.name" class="file-thumbnail" onerror="this.style.display='none';">
+                        <span v-else class="file-icon">{{ item.icon }}</span>
                     </div>
                     
                     <!-- 第二列：名称 + 详情 -->
                     <div class="file-col-info">
-                        <div class="file-name{% if item.is_symlink %} is-symlink{% endif %}">
+                        <div class="file-name" :class="{ 'is-symlink': !!item.is_symlink }">
                             <span>{{ item.name }}</span>
-                            {% if item.is_dir and item.name|starts_with_port %}
-                                <a href="http://{{ request.host.split(':')[0] }}:{{ item.name|extract_port }}" target="_blank" style="margin-left: 8px; color: #17a2b8; text-decoration: none; font-size: 1.2em;" title="打开网站">🔗</a>
-                            {% endif %}
+                            <a v-if="isPortDir(item)" :href="portHref(item.name)" target="_blank" style="margin-left: 8px; color: #17a2b8; text-decoration: none; font-size: 1.2em;" title="打开网站">🔗</a>
                         </div>
                         <div class="file-details-inline">
                             <span class="file-size">{{ item.size }}</span>
@@ -924,18 +916,15 @@
                     <!-- 第三列：操作按钮 -->
                     <div class="file-col-actions">
                         <!-- 菜单按钮 -->
-                        <div class="menu-btn" onclick="showMenuModal('{{ get_relative_path(item.path) }}', '{{ item.name }}', {{ 'true' if item.is_dir else 'false' }})">
+                        <div class="menu-btn" @click.stop.prevent="openMenu(item)">
                             <span>⋮</span>
                         </div>
                     </div>
                 </div>
-                {% endfor %}
             </div>
-            {% else %}
-            <div class="empty-directory">
+            <div v-else class="empty-directory">
                 <p>此目录为空</p>
             </div>
-            {% endif %}
         </div>
 
     </div><!-- end container -->
@@ -1661,6 +1650,281 @@
             </div>
         </div>
     </div>
+
+    <script>
+        (function() {
+            function getQueryParam(name) {
+                try {
+                    var url = new URL(window.location.href);
+                    return url.searchParams.get(name) || '';
+                } catch (e) {
+                    return '';
+                }
+            }
+
+            function parsePortDirName(name) {
+                var m = String(name || '').match(/^([0-9]{4})_/);
+                return m ? m[1] : '';
+            }
+
+            var browseAppEl = document.getElementById('browseApp');
+            if (!browseAppEl || !window.Vue || !window.Vue.createApp) { return; }
+
+            window.Vue.createApp({
+                data: function() {
+                    return {
+                        items: [],
+                        breadcrumbs: [],
+                        currentDir: '',
+                        currentDirName: '',
+                        message: getQueryParam('message'),
+                        messageType: getQueryParam('msg_type') || 'success',
+                        loading: true,
+                    };
+                },
+                computed: {
+                    messageTypeClass: function() {
+                        return this.messageType === 'success' ? 'success' : 'error';
+                    }
+                },
+                methods: {
+                    browseHref: function(relPath) {
+                        if (!relPath) { return '/browse/'; }
+                        if (typeof window.encodePathForUrl === 'function') {
+                            return '/browse/' + window.encodePathForUrl(relPath);
+                        }
+                        return '/browse/' + encodeURIComponent(relPath);
+                    },
+                    onBreadcrumbClick: function(relPath, ev) {
+                        if (!window.BrowseNavigator || typeof window.BrowseNavigator.navigateTo !== 'function') { return; }
+                        if (!window.BrowseNavigator.shouldInterceptClick || !window.BrowseNavigator.shouldInterceptClick(ev)) { return; }
+                        if (ev && typeof ev.preventDefault === 'function') ev.preventDefault();
+                        window.BrowseNavigator.navigateTo(relPath || '', { replace: false });
+                    },
+                    thumbUrl: function(relPath) {
+                        if (!relPath) { return ''; }
+                        if (typeof window.encodePathForUrl === 'function') {
+                            return '/thumbnail/' + window.encodePathForUrl(relPath);
+                        }
+                        return '/thumbnail/' + encodeURIComponent(relPath);
+                    },
+                    isPortDir: function(item) {
+                        return !!(item && item.is_dir && parsePortDirName(item.name));
+                    },
+                    portHref: function(name) {
+                        var port = parsePortDirName(name);
+                        if (!port) { return '#'; }
+                        return 'http://' + window.location.hostname + ':' + port;
+                    },
+                    openMenu: function(item) {
+                        if (typeof window.showMenuModal !== 'function') { return; }
+                        window.showMenuModal(item.path || '', item.name || '', !!item.is_dir);
+                    },
+                    onToggleItemSelection: function(path, event) {
+                        if (typeof window.toggleItemSelection !== 'function') { return; }
+                        window.toggleItemSelection(path || '', event && event.target);
+                    },
+                    applyBootstrap: function(data) {
+                        this.items = Array.isArray(data.items) ? data.items : [];
+                        this.breadcrumbs = Array.isArray(data.breadcrumbs) ? data.breadcrumbs : [];
+                        this.currentDir = typeof data.current_dir === 'string' ? data.current_dir : '';
+                        this.currentDirName = typeof data.current_dir_name === 'string' ? data.current_dir_name : '';
+
+                        var pathEl = document.getElementById('currentBrowsePath');
+                        if (pathEl) { pathEl.value = this.currentDir || ''; }
+                        var nameEl = document.getElementById('currentBrowseName');
+                        if (nameEl) { nameEl.value = this.currentDirName || ''; }
+                        var rootEl = document.getElementById('rootDir');
+                        if (rootEl && typeof data.root_dir === 'string') { rootEl.value = data.root_dir; }
+
+                        if (typeof data.server_is_windows === 'boolean') {
+                            window.SERVER_IS_WINDOWS = data.server_is_windows;
+                        }
+                        window.__INITIAL_PIN_DIR__ = typeof data.pin_dir === 'string' ? data.pin_dir : '';
+                        window.__INITIAL_PINS__ = Array.isArray(data.pins) ? data.pins : [];
+                        window.__INITIAL_GIT_STATUS__ = data.git_status || null;
+                    },
+                    postRenderInit: function() {
+                        if (typeof window.attachFileItemDefaultHandlers === 'function') {
+                            window.attachFileItemDefaultHandlers();
+                        }
+                        if (typeof window.initPinsForCurrentDir === 'function') {
+                            window.initPinsForCurrentDir();
+                        }
+                        if (typeof window.initDragUploadAndPaste === 'function') {
+                            window.initDragUploadAndPaste();
+                        }
+                        if (typeof window.loadGitStatusBar === 'function') {
+                            window.loadGitStatusBar();
+                        }
+                    },
+                    loadState: function() {
+                        var rel = '';
+                        try {
+                            var p = window.location.pathname || '';
+                            if (p === '/' || p === '/browse' || p === '/browse/') {
+                                rel = '';
+                            } else if (p.indexOf('/browse/') === 0) {
+                                rel = decodeURIComponent(p.slice('/browse/'.length));
+                            }
+                        } catch (e) {
+                            rel = '';
+                        }
+
+                        if (window.BrowseNavigator && typeof window.BrowseNavigator.syncFromLocation === 'function') {
+                            window.BrowseNavigator.syncFromLocation({ replace: true });
+                            return;
+                        }
+
+                        fetch('/api/browse/state?path=' + encodeURIComponent(rel), {
+                            credentials: 'same-origin',
+                            headers: Object.assign({ 'Accept': 'application/json' }, (window.authHeaders || {})),
+                        })
+                            .then(function(r) { return r.json(); })
+                            .then((function(d) {
+                                if (d && d.success && d.data) {
+                                    this.applyBootstrap(d.data);
+                                    this.$nextTick(this.postRenderInit);
+                                    return;
+                                }
+                                var msg = (d && d.error && d.error.message) ? d.error.message : '加载失败';
+                                this.messageType = 'error';
+                                this.message = msg;
+                                this.items = [];
+                                this.breadcrumbs = [];
+                                this.$nextTick(this.postRenderInit);
+                            }).bind(this))
+                            .catch((function() {
+                                this.messageType = 'error';
+                                this.message = '加载失败';
+                                this.items = [];
+                                this.breadcrumbs = [];
+                            }).bind(this))
+                            .finally((function() {
+                                this.loading = false;
+                            }).bind(this));
+                    }
+                },
+                mounted: function() {
+                    var app = this;
+                    var nav = {
+                        __abort: null,
+                        __seq: 0,
+                        __mounted: false,
+                        __loadedOnce: false,
+                        __app: app,
+                        __parsePath: function() {
+                            var rel = '';
+                            try {
+                                var p = window.location.pathname || '';
+                                if (p === '/' || p === '/browse' || p === '/browse/') {
+                                    rel = '';
+                                } else if (p.indexOf('/browse/') === 0) {
+                                    rel = decodeURIComponent(p.slice('/browse/'.length));
+                                }
+                            } catch (e) {
+                                rel = '';
+                            }
+                            return rel;
+                        },
+                        __href: function(relPath) {
+                            if (!relPath) { return '/browse/'; }
+                            if (typeof window.encodePathForUrl === 'function') {
+                                return '/browse/' + window.encodePathForUrl(relPath);
+                            }
+                            return '/browse/' + encodeURIComponent(relPath);
+                        },
+                        __samePath: function(a, b) {
+                            return String(a || '').replace(/\\/g, '/') === String(b || '').replace(/\\/g, '/');
+                        },
+                        navigateTo: function(relPath, opts) {
+                            opts = opts || {};
+                            var target = String(relPath || '');
+
+                            if (this.__loadedOnce && this.__app && this.__samePath(this.__app.currentDir, target)) {
+                                if (opts.replace) {
+                                    try { history.replaceState({ path: target }, '', this.__href(target)); } catch (e) {}
+                                }
+                                return;
+                            }
+
+                            if (this.__abort) {
+                                try { this.__abort.abort(); } catch (e) {}
+                            }
+                            this.__abort = new AbortController();
+                            this.__seq += 1;
+                            var seq = this.__seq;
+
+                            this.__app.loading = true;
+                            this.__app.message = '';
+
+                            try {
+                                if (opts.replace) {
+                                    history.replaceState({ path: target }, '', this.__href(target));
+                                } else {
+                                    history.pushState({ path: target }, '', this.__href(target));
+                                }
+                            } catch (e) {}
+
+                            fetch('/api/browse/state?path=' + encodeURIComponent(target), {
+                                credentials: 'same-origin',
+                                headers: Object.assign({ 'Accept': 'application/json' }, (window.authHeaders || {})),
+                                signal: this.__abort.signal,
+                            })
+                                .then(function(r) { return r.json(); })
+                                .then((function(d) {
+                                    if (seq !== this.__seq) return;
+                                    if (d && d.success && d.data) {
+                                        this.__app.applyBootstrap(d.data);
+                                        this.__loadedOnce = true;
+                                        this.__app.$nextTick(this.__app.postRenderInit);
+                                        try { window.scrollTo(0, 0); } catch (e) {}
+                                        return;
+                                    }
+                                    var msg = (d && d.error && d.error.message) ? d.error.message : '加载失败';
+                                    this.__app.messageType = 'error';
+                                    this.__app.message = msg;
+                                    this.__app.items = [];
+                                    this.__app.breadcrumbs = [];
+                                    this.__app.$nextTick(this.__app.postRenderInit);
+                                }).bind(this))
+                                .catch((function(err) {
+                                    if (seq !== this.__seq) return;
+                                    if (err && err.name === 'AbortError') return;
+                                    this.__app.messageType = 'error';
+                                    this.__app.message = '加载失败';
+                                    this.__app.items = [];
+                                    this.__app.breadcrumbs = [];
+                                }).bind(this))
+                                .finally((function() {
+                                    if (seq !== this.__seq) return;
+                                    this.__app.loading = false;
+                                }).bind(this));
+                        },
+                        syncFromLocation: function(opts) {
+                            opts = opts || {};
+                            this.navigateTo(this.__parsePath(), { replace: !!opts.replace });
+                        },
+                        shouldInterceptClick: function(ev) {
+                            if (!ev) return false;
+                            if (ev.defaultPrevented) return false;
+                            if (ev.button !== 0) return false;
+                            if (ev.metaKey || ev.ctrlKey || ev.shiftKey || ev.altKey) return false;
+                            return true;
+                        }
+                    };
+
+                    window.BrowseNavigator = nav;
+                    if (!nav.__mounted) {
+                        nav.__mounted = true;
+                        window.addEventListener('popstate', function() { nav.syncFromLocation({ replace: true }); });
+                    }
+
+                    app.loadState();
+                }
+            }).mount('#browseApp');
+        })();
+    </script>
 
     
 </body>
