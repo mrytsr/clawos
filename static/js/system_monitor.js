@@ -836,7 +836,7 @@ window.loadOllamaModels = function() {
                         const size = m.size || 0;
                         const sizeFormatted = formatSize(size);
                         const isReasoning = name.toLowerCase().includes('qwq') || name.toLowerCase().includes('r1') || name.toLowerCase().includes('reasoning');
-                        return '<div style="background:#fff;border:1px solid #d0d7de;border-radius:8px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;"><div style="flex:1;min-width:0;"><div style="font-weight:500;display:flex;align-items:center;gap:8px;">' + (isReasoning ? '<span style="font-size:12px;background:#ddf4ff;color:#0969da;padding:2px 6px;border-radius:4px;">推理</span>' : '') + '<span>' + escapeHtml(name) + '</span></div><div style="font-size:12px;color:#666;margin-top:2px;">' + sizeFormatted + '</div></div><span style="color:#07c160;font-size:18px;">✓</span></div>';
+                        return '<div style="background:#fff;border:1px solid #d0d7de;border-radius:8px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;"><div style="flex:1;min-width:0;"><div style="font-weight:500;display:flex;align-items:center;gap:8px;"><span>' + escapeHtml(name) + '</span></div><div style="font-size:12px;color:#666;margin-top:2px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">' + (isReasoning ? '<span style="font-size:12px;background:#ddf4ff;color:#0969da;padding:2px 6px;border-radius:4px;">推理</span>' : '') + '<span>' + sizeFormatted + '</span></div></div><span style="color:#07c160;font-size:18px;">✓</span></div>';
                     }).join('') + '</div>';
             }
         })
