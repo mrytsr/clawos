@@ -2,47 +2,45 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>编辑器</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YAML 编辑器</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        html, body, #app { width: 100%; height: 100%; overflow: hidden; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #1e1e1e; }
+        html, body { height: 100%; overflow: hidden; }
+        body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: #1e1e1e; }
         
-        .header { 
+        .toolbar {
             display: flex; align-items: center; justify-content: space-between;
-            padding: 12px 16px; background: #2d2d2d; border-bottom: 1px solid #404040;
-            height: 56px;
+            padding: 8px 16px; background: #2d2d2d; border-bottom: 1px solid #404040;
+            height: 48px;
         }
-        .header-title { font-size: 14px; font-weight: 500; color: #ccc; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 200px; }
-        .header-path { font-size: 11px; color: #888; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 300px; }
-        .header-actions { display: flex; gap: 8px; }
-        
+        .title { color: #ccc; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .path { color: #888; font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .actions { display: flex; gap: 8px; }
         .btn {
-            padding: 6px 12px; border-radius: 6px; border: none; font-size: 13px;
-            cursor: pointer; display: flex; align-items: center; gap: 4px;
+            padding: 6px 14px; border-radius: 6px; border: none; font-size: 13px;
+            cursor: pointer; transition: opacity 0.2s;
         }
+        .btn:hover { opacity: 0.8; }
         .btn-primary { background: #0e639c; color: #fff; }
-        .btn-primary:hover { background: #1177bb; }
         .btn-secondary { background: #3c3c3c; color: #ccc; }
-        .btn-secondary:hover { background: #4c4c4c; }
-        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn:disabled { opacity: 0.4; cursor: not-allowed; }
         
-        .editor-wrapper { height: calc(100vh - 56px); position: relative; }
-        #editor { height: 100%; width: 100%; }
+        #editor { height: calc(100vh - 48px); width: 100%; }
         
-        .status-bar {
+        .status {
             position: fixed; bottom: 0; left: 0; right: 0;
-            padding: 6px 16px; font-size: 12px; color: #888;
-            background: #007acc; display: flex; justify-content: space-between;
+            padding: 6px 16px; font-size: 12px; color: #fff;
+            display: flex; justify-content: space-between;
+            z-index: 100;
         }
-        .status-success { background: #1e7f1e; }
-        .status-error { background: #c72e0f; }
+        .status.info { background: #007acc; }
+        .status.success { background: #1e7f1e; }
+        .status.error { background: #c72e0f; }
         
-        .loading-overlay {
-            position: fixed; inset: 0; background: rgba(30,30,30,0.95);
+        .loading {
+            position: fixed; inset: 0; background: #1e1e1e;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
-            z-index: 1000;
         }
         .spinner {
             width: 32px; height: 32px; border: 3px solid #404040;
@@ -50,232 +48,180 @@
             animation: spin 0.8s linear infinite;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
-        .loading-text { margin-top: 12px; color: #888; font-size: 14px; }
-        
-        .error-message { color: #f14c4c; text-align: center; padding: 20px; }
     </style>
 </head>
 <body>
     <div id="app">
-        <div v-if="loading" class="loading-overlay">
+        <div id="loading" class="loading">
             <div class="spinner"></div>
-            <div class="loading-text">{{ loadingText }}</div>
         </div>
         
-        <template v-else>
-            <div class="header">
-                <div style="display:flex;flex-direction:column;gap:2px;overflow:hidden;">
-                    <div class="header-title">{{ filename }}</div>
-                    <div class="header-path">{{ filepath }}</div>
+        <div id="main" style="display:none;">
+            <div class="toolbar">
+                <div style="overflow:hidden;flex:1;">
+                    <div id="title" class="title"></div>
+                    <div id="path" class="path"></div>
                 </div>
-                <div class="header-actions">
-                    <button class="btn btn-secondary" @click="formatCode" :disabled="!content">格式化</button>
-                    <button class="btn btn-primary" @click="saveFile" :disabled="!changed">保存</button>
+                <div class="actions">
+                    <button id="fmtBtn" class="btn btn-secondary" onclick="formatDoc()">格式化</button>
+                    <button id="saveBtn" class="btn btn-primary" onclick="saveFile()" disabled>保存</button>
                 </div>
             </div>
-            
-            <div v-if="loadError" class="editor-wrapper">
-                <div class="error-message">{{ loadError }}</div>
-            </div>
-            
-            <div v-else class="editor-wrapper">
-                <div id="editor"></div>
-            </div>
-            
-            <div v-if="status" class="status-bar" :class="statusClass">
-                {{ status }}
-                <span v-if="lastSaved">保存于 {{ lastSaved }}</span>
-            </div>
-        </template>
+            <div id="editor"></div>
+            <div id="status" class="status info" style="display:none;"></div>
+        </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs/loader.js"></script>
-    <script type="module">
-    import { createApp, ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
+    <script>
+    const params = new URLSearchParams(location.search);
+    const filepath = params.get('path') || '';
+    const filename = filepath.split('/').pop() || 'untitled.yaml';
     
-    const params = new URLSearchParams(window.location.search)
-    const filepath = params.get('path') || ''
-    const filename = filepath.split('/').pop() || 'untitled'
-    const ext = filename.split('.').pop().toLowerCase()
+    let editor = null;
+    let original = '';
+    let changed = false;
     
-    // 根据扩展名确定语言
-    const languageMap = {
-        'yaml': 'yaml',
-        'yml': 'yaml',
-        'toml': 'toml',
-        'ini': 'ini',
-        'conf': 'conf',
-        'cfg': 'ini',
-        'json': 'json',
-        'xml': 'xml',
-        'html': 'html',
-        'css': 'css',
-        'js': 'javascript',
-        'py': 'python',
-        'md': 'markdown',
-        'txt': 'plaintext'
+    const ext = filename.split('.').pop().toLowerCase();
+    const langMap = {yaml:'yaml',yml:'yaml',toml:'toml',json:'json',xml:'xml',html:'html',css:'css',js:'javascript',py:'python',md:'markdown',txt:'plaintext'};
+    const language = langMap[ext] || 'yaml';
+    
+    document.getElementById('title').textContent = filename;
+    document.getElementById('path').textContent = filepath;
+    
+    function showStatus(msg, type) {
+        const el = document.getElementById('status');
+        el.textContent = msg;
+        el.className = 'status ' + (type || 'info');
+        el.style.display = 'flex';
+        setTimeout(() => { if (el.textContent === msg) el.style.display = 'none'; }, 3000);
     }
-    const language = languageMap[ext] || 'plaintext'
     
-    const app = createApp({
-        setup() {
-            const loading = ref(true)
-            const loadingText = ref('加载中...')
-            const loadError = ref('')
-            const content = ref('')
-            const changed = ref(false)
-            const status = ref('')
-            const lastSaved = ref('')
-            const editor = ref(null)
-            
-            const statusClass = computed(() => {
-                if (status.value.includes('成功')) return 'status-success'
-                if (status.value.includes('失败') || status.value.includes('错误')) return 'status-error'
-                return ''
-            })
-            
-            const getApiUrl = () => {
-                if (filepath.includes('/usr/local/frp/')) return '/api/frp/config'
-                return '/api/file/read?path=' + encodeURIComponent(filepath)
+    function getApiUrl() {
+        if (filepath.includes('/usr/local/frp/')) return '/api/frp/config';
+        return '/api/file/read?path=' + encodeURIComponent(filepath);
+    }
+    
+    async function loadFile() {
+        try {
+            const r = await fetch(getApiUrl());
+            const data = await r.json();
+            if (data.success && data.data) {
+                original = data.data.content || '';
+                initMonaco(original);
+            } else {
+                throw new Error(data.error || '加载失败');
             }
-            
-            const loadFile = async () => {
-                try {
-                    loadingText.value = '加载文件...'
-                    const response = await fetch(getApiUrl())
-                    const data = await response.json()
-                    
-                    if (data.success && data.data) {
-                        content.value = data.data.content || ''
-                        loading.value = false
-                        await initMonaco()
-                        showStatus('已加载')
-                    } else {
-                        loadError.value = '加载失败: ' + (data.error || '未知错误')
-                        loading.value = false
-                    }
-                } catch (e) {
-                    loadError.value = '加载失败: ' + e.message
-                    loading.value = false
-                }
-            }
-            
-            const initMonaco = async () => {
-                return new Promise((resolve) => {
-                    require.config({ paths: { 'vs': 'https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs' } })
-                    require(['vs/editor/editor.main'], () => {
-                        editor.value = monaco.editor.create(document.getElementById('editor'), {
-                            value: content.value,
-                            language: language,
-                            theme: 'vs-dark',
-                            automaticLayout: true,
-                            fontSize: 14,
-                            fontFamily: "'Fira Code', 'Consolas', monospace",
-                            minimap: { enabled: false },
-                            scrollBeyondLastLine: false,
-                            wordWrap: 'on',
-                            lineNumbers: 'on',
-                            renderWhitespace: 'selection',
-                            tabSize: 4,
-                            insertSpaces: true
-                        })
-                        
-                        editor.value.onDidChangeModelContent(() => {
-                            if (!loading.value) {
-                                content.value = editor.value.getValue()
-                                changed.value = true
-                                status.value = '已修改'
-                            }
-                        })
-                        
-                        resolve()
-                    })
-                })
-            }
-            
-            const showStatus = (msg) => {
-                status.value = msg
-                setTimeout(() => {
-                    if (status.value === msg) status.value = ''
-                }, 3000)
-            }
-            
-            const formatCode = () => {
-                if (!editor.value) return
-                editor.value.getAction('editor.action.formatDocument').run()
-                changed.value = true
-                showStatus('已格式化')
-            }
-            
-            const saveFile = async () => {
-                try {
-                    status.value = '保存中...'
-                    const contentStr = editor.value ? editor.value.getValue() : content.value
-                    
-                    // 检测是否为 FRP 配置文件
-                    const isFrpConfig = filepath.includes('/usr/local/frp/frpc.toml')
-                    
-                    let response, data
-                    if (isFrpConfig) {
-                        response = await fetch('/api/frp/config', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ content: contentStr })
-                        })
-                        data = await response.json()
-                    } else {
-                        response = await fetch('/api/file/save', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                path: filepath,
-                                content: contentStr
-                            })
-                        })
-                        data = await response.json()
-                    }
-                    
-                    if (data.success) {
-                        changed.value = false
-                        lastSaved.value = new Date().toLocaleTimeString()
-                        status.value = '保存成功!'
-                    } else {
-                        status.value = '保存失败: ' + (data.error || '未知错误')
-                    }
-                } catch (e) {
-                    status.value = '保存失败: ' + e.message
-                }
-            }
-            
-            onMounted(() => {
-                loadFile()
-            })
-            
-            onBeforeUnmount(() => {
-                if (editor.value) {
-                    editor.value.dispose()
-                    editor.value = null
-                }
-            })
-            
-            return {
-                filename,
-                filepath,
-                loading,
-                loadingText,
-                loadError,
-                content,
-                changed,
-                status,
-                lastSaved,
-                statusClass,
-                saveFile,
-                formatCode
-            }
+        } catch (e) {
+            document.getElementById('loading').innerHTML = '<div style="color:#f14c4c;">' + e.message + '</div>';
         }
-    })
+    }
     
-    app.mount('#app')
+    function initMonaco(content) {
+        require.config({ paths: { 'vs': 'https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs' }});
+        require(['vs/editor/editor.main'], function() {
+            // YAML 语言配置
+            monaco.languages.register({ id: 'yaml' });
+            monaco.languages.setMonarchTokensProvider('yaml', {
+                tokenizer: {
+                    root: [
+                        { include: '@common' },
+                    ]
+                }
+            });
+            
+            // YAML 智能提示
+            monaco.languages.registerCompletionItemProvider('yaml', {
+                provideCompletionItems: function(model, position) {
+                    return { suggestions: [] };
+                }
+            });
+            
+            editor = monaco.editor.create(document.getElementById('editor'), {
+                value: content,
+                language: language,
+                theme: 'vs-dark',
+                automaticLayout: true,
+                fontSize: 14,
+                fontFamily: "'Consolas', 'Monaco', monospace",
+                minimap: { enabled: false },
+                scrollBeyondLastLine: false,
+                wordWrap: 'on',
+                lineNumbers: 'on',
+                renderWhitespace: 'selection',
+                tabSize: 2,
+                insertSpaces: true,
+                folding: true,
+                bracketPairColorization: { enabled: true }
+            });
+            
+            editor.onDidChangeModelContent(function() {
+                const val = editor.getValue();
+                if (val !== original) {
+                    changed = true;
+                    document.getElementById('saveBtn').disabled = false;
+                    showStatus('已修改', 'saving');
+                }
+            });
+            
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('main').style.display = 'block';
+            showStatus('已加载');
+        });
+    }
+    
+    function formatDoc() {
+        if (editor) {
+            editor.getAction('editor.action.formatDocument').run();
+            showStatus('已格式化');
+        }
+    }
+    
+    async function saveFile() {
+        if (!editor) return;
+        try {
+            showStatus('保存中...', 'saving');
+            const content = editor.getValue();
+            const isFrp = filepath.includes('/usr/local/frp/frpc.toml');
+            
+            let r, data;
+            if (isFrp) {
+                r = await fetch('/api/frp/config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ content })
+                });
+            } else {
+                r = await fetch('/api/file/save', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ path: filepath, content })
+                });
+            }
+            
+            data = await r.json();
+            if (data.success) {
+                original = content;
+                changed = false;
+                document.getElementById('saveBtn').disabled = true;
+                showStatus('保存成功!', 'success');
+            } else {
+                showStatus('保存失败: ' + (data.error || '未知错误'), 'error');
+            }
+        } catch (e) {
+            showStatus('保存失败: ' + e.message, 'error');
+        }
+    }
+    
+    // Ctrl+S 保存
+    document.addEventListener('keydown', function(e) {
+        if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+            e.preventDefault();
+            if (!document.getElementById('saveBtn').disabled) saveFile();
+        }
+    });
+    
+    loadFile();
     </script>
 </body>
 </html>

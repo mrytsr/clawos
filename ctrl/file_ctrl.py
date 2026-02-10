@@ -195,6 +195,13 @@ def json_editor():
     return render_template('json_editor.html', path=path)
 
 
+@file_bp.route('/yaml/editor')
+def yaml_editor():
+    """YAML/TOML/配置编辑器页面"""
+    path = request.args.get('path', '')
+    return render_template('yaml_editor.html', path=path)
+
+
 @file_bp.route('/thumbnail/<path:path>')
 def thumbnail(path):
     return serve_file(path)
