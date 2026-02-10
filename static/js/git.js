@@ -249,6 +249,19 @@ function __gitBindDiffButton(repoPath) {
 // 直接执行 Diff：打开新窗口显示 diff
 function __gitDoDiff(repoPath) {
     const url = '/git/diff?repoPath=' + encodeURIComponent(String(repoPath || ''));
+    
+    // 显示 loading
+    const btn = event && event.target;
+    if (btn) {
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '⏳';
+        btn.disabled = true;
+        setTimeout(function() {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }, 2000);
+    }
+    
     window.open(url, '_blank');
 }
 
@@ -257,25 +270,58 @@ function __gitDoPull(repoPath) {
     const headers = authHeaders ? (authHeaders() || {}) : {};
     headers['Content-Type'] = 'application/json';
     
-    fetch('/api/git/pull', {
-        method: 'POST',
-        headers: headers,
-        body: JSON.stringify({ path: String(repoPath || '') })
-    })
-        .then(function(r) { return r.json(); })
-        .then(function(resp) {
-            const payload = apiData(resp);
-            if (!payload) {
-                const msg = resp && resp.error && resp.error.message ? resp.error.message : '拉取失败';
-                throw new Error(msg);
-            }
-            if (typeof showToast === 'function') showToast(payload.message || '拉取完成');
-            window.loadGitList(repoPath);
+    // 获取当前点击的按钮并显示 loading
+    const btn = event && event.target;
+    if (btn) {
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '⏳';
+        btn.disabled = true;
+        
+        fetch('/api/git/pull', {
+            method: 'POST',
+            headers: headers,
+            body: JSON.stringify({ path: String(repoPath || '') })
         })
-        .catch(function(e) {
-            const msg = e && e.message ? e.message : '拉取失败';
-            if (typeof showToast === 'function') showToast(msg);
-        });
+            .then(function(r) { return r.json(); })
+            .then(function(resp) {
+                const payload = apiData(resp);
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+                
+                if (!payload) {
+                    const msg = resp && resp.error && resp.error.message ? resp.error.message : '拉取失败';
+                    throw new Error(msg);
+                }
+                if (typeof showToast === 'function') showToast(payload.message || '拉取完成');
+                window.loadGitList(repoPath);
+            })
+            .catch(function(e) {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+                const msg = e && e.message ? e.message : '拉取失败';
+                if (typeof showToast === 'function') showToast(msg);
+            });
+    } else {
+        fetch('/api/git/pull', {
+            method: 'POST',
+            headers: headers,
+            body: JSON.stringify({ path: String(repoPath || '') })
+        })
+            .then(function(r) { return r.json(); })
+            .then(function(resp) {
+                const payload = apiData(resp);
+                if (!payload) {
+                    const msg = resp && resp.error && resp.error.message ? resp.error.message : '拉取失败';
+                    throw new Error(msg);
+                }
+                if (typeof showToast === 'function') showToast(payload.message || '拉取完成');
+                window.loadGitList(repoPath);
+            })
+            .catch(function(e) {
+                const msg = e && e.message ? e.message : '拉取失败';
+                if (typeof showToast === 'function') showToast(msg);
+            });
+    }
 }
 
 // 直接执行 Push
@@ -283,34 +329,76 @@ function __gitDoPush(repoPath) {
     const headers = authHeaders ? (authHeaders() || {}) : {};
     headers['Content-Type'] = 'application/json';
     
-    fetch('/api/git/push-changes', {
-        method: 'POST',
-        headers: headers,
-        body: JSON.stringify({ path: String(repoPath || '') })
-    })
-        .then(function(r) { return r.json(); })
-        .then(function(resp) {
-            const payload = apiData(resp);
-            if (!payload) {
-                const msg = resp && resp.error && resp.error.message ? resp.error.message : '推送失败';
-                throw new Error(msg);
-            }
-            if (payload.status === 'clean') {
-                if (typeof showToast === 'function') showToast('当前没有可提交的变更');
-                return;
-            }
-            if (payload.pushed) {
-                if (typeof showToast === 'function') showToast('已推送：' + (payload.commit_msg || ''));
-                window.loadGitList(repoPath);
-                return;
-            }
-            const msg = payload.message || '推送失败';
-            throw new Error(msg);
+    // 获取当前点击的按钮并显示 loading
+    const btn = event && event.target;
+    if (btn) {
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '⏳';
+        btn.disabled = true;
+        
+        fetch('/api/git/push-changes', {
+            method: 'POST',
+            headers: headers,
+            body: JSON.stringify({ path: String(repoPath || '') })
         })
-        .catch(function(e) {
-            const msg = e && e.message ? e.message : '推送失败';
-            if (typeof showToast === 'function') showToast(msg);
-        });
+            .then(function(r) { return r.json(); })
+            .then(function(resp) {
+                const payload = apiData(resp);
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+                
+                if (!payload) {
+                    const msg = resp && resp.error && resp.error.message ? resp.error.message : '推送失败';
+                    throw new Error(msg);
+                }
+                if (payload.status === 'clean') {
+                    if (typeof showToast === 'function') showToast('当前没有可提交的变更');
+                    return;
+                }
+                if (payload.pushed) {
+                    if (typeof showToast === 'function') showToast('已推送：' + (payload.commit_msg || ''));
+                    window.loadGitList(repoPath);
+                    return;
+                }
+                const msg = payload.message || '推送失败';
+                throw new Error(msg);
+            })
+            .catch(function(e) {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+                const msg = e && e.message ? e.message : '推送失败';
+                if (typeof showToast === 'function') showToast(msg);
+            });
+    } else {
+        fetch('/api/git/push-changes', {
+            method: 'POST',
+            headers: headers,
+            body: JSON.stringify({ path: String(repoPath || '') })
+        })
+            .then(function(r) { return r.json(); })
+            .then(function(resp) {
+                const payload = apiData(resp);
+                if (!payload) {
+                    const msg = resp && resp.error && resp.error.message ? resp.error.message : '推送失败';
+                    throw new Error(msg);
+                }
+                if (payload.status === 'clean') {
+                    if (typeof showToast === 'function') showToast('当前没有可提交的变更');
+                    return;
+                }
+                if (payload.pushed) {
+                    if (typeof showToast === 'function') showToast('已推送：' + (payload.commit_msg || ''));
+                    window.loadGitList(repoPath);
+                    return;
+                }
+                const msg = payload.message || '推送失败';
+                throw new Error(msg);
+            })
+            .catch(function(e) {
+                const msg = e && e.message ? e.message : '推送失败';
+                if (typeof showToast === 'function') showToast(msg);
+            });
+    }
 }
 
 function __gitRenderDiffFileTable(container, rows) {
