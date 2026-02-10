@@ -17,6 +17,8 @@ let _lastDrawerBottomPx = null;
 let _lastDrawerHeightPx = null;
 let _termOutBuf = '';
 let _termOutRaf = 0;
+let _termTriedPollingOnly = false;
+let _termAuthCheckedAfterErr = false;
 
 function focusTerminal() {
     if (term && typeof term.focus === 'function') term.focus();
@@ -525,9 +527,43 @@ function initTerminal(cwd) {
         }
     });
 
-    socket.on('connect_error', () => {
+    socket.on('connect_error', (err) => {
         if (isTermOpen) {
-            term.write('\r\n\x1b[31m*** 连接失败 ***\x1b[0m\r\n');
+            let detail = '';
+            try {
+                const msg = err && (err.message || err.description || err.toString) ? (err.message || err.description || String(err)) : '';
+                detail = msg ? (' ' + msg) : '';
+            } catch (e) {
+                detail = '';
+            }
+            term.write('\r\n\x1b[31m*** 连接失败' + detail + ' ***\x1b[0m\r\n');
+        }
+
+        if (!_termTriedPollingOnly && socket && socket.io && socket.io.opts) {
+            _termTriedPollingOnly = true;
+            try {
+                socket.io.opts.transports = ['polling'];
+                socket.io.opts.upgrade = false;
+            } catch (e) {
+                return;
+            }
+            setTimeout(() => {
+                try { socket.connect(); } catch (e) { return; }
+            }, 150);
+        }
+
+        if (!_termAuthCheckedAfterErr) {
+            _termAuthCheckedAfterErr = true;
+            fetch('/api/socket-test', { headers: (typeof authHeaders === 'function') ? authHeaders() : {} })
+                .then((r) => {
+                    if (r && r.status === 401) {
+                        if (isTermOpen && term) term.write('\r\n\x1b[31m*** 未登录/会话过期，请重新登录 ***\x1b[0m\r\n');
+                        setTimeout(() => {
+                            try { window.location.href = '/login'; } catch (e) { return; }
+                        }, 300);
+                    }
+                })
+                .catch(() => { return; });
         }
     });
 

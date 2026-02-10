@@ -617,6 +617,7 @@ window.loadGitList = function(specificRepoPath) {
 
                 const repo = payload;
                 const repoName = (repo.name || specificRepoPath).replace(/\.git$/, '') + '.git';
+                const repoPathArg = escapeHtml(JSON.stringify(String(specificRepoPath || '')));
                 const repoStatus = repo.status || {};
                 const hasChanges = repoStatus.has_changes || false;
                 let changeInfo = '';
@@ -633,9 +634,9 @@ window.loadGitList = function(specificRepoPath) {
                     '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">' +
                     '<span style="font-weight:600;word-break:break-all;font-size:15px;">' + escapeHtml(repoName) + '</span>' +
                     '<div style="display:flex;gap:4px;">' +
-                    '<button onclick="__gitDoDiff(\'' + escapeHtml(specificRepoPath) + '\');" style="padding:4px 8px;font-size:12px;border:1px solid #404040;background:#3c3c3c;color:#ccc;border-radius:4px;cursor:pointer;">📊 Diff</button>' +
-                    '<button onclick="__gitDoPull(\'' + escapeHtml(specificRepoPath) + '\');" style="padding:4px 8px;font-size:12px;border:1px solid #404040;background:#3c3c3c;color:#ccc;border-radius:4px;cursor:pointer;">⬇️ Pull</button>' +
-                    '<button onclick="__gitDoPush(\'' + escapeHtml(specificRepoPath) + '\');" style="padding:4px 8px;font-size:12px;border:1px solid #404040;background:#3c3c3c;color:#ccc;border-radius:4px;cursor:pointer;">⬆️ Push</button>' +
+                    '<button onclick="__gitDoDiff(' + repoPathArg + ');" style="padding:4px 8px;font-size:12px;border:1px solid #404040;background:#3c3c3c;color:#ccc;border-radius:4px;cursor:pointer;">📊 Diff</button>' +
+                    '<button onclick="__gitDoPull(' + repoPathArg + ');" style="padding:4px 8px;font-size:12px;border:1px solid #404040;background:#3c3c3c;color:#ccc;border-radius:4px;cursor:pointer;">⬇️ Pull</button>' +
+                    '<button onclick="__gitDoPush(' + repoPathArg + ');" style="padding:4px 8px;font-size:12px;border:1px solid #404040;background:#3c3c3c;color:#ccc;border-radius:4px;cursor:pointer;">⬆️ Push</button>' +
                     '</div>' +
                     (hasChanges ? '<span style="font-size:12px;color:#e3b341;margin-left:4px;">⚠️ Dirty</span>' : '<span style="font-size:12px;color:#2da44e;margin-left:4px;">✓ Clean</span>') +
                     (changeInfo ? '<span style="font-size:11px;color:#666;">' + escapeHtml(changeInfo) + '</span>' : '') +
@@ -675,6 +676,7 @@ window.loadGitList = function(specificRepoPath) {
                 if (!repo || !panelEl) return;
                 const repoPath = repo.path || '';
                 const repoName = (repo.name || repoPath).replace(/\.git$/, '') + '.git';
+                const repoPathArg = escapeHtml(JSON.stringify(String(repoPath || '')));
                 const hasChanges = !!(repo.status && repo.status.has_changes);
                 const repoStatus = repo.status || {};
                 let changeInfo = '';
@@ -691,9 +693,9 @@ window.loadGitList = function(specificRepoPath) {
                     '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">' +
                     '<span style="font-weight:600;word-break:break-all;font-size:15px;">' + escapeHtml(repoName) + '</span>' +
                     '<div style="display:flex;gap:4px;">' +
-                    '<button onclick="__gitDoDiff(\'' + escapeHtml(repoPath) + '\');" style="padding:4px 8px;font-size:12px;border:1px solid #404040;background:#3c3c3c;color:#ccc;border-radius:4px;cursor:pointer;">📊 Diff</button>' +
-                    '<button onclick="__gitDoPull(\'' + escapeHtml(repoPath) + '\');" style="padding:4px 8px;font-size:12px;border:1px solid #404040;background:#3c3c3c;color:#ccc;border-radius:4px;cursor:pointer;">⬇️ Pull</button>' +
-                    '<button onclick="__gitDoPush(\'' + escapeHtml(repoPath) + '\');" style="padding:4px 8px;font-size:12px;border:1px solid #404040;background:#3c3c3c;color:#ccc;border-radius:4px;cursor:pointer;">⬆️ Push</button>' +
+                    '<button onclick="__gitDoDiff(' + repoPathArg + ');" style="padding:4px 8px;font-size:12px;border:1px solid #404040;background:#3c3c3c;color:#ccc;border-radius:4px;cursor:pointer;">📊 Diff</button>' +
+                    '<button onclick="__gitDoPull(' + repoPathArg + ');" style="padding:4px 8px;font-size:12px;border:1px solid #404040;background:#3c3c3c;color:#ccc;border-radius:4px;cursor:pointer;">⬇️ Pull</button>' +
+                    '<button onclick="__gitDoPush(' + repoPathArg + ');" style="padding:4px 8px;font-size:12px;border:1px solid #404040;background:#3c3c3c;color:#ccc;border-radius:4px;cursor:pointer;">⬆️ Push</button>' +
                     '</div>' +
                     (hasChanges ? '<span style="font-size:12px;color:#e3b341;margin-left:4px;">⚠️ Dirty</span>' : '<span style="font-size:12px;color:#2da44e;margin-left:4px;">✓ Clean</span>') +
                     (changeInfo ? '<span style="font-size:11px;color:#666;">' + escapeHtml(changeInfo) + '</span>' : '') +
