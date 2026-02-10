@@ -1,7 +1,7 @@
 import os
 import re
 
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, send_from_directory
 from flask import Response
 from flask_socketio import SocketIO
 from werkzeug.exceptions import HTTPException
@@ -18,7 +18,10 @@ from ctrl.edit_ctrl import edit_bp
 from ctrl.file_ctrl import file_bp
 from ctrl.git_ctrl import git_bp
 from ctrl.clash_ctrl import clash_bp
+from ctrl.cron_ctrl import cron_bp
+from ctrl.db_ctrl import db_bp
 from ctrl.frp_ctrl import frp_bp
+from ctrl.log_ctrl import log_bp
 from ctrl.openclaw_ctrl import openclaw_bp
 from ctrl.system_ctrl import system_bp
 from ctrl.task_ctrl import task_bp
@@ -79,6 +82,9 @@ app.register_blueprint(git_bp)
 app.register_blueprint(system_bp)
 app.register_blueprint(frp_bp)
 app.register_blueprint(clash_bp)
+app.register_blueprint(cron_bp)
+app.register_blueprint(db_bp)
+app.register_blueprint(log_bp)
 app.register_blueprint(openclaw_bp)
 app.register_blueprint(task_bp)
 app.register_blueprint(browser_bp)
@@ -103,6 +109,22 @@ def handle_unhandled_exception(e):
 @app.route('/@vite/client')
 def vite_client_noop():
     return Response('export {};', mimetype='application/javascript')
+
+
+# 独立页面路由
+@app.route('/log/viewer')
+def log_viewer():
+    return send_from_directory(app.template_folder, 'log_viewer.html')
+
+
+@app.route('/cron/manager')
+def cron_manager():
+    return send_from_directory(app.template_folder, 'cron_manager.html')
+
+
+@app.route('/db/manager')
+def db_manager():
+    return send_from_directory(app.template_folder, 'db_manager.html')
 
 
 if __name__ == '__main__':

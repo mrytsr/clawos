@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数据库管理</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body { height: 100%; overflow: hidden; }
+        body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: #1e1e1e; color: #ccc; }
+        
+        .toolbar {
+            display: flex; align-items: center; gap: 12px; padding: 10px 16px;
+            background: #2d2d2d; border-bottom: 1px solid #404040;
+        }
+        select { min-width: 120px; }
+        button {
+            padding: 6px 14px; border-radius: 6px; border: none;
+            background: #0e639c; color: #fff; font-size: 13px; cursor: pointer;
+        }
+        button:hover { background: #1177bb; }
+        button.secondary { background: #3c3c3c; }
+        button.danger { background: #cf222e; }
+        
+        .main { display: flex; height: calc(100vh - 52px); }
+        .sidebar { width: 200px; background: #252526; border-right: 1px solid #404040; overflow: auto; padding: 8px; }
+        .conn-item {
+            padding: 8px 12px; border-radius: 6px; cursor: pointer; margin-bottom: 4px;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .conn-item:hover { background: #3c3c3c; }
+        .conn-item.active { background: #0e639c; }
+        .conn-icon { font-size: 16px; }
+        .conn-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
+        
+        .content { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+        .query-bar { padding: 8px 12px; background: #252526; border-bottom: 1px solid #404040; display: flex; gap: 8px; }
+        .query-bar textarea {
+            flex: 1; resize: none; border: none; outline: none;
+            background: #1e1e1e; color: #ccc; font-family: 'Consolas', monospace;
+            font-size: 13px; padding: 8px; border-radius: 6px;
+        }
+        .results { flex: 1; overflow: auto; padding: 12px; }
+        .table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        .table th, .table td {
+            padding: 8px 12px; border: 1px solid #404040; text-align: left;
+        }
+        .table th { background: #252526; position: sticky; top: 0; }
+        .table tr:nth-child(even) { background: #252526; }
+        .empty { text-align: center; padding: 40px; color: #666; }
+        
+        .modal {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 1000;
+            display: none; align-items: center; justify-content: center;
+        }
+        .modal.open { display: flex; }
+        .modal-content {
+            background: #2d2d2d; border-radius: 12px; padding: 20px; width: 400px; max-width: 90%;
+        }
+        .modal-title { font-size: 16px; margin-bottom: 16px; }
+        .form-group { margin-bottom: 12px; }
+        .form-group label { display: block; font-size: 12px; color: #888; margin-bottom: 4px; }
+        .form-group input, .form-group select {
+            width: 100%; padding: 8px 12px; border-radius: 6px; border: 1px solid #404040;
+            background: #3c3c3c; color: #ccc; font-size: 14px;
+        }
+        .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+        
+        .status-bar { padding: 6px 16px; background: #007acc; color: #fff; font-size: 12px; display: flex; justify-content: space-between; }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div class="toolbar">
+            <select id="connSelect" onchange="connectDB()">
+                <option value="">选择数据库连接...</option>
+            </select>
+            <button onclick="openAddModal()">+ 添加连接</button>
+            <button class="secondary" onclick="testConnection()">测试</button>
+            <button class="secondary" onclick="refreshDB()">刷新</button>
+        </div>
+        <div class="main">
+            <div class="sidebar" id="sidebar">
+                <div class="empty">请添加数据库连接</div>
+            </div>
+            <div class="content">
+                <div class="query-bar">
+                    <textarea id="query" placeholder="输入 SQL 查询... (Ctrl+Enter 执行)" rows="3"></textarea>
+                    <button onclick="executeQuery()">执行</button>
+                </div>
+                <div id="results" class="results">
+                    <div class="empty">连接数据库后执行查询</div>
+                </div>
+            </div>
+        </div>
+        <div id="statusBar" class="status-bar" style="display:none;"></div>
+    </div>
+
+    <!-- 添加连接弹窗 -->
+    <div id="addModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-title">添加数据库连接</div>
+            <div class="form-group">
+                <label>连接名称</label>
+                <input type="text" id="dbName" placeholder="例如: 生产 MySQL">
+            </div>
+            <div class="form-group">
+                <label>类型</label>
+                <select id="dbType">
+                    <option value="mysql">MySQL / MariaDB</option>
+                    <option value="redis">Redis</option>
+                    <option value="postgresql">PostgreSQL</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>主机</label>
+                <input type="text" id="dbHost" value="localhost" placeholder="localhost">
+            </div>
+            <div class="form-group">
+                <label>端口</label>
+                <input type="number" id="dbPort" value="3306" placeholder="3306">
+            </div>
+            <div class="form-group">
+                <label>用户名</label>
+                <input type="text" id="dbUser" placeholder="root">
+            </div>
+            <div class="form-group">
+                <label>密码</label>
+                <input type="password" id="dbPass" placeholder="密码">
+            </div>
+            <div class="form-group">
+                <label>数据库名（可选）</label>
+                <input type="text" id="dbDatabase" placeholder="例如: myapp">
+            </div>
+            <div class="modal-actions">
+                <button class="secondary" onclick="closeAddModal()">取消</button>
+                <button onclick="saveConnection()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    let connections = [];
+    let currentConn = null;
+    
+    function $(id) { return document.getElementById(id); }
+    
+    function showStatus(msg, error) {
+        const el = $('statusBar');
+        if (msg) {
+            el.textContent = msg;
+            el.style.background = error ? '#c72e0f' : '#007acc';
+            el.style.display = 'flex';
+        } else {
+            el.style.display = 'none';
+        }
+    }
+    
+    async function loadConnections() {
+        try {
+            const r = await fetch('/api/db/connections');
+            const data = await r.json();
+            if (data.success) {
+                connections = (data.data && data.data.connections) || [];
+                renderConnections();
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    }
+    
+    function renderConnections() {
+        const select = $('connSelect');
+        const sidebar = $('sidebar');
+        
+        let options = '<option value="">选择数据库连接...</option>';
+        let sidebarHtml = '';
+        
+        connections.forEach(c => {
+            const icon = c.type === 'mysql' ? '🗄️' : c.type === 'redis' ? '📦' : '🐘';
+            options += `<option value="${c.id}">${icon} ${c.name || c.host}</option>`;
+            sidebarHtml += `
+                <div class="conn-item" onclick="selectConn('${c.id}')" id="conn-${c.id}">
+                    <span class="conn-icon">${icon}</span>
+                    <span class="conn-name">${c.name || c.host}</span>
+                </div>
+            `;
+        });
+        
+        select.innerHTML = options;
+        sidebar.innerHTML = sidebarHtml || '<div class="empty">请添加数据库连接</div>';
+    }
+    
+    function selectConn(id) {
+        currentConn = connections.find(c => c.id === id);
+        document.querySelectorAll('.conn-item').forEach(el => el.classList.remove('active'));
+        $('conn-' + id)?.classList.add('active');
+        $('connSelect').value = id;
+        
+        // 加载数据库信息
+        if (currentConn.type === 'redis') {
+            loadRedisInfo();
+        } else {
+            loadMySQLInfo();
+        }
+    }
+    
+    function connectDB() {
+        const id = $('connSelect').value;
+        if (id) selectConn(id);
+    }
+    
+    async function loadRedisInfo() {
+        const params = new URLSearchParams({
+            host: currentConn.host,
+            port: currentConn.port,
+            password: currentConn.password || ''
+        });
+        try {
+            const r = await fetch('/api/db/redis/info?' + params);
+            const data = await r.json();
+            if (data.success) {
+                const info = data.info || {};
+                $('results').innerHTML = `
+                    <h3 style="margin-bottom:12px;">Redis 信息</h3>
+                    <table class="table">
+                        <tr><td>版本</td><td>${info.redis_version || '-'}</td></tr>
+                        <tr><td>内存</td><td>${info.used_memory_human || '-'}</td></tr>
+                        <tr><td>客户端</td><td>${info.connected_clients || '-'}</td></tr>
+                        <tr><td>键数量</td><td>${info.dbkeys || '-'}</td></tr>
+                    </table>
+                `;
+            } else {
+                showStatus(data.error || '连接失败', true);
+            }
+        } catch (e) {
+            showStatus(e.message, true);
+        }
+    }
+    
+    async function loadMySQLInfo() {
+        showStatus('加载中...');
+        const params = new URLSearchParams({
+            host: currentConn.host,
+            port: currentConn.port,
+            user: currentConn.user,
+            password: currentConn.password || '',
+            database: currentConn.database || ''
+        });
+        try {
+            const r = await fetch('/api/db/mysql/status?' + params);
+            const data = await r.json();
+            if (data.success) {
+                $('results').innerHTML = `
+                    <h3 style="margin-bottom:12px;">数据库: ${currentConn.database || '所有数据库'}</h3>
+                    <pre style="white-space:pre-wrap;word-break:break-all;">${data.output || ''}</pre>
+                `;
+                showStatus('');
+            } else {
+                showStatus(data.error || '连接失败', true);
+            }
+        } catch (e) {
+            showStatus(e.message, true);
+        }
+    }
+    
+    async function executeQuery() {
+        if (!currentConn) {
+            alert('请先选择数据库连接');
+            return;
+        }
+        
+        const query = $('query').value.trim();
+        if (!query) return;
+        
+        showStatus('执行中...');
+        try {
+            const r = await fetch('/api/db/execute', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    connection: currentConn.id,
+                    query: query
+                })
+            });
+            const data = await r.json();
+            
+            if (data.success) {
+                const rows = (data.data && data.data.rows) || [];
+                const headers = (data.data && data.data.headers) || [];
+                showStatus(`查询成功，返回 ${rows.length || 0} 行`);
+                
+                if (rows.length > 0) {
+                    $('results').innerHTML = `
+                        <table class="table">
+                            <thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>
+                            <tbody>
+                                ${rows.map(row => `<tr>${row.map(cell => `<td>${cell || ''}</td>`).join('')}</tr>`).join('')}
+                            </tbody>
+                        </table>
+                    `;
+                } else {
+                    $('results').innerHTML = '<div class="empty">查询执行成功，无返回数据</div>';
+                }
+            } else {
+                showStatus(data.error || '查询失败', true);
+            }
+        } catch (e) {
+            showStatus(e.message, true);
+        }
+    }
+    
+    function openAddModal() {
+        $('addModal').classList.add('open');
+        $('dbName').value = '';
+        $('dbHost').value = 'localhost';
+        $('dbPort').value = '3306';
+        $('dbUser').value = '';
+        $('dbPass').value = '';
+        $('dbDatabase').value = '';
+    }
+    
+    function closeAddModal() {
+        $('addModal').classList.remove('open');
+    }
+    
+    async function saveConnection() {
+        const conn = {
+            name: $('dbName').value || $('dbHost').value,
+            type: $('dbType').value,
+            host: $('dbHost').value,
+            port: $('dbPort').value,
+            user: $('dbUser').value,
+            password: $('dbPass').value,
+            database: $('dbDatabase').value
+        };
+        
+        try {
+            const r = await fetch('/api/db/connect', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(conn)
+            });
+            const data = await r.json();
+            if (data.success) {
+                closeAddModal();
+                loadConnections();
+                showStatus('连接已保存');
+            } else {
+                alert(data.error || '保存失败');
+            }
+        } catch (e) {
+            alert(e.message);
+        }
+    }
+    
+    async function testConnection() {
+        const type = $('dbType').value;
+        const conn = {
+            type: type,
+            host: $('dbHost').value,
+            port: $('dbPort').value,
+            user: $('dbUser').value,
+            password: $('dbPass').value
+        };
+        
+        try {
+            const r = await fetch('/api/db/test', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(conn)
+            });
+            const data = await r.json();
+            alert(data.success ? '连接成功！' : (data.message || '连接失败'));
+        } catch (e) {
+            alert(e.message);
+        }
+    }
+    
+    function refreshDB() {
+        if (currentConn) {
+            selectConn(currentConn.id);
+        }
+    }
+    
+    // Ctrl+Enter 执行查询
+    $('query').addEventListener('keydown', e => {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+            executeQuery();
+        }
+    });
+    
+    loadConnections();
+    </script>
+</body>
+</html>

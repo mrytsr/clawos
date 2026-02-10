@@ -599,7 +599,9 @@ window.openMainMenuModal = function() {
             { action: 'clash', icon: '🌐', text: 'Clash代理' },
             { action: 'frp', icon: '🔗', text: 'FRP内网穿透' },
             { action: 'disk', icon: '💾', text: '磁盘管理' },
-            { action: 'network', icon: '🌐', text: '网络管理' }
+            { action: 'network', icon: '🌐', text: '网络管理' },
+            { action: 'cron', icon: '⏰', text: 'Cron管理' },
+            { action: 'db', icon: '🗄️', text: '数据库管理' }
         ];
         c.innerHTML = items.map(function(item) {
             return '<div class="modal-item menu-item" data-action="' + item.action + '"><span style="margin-right:12px;">' + item.icon + '</span>' + item.text + '</div>';
@@ -647,6 +649,8 @@ window.actionToModalMap = {
     'systemd': { modal: 'systemdModal', load: 'loadSystemdList', open: 'openSystemdModal' },
     'clash': { modal: 'clashModal', load: 'loadClashConfigEnhanced', open: 'openClashModal' },
     'frp': { modal: 'frpModal', load: 'loadFrpConfig', open: 'openFrpModal' },
+    'cron': { url: '/cron/manager', target: '_blank' },
+    'db': { url: '/db/manager', target: '_blank' },
     'disk': { modal: 'diskModal', load: 'loadDiskList', open: 'openDiskModal' },
     'network': { modal: 'networkModal', load: 'loadNetworkList', open: 'openNetworkModal' },
     'gpu': { modal: 'gpuModal', load: 'loadGpuInfo', open: 'openGpuModal' },
@@ -666,7 +670,11 @@ window.handleMainMenu = function(action) {
         openConfigModal();
     } else if (window.actionToModalMap && window.actionToModalMap[action]) {
         var config = window.actionToModalMap[action];
-        if (config.open && window[config.open]) {
+        if (config.url) {
+            // 新窗口打开
+            var target = config.target || '_blank';
+            window.open(config.url, target);
+        } else if (config.open && window[config.open]) {
             window[config.open]();
         } else {
             Drawer.open(config.modal);
