@@ -17,7 +17,8 @@ let _lastDrawerBottomPx = null;
 let _lastDrawerHeightPx = null;
 let _termOutBuf = '';
 let _termOutRaf = 0;
-let _termTriedPollingOnly = false;
+let _termTransportMode = 'websocket';
+let _termTriedTransportFallback = false;
 let _termAuthCheckedAfterErr = false;
 
 function focusTerminal() {
@@ -498,74 +499,95 @@ function initTerminal(cwd) {
     term.loadAddon(fitAddon);
     term.open(document.getElementById('terminal-container'));
     bindTerminalGestures();
-    
-    socket = io('/term', { reconnection: true, reconnectionAttempts: 5, reconnectionDelay: 1000 });
-    
-    socket.on('connect', () => {
-        if (isTermOpen) {
-            term.write('\r\n\x1b[32m*** 已连接 ***\x1b[0m\r\n');
-        }
-        socket.emit('create_terminal', { cwd: (_requestedCwd || cwd) });
-        updateTerminalDrawerLayout();
-        fitAddon.fit();
-        socket.emit('resize', { cols: term.cols, rows: term.rows });
-        setTimeout(() => {
-            if (!isTermOpen) return;
-            tryRunPendingOpenActions();
-        }, 80);
-    });
 
-    socket.on('output', (data) => {
-        if (isTermOpen) {
-            scheduleTerminalWrite(data && data.data ? data.data : '');
-        }
-    });
+    function disposeSocket(s) {
+        if (!s) return;
+        try { s.removeAllListeners(); } catch (e) { return; }
+        try { s.disconnect(); } catch (e) { return; }
+        try { if (s.io && typeof s.io.close === 'function') s.io.close(); } catch (e) { return; }
+    }
 
-    socket.on('disconnect', () => {
-        if (isTermOpen) {
-            term.write('\r\n\x1b[33m*** 连接中... ***\x1b[0m\r\n');
-        }
-    });
+    function createSocket(mode) {
+        const transports = mode === 'polling' ? ['polling'] : ['websocket'];
+        const s = io('/term', {
+            forceNew: true,
+            reconnection: true,
+            reconnectionAttempts: 5,
+            reconnectionDelay: 1000,
+            transports: transports,
+            upgrade: false
+        });
 
-    socket.on('connect_error', (err) => {
-        if (isTermOpen) {
-            let detail = '';
-            try {
-                const msg = err && (err.message || err.description || err.toString) ? (err.message || err.description || String(err)) : '';
-                detail = msg ? (' ' + msg) : '';
-            } catch (e) {
-                detail = '';
+        s.on('connect', () => {
+            if (isTermOpen) {
+                term.write('\r\n\x1b[32m*** 已连接 ***\x1b[0m\r\n');
             }
-            term.write('\r\n\x1b[31m*** 连接失败' + detail + ' ***\x1b[0m\r\n');
-        }
-
-        if (!_termTriedPollingOnly && socket && socket.io && socket.io.opts) {
-            _termTriedPollingOnly = true;
-            try {
-                socket.io.opts.transports = ['polling'];
-                socket.io.opts.upgrade = false;
-            } catch (e) {
-                return;
-            }
+            s.emit('create_terminal', { cwd: (_requestedCwd || cwd) });
+            updateTerminalDrawerLayout();
+            fitAddon.fit();
+            s.emit('resize', { cols: term.cols, rows: term.rows });
             setTimeout(() => {
-                try { socket.connect(); } catch (e) { return; }
-            }, 150);
-        }
+                if (!isTermOpen) return;
+                tryRunPendingOpenActions();
+            }, 80);
+        });
 
-        if (!_termAuthCheckedAfterErr) {
-            _termAuthCheckedAfterErr = true;
-            fetch('/api/socket-test', { headers: (typeof authHeaders === 'function') ? authHeaders() : {} })
-                .then((r) => {
-                    if (r && r.status === 401) {
-                        if (isTermOpen && term) term.write('\r\n\x1b[31m*** 未登录/会话过期，请重新登录 ***\x1b[0m\r\n');
-                        setTimeout(() => {
-                            try { window.location.href = '/login'; } catch (e) { return; }
-                        }, 300);
-                    }
-                })
-                .catch(() => { return; });
-        }
-    });
+        s.on('output', (data) => {
+            if (isTermOpen) {
+                scheduleTerminalWrite(data && data.data ? data.data : '');
+            }
+        });
+
+        s.on('disconnect', () => {
+            if (isTermOpen) {
+                term.write('\r\n\x1b[33m*** 连接中... ***\x1b[0m\r\n');
+            }
+        });
+
+        s.on('connect_error', (err) => {
+            if (isTermOpen) {
+                let detail = '';
+                try {
+                    const msg = err && (err.message || err.description || err.toString) ? (err.message || err.description || String(err)) : '';
+                    detail = msg ? (' ' + msg) : '';
+                } catch (e) {
+                    detail = '';
+                }
+                term.write('\r\n\x1b[31m*** 连接失败' + detail + ' ***\x1b[0m\r\n');
+            }
+
+            if (!_termTriedTransportFallback && _termTransportMode === 'websocket') {
+                _termTriedTransportFallback = true;
+                _termTransportMode = 'polling';
+                if (isTermOpen && term) term.write('\r\n\x1b[33m*** 尝试切换为 polling 连接… ***\x1b[0m\r\n');
+                setTimeout(() => {
+                    disposeSocket(s);
+                    socket = createSocket('polling');
+                }, 120);
+            }
+
+            if (!_termAuthCheckedAfterErr) {
+                _termAuthCheckedAfterErr = true;
+                fetch('/api/test_socket', { headers: (typeof authHeaders === 'function') ? authHeaders() : {} })
+                    .then((r) => {
+                        if (r && r.status === 401) {
+                            if (isTermOpen && term) term.write('\r\n\x1b[31m*** 未登录/会话过期，请重新登录 ***\x1b[0m\r\n');
+                            setTimeout(() => {
+                                try { window.location.href = '/login'; } catch (e) { return; }
+                            }, 300);
+                        }
+                    })
+                    .catch(() => { return; });
+            }
+        });
+
+        return s;
+    }
+
+    _termTransportMode = 'websocket';
+    _termTriedTransportFallback = false;
+    disposeSocket(socket);
+    socket = createSocket(_termTransportMode);
 
     term.onData((data) => {
         if (socket && socket.connected) {
