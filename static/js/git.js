@@ -246,6 +246,73 @@ function __gitBindDiffButton(repoPath) {
     });
 }
 
+// 直接执行 Diff：打开新窗口显示 diff
+function __gitDoDiff(repoPath) {
+    const url = '/git/diff?repoPath=' + encodeURIComponent(String(repoPath || ''));
+    window.open(url, '_blank');
+}
+
+// 直接执行 Pull
+function __gitDoPull(repoPath) {
+    const headers = authHeaders ? (authHeaders() || {}) : {};
+    headers['Content-Type'] = 'application/json';
+    
+    fetch('/api/git/pull', {
+        method: 'POST',
+        headers: headers,
+        body: JSON.stringify({ path: String(repoPath || '') })
+    })
+        .then(function(r) { return r.json(); })
+        .then(function(resp) {
+            const payload = apiData(resp);
+            if (!payload) {
+                const msg = resp && resp.error && resp.error.message ? resp.error.message : '拉取失败';
+                throw new Error(msg);
+            }
+            if (typeof showToast === 'function') showToast(payload.message || '拉取完成');
+            window.loadGitList(repoPath);
+        })
+        .catch(function(e) {
+            const msg = e && e.message ? e.message : '拉取失败';
+            if (typeof showToast === 'function') showToast(msg);
+        });
+}
+
+// 直接执行 Push
+function __gitDoPush(repoPath) {
+    const headers = authHeaders ? (authHeaders() || {}) : {};
+    headers['Content-Type'] = 'application/json';
+    
+    fetch('/api/git/push-changes', {
+        method: 'POST',
+        headers: headers,
+        body: JSON.stringify({ path: String(repoPath || '') })
+    })
+        .then(function(r) { return r.json(); })
+        .then(function(resp) {
+            const payload = apiData(resp);
+            if (!payload) {
+                const msg = resp && resp.error && resp.error.message ? resp.error.message : '推送失败';
+                throw new Error(msg);
+            }
+            if (payload.status === 'clean') {
+                if (typeof showToast === 'function') showToast('当前没有可提交的变更');
+                return;
+            }
+            if (payload.pushed) {
+                if (typeof showToast === 'function') showToast('已推送：' + (payload.commit_msg || ''));
+                window.loadGitList(repoPath);
+                return;
+            }
+            const msg = payload.message || '推送失败';
+            throw new Error(msg);
+        })
+        .catch(function(e) {
+            const msg = e && e.message ? e.message : '推送失败';
+            if (typeof showToast === 'function') showToast(msg);
+        });
+}
+
 function __gitRenderDiffFileTable(container, rows) {
     if (!container) return;
     const list = Array.isArray(rows) ? rows : [];
@@ -566,9 +633,9 @@ window.loadGitList = function(specificRepoPath) {
                     '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">' +
                     '<span style="font-weight:600;word-break:break-all;font-size:15px;">' + escapeHtml(repoName) + '</span>' +
                     '<div style="display:flex;gap:4px;">' +
-                    '<button onclick="__gitBindDiffButton(\'' + escapeHtml(specificRepoPath) + '\');" style="padding:4px 8px;font-size:12px;border:1px solid #404040;background:#3c3c3c;color:#ccc;border-radius:4px;cursor:pointer;">📊 Diff</button>' +
-                    '<button onclick="__gitBindPullButton(\'' + escapeHtml(specificRepoPath) + '\');" style="padding:4px 8px;font-size:12px;border:1px solid #404040;background:#3c3c3c;color:#ccc;border-radius:4px;cursor:pointer;">⬇️ Pull</button>' +
-                    '<button onclick="__gitBindPushButton(\'' + escapeHtml(specificRepoPath) + '\');" style="padding:4px 8px;font-size:12px;border:1px solid #404040;background:#3c3c3c;color:#ccc;border-radius:4px;cursor:pointer;">⬆️ Push</button>' +
+                    '<button onclick="__gitDoDiff(\'' + escapeHtml(specificRepoPath) + '\');" style="padding:4px 8px;font-size:12px;border:1px solid #404040;background:#3c3c3c;color:#ccc;border-radius:4px;cursor:pointer;">📊 Diff</button>' +
+                    '<button onclick="__gitDoPull(\'' + escapeHtml(specificRepoPath) + '\');" style="padding:4px 8px;font-size:12px;border:1px solid #404040;background:#3c3c3c;color:#ccc;border-radius:4px;cursor:pointer;">⬇️ Pull</button>' +
+                    '<button onclick="__gitDoPush(\'' + escapeHtml(specificRepoPath) + '\');" style="padding:4px 8px;font-size:12px;border:1px solid #404040;background:#3c3c3c;color:#ccc;border-radius:4px;cursor:pointer;">⬆️ Push</button>' +
                     '</div>' +
                     (hasChanges ? '<span style="font-size:12px;color:#e3b341;margin-left:4px;">⚠️ Dirty</span>' : '<span style="font-size:12px;color:#2da44e;margin-left:4px;">✓ Clean</span>') +
                     (changeInfo ? '<span style="font-size:11px;color:#666;">' + escapeHtml(changeInfo) + '</span>' : '') +
@@ -624,9 +691,9 @@ window.loadGitList = function(specificRepoPath) {
                     '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">' +
                     '<span style="font-weight:600;word-break:break-all;font-size:15px;">' + escapeHtml(repoName) + '</span>' +
                     '<div style="display:flex;gap:4px;">' +
-                    '<button onclick="__gitBindDiffButton(\'' + escapeHtml(repoPath) + '\');" style="padding:4px 8px;font-size:12px;border:1px solid #404040;background:#3c3c3c;color:#ccc;border-radius:4px;cursor:pointer;">📊 Diff</button>' +
-                    '<button onclick="__gitBindPullButton(\'' + escapeHtml(repoPath) + '\');" style="padding:4px 8px;font-size:12px;border:1px solid #404040;background:#3c3c3c;color:#ccc;border-radius:4px;cursor:pointer;">⬇️ Pull</button>' +
-                    '<button onclick="__gitBindPushButton(\'' + escapeHtml(repoPath) + '\');" style="padding:4px 8px;font-size:12px;border:1px solid #404040;background:#3c3c3c;color:#ccc;border-radius:4px;cursor:pointer;">⬆️ Push</button>' +
+                    '<button onclick="__gitDoDiff(\'' + escapeHtml(repoPath) + '\');" style="padding:4px 8px;font-size:12px;border:1px solid #404040;background:#3c3c3c;color:#ccc;border-radius:4px;cursor:pointer;">📊 Diff</button>' +
+                    '<button onclick="__gitDoPull(\'' + escapeHtml(repoPath) + '\');" style="padding:4px 8px;font-size:12px;border:1px solid #404040;background:#3c3c3c;color:#ccc;border-radius:4px;cursor:pointer;">⬇️ Pull</button>' +
+                    '<button onclick="__gitDoPush(\'' + escapeHtml(repoPath) + '\');" style="padding:4px 8px;font-size:12px;border:1px solid #404040;background:#3c3c3c;color:#ccc;border-radius:4px;cursor:pointer;">⬆️ Push</button>' +
                     '</div>' +
                     (hasChanges ? '<span style="font-size:12px;color:#e3b341;margin-left:4px;">⚠️ Dirty</span>' : '<span style="font-size:12px;color:#2da44e;margin-left:4px;">✓ Clean</span>') +
                     (changeInfo ? '<span style="font-size:11px;color:#666;">' + escapeHtml(changeInfo) + '</span>' : '') +
