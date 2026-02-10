@@ -568,10 +568,33 @@ def get_git_staged_diff_text(repo_path, max_chars=20000):
         return None
 
 
-def get_git_worktree_diff_text(repo_path, max_chars=200000):
+def get_git_worktree_diff_text(repo_path, max_chars=200000, file_filter=None):
     try:
         if not _is_git_repo(repo_path):
             return None
+
+        # 如果指定了文件，只显示该文件的 diff
+        if file_filter:
+            # 先尝试 staged diff
+            result = _run_git(repo_path, ['diff', '--cached', '--no-color', '--', file_filter], timeout=20)
+            staged_text = result.stdout or ''
+            
+            # 再尝试 unstaged diff  
+            result = _run_git(repo_path, ['diff', '--no-color', '--', file_filter], timeout=20)
+            unstaged_text = result.stdout or ''
+            
+            out = ''
+            if staged_text.strip():
+                out += '===== STAGED =====\n\n' + staged_text.rstrip() + '\n\n'
+            if unstaged_text.strip():
+                out += '===== UNSTAGED =====\n\n' + unstaged_text.rstrip() + '\n\n'
+            
+            if not out.strip():
+                out = '(no changes for ' + file_filter + ')\n'
+            
+            if max_chars and len(out) > int(max_chars):
+                out = out[:int(max_chars)] + '\n\n... (truncated)\n'
+            return out
 
         staged = _run_git(repo_path, ['diff', '--cached', '--no-color'], timeout=20)
         if staged.returncode != 0:

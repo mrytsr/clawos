@@ -435,6 +435,7 @@ def commit_page(commit_hash):
 @git_bp.route('/git/diff')
 def git_diff_page():
     repo_path_param = request.args.get('repoPath') or request.args.get('path') or ''
+    file_param = request.args.get('file') or ''
 
     if repo_path_param:
         if repo_path_param.startswith(config.ROOT_DIR):
@@ -447,14 +448,15 @@ def git_diff_page():
     if not repo_path.startswith(os.path.normpath(config.ROOT_DIR)):
         return api_error('Invalid path', status=403)
 
-    diff_text = git_utils.get_git_worktree_diff_text(repo_path, max_chars=200000)
+    diff_text = git_utils.get_git_worktree_diff_text(repo_path, max_chars=200000, file_filter=file_param)
     if diff_text is None:
         return api_error('Not a git repository', status=400)
 
     repo_name = os.path.basename(repo_path) or repo_path
+    file_display = (' - ' + file_param) if file_param else ''
     return render_template(
         'git_diff.html',
-        repo_name=repo_name,
+        repo_name=repo_name + file_display,
         repo_path=repo_path,
         diff_text=diff_text or '',
     )

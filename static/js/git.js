@@ -401,7 +401,7 @@ function __gitDoPush(repoPath) {
     }
 }
 
-function __gitRenderDiffFileTable(container, rows) {
+function __gitRenderDiffFileTable(container, rows, repoPath) {
     if (!container) return;
     const list = Array.isArray(rows) ? rows : [];
     if (!list.length) {
@@ -415,12 +415,14 @@ function __gitRenderDiffFileTable(container, rows) {
         '<thead><tr><th style="width:70%;">文件</th><th class="git-diffstat-num" style="width:15%;">+</th><th class="git-diffstat-num" style="width:15%;">-</th></tr></thead>' +
         '<tbody>' +
         list.map(function(r, idx) {
-            const path = escapeHtml(String((r && r.path) || '-'));
+            const path = String((r && r.path) || '-');
+            const pathEsc = escapeHtml(path);
             const add = (r && (r.added === null || r.added === undefined)) ? '—' : String(r.added || 0);
             const del = (r && (r.deleted === null || r.deleted === undefined)) ? '—' : String(r.deleted || 0);
             const trStyle = idx < list.length - 1 ? '' : ' style="border-bottom:0;"';
-            return '<tr>' +
-                '<td class="git-diffstat-path" title="' + path + '">' + path + '</td>' +
+            const rowStyle = 'cursor:pointer;' + (idx < list.length - 1 ? '' : '');
+            return '<tr onclick="__gitOpenFileDiff(\'' + escapeHtml(repoPath) + '\', \'' + pathEsc + '\');" style="' + rowStyle + '">' +
+                '<td class="git-diffstat-path" title="' + pathEsc + '" style="color:#0969da;">' + pathEsc + '</td>' +
                 '<td class="git-diffstat-num" style="color:#2da44e;"' + trStyle + '>' + escapeHtml(add) + '</td>' +
                 '<td class="git-diffstat-num" style="color:#cf222e;"' + trStyle + '>' + escapeHtml(del) + '</td>' +
                 '</tr>';
@@ -428,6 +430,12 @@ function __gitRenderDiffFileTable(container, rows) {
         '</tbody></table></div>';
 
     container.innerHTML = header + table;
+}
+
+// 打开单个文件的 diff
+function __gitOpenFileDiff(repoPath, filePath) {
+    const url = '/git/diff?repoPath=' + encodeURIComponent(repoPath) + '&file=' + encodeURIComponent(filePath);
+    window.open(url, '_blank');
 }
 
 function __gitLoadDiffFileList(repoPath) {
@@ -442,7 +450,7 @@ function __gitLoadDiffFileList(repoPath) {
                 const msg = resp && resp.error && resp.error.message ? resp.error.message : '加载失败';
                 throw new Error(msg);
             }
-            __gitRenderDiffFileTable(el, payload.files || []);
+            __gitRenderDiffFileTable(el, payload.files || [], repoPath);
         })
         .catch(function() {
             el.innerHTML = '<div style="padding:10px 12px;color:#cf222e;font-size:12px;">加载失败</div>';
