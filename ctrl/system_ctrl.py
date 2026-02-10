@@ -671,3 +671,71 @@ def api_openclaw_status():
     }
     
     return api_ok(result)
+
+
+@system_bp.route('/api/system/exec', methods=['POST'])
+def api_system_exec():
+    """执行系统命令（仅限用户态服务管理）"""
+    try:
+        data = request.get_json()
+        command = data.get('command', '')
+        timeout = data.get('timeout', 30)
+        
+        # 安全检查：只允许特定的 systemctl --user 命令
+        allowed_patterns = [
+            r'^systemctl --user (start|stop|restart|reload|enable|disable|status) [a-zA-Z0-9_\-\.]+(\.service)?( --no-pager)?$',
+        ]
+        
+        import re
+        if not any(re.match(p, command) for p in allowed_patterns):
+            return api_error('命令不允许', status=403)
+        
+        result = subprocess.run(
+            command,
+            shell=True,
+            capture_output=True,
+            text=True,
+            timeout=timeout
+        )
+        
+        return api_ok({
+            'returncode': result.returncode,
+            'stdout': result.stdout,
+            'stderr': result.stderr
+        })
+    except subprocess.TimeoutExpired:
+        return api_error('命令执行超时', status=408)
+    except Exception as e:
+        return api_error(str(e), status=500)
+
+
+@system_bp.route('/api/frp/config')
+def api_frp_config():
+    """读取 FRP 配置文件"""
+    frp_config_path = '/usr/local/frp/frpc.toml'
+    try:
+        if not os.path.exists(frp_config_path):
+            return api_error('FRP 配置文件不存在')
+        
+        with open(frp_config_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+        
+        return api_ok({'content': content, 'path': frp_config_path})
+    except Exception as e:
+        return api_error(str(e))
+
+
+@system_bp.route('/api/frp/config', methods=['POST'])
+def api_frp_config_save():
+    """保存 FRP 配置文件"""
+    frp_config_path = '/usr/local/frp/frpc.toml'
+    try:
+        data = request.get_json()
+        content = data.get('content', '')
+        
+        with open(frp_config_path, 'w', encoding='utf-8') as f:
+            f.write(content)
+        
+        return api_ok({'success': True})
+    except Exception as e:
+        return api_error(str(e))

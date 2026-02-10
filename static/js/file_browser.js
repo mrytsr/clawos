@@ -917,6 +917,10 @@ function attachFileItemDefaultHandlers() {
                 window.open('/json/editor?path=' + encodeURIComponent(path), '_blank', 'noopener');
                 return;
             }
+            if (ext === '.yaml' || ext === '.yml' || ext === '.toml' || ext === '.ini' || ext === '.conf') {
+                window.open('/yaml/editor?path=' + encodeURIComponent(path), '_blank', 'noopener');
+                return;
+            }
             // 所有其他文件都用 /serve/ 让浏览器原生预览
             window.open('/serve/' + encodePathForUrl(path), '_blank', 'noopener');
         });
@@ -1199,7 +1203,8 @@ window.showDetails = function(path, name) {
                 // 构建类型显示
                 let typeHtml = info.is_dir ? '📁 文件夹' : '📄 文件';
                 if (info.is_symlink) {
-                    typeHtml += ' → <span style="color:#58a6ff;">软链接</span>';
+                    const isBroken = !info.target_exists;
+                    typeHtml += ' → <span style="color:' + (isBroken ? '#ff4444' : '#58a6ff') + ';">软链接' + (isBroken ? ' (破损)' : '') + '</span>';
                 }
                 
                 // 构建软链接目标行

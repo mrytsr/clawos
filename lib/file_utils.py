@@ -74,7 +74,8 @@ def list_directory(directory):
                     'is_dir': True,
                     'is_image': False,
                     'extension': '',
-                    'is_symlink': is_symlink
+                    'is_symlink': is_symlink,
+                    'is_broken_link': is_symlink and not info.get('target_exists', True)
                 })
             else:
                 _, ext = os.path.splitext(item)
@@ -89,7 +90,8 @@ def list_directory(directory):
                     'is_dir': False,
                     'is_image': is_image,
                     'extension': ext.lower(),
-                    'is_symlink': is_symlink
+                    'is_symlink': is_symlink,
+                    'is_broken_link': is_symlink and not info.get('target_exists', True)
                 })
     except PermissionError:
         pass

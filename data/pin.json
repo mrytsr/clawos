@@ -2,11 +2,6 @@
   "pins": [
     {
       "dir": "",
-      "name": "clawos",
-      "pinned_at": 1770616478175
-    },
-    {
-      "dir": "",
       "name": "xiandan",
       "pinned_at": 1770636745379
     },
@@ -44,6 +39,16 @@
       "dir": ".openclaw",
       "name": "openclaw.json",
       "pinned_at": 1770656268547
+    },
+    {
+      "dir": "clawos",
+      "name": "app.py",
+      "pinned_at": 1770684492947
+    },
+    {
+      "dir": "",
+      "name": "clawos",
+      "pinned_at": 1770684660144
     }
   ]
 }

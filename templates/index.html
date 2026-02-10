@@ -249,6 +249,15 @@
         .file-name.is-symlink {
             color: #58a6ff !important;  /* 亮蓝色 */
         }
+        .file-name.is-broken-link {
+            background: #000 !important;
+            color: #ff4444 !important;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+        .file-name.is-broken-link::before {
+            content: '⚠ ';
+        }
         .file-name a {
             color: #24292f;
             text-decoration: none;
@@ -903,7 +912,7 @@
                     
                     <!-- 第二列：名称 + 详情 -->
                     <div class="file-col-info">
-                        <div class="file-name" :class="{ 'is-symlink': !!item.is_symlink }">
+                        <div class="file-name" :class="{ 'is-symlink': !!item.is_symlink, 'is-broken-link': !!item.is_broken_link }">
                             <span>{{ item.name }}</span>
                             <a v-if="isPortDir(item)" :href="portHref(item.name)" target="_blank" style="margin-left: 8px; color: #17a2b8; text-decoration: none; font-size: 1.2em;" title="打开网站">🔗</a>
                         </div>
@@ -1584,6 +1593,22 @@
         </div>
         <div class="drawer-content" style="padding:0;">
             <div id="openclawConfigContainer" style="padding: 16px;"></div>
+        </div>
+    </div>
+
+    <!-- FRP管理抽屉 -->
+    <div id="frpBackdrop" class="drawer-backdrop" onclick="closeFrpModal()"></div>
+    <div id="frpModal" class="drawer">
+        <div class="drawer-handle"></div>
+        <div class="drawer-header">
+            <div class="drawer-title">🔗 FRP 内网穿透</div>
+            <div style="display:flex;gap:8px;">
+                <button style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px;" onclick="loadFrpConfig()" title="刷新">🔄</button>
+                <button class="drawer-close-btn" onclick="closeFrpModal()">&times;</button>
+            </div>
+        </div>
+        <div class="drawer-content" style="padding:0;">
+            <div id="frpContainer" style="padding: 16px;"></div>
         </div>
     </div>
 

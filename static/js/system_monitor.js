@@ -981,3 +981,182 @@ window.loadOpenclawConfig = function() {
         });
 };
 window.openOpenclawModal = function() { Drawer.open('openclawModal'); loadOpenclawConfig(); };
+
+// FRP管理
+window.loadFrpConfig = function() {
+    const container = document.getElementById('frpContainer');
+    if (!container) return;
+    container.innerHTML = '<div style="text-align:center;padding:40px;color:#666;">🔄 加载中...</div>';
+    
+    fetch('/api/frp/config', { headers: authHeaders() })
+        .then(r => r.json())
+        .then(data => {
+            if (!data.success) {
+                container.innerHTML = '<div style="text-align:center;padding:40px;color:#cf222e;">读取配置文件失败</div>';
+                return;
+            }
+            
+            const content = data.data.content;
+            const lines = content.split('\n');
+            let proxies = [];
+            let currentProxy = null;
+            
+            // 解析 proxies
+            lines.forEach((line, idx) => {
+                const proxyMatch = line.match(/\[\[proxies\]\]/);
+                const nameMatch = line.match(/name\s*=\s*"([^"]+)"/);
+                const typeMatch = line.match(/type\s*=\s*"([^"]+)"/);
+                const localIpMatch = line.match(/localIP\s*=\s*"([^"]+)"/);
+                const localPortMatch = line.match(/localPort\s*=\s*(\d+)/);
+                const remotePortMatch = line.match(/remotePort\s*=\s*(\d+)/);
+                
+                if (proxyMatch) {
+                    if (currentProxy) proxies.push(currentProxy);
+                    currentProxy = { lineIdx: idx };
+                } else if (currentProxy) {
+                    if (nameMatch) currentProxy.name = nameMatch[1];
+                    if (typeMatch) currentProxy.type = typeMatch[1];
+                    if (localIpMatch) currentProxy.localIP = localIpMatch[1];
+                    if (localPortMatch) currentProxy.localPort = localPortMatch[1];
+                    if (remotePortMatch) currentProxy.remotePort = remotePortMatch[1];
+                }
+            });
+            if (currentProxy) proxies.push(currentProxy);
+            
+            // 解析 serverAddr 和 serverPort
+            const serverAddrMatch = content.match(/serverAddr\s*=\s*"([^"]+)"/);
+            const serverPortMatch = content.match(/serverPort\s*=\s*(\d+)/);
+            
+            let html = '';
+            
+            // 服务状态卡片
+            html += '<div style="margin-bottom:16px;">';
+            html += '<div style="font-size:13px;color:#666;margin-bottom:8px;padding-left:4px;">服务状态</div>';
+            html += '<div style="background:#fff;border:1px solid #d0d7de;border-radius:8px;overflow:hidden;">';
+            html += '<div style="padding:12px;display:flex;justify-content:space-between;align-items:center;">';
+            html += '<span style="font-weight:500;">frpc.service</span>';
+            html += '<span id="frpServiceStatus" style="font-size:12px;">检查中...</span>';
+            html += '</div>';
+            html += '<div style="padding:0 12px 12px;display:flex;gap:8px;">';
+            html += '<button id="frpStartBtn" onclick="frpcControl(\'start\')" style="flex:1;padding:8px;border-radius:6px;border:1px solid #d0d7de;background:#fff;cursor:pointer;font-size:13px;">▶ 启动</button>';
+            html += '<button id="frpStopBtn" onclick="frpcControl(\'stop\')" style="flex:1;padding:8px;border-radius:6px;border:1px solid #d0d7de;background:#fff;cursor:pointer;font-size:13px;">⏹ 停止</button>';
+            html += '<button id="frpRestartBtn" onclick="frpcControl(\'restart\')" style="flex:1;padding:8px;border-radius:6px;border:1px solid #d0d7de;background:#fff;cursor:pointer;font-size:13px;">🔄 重启</button>';
+            html += '</div>';
+            html += '</div></div>';
+            
+            // 服务端信息
+            html += '<div style="margin-bottom:16px;">';
+            html += '<div style="font-size:13px;color:#666;margin-bottom:8px;padding-left:4px;">服务端</div>';
+            html += '<div style="background:#fff;border:1px solid #d0d7de;border-radius:8px;overflow:hidden;">';
+            html += '<div style="padding:10px 12px;border-bottom:1px solid #eee;display:flex;justify-content:space-between;"><span style="color:#666;">地址</span><span style="font-family:monospace;">' + (serverAddrMatch ? serverAddrMatch[1] : '-') + '</span></div>';
+            html += '<div style="padding:10px 12px;display:flex;justify-content:space-between;"><span style="color:#666;">端口</span><span>' + (serverPortMatch ? serverPortMatch[1] : '-') + '</span></div>';
+            html += '</div></div>';
+            
+            // 代理列表
+            html += '<div style="margin-bottom:16px;">';
+            html += '<div style="font-size:13px;color:#666;margin-bottom:8px;padding-left:4px;display:flex;justify-content:space-between;align-items:center;">';
+            html += '<span>代理 (' + proxies.length + ')</span>';
+            html += '<button onclick="openFrpProxyDrawer()" style="padding:4px 8px;border-radius:6px;border:1px solid #d0d7de;background:#fff;cursor:pointer;font-size:12px;">+ 添加</button>';
+            html += '</div>';
+            html += '<div style="background:#fff;border:1px solid #d0d7de;border-radius:8px;overflow:hidden;">';
+            
+            if (proxies.length === 0) {
+                html += '<div style="padding:20px;text-align:center;color:#666;">暂无代理</div>';
+            } else {
+                proxies.forEach((p, idx) => {
+                    const localAddr = p.localIP + ':' + p.localPort;
+                    const remoteAddr = (serverAddrMatch ? serverAddrMatch[1] : '') + ':' + p.remotePort;
+                    html += '<div style="padding:10px 12px;' + (idx < proxies.length - 1 ? 'border-bottom:1px solid #eee;' : '') + '">';
+                    html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">';
+                    html += '<span style="font-weight:500;">' + escapeHtml(p.name) + '</span>';
+                    html += '<span style="font-size:11px;color:#666;">' + p.type.toUpperCase() + '</span>';
+                    html += '</div>';
+                    html += '<div style="display:flex;justify-content:space-between;font-size:12px;color:#666;">';
+                    html += '<span>本地: ' + localAddr + '</span>';
+                    html += '<span>远程: ' + remoteAddr + '</span>';
+                    html += '</div>';
+                    html += '</div>';
+                });
+            }
+            
+            html += '</div></div>';
+            
+            // 配置文件操作
+            html += '<div style="margin-bottom:16px;">';
+            html += '<div style="font-size:13px;color:#666;margin-bottom:8px;padding-left:4px;">配置</div>';
+            html += '<div style="display:flex;gap:8px;">';
+            html += '<button onclick="openFrpInEditor()" style="flex:1;padding:10px;border-radius:8px;border:1px solid #d0d7de;background:#fff;cursor:pointer;">📝 编辑配置</button>';
+            html += '</div></div>';
+            
+            container.innerHTML = html;
+            
+            // 检查 systemctl --user status
+            frpcCheckStatus();
+        })
+        .catch(err => {
+            console.error(err);
+            container.innerHTML = '<div style="text-align:center;padding:40px;color:#cf222e;">加载失败: ' + err.message + '</div>';
+        });
+};
+
+window.frpcCheckStatus = function() {
+    fetch('/api/system/exec', {
+        method: 'POST',
+        headers: Object.assign({}, authHeaders(), { 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ command: 'systemctl --user status frpc.service --no-pager' })
+    })
+    .then(r => r.json())
+    .then(data => {
+        const statusEl = document.getElementById('frpServiceStatus');
+        if (!statusEl) return;
+        
+        const running = data && data.stdout && (data.stdout.includes('active (running)') || data.returncode === 0);
+        statusEl.innerHTML = running 
+            ? '<span style="color:#2da44e;">● 运行中</span>'
+            : '<span style="color:#cf222e;">● 未运行</span>';
+    })
+    .catch(() => {
+        const statusEl = document.getElementById('frpServiceStatus');
+        if (statusEl) statusEl.innerHTML = '<span style="color:#666;">未知</span>';
+    });
+};
+
+window.frpcControl = function(action) {
+    const actions = { 'start': '启动', 'stop': '停止', 'restart': '重启' };
+    if (!confirm('确定要' + actions[action] + ' FRP 服务吗？')) return;
+    
+    fetch('/api/system/exec', {
+        method: 'POST',
+        headers: Object.assign({}, authHeaders(), { 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ command: 'systemctl --user ' + action + ' frpc.service' })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success || data.returncode === 0) {
+            alert('FRP 服务已' + actions[action]);
+            frpcCheckStatus();
+        } else {
+            alert(actions[action] + '失败: ' + (data.stderr || data.error || '未知错误'));
+        }
+    })
+    .catch(err => alert('请求失败: ' + err.message));
+};
+
+window.openFrpModal = function() { Drawer.open('frpModal'); loadFrpConfig(); };
+window.closeFrpModal = function() { Drawer.close('frpModal'); };
+
+window.openFrpInEditor = function() {
+    window.open('/json/editor?path=/usr/local/frp/frpc.toml', '_blank', 'noopener');
+};
+
+window.openFrpProxyDrawer = function() {
+    const name = prompt('代理名称:');
+    if (!name) return;
+    const localPort = prompt('本地端口:');
+    if (!localPort) return;
+    const remotePort = prompt('远程端口:');
+    if (!remotePort) return;
+    
+    alert('请在编辑器中手动添加代理配置:\n\n[[proxies]]\nname = "' + name + '"\ntype = "tcp"\nlocalIP = "127.0.0.1"\nlocalPort = ' + localPort + '\nremotePort = ' + remotePort);
+    openFrpInEditor();
+};
