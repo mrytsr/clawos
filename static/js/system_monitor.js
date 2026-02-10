@@ -982,6 +982,127 @@ window.loadOpenclawConfig = function() {
 };
 window.openOpenclawModal = function() { Drawer.open('openclawModal'); loadOpenclawConfig(); };
 
+window.loadClashConfig = function() {
+    const container = document.getElementById('clashContainer');
+    if (!container) return;
+    container.innerHTML = '<div style="text-align:center;padding:40px;color:#666;">🔄 加载中...</div>';
+
+    fetch('/api/clash/state', { headers: authHeaders() })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            const payload = apiData(data);
+            if (!payload) {
+                container.innerHTML = __errorHtml('加载失败');
+                return;
+            }
+
+            const cfg = payload.config || {};
+            const svc = payload.service || {};
+
+            const svcAvailable = !!svc.available;
+            const svcName = escapeHtml(String((svc.id || 'clash.service')));
+            const svcText = svcAvailable
+                ? (svc.running ? '<span style="color:#2da44e;">● 运行中</span>' : '<span style="color:#cf222e;">● 未运行</span>')
+                : '<span style="color:#666;">未知</span>';
+
+            let html = '';
+
+            html += '<div style="margin-bottom:16px;">';
+            html += '<div style="font-size:13px;color:#666;margin-bottom:8px;padding-left:4px;">服务状态</div>';
+            html += '<div style="background:#fff;border:1px solid #d0d7de;border-radius:8px;overflow:hidden;">';
+            html += '<div style="padding:12px;display:flex;justify-content:space-between;align-items:center;">';
+            html += '<span style="font-weight:500;">' + svcName + '</span>';
+            html += '<span id="clashServiceStatus" style="font-size:12px;">' + svcText + '</span>';
+            html += '</div>';
+            html += '<div style="padding:0 12px 12px;display:flex;gap:8px;">';
+            html += '<button onclick="clashControl(\\\'start\\\')" style="flex:1;padding:8px;border-radius:6px;border:1px solid #d0d7de;background:#fff;cursor:pointer;font-size:13px;">▶ 启动</button>';
+            html += '<button onclick="clashControl(\\\'stop\\\')" style="flex:1;padding:8px;border-radius:6px;border:1px solid #d0d7de;background:#fff;cursor:pointer;font-size:13px;">⏹ 停止</button>';
+            html += '<button onclick="clashControl(\\\'restart\\\')" style="flex:1;padding:8px;border-radius:6px;border:1px solid #d0d7de;background:#fff;cursor:pointer;font-size:13px;">🔄 重启</button>';
+            html += '</div>';
+            html += '</div></div>';
+
+            html += '<div style="margin-bottom:16px;">';
+            html += '<div style="font-size:13px;color:#666;margin-bottom:8px;padding-left:4px;">配置文件</div>';
+            html += '<div style="background:#fff;border:1px solid #d0d7de;border-radius:8px;overflow:hidden;">';
+            html += '<div style="padding:10px 12px;border-bottom:1px solid #eee;display:flex;justify-content:space-between;gap:8px;">';
+            html += '<span style="color:#666;flex-shrink:0;">路径</span>';
+            html += '<span style="font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, \\\"Liberation Mono\\\", \\\"Courier New\\\", monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + escapeHtml(String(cfg.path || '-')) + '</span>';
+            html += '</div>';
+
+            if (!cfg.present) {
+                const msg = cfg.error ? ('读取失败：' + escapeHtml(String(cfg.error))) : '未找到配置文件';
+                html += '<div style="padding:12px;color:#666;text-align:center;">' + msg + '</div>';
+            } else {
+                const summary = cfg.summary || {};
+                const keys = Object.keys(summary);
+                if (keys.length === 0) {
+                    html += '<div style="padding:12px;color:#666;text-align:center;">未解析到配置摘要</div>';
+                } else {
+                    keys.forEach(function(k, idx) {
+                        const v = summary[k];
+                        const valueText = (v === null || v === undefined) ? '-' : String(v);
+                        html += '<div style="padding:10px 12px;' + (idx < keys.length - 1 ? 'border-top:1px solid #eee;' : 'border-top:1px solid #eee;') + 'display:flex;justify-content:space-between;gap:8px;">';
+                        html += '<span style="color:#666;flex-shrink:0;">' + escapeHtml(String(k)) + '</span>';
+                        html += '<span style="text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + escapeHtml(valueText) + '</span>';
+                        html += '</div>';
+                    });
+                }
+            }
+            html += '</div></div>';
+
+            container.innerHTML = html;
+        })
+        .catch(function(err) {
+            console.error(err);
+            container.innerHTML = '<div style="text-align:center;padding:40px;color:#cf222e;">加载失败: ' + escapeHtml(err.message) + '</div>';
+        });
+};
+
+window.clashRefreshStatus = function() {
+    fetch('/api/clash/state', { headers: authHeaders() })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            const payload = apiData(data);
+            const statusEl = document.getElementById('clashServiceStatus');
+            if (!statusEl) return;
+            if (!payload || !payload.service) {
+                statusEl.innerHTML = '<span style="color:#666;">未知</span>';
+                return;
+            }
+            const svc = payload.service || {};
+            if (!svc.available) {
+                statusEl.innerHTML = '<span style="color:#666;">未知</span>';
+                return;
+            }
+            statusEl.innerHTML = svc.running
+                ? '<span style="color:#2da44e;">● 运行中</span>'
+                : '<span style="color:#cf222e;">● 未运行</span>';
+        })
+        .catch(function() {
+            const statusEl = document.getElementById('clashServiceStatus');
+            if (statusEl) statusEl.innerHTML = '<span style="color:#666;">未知</span>';
+        });
+};
+
+window.clashControl = function(action) {
+    const actions = { 'start': '启动', 'stop': '停止', 'restart': '重启' };
+    if (!confirm('确定要' + actions[action] + ' Clash 服务吗？')) return;
+
+    __postJson('/api/clash/control', { action: action })
+        .then(function(data) {
+            if (data && data.success) {
+                alert('Clash 服务已' + actions[action]);
+                window.clashRefreshStatus();
+                return;
+            }
+            alert(actions[action] + '失败: ' + ((data && (data.message || data.error)) || '未知错误'));
+        })
+        .catch(function(err) { alert('请求失败: ' + err.message); });
+};
+
+window.openClashModal = function() { Drawer.open('clashModal'); window.loadClashConfig(); };
+window.closeClashModal = function() { Drawer.close('clashModal'); };
+
 // FRP管理
 window.loadFrpConfig = function() {
     const container = document.getElementById('frpContainer');

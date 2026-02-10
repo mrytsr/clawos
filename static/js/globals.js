@@ -596,6 +596,7 @@ window.openMainMenuModal = function() {
             { action: 'npm', icon: '📦', text: 'npm包管理' },
             { action: 'docker', icon: '🐳', text: 'docker管理' },
             { action: 'systemd', icon: '🔧', text: 'systemd管理' },
+            { action: 'clash', icon: '🧭', text: 'Clash 管理' },
             { action: 'frp', icon: '🔗', text: 'FRP内网穿透' },
             { action: 'disk', icon: '💾', text: '磁盘管理' },
             { action: 'network', icon: '🌐', text: '网络管理' }
@@ -644,6 +645,7 @@ window.actionToModalMap = {
     'npm': { modal: 'npmModal', load: 'loadNpmList', open: 'openNpmModal' },
     'docker': { modal: 'dockerModal', load: 'loadDockerTabs', open: 'openDockerModal' },
     'systemd': { modal: 'systemdModal', load: 'loadSystemdList', open: 'openSystemdModal' },
+    'clash': { modal: 'clashModal', load: 'loadClashConfig', open: 'openClashModal' },
     'frp': { modal: 'frpModal', load: 'loadFrpConfig', open: 'openFrpModal' },
     'disk': { modal: 'diskModal', load: 'loadDiskList', open: 'openDiskModal' },
     'network': { modal: 'networkModal', load: 'loadNetworkList', open: 'openNetworkModal' },

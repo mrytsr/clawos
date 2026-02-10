@@ -1596,6 +1596,22 @@
         </div>
     </div>
 
+    <!-- Clash管理抽屉 -->
+    <div id="clashBackdrop" class="drawer-backdrop" onclick="closeClashModal()"></div>
+    <div id="clashModal" class="drawer">
+        <div class="drawer-handle"></div>
+        <div class="drawer-header">
+            <div class="drawer-title">🧭 Clash 管理</div>
+            <div style="display:flex;gap:8px;">
+                <button style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px;" onclick="loadClashConfig()" title="刷新">🔄</button>
+                <button class="drawer-close-btn" onclick="closeClashModal()">&times;</button>
+            </div>
+        </div>
+        <div class="drawer-content" style="padding:0;">
+            <div id="clashContainer" style="padding: 16px;"></div>
+        </div>
+    </div>
+
     <!-- FRP管理抽屉 -->
     <div id="frpBackdrop" class="drawer-backdrop" onclick="closeFrpModal()"></div>
     <div id="frpModal" class="drawer">
