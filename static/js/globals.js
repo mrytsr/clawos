@@ -645,7 +645,7 @@ window.actionToModalMap = {
     'npm': { modal: 'npmModal', load: 'loadNpmList', open: 'openNpmModal' },
     'docker': { modal: 'dockerModal', load: 'loadDockerTabs', open: 'openDockerModal' },
     'systemd': { modal: 'systemdModal', load: 'loadSystemdList', open: 'openSystemdModal' },
-    'clash': { modal: 'clashModal', load: 'loadClashConfig', open: 'openClashModal' },
+    'clash': { modal: 'clashModal', load: 'loadClashConfigEnhanced', open: 'openClashModal' },
     'frp': { modal: 'frpModal', load: 'loadFrpConfig', open: 'openFrpModal' },
     'disk': { modal: 'diskModal', load: 'loadDiskList', open: 'openDiskModal' },
     'network': { modal: 'networkModal', load: 'loadNetworkList', open: 'openNetworkModal' },

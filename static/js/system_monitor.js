@@ -1100,7 +1100,7 @@ window.clashControl = function(action) {
         .catch(function(err) { alert('请求失败: ' + err.message); });
 };
 
-window.openClashModal = function() { Drawer.open('clashModal'); window.loadClashConfig(); };
+window.openClashModal = function() { Drawer.open('clashModal'); };
 window.closeClashModal = function() { Drawer.close('clashModal'); };
 
 // FRP管理
@@ -1248,11 +1248,88 @@ window.frpcControl = function(action) {
         .catch(function(err) { alert('请求失败: ' + err.message); });
 };
 
-window.openFrpModal = function() { Drawer.open('frpModal'); window.loadFrpConfig(); };
+window.openFrpModal = function() { Drawer.open('frpModal'); };
 window.closeFrpModal = function() { Drawer.close('frpModal'); };
 
 window.openFrpInEditor = function() {
     window.open('/json/editor?path=/usr/local/frp/frpc.toml', '_blank', 'noopener');
+};
+
+window.openClashInEditor = function() {
+    const win = window.open('', '_blank');
+    if (!win) { alert('弹窗被浏览器拦截，请允许弹窗后重试'); return; }
+
+    const html = [
+        '<!DOCTYPE html>',
+        '<html lang="zh-CN">',
+        '<head>',
+        '<meta charset="UTF-8" />',
+        '<meta name="viewport" content="width=device-width, initial-scale=1.0" />',
+        '<title>Clash 配置编辑</title>',
+        '<style>',
+        'body{margin:0;font-family:Segoe UI,Tahoma,Geneva,Verdana,sans-serif;background:#f6f8fa;color:#24292f;}',
+        '.top{position:sticky;top:0;z-index:10;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;background:#fff;border-bottom:1px solid #d0d7de;}',
+        '.btn{padding:8px 12px;border-radius:8px;border:1px solid #d0d7de;background:#fff;cursor:pointer;font-size:13px;}',
+        '.btn.primary{background:#0969da;border-color:#0969da;color:#fff;}',
+        '.meta{font-size:12px;color:#57606a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:70vw;}',
+        '#editor{width:100%;height:calc(100vh - 56px);box-sizing:border-box;border:0;outline:none;padding:12px;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;font-size:13px;line-height:1.5;resize:none;}',
+        '.status{padding:0 12px 10px;font-size:12px;color:#57606a;}',
+        '</style>',
+        '</head>',
+        '<body>',
+        '<div class="top">',
+        '<div class="meta" id="meta">正在加载…</div>',
+        '<div style="display:flex;gap:8px;align-items:center;">',
+        '<button class="btn" id="reloadBtn">刷新</button>',
+        '<button class="btn primary" id="saveBtn">保存</button>',
+        '</div>',
+        '</div>',
+        '<textarea id="editor" spellcheck="false"></textarea>',
+        '<div class="status" id="status"></div>',
+        '<script>',
+        '(function(){',
+        'var meta=document.getElementById("meta");',
+        'var status=document.getElementById("status");',
+        'var editor=document.getElementById("editor");',
+        'var saveBtn=document.getElementById("saveBtn");',
+        'var reloadBtn=document.getElementById("reloadBtn");',
+        'var loadedPath="";',
+        'var dirty=false;',
+        'function setStatus(t){status.textContent=t||"";}',
+        'function load(){',
+        'setStatus("加载中…");',
+        'fetch("/api/clash/config",{credentials:"same-origin"}).then(function(r){return r.json();}).then(function(data){',
+        'if(!data||!data.success||!data.data){throw new Error((data&&data.error&&data.error.message)||"加载失败");}',
+        'loadedPath=String(data.data.path||"");',
+        'meta.textContent=loadedPath?("Clash 配置："+loadedPath):"Clash 配置";',
+        'editor.value=String(data.data.content||"");',
+        'dirty=false;',
+        'setStatus("已加载");',
+        '}).catch(function(e){setStatus("加载失败："+(e&&e.message?e.message:String(e)));});',
+        '}',
+        'function save(){',
+        'var content=editor.value;',
+        'setStatus("保存中…");',
+        'fetch("/api/clash/config",{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json"},body:JSON.stringify({content:content})}).then(function(r){return r.json();}).then(function(data){',
+        'if(!data||!data.success){throw new Error((data&&data.error&&data.error.message)||(data&&data.message)||"保存失败");}',
+        'dirty=false;',
+        'setStatus("已保存");',
+        '}).catch(function(e){setStatus("保存失败："+(e&&e.message?e.message:String(e)));});',
+        '}',
+        'editor.addEventListener("input",function(){dirty=true;});',
+        'saveBtn.addEventListener("click",function(){save();});',
+        'reloadBtn.addEventListener("click",function(){if(dirty&&!confirm("内容未保存，仍要刷新吗？"))return;load();});',
+        'window.addEventListener("beforeunload",function(e){if(!dirty)return; e.preventDefault(); e.returnValue="";});',
+        'load();',
+        '})();',
+        '<\/script>',
+        '</body>',
+        '</html>'
+    ].join('');
+
+    win.document.open();
+    win.document.write(html);
+    win.document.close();
 };
 
 window.openFrpProxyDrawer = function() {
@@ -1454,4 +1531,4 @@ window.clashSwitchProxy = function(groupName, proxyName) {
 
 // 覆盖原来的打开函数
 window.openClashModalOriginal = window.openClashModal;
-window.openClashModal = function() { Drawer.open('clashModal'); window.loadClashConfigEnhanced(); };
+window.openClashModal = function() { Drawer.open('clashModal'); };

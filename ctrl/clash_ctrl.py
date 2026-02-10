@@ -2,6 +2,7 @@ import os
 import re
 import subprocess
 import base64
+import shlex
 import requests
 from datetime import datetime
 
@@ -14,36 +15,49 @@ from lib import systemd_utils
 clash_bp = Blueprint('clash', __name__)
 
 
-# 默认配置路径
-DEFAULT_CONFIGS = [
-    '/usr/local/clash/config/config.yaml',
-    os.path.expanduser('~/.config/clash/config.yaml'),
-    os.path.expanduser('~/.config/mihomo/config.yaml'),
-    '/etc/clash/config.yaml',
-    '/etc/mihomo/config.yaml',
-]
 DEFAULT_SERVICE = 'clash.service'
+SERVICE_CANDIDATES = ['clash.service', 'clash-meta.service', 'mihomo.service']
+
+
+def _systemctl_show_props(unit: str, props: str, user: bool = True):
+    try:
+        cmd = ['systemctl']
+        if user:
+            cmd.append('--user')
+        cmd.extend(['show', unit, '--no-pager', f'--property={props}'])
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=3)
+    except Exception:
+        return None
+
+    if result.returncode != 0:
+        return None
+
+    out = {}
+    for line in (result.stdout or '').splitlines():
+        if '=' in line:
+            k, v = line.split('=', 1)
+            k = (k or '').strip()
+            v = (v or '').strip()
+            if k:
+                out[k] = v
+    return out
 
 
 def _systemctl_user_show(unit: str):
     """获取 systemd 服务状态"""
-    try:
-        result = subprocess.run(
-            ['systemctl', '--user', 'show', unit, '--no-pager', 
-             '--property=Id,Description,LoadState,ActiveState,SubState,UnitFileState,FragmentPath'],
-            capture_output=True, text=True, timeout=3,
+    props = _systemctl_show_props(
+        unit,
+        'Id,Description,LoadState,ActiveState,SubState,UnitFileState,FragmentPath,ExecStart',
+        user=True,
+    )
+    if not props:
+        props = _systemctl_show_props(
+            unit,
+            'Id,Description,LoadState,ActiveState,SubState,UnitFileState,FragmentPath,ExecStart',
+            user=False,
         )
-    except Exception as e:
-        return {'available': False, 'error': str(e)}
-
-    if result.returncode != 0:
-        return {'available': False, 'error': (result.stderr or result.stdout or '').strip()}
-
-    props = {}
-    for line in (result.stdout or '').splitlines():
-        if '=' in line:
-            k, v = line.split('=', 1)
-            props[k.strip()] = v.strip()
+    if not props:
+        return {'available': False, 'error': 'systemctl failed'}
 
     running = props.get('ActiveState') == 'active' and props.get('SubState') == 'running'
     return {
@@ -55,15 +69,77 @@ def _systemctl_user_show(unit: str):
         'sub_state': props.get('SubState') or '',
         'unit_file_state': props.get('UnitFileState') or '',
         'fragment_path': props.get('FragmentPath') or '',
+        'exec_start': props.get('ExecStart') or '',
         'running': running,
     }
 
 
+def _extract_config_path_from_execstart(exec_start: str):
+    text = (exec_start or '').strip()
+    if not text:
+        return None
+
+    argv = None
+    m = re.search(r'argv\[\]=([^;]+)', text)
+    if m:
+        argv = m.group(1).strip()
+    else:
+        argv = text
+
+    try:
+        parts = shlex.split(argv, posix=True)
+    except Exception:
+        parts = argv.split()
+
+    if not parts:
+        return None
+
+    def norm(p: str):
+        if not p:
+            return None
+        p = os.path.expanduser(p)
+        return p
+
+    for i, a in enumerate(parts):
+        if a in ('-f', '-c', '--config', '--config-file') and i + 1 < len(parts):
+            return norm(parts[i + 1])
+        if a.startswith('--config=') or a.startswith('--config-file='):
+            return norm(a.split('=', 1)[1])
+
+    for i, a in enumerate(parts):
+        if a in ('-d', '--dir', '--home') and i + 1 < len(parts):
+            base_dir = norm(parts[i + 1])
+            if not base_dir:
+                continue
+            for name in ('config.yaml', 'config.yml'):
+                candidate = os.path.join(base_dir, name)
+                if os.path.exists(candidate):
+                    return candidate
+            return os.path.join(base_dir, 'config.yaml')
+        if a.startswith('--dir=') or a.startswith('--home='):
+            base_dir = norm(a.split('=', 1)[1])
+            if not base_dir:
+                continue
+            for name in ('config.yaml', 'config.yml'):
+                candidate = os.path.join(base_dir, name)
+                if os.path.exists(candidate):
+                    return candidate
+            return os.path.join(base_dir, 'config.yaml')
+
+    return None
+
+
 def _find_config():
-    """查找 Clash 配置文件"""
-    for p in DEFAULT_CONFIGS:
-        if p and os.path.exists(p):
+    for unit in SERVICE_CANDIDATES:
+        st = _systemctl_user_show(unit)
+        if not st.get('available'):
+            continue
+        p = _extract_config_path_from_execstart(st.get('exec_start') or '')
+        if p:
             return p
+    st = _systemctl_user_show(DEFAULT_SERVICE)
+    if st.get('available'):
+        return _extract_config_path_from_execstart(st.get('exec_start') or '')
     return None
 
 
@@ -163,9 +239,14 @@ def api_clash_state():
     except Exception as e:
         config = {'present': False, 'path': config_path or '', 'error': str(e)}
 
-    service = _systemctl_user_show(DEFAULT_SERVICE)
-    if not service['available']:
-        service = _systemctl_user_show('clash-meta.service') or _systemctl_user_show('mihomo.service')
+    service = None
+    for svc in SERVICE_CANDIDATES:
+        st = _systemctl_user_show(svc)
+        if st.get('available'):
+            service = st
+            break
+    if not service:
+        service = _systemctl_user_show(DEFAULT_SERVICE)
     
     return api_ok({'config': config, 'service': service})
 
@@ -208,7 +289,7 @@ def api_clash_subscribe():
         return api_error('Missing URL', status=400)
     
     config_path = _find_config()
-    if not config_path:
+    if not config_path or not os.path.exists(config_path):
         return api_error('Config file not found', status=404)
     
     try:
@@ -286,7 +367,7 @@ def api_clash_subscribe():
 def api_clash_proxies():
     """获取代理列表和当前选择"""
     config_path = _find_config()
-    if not config_path:
+    if not config_path or not os.path.exists(config_path):
         return api_error('Config file not found', status=404)
     
     try:
@@ -343,7 +424,7 @@ def api_clash_switch():
         return api_error('Missing group or proxy', status=400)
     
     config_path = _find_config()
-    if not config_path:
+    if not config_path or not os.path.exists(config_path):
         return api_error('Config file not found', status=404)
     
     try:
@@ -393,5 +474,45 @@ def api_clash_switch():
             'backup': backup_path,
         })
         
+    except Exception as e:
+        return api_error(str(e), status=500)
+
+
+@clash_bp.route('/api/clash/config', methods=['GET'])
+def api_clash_config():
+    config_path = _find_config()
+    if not config_path or not os.path.exists(config_path):
+        return api_error('Config file not found', status=404)
+    try:
+        with open(config_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+        return api_ok({'content': content, 'path': config_path})
+    except Exception as e:
+        return api_error(str(e), status=500)
+
+
+@clash_bp.route('/api/clash/config', methods=['POST'])
+def api_clash_config_save():
+    config_path = _find_config()
+    if not config_path or not os.path.exists(config_path):
+        return api_error('Config file not found', status=404)
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return api_error('Invalid JSON', status=400)
+    content = data.get('content')
+    if not isinstance(content, str):
+        return api_error('Missing content', status=400)
+    try:
+        backup_path = config_path + '.backup.' + datetime.now().strftime('%Y%m%d%H%M%S')
+        try:
+            with open(config_path, 'r', encoding='utf-8') as f:
+                old = f.read()
+            with open(backup_path, 'w', encoding='utf-8') as f:
+                f.write(old)
+        except Exception:
+            backup_path = None
+        with open(config_path, 'w', encoding='utf-8') as f:
+            f.write(content)
+        return api_ok({'success': True, 'path': config_path, 'backup': backup_path})
     except Exception as e:
         return api_error(str(e), status=500)
