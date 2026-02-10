@@ -17,6 +17,9 @@ from ctrl.browser_ctrl import browser_bp
 from ctrl.edit_ctrl import edit_bp
 from ctrl.file_ctrl import file_bp
 from ctrl.git_ctrl import git_bp
+from ctrl.clash_ctrl import clash_bp
+from ctrl.frp_ctrl import frp_bp
+from ctrl.openclaw_ctrl import openclaw_bp
 from ctrl.system_ctrl import system_bp
 from ctrl.task_ctrl import task_bp
 from ctrl.term import register_term_socketio
@@ -74,6 +77,9 @@ app.register_blueprint(api_bp)
 app.register_blueprint(batch_bp)
 app.register_blueprint(git_bp)
 app.register_blueprint(system_bp)
+app.register_blueprint(frp_bp)
+app.register_blueprint(clash_bp)
+app.register_blueprint(openclaw_bp)
 app.register_blueprint(task_bp)
 app.register_blueprint(browser_bp)
 app.register_blueprint(edit_bp)

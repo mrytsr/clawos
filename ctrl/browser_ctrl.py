@@ -14,17 +14,11 @@ from lib import file_utils, git_utils, json_utils, path_utils
 
 browser_bp = Blueprint('browser', __name__)
 
-PIN_FILE = os.path.join(config.SCRIPT_DIR, 'data', 'pin.json')
-
-
-def _get_paths():
-    root_dir = os.path.normpath(config.ROOT_DIR)
-    trash_dir = os.path.normpath(config.TRASH_DIR)
-    return root_dir, trash_dir
+PIN_FILE = config.PIN_FILE
 
 
 def _resolve_safe_file(path):
-    root_dir, _trash_dir = _get_paths()
+    root_dir = config.ROOT_DIR
     p = (path or '').lstrip('/\\').replace('\\', '/')
     full_path = os.path.normpath(os.path.join(root_dir, p))
     try:
@@ -38,7 +32,7 @@ def _resolve_safe_file(path):
 
 
 def _resolve_safe_dir(path, ensure_exists=False):
-    root_dir, _trash_dir = _get_paths()
+    root_dir = config.ROOT_DIR
     p = (path or '').lstrip('/\\').replace('\\', '/')
     full_path = os.path.normpath(os.path.join(root_dir, p))
     try:
@@ -735,7 +729,7 @@ def api_archive_create():
 
 @browser_bp.route('/api/upload', methods=['POST'])
 def api_upload_file():
-    root_dir, _trash_dir = _get_paths()
+    root_dir = config.ROOT_DIR
 
     f = request.files.get('file')
     if not f:
@@ -781,7 +775,7 @@ def api_upload_file():
 @browser_bp.route('/upload/', methods=['POST'])
 @browser_bp.route('/upload/<path:path>', methods=['POST'])
 def upload_file(path=''):
-    root_dir, _trash_dir = _get_paths()
+    root_dir = config.ROOT_DIR
     if 'file' not in request.files:
         return redirect(
             url_for(
@@ -827,13 +821,14 @@ def upload_file(path=''):
 
 @browser_bp.route('/delete/<path:path>', methods=['DELETE'])
 def delete_item(path):
-    root_dir, trash_dir = _get_paths()
+    root_dir = config.ROOT_DIR
+    trash_dir = config.TRASH_DIR
     full_path = os.path.normpath(os.path.join(root_dir, path))
     if not full_path.startswith(root_dir):
         return jsonify({'success': False, 'message': '非法路径'})
     if not os.path.exists(full_path):
         return jsonify({'success': False, 'message': '文件不存在'})
-    if os.path.normpath(full_path) == os.path.normpath(trash_dir):
+    if full_path == trash_dir:
         return jsonify({'success': False, 'message': '不能删除回收站文件夹'})
     try:
         os.makedirs(trash_dir, exist_ok=True)
@@ -856,7 +851,7 @@ def delete_item(path):
 
 @browser_bp.route('/rename/<path:path>', methods=['POST'])
 def rename_item(path):
-    root_dir, _trash_dir = _get_paths()
+    root_dir = config.ROOT_DIR
     payload = request.json if isinstance(request.json, dict) else {}
     new_name = (payload.get('new_name') or '').strip()
     if not new_name:
@@ -878,7 +873,7 @@ def rename_item(path):
 
 @browser_bp.route('/move/<path:path>', methods=['POST'])
 def move_item(path):
-    root_dir, _trash_dir = _get_paths()
+    root_dir = config.ROOT_DIR
     payload = request.json if isinstance(request.json, dict) else {}
     target_path = (payload.get('target_path') or '').strip()
     if not target_path:
@@ -905,7 +900,7 @@ def move_item(path):
 
 @browser_bp.route('/clone/<path:path>', methods=['POST'])
 def clone_item(path):
-    root_dir, _trash_dir = _get_paths()
+    root_dir = config.ROOT_DIR
     full_path = os.path.normpath(os.path.join(root_dir, path))
     if not full_path.startswith(root_dir):
         return jsonify({'success': False, 'message': '非法路径'})
@@ -941,7 +936,7 @@ def clone_item(path):
 @browser_bp.route('/mkdir', methods=['POST'])
 @browser_bp.route('/mkdir/<path:parent>', methods=['POST'])
 def mkdir(parent=''):
-    root_dir, _trash_dir = _get_paths()
+    root_dir = config.ROOT_DIR
     parent = (parent or '').lstrip('/\\').replace('\\', '/')
     name = (request.json or {}).get('name', '').strip()
     if not name:
@@ -966,7 +961,7 @@ def mkdir(parent=''):
 @browser_bp.route('/touch', methods=['POST'])
 @browser_bp.route('/touch/<path:parent>', methods=['POST'])
 def touch(parent=''):
-    root_dir, _trash_dir = _get_paths()
+    root_dir = config.ROOT_DIR
     parent = (parent or '').lstrip('/\\').replace('\\', '/')
     name = (request.json or {}).get('name', '').strip()
     if not name:
@@ -992,7 +987,7 @@ def touch(parent=''):
 
 @browser_bp.route('/trash')
 def trash():
-    _root_dir, trash_dir = _get_paths()
+    trash_dir = config.TRASH_DIR
     os.makedirs(trash_dir, exist_ok=True)
     items = []
     for name in os.listdir(trash_dir):
@@ -1013,7 +1008,7 @@ def trash():
 
 @browser_bp.route('/trash/clear', methods=['POST'])
 def trash_clear():
-    _root_dir, trash_dir = _get_paths()
+    trash_dir = config.TRASH_DIR
     os.makedirs(trash_dir, exist_ok=True)
     try:
         for name in os.listdir(trash_dir):
@@ -1031,7 +1026,8 @@ def trash_clear():
 
 @browser_bp.route('/trash/restore/<name>', methods=['POST'])
 def trash_restore(name):
-    root_dir, trash_dir = _get_paths()
+    root_dir = config.ROOT_DIR
+    trash_dir = config.TRASH_DIR
     os.makedirs(trash_dir, exist_ok=True)
     if not name or '/' in name or '\\' in name:
         return jsonify({'success': False, 'message': '非法名称'}), 400

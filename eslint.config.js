@@ -3,7 +3,7 @@
 
 export default [
     {
-        ignores: ["node_modules/", "static/lib/"]
+        ignores: ["node_modules/", "static/lib/", "static/js/vanilla-jsoneditor.js"]
     },
     {
         languageOptions: {

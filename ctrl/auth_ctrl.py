@@ -13,7 +13,7 @@ from lib import json_utils
 auth_bp = Blueprint('auth', __name__)
 
 AUTH_COOKIE_NAME = 'clawos_auth'
-AUTH_FILE_PATH = os.path.join(config.SCRIPT_DIR, 'data', 'auth.json')
+AUTH_FILE_PATH = config.AUTH_FILE
 AUTH_SESSION_TTL_SECONDS = 30 * 24 * 60 * 60
 
 _auth_lock = threading.Lock()
