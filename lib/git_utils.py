@@ -608,6 +608,110 @@ def get_git_worktree_diff_text(repo_path, max_chars=200000):
         return None
 
 
+def _parse_numstat_lines(text):
+    rows = []
+    for line in (text or '').splitlines():
+        raw = line.strip('\n').strip('\r')
+        if not raw:
+            continue
+        parts = raw.split('\t')
+        if len(parts) < 3:
+            continue
+        added_raw, deleted_raw, path = parts[0], parts[1], '\t'.join(parts[2:])
+        is_binary = added_raw == '-' or deleted_raw == '-'
+        added = int(added_raw) if (not is_binary and added_raw.isdigit()) else None
+        deleted = int(deleted_raw) if (not is_binary and deleted_raw.isdigit()) else None
+        rows.append({'path': path, 'added': added, 'deleted': deleted, 'is_binary': is_binary})
+    return rows
+
+
+def get_git_worktree_numstat(repo_path, max_files=300):
+    try:
+        if not _is_git_repo(repo_path):
+            return None
+
+        staged = _run_git(repo_path, ['diff', '--cached', '--numstat'], timeout=20)
+        if staged.returncode != 0:
+            return None
+
+        unstaged = _run_git(repo_path, ['diff', '--numstat'], timeout=20)
+        if unstaged.returncode != 0:
+            return None
+
+        untracked = _run_git(repo_path, ['ls-files', '--others', '--exclude-standard'], timeout=10)
+        if untracked.returncode != 0:
+            return None
+
+        merged = {}
+
+        def upsert(rows):
+            for r in rows:
+                p = r.get('path') or ''
+                if not p:
+                    continue
+                cur = merged.get(p)
+                if not cur:
+                    merged[p] = {
+                        'path': p,
+                        'added': 0 if r.get('added') is not None else None,
+                        'deleted': 0 if r.get('deleted') is not None else None,
+                        'is_binary': bool(r.get('is_binary')),
+                        'untracked': False,
+                    }
+                    cur = merged[p]
+
+                if r.get('is_binary'):
+                    cur['is_binary'] = True
+                    cur['added'] = None
+                    cur['deleted'] = None
+                    continue
+
+                if cur.get('is_binary'):
+                    continue
+
+                a = r.get('added') if r.get('added') is not None else 0
+                d = r.get('deleted') if r.get('deleted') is not None else 0
+                cur['added'] = (cur.get('added') or 0) + int(a)
+                cur['deleted'] = (cur.get('deleted') or 0) + int(d)
+
+        upsert(_parse_numstat_lines(staged.stdout))
+        upsert(_parse_numstat_lines(unstaged.stdout))
+
+        for p in (untracked.stdout or '').splitlines():
+            p = (p or '').strip()
+            if not p:
+                continue
+            if p not in merged:
+                merged[p] = {'path': p, 'added': 0, 'deleted': 0, 'is_binary': False, 'untracked': True}
+            else:
+                merged[p]['untracked'] = True
+
+        rows = list(merged.values())
+
+        def score(r):
+            a = r.get('added') or 0
+            d = r.get('deleted') or 0
+            return int(a) + int(d)
+
+        rows.sort(key=lambda r: (-score(r), str(r.get('path') or '')))
+        if max_files and len(rows) > int(max_files):
+            rows = rows[: int(max_files)]
+        return rows
+    except Exception as e:
+        print(f"Error getting worktree numstat from {repo_path}: {e}")
+        return None
+
+
+def git_pull_ff_only(repo_path):
+    try:
+        if not _is_git_repo(repo_path):
+            return None
+        return _run_git(repo_path, ['pull', '--ff-only'], timeout=120)
+    except Exception as e:
+        print(f"Error pulling in {repo_path}: {e}")
+        return None
+
+
 def git_commit(repo_path, message):
     try:
         if not _is_git_repo(repo_path):

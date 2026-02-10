@@ -106,9 +106,17 @@ function __gitListCss() {
         '.git-subject { font-size:13px; color:#24292f; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }' +
         '.git-diff-btn { border:1px solid #d0d7de; background:#fff; border-radius:6px; padding:4px 10px; cursor:pointer; font-size:12px; }' +
         '.git-diff-btn:hover { background:#f6f8fa; }' +
+        '.git-pull-btn { border:1px solid #d0d7de; background:#fff; border-radius:6px; padding:4px 10px; cursor:pointer; font-size:12px; }' +
+        '.git-pull-btn:hover { background:#f6f8fa; }' +
+        '.git-pull-btn[disabled] { opacity:0.65; cursor:not-allowed; }' +
         '.git-push-btn { border:1px solid #d0d7de; background:#fff; border-radius:6px; padding:4px 10px; cursor:pointer; font-size:12px; }' +
         '.git-push-btn:hover { background:#f6f8fa; }' +
         '.git-push-btn[disabled] { opacity:0.65; cursor:not-allowed; }' +
+        '.git-diffstat-table { width:100%; border-collapse:collapse; font-size:12px; }' +
+        '.git-diffstat-table th, .git-diffstat-table td { padding:8px 10px; border-bottom:1px solid #eee; vertical-align:top; }' +
+        '.git-diffstat-table th { background:#f6f8fa; color:#57606a; font-weight:600; text-align:left; }' +
+        '.git-diffstat-path { font-family: ui-monospace, monospace; word-break:break-all; }' +
+        '.git-diffstat-num { font-family: ui-monospace, monospace; text-align:right; }' +
         '.git-skeleton { padding:10px 12px; border-bottom:1px solid #eee; }' +
         '.git-skel-line { height:10px; border-radius:6px; background: linear-gradient(90deg, #f6f8fa 0%, #eaeef2 40%, #f6f8fa 80%); background-size: 240px 100%; animation: gitShimmer 1.2s infinite linear; }' +
         '.git-skel-line.sm { width: 55%; margin-top: 8px; height: 11px; }' +
@@ -126,14 +134,50 @@ function __gitListCss() {
 function __gitDirtyLineHtml(hasChanges, statusText, changeInfo) {
     const color = hasChanges ? '#cf222e' : '#2da44e';
     const btn = hasChanges
-        ? '<button type="button" class="git-diff-btn" id="gitDiffBtn">diff</button><button type="button" class="git-push-btn" id="gitPushBtn">推送变更</button>'
-        : '';
+        ? '<button type="button" class="git-diff-btn" id="gitDiffBtn">diff</button><button type="button" class="git-pull-btn" id="gitPullBtn">拉取</button><button type="button" class="git-push-btn" id="gitPushBtn">推送变更</button>'
+        : '<button type="button" class="git-pull-btn" id="gitPullBtn">拉取</button>';
     const hint = hasChanges ? '<span id="gitPushHint" style="font-size:12px;color:#57606a;"></span>' : '';
     return '<div id="gitRepoDirtyLine" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:12px;color:' + color + ';margin-top:4px;">' +
         '<span>' + escapeHtml(statusText || '') + escapeHtml(changeInfo || '') + '</span>' +
         btn +
         hint +
         '</div>';
+}
+
+function __gitBindPullButton(repoPath) {
+    const btn = document.getElementById('gitPullBtn');
+    if (!btn) return;
+    btn.addEventListener('click', function() {
+        if (btn.disabled) return;
+        btn.disabled = true;
+        const prevText = btn.textContent;
+        btn.textContent = '拉取中…';
+        const headers = authHeaders ? (authHeaders() || {}) : {};
+        headers['Content-Type'] = 'application/json';
+        fetch('/api/git/pull', {
+            method: 'POST',
+            headers: headers,
+            body: JSON.stringify({ path: String(repoPath || '') })
+        })
+            .then(function(r) { return r.json(); })
+            .then(function(resp) {
+                const payload = apiData(resp);
+                if (!payload) {
+                    const msg = resp && resp.error && resp.error.message ? resp.error.message : '拉取失败';
+                    throw new Error(msg);
+                }
+                if (typeof showToast === 'function') showToast(payload.message || '拉取完成');
+                window.loadGitList(repoPath);
+            })
+            .catch(function(e) {
+                const msg = e && e.message ? e.message : '拉取失败';
+                if (typeof showToast === 'function') showToast(msg);
+            })
+            .finally(function() {
+                btn.disabled = false;
+                btn.textContent = prevText;
+            });
+    });
 }
 
 function __gitBindPushButton(repoPath) {
@@ -200,6 +244,54 @@ function __gitBindDiffButton(repoPath) {
             window.location.href = url;
         }
     });
+}
+
+function __gitRenderDiffFileTable(container, rows) {
+    if (!container) return;
+    const list = Array.isArray(rows) ? rows : [];
+    if (!list.length) {
+        container.innerHTML = '<div style="padding:10px 12px;color:#57606a;font-size:12px;">暂无变更</div>';
+        return;
+    }
+
+    const header = '<div style="font-size:13px;color:#666;margin:8px 0 6px;padding-left:4px;">当前 diff 文件</div>';
+    const table = '<div style="background:#fff;border:1px solid #d0d7de;border-radius:8px;overflow:hidden;">' +
+        '<table class="git-diffstat-table">' +
+        '<thead><tr><th style="width:70%;">文件</th><th class="git-diffstat-num" style="width:15%;">+</th><th class="git-diffstat-num" style="width:15%;">-</th></tr></thead>' +
+        '<tbody>' +
+        list.map(function(r, idx) {
+            const path = escapeHtml(String((r && r.path) || '-'));
+            const add = (r && (r.added === null || r.added === undefined)) ? '—' : String(r.added || 0);
+            const del = (r && (r.deleted === null || r.deleted === undefined)) ? '—' : String(r.deleted || 0);
+            const trStyle = idx < list.length - 1 ? '' : ' style="border-bottom:0;"';
+            return '<tr>' +
+                '<td class="git-diffstat-path" title="' + path + '">' + path + '</td>' +
+                '<td class="git-diffstat-num" style="color:#2da44e;"' + trStyle + '>' + escapeHtml(add) + '</td>' +
+                '<td class="git-diffstat-num" style="color:#cf222e;"' + trStyle + '>' + escapeHtml(del) + '</td>' +
+                '</tr>';
+        }).join('') +
+        '</tbody></table></div>';
+
+    container.innerHTML = header + table;
+}
+
+function __gitLoadDiffFileList(repoPath) {
+    const el = document.getElementById('gitDiffFilesBox');
+    if (!el) return;
+    el.innerHTML = '<div style="padding:10px 12px;color:#57606a;font-size:12px;">加载变更…</div>';
+    fetch('/api/git/diff-numstat?path=' + encodeURIComponent(String(repoPath || '')), { headers: authHeaders() })
+        .then(function(r) { return r.json(); })
+        .then(function(resp) {
+            const payload = apiData(resp);
+            if (!payload) {
+                const msg = resp && resp.error && resp.error.message ? resp.error.message : '加载失败';
+                throw new Error(msg);
+            }
+            __gitRenderDiffFileTable(el, payload.files || []);
+        })
+        .catch(function() {
+            el.innerHTML = '<div style="padding:10px 12px;color:#cf222e;font-size:12px;">加载失败</div>';
+        });
 }
 
 function __gitSkeletonHtml(rows) {
@@ -476,11 +568,14 @@ window.loadGitList = function(specificRepoPath) {
                     '<div style="font-weight:600;word-break:break-all;">' + escapeHtml(repo.name || specificRepoPath) + '</div>' +
                     '<div style="font-size:12px;color:#57606a;margin-top:2px;">' + escapeHtml(branch) + '</div>' +
                     __gitDirtyLineHtml(hasChanges, statusText, changeInfo) +
+                    '<div id="gitDiffFilesBox"></div>' +
                     '</div>';
 
                 __gitMountCommitList(container, specificRepoPath, { html: headerHtml, branch: branch });
                 __gitBindDiffButton(specificRepoPath);
+                __gitBindPullButton(specificRepoPath);
                 __gitBindPushButton(specificRepoPath);
+                __gitLoadDiffFileList(specificRepoPath);
             })
             .catch(function() {
                 if (container) container.innerHTML = __gitErrorBannerHtml('加载失败');
@@ -528,11 +623,14 @@ window.loadGitList = function(specificRepoPath) {
                     '<div style="font-weight:600;word-break:break-all;">' + escapeHtml(repo.name || repoPath) + '</div>' +
                     '<div style="font-size:12px;color:#57606a;margin-top:2px;">' + escapeHtml(branch) + '</div>' +
                     __gitDirtyLineHtml(hasChanges, statusText, changeInfo) +
+                    '<div id="gitDiffFilesBox"></div>' +
                     '</div>';
 
                 __gitMountCommitList(panelEl, repoPath, { html: headerHtml, branch: branch });
                 __gitBindDiffButton(repoPath);
+                __gitBindPullButton(repoPath);
                 __gitBindPushButton(repoPath);
+                __gitLoadDiffFileList(repoPath);
             }
 
             repos.forEach(function(r) {

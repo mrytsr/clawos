@@ -225,6 +225,59 @@ def api_git_push_changes():
     return api_ok({'pushed': True, 'commit_msg': msg, 'commit_hash': head_hash})
 
 
+@git_bp.route('/api/git/pull', methods=['POST'])
+def api_git_pull():
+    payload = request.get_json(silent=True) or {}
+    path = payload.get('path') or request.args.get('path', '')
+
+    if path:
+        root_dir = os.path.normpath(config.ROOT_DIR)
+        candidate = os.path.normpath(path)
+        if candidate.startswith(root_dir):
+            full_path = candidate
+        else:
+            full_path = os.path.normpath(os.path.join(config.ROOT_DIR, path))
+    else:
+        full_path = config.ROOT_DIR
+
+    if not full_path.startswith(os.path.normpath(config.ROOT_DIR)):
+        return api_error('Invalid path', status=403)
+
+    result = git_utils.git_pull_ff_only(full_path)
+    if not result:
+        return api_error('git pull failed', status=500)
+    if result.returncode != 0:
+        out = (result.stderr or result.stdout or '').strip()
+        return api_error(('git pull failed: ' + out)[:400], status=500)
+
+    stdout = (result.stdout or '').strip()
+    msg = stdout.splitlines()[-1] if stdout else '拉取完成'
+    return api_ok({'ok': True, 'message': msg})
+
+
+@git_bp.route('/api/git/diff-numstat')
+def api_git_diff_numstat():
+    path = request.args.get('path', '')
+
+    if path:
+        root_dir = os.path.normpath(config.ROOT_DIR)
+        candidate = os.path.normpath(path)
+        if candidate.startswith(root_dir):
+            full_path = candidate
+        else:
+            full_path = os.path.normpath(os.path.join(config.ROOT_DIR, path))
+    else:
+        full_path = config.ROOT_DIR
+
+    if not full_path.startswith(os.path.normpath(config.ROOT_DIR)):
+        return api_error('Invalid path', status=403)
+
+    rows = git_utils.get_git_worktree_numstat(full_path, max_files=300)
+    if rows is None:
+        return api_ok({'is_repo': False, 'files': []})
+    return api_ok({'is_repo': True, 'repoPath': full_path, 'files': rows})
+
+
 @git_bp.route('/api/git/commit')
 def api_git_commit():
     repo_id = request.args.get('repoId')
@@ -405,4 +458,3 @@ def git_diff_page():
         repo_path=repo_path,
         diff_text=diff_text or '',
     )
-
