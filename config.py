@@ -13,7 +13,7 @@ CONVERSATION_FILE = os.path.join(DATA_DIR, 'conversations.json')
 AUTH_FILE = os.path.join(DATA_DIR, 'auth.json')
 PIN_FILE = os.path.join(DATA_DIR, 'pin.json')
 
-AUTH_PASSWORD = '46e9b994b1cd055'
+AUTH_PASSWORD = os.getenv('AUTH_PASSWORD', '46e9b994b1cd055')
 
 SERVER_HOST = '0.0.0.0'
 SERVER_PORT = int(os.getenv('SERVER_PORT', '6002'))
