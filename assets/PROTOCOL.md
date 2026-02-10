@@ -4,7 +4,7 @@ This document describes the WebSocket communication protocol used by OpenClaw Ga
 
 ## 1. Connection
 
-- **URL**: `ws://<host>:<port>` (e.g., `ws://179.utjx.cn:18789`)
+- **URL**: `ws://<host>:<port>` (e.g., `ws://127.0.0.1:18789`)
 - **Path**: `/` (Root path, no specific endpoint required)
 
 ## 2. Handshake & Authentication
