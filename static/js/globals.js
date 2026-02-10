@@ -596,7 +596,7 @@ window.openMainMenuModal = function() {
             { action: 'npm', icon: '📦', text: 'npm包管理' },
             { action: 'docker', icon: '🐳', text: 'docker管理' },
             { action: 'systemd', icon: '🔧', text: 'systemd管理' },
-            { action: 'clash', icon: '🧭', text: 'Clash 管理' },
+            { action: 'clash', icon: '🌐', text: 'Clash代理' },
             { action: 'frp', icon: '🔗', text: 'FRP内网穿透' },
             { action: 'disk', icon: '💾', text: '磁盘管理' },
             { action: 'network', icon: '🌐', text: '网络管理' }

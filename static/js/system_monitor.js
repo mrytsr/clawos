@@ -1266,3 +1266,192 @@ window.openFrpProxyDrawer = function() {
     alert('请在编辑器中手动添加代理配置:\n\n[[proxies]]\nname = "' + name + '"\ntype = "tcp"\nlocalIP = "127.0.0.1"\nlocalPort = ' + localPort + '\nremotePort = ' + remotePort);
     window.openFrpInEditor();
 };
+
+// ============ Enhanced Clash Management ============
+window.loadClashConfigEnhanced = function() {
+    const container = document.getElementById('clashContainer');
+    if (!container) return;
+    container.innerHTML = '<div style="text-align:center;padding:40px;color:#666;">🔄 加载中...</div>';
+    
+    Promise.all([
+        fetch('/api/clash/state', { headers: authHeaders() }).then(r => r.json()),
+        fetch('/api/clash/proxies', { headers: authHeaders() }).then(r => r.json())
+    ])
+    .then(function(results) {
+        const statePayload = apiData(results[0]);
+        const proxyPayload = apiData(results[1]) || {};
+        
+        if (!statePayload) {
+            container.innerHTML = __errorHtml('加载失败');
+            return;
+        }
+        
+        const svc = statePayload.service || {};
+        const cfg = statePayload.config || {};
+        const proxies = proxyPayload.proxies || [];
+        const proxyGroups = proxyPayload.proxy_groups || [];
+        const currentSelection = proxyPayload.current_selection || {};
+        const ports = proxyPayload.ports || {};
+        const rulesCount = proxyPayload.rules_count || 0;
+        
+        const svcRunning = svc.running;
+        const svcText = svcRunning 
+            ? '<span style="color:#2da44e;">● 运行中</span>' 
+            : '<span style="color:#cf222e;">● 未运行</span>';
+        
+        let html = '';
+        
+        // 服务状态
+        html += '<div style="margin-bottom:16px;">';
+        html += '<div style="font-size:13px;color:#666;margin-bottom:8px;padding-left:4px;">服务状态</div>';
+        html += '<div style="background:#fff;border:1px solid #d0d7de;border-radius:8px;overflow:hidden;">';
+        html += '<div style="padding:12px;display:flex;justify-content:space-between;align-items:center;">';
+        html += '<span style="font-weight:500;">' + (svc.id || 'clash.service') + '</span>';
+        html += '<span id="clashServiceStatus" style="font-size:12px;">' + svcText + '</span>';
+        html += '</div>';
+        html += '<div style="padding:0 12px 12px;display:flex;gap:8px;">';
+        html += '<button onclick="clashControl(\'start\')" style="flex:1;padding:8px;border-radius:6px;border:1px solid #d0d7de;background:#fff;cursor:pointer;font-size:13px;">▶ 启动</button>';
+        html += '<button onclick="clashControl(\'stop\')" style="flex:1;padding:8px;border-radius:6px;border:1px solid #d0d7de;background:#fff;cursor:pointer;font-size:13px;">⏹ 停止</button>';
+        html += '<button onclick="clashControl(\'restart\')" style="flex:1;padding:8px;border-radius:6px;border:1px solid #d0d7de;background:#fff;cursor:pointer;font-size:13px;">🔄 重启</button>';
+        html += '</div></div></div>';
+        
+        // 端口信息
+        html += '<div style="margin-bottom:16px;">';
+        html += '<div style="font-size:13px;color:#666;margin-bottom:8px;padding-left:4px;">监听端口</div>';
+        html += '<div style="background:#fff;border:1px solid #d0d7de;border-radius:8px;overflow:hidden;">';
+        if (ports.mixed) html += '<div style="padding:10px 12px;border-bottom:1px solid #eee;display:flex;justify-content:space-between;"><span style="color:#666;">Mixed</span><span style="font-family:monospace;">' + ports.mixed + '</span></div>';
+        if (ports.socks) html += '<div style="padding:10px 12px;border-bottom:1px solid #eee;display:flex;justify-content:space-between;"><span style="color:#666;">SOCKS</span><span style="font-family:monospace;">' + ports.socks + '</span></div>';
+        if (ports.http) html += '<div style="padding:10px 12px;display:flex;justify-content:space-between;"><span style="color:#666;">HTTP</span><span style="font-family:monospace;">' + ports.http + '</span></div>';
+        html += '</div></div>';
+        
+        // 订阅管理
+        html += '<div style="margin-bottom:16px;">';
+        html += '<div style="font-size:13px;color:#666;margin-bottom:8px;padding-left:4px;">📡 订阅</div>';
+        html += '<div style="background:#fff;border:1px solid #d0d7de;border-radius:8px;overflow:hidden;">';
+        html += '<div style="padding:12px;">';
+        html += '<input type="text" id="clashSubUrl" placeholder="输入订阅URL" style="width:100%;padding:8px;border:1px solid #d0d7de;border-radius:6px;font-size:13px;margin-bottom:8px;box-sizing:border-box;">';
+        html += '<div style="display:flex;gap:8px;">';
+        html += '<button onclick="clashUpdateSub()" style="flex:1;padding:8px;border-radius:6px;border:1px solid #d0d7de;background:#fff;cursor:pointer;font-size:13px;">🔄 更新订阅</button>';
+        html += '<button onclick="openClashInEditor()" style="flex:1;padding:8px;border-radius:6px;border:1px solid #d0d7de;background:#fff;cursor:pointer;font-size:13px;">📝 编辑配置</button>';
+        html += '</div></div></div></div>';
+        
+        // 代理组
+        if (proxyGroups.length > 0) {
+            html += '<div style="margin-bottom:16px;">';
+            html += '<div style="font-size:13px;color:#666;margin-bottom:8px;padding-left:4px;">🎯 代理组</div>';
+            html += '<div style="background:#fff;border:1px solid #d0d7de;border-radius:8px;overflow:hidden;">';
+            proxyGroups.forEach(function(group, idx) {
+                const current = currentSelection[group] || '未选择';
+                html += '<div style="padding:10px 12px;' + (idx < proxyGroups.length - 1 ? 'border-bottom:1px solid #eee;' : '') + '">';
+                html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">';
+                html += '<span style="font-weight:500;font-size:13px;">' + escapeHtml(group) + '</span>';
+                html += '<button onclick="clashOpenProxyList(\'' + escapeHtml(group).replace(/'/g, "\\'") + '\')" style="padding:4px 10px;border-radius:6px;border:1px solid #d0d7de;background:#fff;cursor:pointer;font-size:12px;">切换节点 ▼</button>';
+                html += '</div>';
+                html += '<div style="font-size:12px;color:#666;">当前: <span style="color:#0969da;">' + escapeHtml(current) + '</span></div>';
+                html += '</div>';
+            });
+            html += '</div></div>';
+        }
+        
+        // 节点列表
+        html += '<div style="margin-bottom:16px;">';
+        html += '<div style="font-size:13px;color:#666;margin-bottom:8px;padding-left:4px;">📡 节点 (' + proxies.length + ')</div>';
+        html += '<div style="background:#fff;border:1px solid #d0d7de;border-radius:8px;overflow:hidden;">';
+        if (proxies.length === 0) {
+            html += '<div style="padding:20px;text-align:center;color:#666;">暂无数控节点</div>';
+        } else {
+            html += '<div style="max-height:200px;overflow-y:auto;">';
+            proxies.slice(0, 30).forEach(function(proxy, idx) {
+                const name = proxy.Name || proxy.name || '-';
+                const type = (proxy.type || proxy.Type || '').toUpperCase();
+                html += '<div style="padding:8px 12px;' + (idx < Math.min(29, proxies.length - 1) ? 'border-bottom:1px solid #eee;' : '') + 'display:flex;align-items:center;gap:8px;">';
+                html += '<span style="color:#58a6ff;">●</span>';
+                html += '<span style="font-size:13px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + escapeHtml(name) + '</span>';
+                html += '<span style="font-size:11px;color:#666;background:#f3f4f6;padding:2px 6px;border-radius:4px;">' + escapeHtml(type) + '</span>';
+                html += '</div>';
+            });
+            if (proxies.length > 30) {
+                html += '<div style="padding:8px 12px;text-align:center;color:#666;font-size:12px;">...共 ' + proxies.length + ' 个节点</div>';
+            }
+            html += '</div>';
+        }
+        html += '</div></div>';
+        
+        // 统计
+        html += '<div style="margin-bottom:16px;">';
+        html += '<div style="font-size:13px;color:#666;margin-bottom:8px;padding-left:4px;">📊 统计</div>';
+        html += '<div style="display:flex;gap:8px;">';
+        html += '<div style="flex:1;background:#fff;border:1px solid #d0d7de;border-radius:8px;padding:12px;text-align:center;"><div style="font-size:24px;font-weight:600;color:#24292f;">' + proxies.length + '</div><div style="font-size:12px;color:#666;">节点</div></div>';
+        html += '<div style="flex:1;background:#fff;border:1px solid #d0d7de;border-radius:8px;padding:12px;text-align:center;"><div style="font-size:24px;font-weight:600;color:#24292f;">' + proxyGroups.length + '</div><div style="font-size:12px;color:#666;">代理组</div></div>';
+        html += '<div style="flex:1;background:#fff;border:1px solid #d0d7de;border-radius:8px;padding:12px;text-align:center;"><div style="font-size:24px;font-weight:600;color:#24292f;">' + rulesCount + '</div><div style="font-size:12px;color:#666;">规则</div></div>';
+        html += '</div></div>';
+        
+        container.innerHTML = html;
+    })
+    .catch(function(err) {
+        console.error(err);
+        container.innerHTML = '<div style="text-align:center;padding:40px;color:#cf222e;">加载失败: ' + escapeHtml(err.message) + '</div>';
+    });
+};
+
+window.clashUpdateSub = function() {
+    const urlInput = document.getElementById('clashSubUrl');
+    const url = urlInput ? urlInput.value.trim() : '';
+    if (!url) { alert('请输入订阅URL'); return; }
+    if (!confirm('更新订阅会合并新节点到现有配置，是否继续？')) return;
+    
+    __postJson('/api/clash/subscribe', { url: url })
+        .then(function(data) {
+            if (data && data.success) {
+                alert('订阅更新成功！请重启 Clash 服务使配置生效。');
+                window.loadClashConfigEnhanced();
+            } else {
+                alert('更新失败: ' + ((data && (data.message || data.error)) || '未知错误'));
+            }
+        })
+        .catch(function(err) { alert('请求失败: ' + err.message); });
+};
+
+window.clashOpenProxyList = function(groupName) {
+    fetch('/api/clash/proxies', { headers: authHeaders() })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            const payload = apiData(data);
+            const proxies = payload ? (payload.proxies || []) : [];
+            if (proxies.length === 0) { alert('暂无数控节点'); return; }
+            
+            let html = '<div style="max-height:300px;overflow-y:auto;padding:8px;">';
+            proxies.forEach(function(p) {
+                const name = p.Name || p.name || '';
+                html += '<div onclick="clashSwitchProxy(\'' + escapeHtml(groupName).replace(/'/g, "\\'") + '\', \'' + escapeHtml(name).replace(/'/g, "\\'") + '\')" style="padding:10px 12px;border-bottom:1px solid #eee;cursor:pointer;">';
+                html += '<div style="font-weight:500;">' + escapeHtml(name) + '</div>';
+                html += '<div style="font-size:12px;color:#666;">' + escapeHtml((p.type || p.Type || '').toUpperCase()) + '</div>';
+                html += '</div>';
+            });
+            html += '</div>';
+            
+            const modal = document.createElement('div');
+            modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:20000;display:flex;align-items:center;justify-content:center;';
+            modal.innerHTML = '<div style="background:#fff;border-radius:12px;max-width:90%;max-height:80%;overflow:hidden;width:350px;"><div style="padding:16px;border-bottom:1px solid #eee;display:flex;justify-content:space-between;align-items:center;"><span style="font-weight:500;">选择节点 - ' + escapeHtml(groupName) + '</span><button onclick="this.closest(\'div[style*=fixed]\').remove()" style="border:none;background:none;font-size:20px;cursor:pointer;padding:4px;">×</button></div>' + html + '</div>';
+            document.body.appendChild(modal);
+        })
+        .catch(function(err) { alert('加载节点失败: ' + err.message); });
+};
+
+window.clashSwitchProxy = function(groupName, proxyName) {
+    if (!confirm('将 ' + groupName + ' 切换到 ' + proxyName + '？')) return;
+    __postJson('/api/clash/switch', { group: groupName, proxy: proxyName })
+        .then(function(data) {
+            if (data && data.success) {
+                alert('切换成功！请重启 Clash 服务使配置生效。');
+                window.loadClashConfigEnhanced();
+            } else {
+                alert('切换失败: ' + ((data && (data.message || data.error)) || '未知错误'));
+            }
+        })
+        .catch(function(err) { alert('请求失败: ' + err.message); });
+};
+
+// 覆盖原来的打开函数
+window.openClashModalOriginal = window.openClashModal;
+window.openClashModal = function() { Drawer.open('clashModal'); window.loadClashConfigEnhanced(); };
