@@ -11,7 +11,7 @@
     <script src="/static/js/clipboard.min.js"></script>
     <script src="https://unpkg.com/xterm@5.3.0/lib/xterm.js"></script>
     <script src="https://unpkg.com/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.js"></script>
-    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
     <link rel="stylesheet" href="/static/css/style.css">
     <!-- 全局函数预加载（必须在最前） -->
@@ -1638,36 +1638,36 @@
     </div>
 
         <!-- 批量操作抽屉 (无遮罩) -->
-    <div id="batchDrawer" class="drawer" style="box-shadow: 0 -4px 20px rgba(0,0,0,0.15);">
-        <div class="drawer-handle"></div>
-        <div class="drawer-header">
-            <div class="drawer-title" style="display:flex;align-items:center;">
+    <div id="batchDrawer" class="drawer" style="box-shadow: 0 -4px 20px rgba(0,0,0,0.15); height:auto; min-height:0;">
+        <div class="drawer-handle" style="display:none;"></div>
+        <div class="drawer-header" style="padding:8px 12px;">
+            <div class="drawer-title" style="display:flex;align-items:center;font-size:13px;">
                 <input type="checkbox" id="batchSelectAll" onchange="toggleSelectAll(this)" style="margin-right:8px;">
                 <span id="batchCount">已选 0 项</span>
             </div>
-            <button class="drawer-close-btn" onclick="clearSelection()">&times;</button>
+            <button class="drawer-close-btn" onclick="clearSelection()" style="padding:4px 8px;font-size:16px;">&times;</button>
         </div>
-        <div class="drawer-content">
-            <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 16px;">
-                <div class="modal-item" onclick="batchArchive()" style="display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:12px; border:1px solid #eee; border-radius:8px; cursor:pointer;">
-                    <span style="font-size:24px; margin-bottom:4px;">🗜️</span>
-                    <span style="font-size:12px;">压缩</span>
+        <div class="drawer-content" style="padding:0 8px 8px 0;">
+            <div style="display:grid; grid-template-columns: repeat(5, 1fr); gap:6px;">
+                <div class="modal-item" onclick="batchArchive()" style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:8px 4px; border:1px solid #eee; border-radius:6px; cursor:pointer;">
+                    <span style="font-size:18px;">🗜️</span>
+                    <span style="font-size:11px;margin-top:2px;">压缩</span>
                 </div>
-                <div class="modal-item" onclick="batchMove()" style="display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:12px; border:1px solid #eee; border-radius:8px; cursor:pointer;">
-                    <span style="font-size:24px; margin-bottom:4px;">📁</span>
-                    <span style="font-size:12px;">移动</span>
+                <div class="modal-item" onclick="batchMove()" style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:8px 4px; border:1px solid #eee; border-radius:6px; cursor:pointer;">
+                    <span style="font-size:18px;">📁</span>
+                    <span style="font-size:11px;margin-top:2px;">移动</span>
                 </div>
-                <div class="modal-item" onclick="batchCopy()" style="display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:12px; border:1px solid #eee; border-radius:8px; cursor:pointer;">
-                    <span style="font-size:24px; margin-bottom:4px;">📋</span>
-                    <span style="font-size:12px;">复制</span>
+                <div class="modal-item" onclick="batchCopy()" style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:8px 4px; border:1px solid #eee; border-radius:6px; cursor:pointer;">
+                    <span style="font-size:18px;">📋</span>
+                    <span style="font-size:11px;margin-top:2px;">复制</span>
                 </div>
-                <div class="modal-item delete-item" onclick="batchDelete()" style="display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:12px; border:1px solid #eee; border-radius:8px; color:#cf222e; cursor:pointer;">
-                    <span style="font-size:24px; margin-bottom:4px;">🗑️</span>
-                    <span style="font-size:12px;">删除</span>
+                <div class="modal-item delete-item" onclick="batchDelete()" style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:8px 4px; border:1px solid #eee; border-radius:6px; color:#cf222e; cursor:pointer;">
+                    <span style="font-size:18px;">🗑️</span>
+                    <span style="font-size:11px;margin-top:2px;">删除</span>
                 </div>
-                <div class="modal-item" onclick="clearSelection()" style="display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:12px; border:1px solid #eee; border-radius:8px; cursor:pointer;">
-                    <span style="font-size:24px; margin-bottom:4px;">✖</span>
-                    <span style="font-size:12px;">取消</span>
+                <div class="modal-item" onclick="clearSelection()" style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:8px 4px; border:1px solid #eee; border-radius:6px; cursor:pointer;">
+                    <span style="font-size:18px;">✖</span>
+                    <span style="font-size:11px;margin-top:2px;">取消</span>
                 </div>
             </div>
         </div>

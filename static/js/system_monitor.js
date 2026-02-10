@@ -546,6 +546,18 @@ window.loadSystemdList = function() {
                 container.innerHTML = __emptyHtml('暂无服务数据');
                 return;
             }
+            
+            // 排序：enabled 的在前，同样状态的按活跃时间倒序
+            services.sort(function(a, b) {
+                // enabled 优先
+                if (a.enabled && !b.enabled) return -1;
+                if (!a.enabled && b.enabled) return 1;
+                // 同为 enabled 或同为 disabled，按活跃时间倒序
+                const timeA = a.active_since ? new Date(a.active_since).getTime() : 0;
+                const timeB = b.active_since ? new Date(b.active_since).getTime() : 0;
+                return timeB - timeA;
+            });
+            
             function formatSinceAgo(iso) {
                 if (!iso) return '';
                 var ts = Date.parse(String(iso));
@@ -584,10 +596,11 @@ window.loadSystemdList = function() {
                     + '<div style="font-size:12px;color:#57606a;margin-top:2px;">' + escapeHtml(String(active)) + (sub ? ' (' + escapeHtml(String(sub)) + ')' : '') + '</div>'
                     + (sinceAgo ? '<div style="font-size:12px;color:#57606a;margin-top:2px;">启动于 ' + escapeHtml(String(sinceAgo)) + '</div>' : '')
                     + '</div>'
-                    + '<div style="display:flex;gap:8px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end;">'
-                    + '<button type="button" data-action="systemd" data-op="start" data-name="' + escapeHtml(String(name)) + '" style="border:1px solid #2da44e;background:#fff;border-radius:8px;padding:6px 10px;cursor:pointer;color:#2da44e;">启动</button>'
-                    + '<button type="button" data-action="systemd" data-op="stop" data-name="' + escapeHtml(String(name)) + '" style="border:1px solid #cf222e;background:#fff;border-radius:8px;padding:6px 10px;cursor:pointer;color:#cf222e;">停止</button>'
-                    + '<button type="button" data-action="systemd" data-op="restart" data-name="' + escapeHtml(String(name)) + '" style="border:1px solid #0969da;background:#fff;border-radius:8px;padding:6px 10px;cursor:pointer;color:#0969da;">重启</button>'
+                    + '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:4px;flex-shrink:0;width:80px;">'
+                    + '<button type="button" onclick="openServiceLog(\'' + escapeHtml(String(name)) + '\')" style="border:1px solid #8250df;background:#fff;border-radius:4px;padding:4px;cursor:pointer;color:#8250df;" title="日志">📋</button>'
+                    + '<button type="button" data-action="systemd" data-op="restart" data-name="' + escapeHtml(String(name)) + '" style="border:1px solid #0969da;background:#fff;border-radius:4px;padding:4px;cursor:pointer;color:#0969da;" title="重启">🔄</button>'
+                    + '<button type="button" data-action="systemd" data-op="start" data-name="' + escapeHtml(String(name)) + '" style="border:1px solid #2da44e;background:#fff;border-radius:4px;padding:4px;cursor:pointer;color:#2da44e;" title="启动">▶</button>'
+                    + '<button type="button" data-action="systemd" data-op="stop" data-name="' + escapeHtml(String(name)) + '" style="border:1px solid #cf222e;background:#fff;border-radius:4px;padding:4px;cursor:pointer;color:#cf222e;" title="停止">⏹</button>'
                     + '</div>'
                     + '</div>'
                     + '</div>';
@@ -694,7 +707,12 @@ window.openNpmModal = function() { Drawer.open('npmModal'); loadNpmList(); };
 window.openDockerModal = function() { Drawer.open('dockerModal'); loadDockerTabs(); };
 window.openSystemdModal = function() { Drawer.open('systemdModal'); loadSystemdList(); };
 window.openDiskModal = function() { Drawer.open('diskModal'); loadDiskList(); };
-window.openNetworkModal = function() { Drawer.open('networkModal'); loadNetworkList(); };
+
+// 打开服务日志
+window.openServiceLog = function(serviceName) {
+    const url = '/log/viewer?service=' + encodeURIComponent(serviceName);
+    window.open(url, '_blank');
+};
 
 // GPU显卡信息
 window.loadGpuInfo = function() {

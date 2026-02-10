@@ -549,11 +549,9 @@ window.loadGitList = function(specificRepoPath) {
                 }
 
                 const repo = payload;
-                const branch = repo.branch || 'unknown';
+                const repoName = (repo.name || specificRepoPath).replace(/\.git$/, '') + '.git';
                 const repoStatus = repo.status || {};
                 const hasChanges = repoStatus.has_changes || false;
-
-                let statusText = hasChanges ? '✗ Dirty' : '✓ Clean';
                 let changeInfo = '';
                 if (hasChanges) {
                     const changes = [];
@@ -565,16 +563,20 @@ window.loadGitList = function(specificRepoPath) {
                 }
 
                 const headerHtml = '<div style="padding:12px 12px 8px;">' +
-                    '<div style="font-weight:600;word-break:break-all;">' + escapeHtml(repo.name || specificRepoPath) + '</div>' +
-                    '<div style="font-size:12px;color:#57606a;margin-top:2px;">' + escapeHtml(branch) + '</div>' +
-                    __gitDirtyLineHtml(hasChanges, statusText, changeInfo) +
+                    '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">' +
+                    '<span style="font-weight:600;word-break:break-all;font-size:15px;">' + escapeHtml(repoName) + '</span>' +
+                    '<div style="display:flex;gap:4px;">' +
+                    '<button onclick="__gitBindDiffButton(\'' + escapeHtml(specificRepoPath) + '\');" style="padding:4px 8px;font-size:12px;border:1px solid #404040;background:#3c3c3c;color:#ccc;border-radius:4px;cursor:pointer;">📊 Diff</button>' +
+                    '<button onclick="__gitBindPullButton(\'' + escapeHtml(specificRepoPath) + '\');" style="padding:4px 8px;font-size:12px;border:1px solid #404040;background:#3c3c3c;color:#ccc;border-radius:4px;cursor:pointer;">⬇️ Pull</button>' +
+                    '<button onclick="__gitBindPushButton(\'' + escapeHtml(specificRepoPath) + '\');" style="padding:4px 8px;font-size:12px;border:1px solid #404040;background:#3c3c3c;color:#ccc;border-radius:4px;cursor:pointer;">⬆️ Push</button>' +
+                    '</div>' +
+                    (hasChanges ? '<span style="font-size:12px;color:#e3b341;margin-left:4px;">⚠️ Dirty</span>' : '<span style="font-size:12px;color:#2da44e;margin-left:4px;">✓ Clean</span>') +
+                    (changeInfo ? '<span style="font-size:11px;color:#666;">' + escapeHtml(changeInfo) + '</span>' : '') +
+                    '</div>' +
                     '<div id="gitDiffFilesBox"></div>' +
                     '</div>';
 
-                __gitMountCommitList(container, specificRepoPath, { html: headerHtml, branch: branch });
-                __gitBindDiffButton(specificRepoPath);
-                __gitBindPullButton(specificRepoPath);
-                __gitBindPushButton(specificRepoPath);
+                __gitMountCommitList(container, specificRepoPath, { html: headerHtml, branch: '' });
                 __gitLoadDiffFileList(specificRepoPath);
             })
             .catch(function() {
@@ -604,11 +606,10 @@ window.loadGitList = function(specificRepoPath) {
 
             function renderRepo(repo) {
                 if (!repo || !panelEl) return;
-                const branch = repo.status && repo.status.branch ? repo.status.branch : '-';
                 const repoPath = repo.path || '';
+                const repoName = (repo.name || repoPath).replace(/\.git$/, '') + '.git';
                 const hasChanges = !!(repo.status && repo.status.has_changes);
                 const repoStatus = repo.status || {};
-                let statusText = hasChanges ? '✗ Dirty' : '✓ Clean';
                 let changeInfo = '';
                 if (hasChanges) {
                     const changes = [];
@@ -620,16 +621,20 @@ window.loadGitList = function(specificRepoPath) {
                 }
 
                 const headerHtml = '<div style="padding:12px 12px 8px;">' +
-                    '<div style="font-weight:600;word-break:break-all;">' + escapeHtml(repo.name || repoPath) + '</div>' +
-                    '<div style="font-size:12px;color:#57606a;margin-top:2px;">' + escapeHtml(branch) + '</div>' +
-                    __gitDirtyLineHtml(hasChanges, statusText, changeInfo) +
+                    '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">' +
+                    '<span style="font-weight:600;word-break:break-all;font-size:15px;">' + escapeHtml(repoName) + '</span>' +
+                    '<div style="display:flex;gap:4px;">' +
+                    '<button onclick="__gitBindDiffButton(\'' + escapeHtml(repoPath) + '\');" style="padding:4px 8px;font-size:12px;border:1px solid #404040;background:#3c3c3c;color:#ccc;border-radius:4px;cursor:pointer;">📊 Diff</button>' +
+                    '<button onclick="__gitBindPullButton(\'' + escapeHtml(repoPath) + '\');" style="padding:4px 8px;font-size:12px;border:1px solid #404040;background:#3c3c3c;color:#ccc;border-radius:4px;cursor:pointer;">⬇️ Pull</button>' +
+                    '<button onclick="__gitBindPushButton(\'' + escapeHtml(repoPath) + '\');" style="padding:4px 8px;font-size:12px;border:1px solid #404040;background:#3c3c3c;color:#ccc;border-radius:4px;cursor:pointer;">⬆️ Push</button>' +
+                    '</div>' +
+                    (hasChanges ? '<span style="font-size:12px;color:#e3b341;margin-left:4px;">⚠️ Dirty</span>' : '<span style="font-size:12px;color:#2da44e;margin-left:4px;">✓ Clean</span>') +
+                    (changeInfo ? '<span style="font-size:11px;color:#666;">' + escapeHtml(changeInfo) + '</span>' : '') +
+                    '</div>' +
                     '<div id="gitDiffFilesBox"></div>' +
                     '</div>';
 
-                __gitMountCommitList(panelEl, repoPath, { html: headerHtml, branch: branch });
-                __gitBindDiffButton(repoPath);
-                __gitBindPullButton(repoPath);
-                __gitBindPushButton(repoPath);
+                __gitMountCommitList(panelEl, repoPath, { html: headerHtml, branch: '' });
                 __gitLoadDiffFileList(repoPath);
             }
 
