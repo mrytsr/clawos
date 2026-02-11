@@ -1145,7 +1145,41 @@ function copyDownloadUrl(path) {
 }
 
 function copyFilePath(path) {
-    copyToClipboard(path);
+    // 获取绝对路径
+    var rootPath = document.getElementById('rootDir')?.value || '';
+    var currentPath = document.getElementById('currentBrowsePath')?.value || '';
+    
+    if (!path) {
+        copyToClipboard(path);
+        return;
+    }
+    
+    // 如果 path 已经是绝对路径，直接复制
+    if (path.startsWith('/')) {
+        copyToClipboard(path);
+        return;
+    }
+    
+    var absolutePath = path;
+    
+    // 如果有 rootPath，优先使用 rootPath
+    if (rootPath) {
+        // 检查当前路径相对于 rootPath 的部分
+        if (currentPath && currentPath.startsWith(rootPath)) {
+            var relativeFromRoot = currentPath.slice(rootPath.length);
+            if (relativeFromRoot) {
+                absolutePath = rootPath + relativeFromRoot + '/' + path;
+            } else {
+                absolutePath = rootPath + '/' + path;
+            }
+        } else {
+            absolutePath = rootPath + '/' + path;
+        }
+    } else if (currentPath) {
+        absolutePath = currentPath + '/' + path;
+    }
+    
+    copyToClipboard(absolutePath);
 }
 
 // 通用复制函数
@@ -1175,12 +1209,45 @@ function editFile(path) {
 
 // 添加到对话
 function addToChat(path) {
+    // 获取绝对路径
+    var rootPath = document.getElementById('rootDir')?.value || '';
+    var currentPath = document.getElementById('currentBrowsePath')?.value || '';
+    
+    if (!path) {
+        var absolutePath = '';
+    } else if (path.startsWith('/')) {
+        var absolutePath = path;
+    } else {
+        var absolutePath = path;
+        // 如果有 rootPath，优先使用 rootPath
+        if (rootPath) {
+            if (currentPath && currentPath.startsWith(rootPath)) {
+                var relativeFromRoot = currentPath.slice(rootPath.length);
+                if (relativeFromRoot) {
+                    absolutePath = rootPath + relativeFromRoot + '/' + path;
+                } else {
+                    absolutePath = rootPath + '/' + path;
+                }
+            } else {
+                absolutePath = rootPath + '/' + path;
+            }
+        } else if (currentPath) {
+            absolutePath = currentPath + '/' + path;
+        }
+    }
+    
+    // 隐藏菜单
+    if (typeof closeMenuModal === 'function') {
+        closeMenuModal();
+    }
+    
     if (typeof window.openBotModal === 'function') {
         window.openBotModal();
     }
+    
     const input = document.getElementById('botInput');
     if (input) {
-        const prefix = path ? (path + '： ') : '';
+        const prefix = absolutePath ? (absolutePath + '： ') : '';
         input.value = (input.value || '') + prefix;
         input.focus();
         try { input.setSelectionRange(input.value.length, input.value.length); } catch (e) {}
