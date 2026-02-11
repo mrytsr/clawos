@@ -460,11 +460,9 @@
                 // 关闭侧边栏
                 closeDrawer();
                 
-                // 执行查询
+                // 执行查询（不自动展开编辑器）
                 const sql = `SELECT * FROM \`${id}\` LIMIT 200`;
                 $('sqlEditor').value = sql;
-                $('sqlEditorPanel').classList.add('open');
-                $('sqlToggle').classList.add('open');
                 executeQuery();
             }
         }
