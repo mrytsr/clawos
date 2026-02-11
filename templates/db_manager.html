@@ -135,6 +135,19 @@
             background: #0f3460; border: none; padding: 6px 10px; font-size: 11px;
             border-radius: 5px; color: #ccc; cursor: pointer;
         }
+        .sql-history-list { display: flex; flex-direction: column; gap: 4px; }
+        .sql-history-item {
+            padding: 10px 12px; border-radius: 6px; background: #1a1a2e;
+            cursor: pointer; font-size: 12px; color: #ccc;
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .sql-history-item:hover { background: #0f3460; }
+        .sql-history-item .sql-text { font-family: 'SF Mono', monospace; font-size: 11px; }
+        .sql-history-item .sql-time { font-size: 10px; color: #666; margin-top: 4px; }
+        .history-divider { height: 1px; background: #0f3460; margin: 12px 0; }
+        .history-section-title {
+            font-size: 11px; color: #888; padding: 8px 0 4px; margin-bottom: 4px;
+        }
         
         /* 导出和分页 */
         .results-toolbar {
@@ -260,12 +273,20 @@
                 <div class="sql-toolbar">
                     <button onclick="executeQuery()">▶ 执行</button>
                     <button class="secondary" onclick="clearEditor()">清空</button>
-                    <div class="quick-btns">
-                        <button onclick="quickQuery('SHOW TABLES')">Tables</button>
-                        <button onclick="quickQuery('SHOW PROCESSLIST')">Process</button>
-                        <button onclick="quickQuery('DESCRIBE \`table_name\`')">Desc</button>
-                        <button onclick="quickQuery('SELECT COUNT(*) FROM \`table_name\`')">Count</button>
-                    </div>
+                    <button class="secondary" onclick="openSqlHistory()">历史</button>
+                </div>
+            </div>
+            
+            <!-- SQL 历史侧边栏 -->
+            <div class="drawer-backdrop" id="historyBackdrop" onclick="closeSqlHistory()"></div>
+            <div class="drawer" id="historyDrawer" style="width:50%;max-width:280px;">
+                <div class="drawer-header">
+                    <h2>📜 SQL 历史</h2>
+                    <button class="drawer-close" onclick="closeSqlHistory()">×</button>
+                </div>
+                <div class="drawer-content">
+                    <div style="font-size:11px;color:#888;margin-bottom:8px;">常用</div>
+                    <div class="sql-history-list" id="sqlHistoryList"></div>
                 </div>
             </div>
             
@@ -408,6 +429,7 @@
             const icon = type === 'conn' ? (ENGINE_CONFIG[node.engine || 'mysql']?.icon || '🗄️') : (type === 'db' ? '📁' : '📋');
             const hasChildren = node.children && node.children.length > 0 && type !== 'table';
             const expanded = type === 'conn';
+            const isToggleable = hasChildren;
             
             let html = `<div class="tree-node" data-type="${type}" data-id="${id}" data-connid="${connId}" data-db="${type === 'conn' ? node.database : (type === 'db' ? node.name : parentConnId)}">
                 <div class="tree-node-content" onclick="onNodeClick(this, '${type}', '${id}', '${type === 'db' ? node.name : (type === 'table' ? parentConnId : node.database)}')">
@@ -441,19 +463,28 @@
         }
         
         async function onNodeClick(el, type, id, dbName) {
+            // 点击可展开的节点时，toggle展开/折叠
+            const nodeEl = el.closest('.tree-node');
+            const hasChildren = nodeEl.querySelector('.tree-children');
+            if (hasChildren && type !== 'table') {
+                const toggle = nodeEl.querySelector('.tree-toggle');
+                if (toggle) {
+                    toggleNode(toggle);
+                    return; // 不执行查询
+                }
+            }
+            
             // 更新选中状态
             document.querySelectorAll('.tree-node-content').forEach(n => n.classList.remove('active'));
             el.classList.add('active');
             
             if (type === 'table') {
                 // 点击表
-                const nodeEl = el.closest('.tree-node');
                 const connId = nodeEl.dataset.connid;
-                const db = nodeEl.dataset.db;
                 const conn = connections.find(c => c.id === connId);
                 if (!conn) { console.error('Connection not found:', connId); return; }
                 currentConn = conn;
-                currentDb = db;
+                currentDb = dbName;
                 currentTable = id;
                 updateBreadcrumb();
                 
@@ -478,6 +509,62 @@
         function toggleDrawer() { $('drawer').classList.toggle('open'); $('drawerBackdrop').classList.toggle('show'); }
         function closeDrawer() { $('drawer').classList.remove('open'); $('drawerBackdrop').classList.remove('show'); }
         
+        // SQL历史
+        const FIXED_SQLS = [
+            { sql: 'SHOW TABLES', label: 'Tables' },
+            { sql: 'SHOW PROCESSLIST', label: 'Process' },
+            { sql: 'DESCRIBE `table_name`', label: 'Desc' },
+            { sql: 'SELECT COUNT(*) FROM `table_name`', label: 'Count' },
+            { sql: 'SHOW STATUS', label: 'Status' }
+        ];
+        
+        function openSqlHistory() {
+            renderSqlHistory();
+            $('historyDrawer').classList.add('open');
+            $('historyBackdrop').classList.add('show');
+        }
+        
+        function closeSqlHistory() {
+            $('historyDrawer').classList.remove('open');
+            $('historyBackdrop').classList.remove('show');
+        }
+        
+        function renderSqlHistory() {
+            const fixedHtml = FIXED_SQLS.map(s => 
+                `<div class="sql-history-item" onclick="useHistorySql('${s.sql.replace(/`/g, '\\`')}')">
+                    <div class="sql-text">${s.sql}</div>
+                </div>`
+            ).join('');
+            
+            const rawHistory = localStorage.getItem('db_sql_history') || '[]';
+            let history = [];
+            try {
+                history = JSON.parse(rawHistory);
+            } catch (e) {}
+            
+            const historyHtml = history.length ? history.map(s => {
+                if (!s || !s.sql) return '';
+                return `<div class="sql-history-item" onclick="useHistorySql('${s.sql.replace(/'/g, "\\'").replace(/\n/g, ' ')}')">
+                    <div class="sql-text">${s.sql.length > 50 ? s.sql.substring(0, 50) + '...' : s.sql}</div>
+                    <div class="sql-time">${new Date(s.time).toLocaleString()}</div>
+                </div>`;
+            }).join('') : '<div style="padding:20px;text-align:center;color:#666;font-size:12px;">暂无历史记录</div>';
+            
+            $('sqlHistoryList').innerHTML = `
+                <div class="history-section-title">常用 SQL</div>
+                ${fixedHtml}
+                ${history.length ? '<div class="history-divider"></div><div class="history-section-title">历史记录</div>' : ''}
+                ${historyHtml}
+            `;
+        }
+        
+        function useHistorySql(sql) {
+            $('sqlEditor').value = sql;
+            closeSqlHistory();
+            toggleSqlEditor();
+            executeQuery();
+        }
+        
         function toggleSqlEditor() { $('sqlEditorPanel').classList.toggle('open'); $('sqlToggle').classList.toggle('open'); }
         function clearEditor() { $('sqlEditor').value = ''; }
         
@@ -499,6 +586,14 @@
                     renderResults(data.data.headers || [], getPageData());
                     showStatus(`成功 ${allResults.length} 行`, false);
                     $('resultsToolbar').style.display = allResults.length > pageSize ? 'flex' : 'none';
+                    
+                    // 保存到历史
+                    if (sql.toLowerCase().startsWith('select') || sql.toLowerCase().startsWith('show') || sql.toLowerCase().startsWith('describe')) {
+                        const history = JSON.parse(localStorage.getItem('db_sql_history') || '[]');
+                        const filtered = history.filter(h => h.sql !== sql);
+                        filtered.unshift({ sql: sql, time: Date.now() });
+                        localStorage.setItem('db_sql_history', JSON.stringify(filtered.slice(0, 50)));
+                    }
                 } else {
                     showStatus('失败: ' + data.message, true);
                     $('resultsContent').innerHTML = `<div class="results-empty" style="color:#ef4444;">${data.message}</div>`;
