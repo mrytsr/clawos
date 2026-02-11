@@ -315,6 +315,33 @@ def api_db_tables(conn_id):
         return api_error(str(e))
 
 
+@db_bp.route('/api/db/<conn_id>/databases/<db>/tables')
+def api_db_tables_by_db(conn_id, db):
+    """获取指定数据库的表列表."""
+    conns = _load_connections()
+    if conn_id not in conns:
+        return api_error('Connection not found')
+    
+    conn = conns[conn_id].copy()
+    conn['database'] = db  # 切换到指定数据库
+    
+    try:
+        from sqlalchemy import create_engine, text, inspect
+        from sqlalchemy.engine.url import make_url
+        
+        password = _decrypt(conn.get('password', '')) if conn.get('password') else ''
+        url = f"mysql+pymysql://{conn['user']}:{password}@{conn['host']}:{conn['port']}/{db}"
+        engine = create_engine(url, echo=False)
+        inspector = inspect(engine)
+        tables = []
+        for t in inspector.get_table_names():
+            tables.append({'name': t})
+        engine.dispose()
+        return api_ok({'tables': tables})
+    except Exception as e:
+        return api_error(str(e))
+
+
 @db_bp.route('/api/db/<conn_id>/table/<table>/schema')
 def api_db_table_schema(conn_id, table):
     """获取表结构."""

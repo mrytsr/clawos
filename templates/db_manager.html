@@ -12,10 +12,9 @@
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: #1a1a2e; color: #e0e0e0;
         }
-
         #app { display: flex; flex-direction: column; height: 100vh; }
-
-        /* 悬浮按钮 - 左下角 */
+        
+        /* 悬浮按钮 */
         .float-btn {
             position: fixed; left: 16px; bottom: 40px; z-index: 100;
             width: 44px; height: 44px; border-radius: 12px;
@@ -23,11 +22,10 @@
             border: none; cursor: pointer;
             display: flex; align-items: center; justify-content: center;
             box-shadow: 0 4px 20px rgba(233, 69, 96, 0.4);
-            transition: all 0.3s;
         }
         .float-btn:hover { transform: scale(1.05); }
         .float-btn svg { width: 22px; height: 22px; fill: #fff; }
-
+        
         /* 抽屉侧边栏 */
         .drawer {
             position: fixed; left: -100%; top: 0; bottom: 0;
@@ -37,15 +35,12 @@
             transition: left 0.3s ease;
         }
         .drawer.open { left: 0; }
-
         .drawer-backdrop {
             position: fixed; inset: 0; z-index: 150;
             background: rgba(0,0,0,0.6);
             opacity: 0; visibility: hidden;
-            transition: all 0.3s;
         }
         .drawer-backdrop.show { opacity: 1; visibility: visible; }
-
         .drawer-header {
             padding: 14px; border-bottom: 1px solid #0f3460;
             display: flex; align-items: center; justify-content: space-between;
@@ -56,75 +51,50 @@
             background: #0f3460; border: none; color: #888;
             cursor: pointer; font-size: 20px;
         }
-
-        .drawer-tabs {
-            display: flex; border-bottom: 1px solid #0f3460;
-        }
-        .drawer-tab {
-            flex: 1; padding: 12px; border: none;
-            background: transparent; color: #888;
-            cursor: pointer; font-size: 13px;
-            border-bottom: 2px solid transparent;
-        }
-        .drawer-tab.active { color: #e94560; border-bottom-color: #e94560; }
-
         .drawer-content { flex: 1; overflow-y: auto; padding: 12px; }
-
-        /* 连接列表 */
-        .conn-list { display: flex; flex-direction: column; gap: 8px; }
+        
+        /* 连接列表 - 简化版 */
+        .conn-list { display: flex; flex-direction: column; gap: 6px; }
         .conn-item {
-            background: #1a1a2e; border-radius: 10px; padding: 12px;
+            background: #1a1a2e; border-radius: 8px; padding: 10px 12px;
             cursor: pointer; border: 2px solid transparent;
-        }
-        .conn-item.active { border-color: #e94560; background: #1f1f3a; }
-        .conn-item .name { font-size: 14px; font-weight: 500; color: #fff; margin-bottom: 4px; }
-        .conn-item .info { font-size: 11px; color: #888; }
-        .conn-item .actions { display: flex; gap: 6px; margin-top: 8px; }
-        .conn-item .actions button {
-            padding: 5px 10px; border-radius: 5px; border: none;
-            background: #0f3460; color: #ccc; cursor: pointer; font-size: 11px;
-        }
-        .conn-item .actions button:hover { background: #e94560; color: #fff; }
-
-        /* 数据库树 */
-        .db-tree { }
-        .db-group { margin-bottom: 12px; }
-        .db-title {
-            font-size: 10px; color: #666; text-transform: uppercase;
-            padding: 4px 8px; margin-bottom: 2px;
-        }
-        .db-item {
-            padding: 10px 12px; border-radius: 8px; cursor: pointer;
             display: flex; align-items: center; gap: 10px;
         }
-        .db-item.active { background: #0f3460; }
-        .db-item .name { flex: 1; font-size: 13px; }
-
-        .table-tree { margin-left: 12px; }
-        .table-item {
+        .conn-item.active { border-color: #e94560; background: #1f1f3a; }
+        .conn-item .name { flex: 1; font-size: 13px; font-weight: 500; color: #fff; }
+        .conn-item .actions { display: flex; gap: 4px; }
+        .conn-item .actions button {
+            padding: 4px 8px; border-radius: 4px; border: none;
+            background: #0f3460; color: #888; cursor: pointer; font-size: 11px;
+        }
+        .conn-item .actions button:hover { background: #e94560; color: #fff; }
+        
+        /* 树形结构 */
+        .tree-item {
             padding: 8px 12px; border-radius: 6px; cursor: pointer;
             display: flex; align-items: center; gap: 8px;
+            font-size: 13px;
         }
-        .table-item.active { background: #0f3460; color: #e94560; }
-        .table-item .name { flex: 1; font-size: 12px; }
-        .table-item .rows { font-size: 10px; color: #666; }
-
+        .tree-item:hover { background: #0f3460; }
+        .tree-item.active { background: #0f3460; color: #e94560; }
+        .tree-item .icon { width: 18px; text-align: center; }
+        .tree-item .name { flex: 1; }
+        .tree-children { padding-left: 16px; }
+        .tree-loading { padding: 10px; text-align: center; color: #666; font-size: 12px; }
+        
         /* 新建按钮 */
         .add-btn {
-            width: 100%; padding: 12px; border-radius: 8px;
+            width: 100%; padding: 10px; border-radius: 8px;
             background: #0f3460; border: none; color: #ccc;
             cursor: pointer; font-size: 13px;
-            display: flex; align-items: center; justify-content: center; gap: 8px;
             margin-bottom: 12px;
         }
-
+        
         /* 主内容区 */
         .main-content {
             flex: 1; display: flex; flex-direction: column;
             padding: 5px 16px 16px 16px; overflow: hidden;
         }
-
-        /* 顶部栏 */
         .top-bar {
             flex-shrink: 0; display: flex; align-items: center; gap: 8px;
             margin-bottom: 4px; flex-wrap: wrap;
@@ -135,80 +105,40 @@
             flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
         }
         .breadcrumb span { color: #e94560; }
-
-        /* 可折叠 SQL 编辑器 */
+        
+        /* SQL 编辑器 */
         .sql-toggle {
             display: flex; align-items: center; justify-content: space-between;
             padding: 10px 12px; background: #0f3460; border-radius: 10px;
             cursor: pointer; margin-bottom: 2px;
         }
         .sql-toggle span { font-size: 13px; color: #ccc; }
-        .sql-toggle .arrow {
-            transition: transform 0.3s; font-size: 12px; color: #888;
-        }
+        .sql-toggle .arrow { transition: transform 0.3s; font-size: 12px; color: #888; }
         .sql-toggle.open .arrow { transform: rotate(180deg); }
-
         .sql-editor {
-            max-height: 0; overflow: hidden;
-            background: #16213e; border-radius: 0 0 10px 10px;
-            transition: max-height 0.3s ease;
+            display: none; flex-direction: column;
+            background: #16213e; border-radius: 10px; padding: 12px;
         }
-        .sql-editor.open { max-height: 300px; }
+        .sql-editor.open { display: flex; }
         .sql-editor textarea {
-            width: 100%; height: 120px;
-            background: #1a1a2e; border: none; border-radius: 8px;
-            color: #e0e0e0; font-family: 'SF Mono', 'Consolas', monospace; font-size: 13px;
+            width: 100%; height: 80px; background: #1a1a2e; border: none;
             padding: 12px; resize: none; outline: none;
+            color: #fff; font-family: 'SF Mono', monospace; font-size: 12px;
+            border-radius: 6px;
         }
-        .sql-toolbar {
-            display: flex; gap: 8px; padding: 10px 0; flex-wrap: wrap; align-items: center;
-        }
+        .sql-toolbar { display: flex; gap: 8px; padding: 10px 0; flex-wrap: wrap; align-items: center; }
         .sql-toolbar button {
             padding: 8px 14px; border-radius: 6px; border: none;
             background: #e94560; color: #fff; cursor: pointer; font-size: 12px;
         }
         .sql-toolbar button.secondary { background: #0f3460; }
-        .quick-btns { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
-        .quick-btns button { background: #0f3460; border: none; padding: 6px 10px; font-size: 11px; border-radius: 5px; color: #ccc; cursor: pointer; }
-
-        /* 结果区 */
-        .results {
-            flex: 1; overflow: auto; margin-top: 12px;
-            background: #16213e; border-radius: 12px; border: 1px solid #0f3460;
+        .quick-btns { display: flex; gap: 6px; flex-wrap: wrap; margin-left: auto; }
+        .quick-btns button {
+            background: #0f3460; border: none; padding: 6px 10px; font-size: 11px;
+            border-radius: 5px; color: #ccc; cursor: pointer;
         }
-        .results-empty {
-            text-align: center; color: #666; padding: 30px;
-            font-size: 13px;
-        }
-
-        /* 数据表 */
-        .data-table-wrapper { overflow: auto; max-height: 100%; }
-        .data-table {
-            width: 100%; border-collapse: collapse; font-size: 12px;
-        }
-        .data-table th, .data-table td {
-            padding: 10px 12px; text-align: left; border-bottom: 1px solid #0f3460;
-            white-space: nowrap; max-width: 150px; overflow: hidden; text-overflow: ellipsis;
-        }
-        .data-table th {
-            background: #1a1a2e; color: #e94560; font-weight: 500;
-            position: sticky; top: 0; z-index: 10;
-        }
-        .data-table td {
-            color: #ccc; font-family: 'SF Mono', monospace; font-size: 11px;
-            cursor: pointer; transition: background 0.2s;
-        }
-        .data-table td:hover { background: #1a2a4a; }
-        .data-table td.editing {
-            background: #0f3460; padding: 0;
-        }
-        .data-table td.editing input {
-            width: 100%; height: 100%; padding: 10px 12px;
-            background: transparent; border: none; color: #fff;
-            font-family: 'SF Mono', monospace; font-size: 11px; outline: none;
-        }
-
-        /* 导出按钮 */
+        
+        /* 导出和分页 */
         .results-toolbar {
             display: flex; justify-content: space-between; align-items: center;
             padding: 8px 0; gap: 16px;
@@ -218,17 +148,47 @@
             padding: 4px 10px; font-size: 11px; border-radius: 4px;
             background: #0f3460; border: none; color: #ccc; cursor: pointer;
         }
-        .export-btn:hover { background: #1a4a7a; color: #fff; }
-
-        /* 分页 */
         .pagination { display: flex; align-items: center; gap: 8px; }
         .page-btn {
             padding: 4px 8px; font-size: 11px; border-radius: 4px;
             background: #0f3460; border: none; color: #ccc; cursor: pointer;
         }
-        .page-btn:hover { background: #1a4a7a; }
         .page-info { font-size: 11px; color: #888; min-width: 60px; text-align: center; }
-
+        
+        /* 结果区 */
+        .results-tabs { display: flex; gap: 4px; padding: 8px 0; }
+        .results-tab {
+            padding: 6px 12px; border-radius: 6px; border: none;
+            background: transparent; color: #888; cursor: pointer; font-size: 12px;
+        }
+        .results-tab.active { background: #0f3460; color: #e94560; }
+        .results {
+            flex: 1; overflow: auto; background: #16213e; border-radius: 12px;
+            border: 1px solid #0f3460;
+        }
+        .results-empty { text-align: center; color: #666; padding: 30px; }
+        .loading { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 20px; color: #666; }
+        .spinner {
+            width: 18px; height: 18px; border: 2px solid #0f3460;
+            border-top-color: #e94560; border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        
+        /* 数据表格 */
+        .data-table-wrapper { overflow: auto; max-height: 100%; }
+        .data-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        .data-table th, .data-table td {
+            padding: 10px 12px; text-align: left; border-bottom: 1px solid #0f3460;
+            white-space: nowrap; max-width: 150px; overflow: hidden; text-overflow: ellipsis;
+        }
+        .data-table th {
+            background: #1a1a2e; color: #e94560; font-weight: 500;
+            position: sticky; top: 0; z-index: 10;
+        }
+        .data-table td { color: #ccc; font-family: 'SF Mono', monospace; font-size: 11px; cursor: pointer; }
+        .data-table td:hover { background: #1a2a4a; }
+        
         /* 状态栏 */
         .status-bar {
             flex-shrink: 0;
@@ -238,7 +198,7 @@
         }
         .status-bar .success { color: #4ade80; }
         .status-bar .error { color: #ef4444; }
-
+        
         /* 弹窗 */
         .modal {
             position: fixed; inset: 0; background: rgba(0,0,0,0.7);
@@ -246,114 +206,53 @@
             padding: 20px;
         }
         .modal.show { display: flex; }
-        .modal-content {
-            background: #16213e; border-radius: 16px; padding: 20px;
-            width: 100%; max-width: 380px;
+        .modal-content { background: #16213e; border-radius: 12px; padding: 20px; max-width: 360px; width: 100%; }
+        .modal-title { font-size: 16px; font-weight: 500; margin-bottom: 16px; }
+        .form-group { margin-bottom: 14px; }
+        .form-group label { display: block; font-size: 12px; color: #888; margin-bottom: 6px; }
+        .form-group input, .form-group select {
+            width: 100%; padding: 12px; background: #1a1a2e; border: 1px solid #0f3460;
+            border-radius: 8px; color: #fff; font-size: 14px;
         }
-        .modal-title { font-size: 16px; font-weight: 500; margin-bottom: 16px; color: #fff; }
-        .modal-content .form-group { margin-bottom: 14px; }
-        .modal-content label { display: block; font-size: 12px; color: #888; margin-bottom: 6px; }
-        .modal-content input, .modal-content select {
-            width: 100%; padding: 12px; border-radius: 8px;
-            background: #1a1a2e; border: 1px solid #0f3460; color: #fff;
-            font-size: 14px;
+        .modal-actions { display: flex; gap: 12px; margin-top: 20px; }
+        .modal-actions button {
+            flex: 1; padding: 12px; border-radius: 8px; border: none;
+            cursor: pointer; font-size: 14px;
         }
-        .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
-        .modal-actions button { flex: 1; padding: 12px; border-radius: 8px; border: none; cursor: pointer; font-size: 14px; }
         .modal-actions .cancel { background: #0f3460; color: #ccc; }
         .modal-actions .confirm { background: #e94560; color: #fff; }
-
-        /* 结果 tabs */
-        .results-tabs {
-            display: flex; gap: 4px; margin-top: 12px; background: #16213e; border-radius: 8px 8px 0 0; padding: 4px 4px 0 4px;
-        }
-        .results-tab {
-            padding: 8px 16px; border-radius: 6px 6px 0 0; border: none;
-            background: transparent; color: #888; cursor: pointer; font-size: 12px;
-        }
-        .results-tab.active { background: #1a1a2e; color: #e94560; }
-        .results-panel {
-            display: none; flex: 1; overflow: auto;
-            background: #16213e; border-radius: 0 0 12px 12px; border: 1px solid #0f3460; border-top: none;
-        }
-        .results-panel.active { display: flex; flex-direction: column; }
-
-        /* 结果区 */
-        .results {
-            flex: 1; overflow: auto; border-radius: 0 0 12px 12px;
-        }
-
-        /* 结构表格 */
-        .schema-table { width: 100%; border-collapse: collapse; }
-        .schema-table th, .schema-table td {
-            padding: 8px 12px; text-align: left; border-bottom: 1px solid #0f3460;
-            font-size: 12px;
-        }
-        .schema-table th { background: #16213e; color: #e94560; }
-        .schema-table td { color: #ccc; font-family: 'SF Mono', monospace; font-size: 11px; }
-        .type-tag { display: inline-block; padding: 2px 6px; background: #0f3460; border-radius: 4px; font-size: 10px; color: #888; }
-        .key-tag { display: inline-block; padding: 2px 6px; background: #e3b341; color: #000; border-radius: 4px; font-size: 10px; margin-left: 4px; }
-
-        /* 加载动画 */
-        .loading {
-            display: flex; align-items: center; justify-content: center; padding: 30px;
-            color: #666;
-        }
-        .spinner {
-            width: 18px; height: 18px; border: 2px solid #0f3460;
-            border-top-color: #e94560; border-radius: 50%;
-            animation: spin 0.8s linear infinite; margin-right: 8px;
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
     <div id="app">
         <!-- 悬浮按钮 -->
-        <button class="float-btn" onclick="toggleDrawer()" title="数据库">
+        <button class="float-btn" onclick="toggleDrawer()">
             <svg viewBox="0 0 24 24"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg>
         </button>
-
+        
         <!-- 抽屉遮罩 -->
         <div class="drawer-backdrop" id="drawerBackdrop" onclick="closeDrawer()"></div>
-
+        
         <!-- 抽屉侧边栏 -->
         <div class="drawer" id="drawer">
             <div class="drawer-header">
                 <h2>📊 数据库</h2>
                 <button class="drawer-close" onclick="closeDrawer()">×</button>
             </div>
-
-            <div class="drawer-tabs">
-                <button class="drawer-tab active" id="tabConnections" onclick="switchTab('connections')">连接</button>
-                <button class="drawer-tab" id="tabDatabases" onclick="switchTab('databases')">数据库</button>
-            </div>
-
-            <div class="drawer-content" id="drawerContent">
-                <div id="connectionsPanel">
-                    <button class="add-btn" onclick="openAddModal()">
-                        <span>+</span> 新建连接
-                    </button>
-                    <div class="conn-list" id="connList"></div>
-                </div>
-
-                <div id="databasesPanel" style="display:none;">
-                    <div class="db-tree" id="dbTree"></div>
-                </div>
+            <div class="drawer-content">
+                <button class="add-btn" onclick="openAddModal()">+ 新建连接</button>
+                <div class="conn-list" id="connList"></div>
             </div>
         </div>
-
+        
         <!-- 主内容区 -->
-        <div class="main-content" id="mainContent">
-            <!-- 顶部栏 -->
+        <div class="main-content">
             <div class="top-bar">
                 <h1>数据库</h1>
-                <div class="breadcrumb" id="breadcrumb">
-                    <span>未选择</span>
-                </div>
+                <div class="breadcrumb" id="breadcrumb"><span>未选择</span></div>
             </div>
-
-            <!-- 可折叠 SQL 编辑器 -->
+            
+            <!-- SQL 编辑器 -->
             <div class="sql-toggle" id="sqlToggle" onclick="toggleSqlEditor()">
                 <span>📝 SQL 查询</span>
                 <span class="arrow">▼</span>
@@ -363,8 +262,7 @@
                 <div class="sql-toolbar">
                     <button onclick="executeQuery()">▶ 执行</button>
                     <button class="secondary" onclick="clearEditor()">清空</button>
-                    <span style="color:#666;font-size:12px;">快捷:</span>
-                    <div class="quick-btns" style="margin-top:0;">
+                    <div class="quick-btns">
                         <button onclick="quickQuery('SHOW TABLES')">Tables</button>
                         <button onclick="quickQuery('SHOW PROCESSLIST')">Process</button>
                         <button onclick="quickQuery('SHOW STATUS')">Status</button>
@@ -373,14 +271,8 @@
                     </div>
                 </div>
             </div>
-
-            <!-- 结果 -->
-            <div class="results-tabs">
-                <div class="results-tab active" id="tabResults" onclick="switchResultsTab('results')">数据</div>
-                <div class="results-tab" id="tabSchema" onclick="switchResultsTab('schema')">结构</div>
-            </div>
-
-            <!-- 导出和分页工具栏 -->
+            
+            <!-- 导出和分页 -->
             <div class="results-toolbar" id="resultsToolbar" style="display:none;">
                 <div class="export-btns">
                     <button class="export-btn" onclick="exportData('csv')">CSV</button>
@@ -395,588 +287,228 @@
                     <button class="page-btn" onclick="goToPage(totalPages)">»</button>
                 </div>
             </div>
-
-            <div class="results-panel active" id="resultsPanel">
-                <div class="results" id="resultsContent">
-                    <div class="results-empty">选择表后自动查询</div>
-                </div>
+            
+            <!-- 结果 -->
+            <div class="results-tabs">
+                <button class="results-tab active" id="tabResults" onclick="switchResultsTab('results')">数据</button>
+                <button class="results-tab" id="tabSchema" onclick="switchResultsTab('schema')">结构</button>
             </div>
-            <div class="results-panel" id="schemaPanel">
-                <div class="results" id="schemaContent">
-                    <div class="results-empty">选择表查看结构</div>
-                </div>
+            <div class="results" id="resultsContent">
+                <div class="results-empty">选择表后自动查询</div>
             </div>
-
+            <div class="results" id="schemaPanel" style="display:none;">
+                <div class="results-empty">选择表查看结构</div>
+            </div>
+            
             <!-- 状态栏 -->
-            <div class="status-bar" id="statusBar">
-                <span>就绪</span>
-            </div>
+            <div class="status-bar" id="statusBar"><span>就绪</span></div>
         </div>
     </div>
-
+    
     <!-- 添加连接弹窗 -->
     <div id="addModal" class="modal">
         <div class="modal-content">
-            <div class="modal-title" id="addModalTitle">新建连接</div>
-
-            <!-- URI 解析 -->
-            <div class="form-group">
-                <label>连接 URI（可选）</label>
-                <div style="display:flex;gap:8px;">
-                    <input type="text" id="dbUri" placeholder="mysql://user:pass@host:port/db">
-                    <button onclick="parseUri()" style="padding:10px 14px;background:#0f3460;border:none;border-radius:8px;color:#ccc;cursor:pointer;">解析</button>
-                </div>
-            </div>
-
-            <hr style="border:none;border-top:1px solid #0f3460;margin:16px 0;">
-
+            <div class="modal-title">新建连接</div>
             <div class="form-group">
                 <label>数据库引擎</label>
-                <select id="dbEngine" style="width:100%;padding:12px;background:#1a1a2e;border:1px solid #0f3460;border-radius:8px;color:#fff;font-size:14px;">
+                <select id="dbEngine">
                     <option value="mysql">MySQL</option>
                     <option value="postgresql">PostgreSQL</option>
                     <option value="sqlite">SQLite</option>
                     <option value="mariadb">MariaDB</option>
                     <option value="oracle">Oracle</option>
-                    <option value="mssql">Microsoft SQL Server</option>
-                    <option value="firebird">Firebird</option>
-                    <option value="sybase">Sybase</option>
+                    <option value="mssql">SQL Server</option>
                 </select>
             </div>
-
-            <div class="form-group">
-                <label>名称</label>
-                <input type="text" id="dbName" placeholder="例如: 生产库">
-            </div>
-            <div class="form-group engine-field" data-engines="mysql,mariadb,postgresql,oracle,mssql,firebird,sybase">
-                <label>主机</label>
-                <input type="text" id="dbHost" placeholder="localhost">
-            </div>
-            <div class="form-group engine-field" data-engines="mysql,mariadb,postgresql,oracle,mssql,firebird,sybase">
-                <label>端口</label>
-                <input type="number" id="dbPort" value="3306">
-            </div>
-            <div class="form-group engine-field" data-engines="mysql,mariadb,postgresql,oracle,mssql,firebird,sybase">
-                <label>用户名</label>
-                <input type="text" id="dbUser" placeholder="root">
-            </div>
-            <div class="form-group engine-field" data-engines="mysql,mariadb,postgresql,oracle,mssql,firebird,sybase">
-                <label>密码</label>
-                <input type="password" id="dbPass" placeholder="密码">
-            </div>
-            <div class="form-group engine-field" data-engines="mysql,mariadb,postgresql,oracle,mssql,firebird,sybase,sqlite">
-                <label>数据库（可选）</label>
-                <input type="text" id="dbDatabase" placeholder="可稍后选择">
-            </div>
-            <div class="form-group engine-field" data-engines="sqlite">
-                <label>数据库文件路径</label>
-                <input type="text" id="dbSqlitePath" placeholder="/path/to/database.db">
-            </div>
+            <div class="form-group"><label>名称</label><input type="text" id="dbName" placeholder="例如: 生产库"></div>
+            <div class="form-group host-field"><label>主机</label><input type="text" id="dbHost" placeholder="localhost"></div>
+            <div class="form-group host-field"><label>端口</label><input type="number" id="dbPort" value="3306"></div>
+            <div class="form-group host-field"><label>用户名</label><input type="text" id="dbUser" placeholder="root"></div>
+            <div class="form-group host-field"><label>密码</label><input type="password" id="dbPass" placeholder="密码"></div>
+            <div class="form-group db-field"><label>数据库</label><input type="text" id="dbDatabase" placeholder="数据库名"></div>
+            <div class="form-group sqlite-field" style="display:none;"><label>文件路径</label><input type="text" id="dbSqlitePath" placeholder="/path/to/db.sqlite"></div>
             <div class="modal-actions">
                 <button class="cancel" onclick="closeAddModal()">取消</button>
                 <button class="confirm" onclick="testAndSave()">保存</button>
             </div>
         </div>
     </div>
-
+    
     <!-- 编辑连接弹窗 -->
     <div id="editModal" class="modal">
         <div class="modal-content">
             <div class="modal-title">编辑连接</div>
             <input type="hidden" id="editConnId">
-
-            <div class="form-group">
-                <label>连接 URL (SQLAlchemy)</label>
-                <div style="display:flex;gap:8px;">
-                    <input type="text" id="editDbUrl" readonly style="background:#0f3460;color:#4ade80;font-family:monospace;font-size:11px;">
-                    <button onclick="copyDbUrl()" style="padding:10px 14px;background:#0f3460;border:none;border-radius:8px;color:#ccc;cursor:pointer;">复制</button>
-                </div>
-            </div>
-
-            <hr style="border:none;border-top:1px solid #0f3460;margin:16px 0;">
-
-            <div class="form-group">
-                <label>名称</label>
-                <input type="text" id="editDbName">
-            </div>
-            <div class="form-group engine-field" data-engines="mysql,mariadb,postgresql,oracle,mssql,firebird,sybase">
-                <label>主机</label>
-                <input type="text" id="editDbHost">
-            </div>
-            <div class="form-group engine-field" data-engines="mysql,mariadb,postgresql,oracle,mssql,firebird,sybase">
-                <label>端口</label>
-                <input type="number" id="editDbPort">
-            </div>
-            <div class="form-group engine-field" data-engines="mysql,mariadb,postgresql,oracle,mssql,firebird,sybase">
-                <label>用户名</label>
-                <input type="text" id="editDbUser">
-            </div>
-            <div class="form-group engine-field" data-engines="mysql,mariadb,postgresql,oracle,mssql,firebird,sybase">
-                <label>密码</label>
-                <input type="password" id="editDbPass" placeholder="留空保持原密码">
-            </div>
-            <div class="form-group engine-field" data-engines="mysql,mariadb,postgresql,oracle,mssql,firebird,sybase,sqlite">
-                <label>数据库</label>
-                <input type="text" id="editDbDatabase">
-            </div>
-            <div class="form-group engine-field" data-engines="sqlite">
-                <label>数据库文件路径</label>
-                <input type="text" id="editDbSqlitePath">
-            </div>
+            <div class="form-group"><label>SQLAlchemy URL</label><div style="display:flex;gap:8px;"><input type="text" id="editDbUrl" readonly style="background:#0f3460;color:#4ade80;"><button onclick="copyDbUrl()" style="background:#0f3460;border:none;border-radius:8px;color:#ccc;cursor:pointer;padding:0 12px;">复制</button></div></div>
+            <div class="form-group"><label>名称</label><input type="text" id="editDbName"></div>
+            <div class="form-group host-field"><label>主机</label><input type="text" id="editDbHost"></div>
+            <div class="form-group host-field"><label>端口</label><input type="number" id="editDbPort"></div>
+            <div class="form-group host-field"><label>用户名</label><input type="text" id="editDbUser"></div>
+            <div class="form-group host-field"><label>密码</label><input type="password" id="editDbPass" placeholder="留空保持原密码"></div>
+            <div class="form-group db-field"><label>数据库</label><input type="text" id="editDbDatabase"></div>
+            <div class="form-group sqlite-field" style="display:none;"><label>文件路径</label><input type="text" id="editDbSqlitePath"></div>
             <div class="modal-actions">
                 <button class="cancel" onclick="closeEditModal()">取消</button>
                 <button class="confirm" onclick="saveEditConnection()">保存</button>
             </div>
         </div>
     </div>
-
-    <!-- Confirm 弹窗 -->
-    <div id="confirmBackdrop" class="modal-backdrop" onclick="closeConfirmModal()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center;">
-        <div class="modal-content" onclick="event.stopPropagation()" style="background:#1a1a2e;border-radius:12px;max-width:360px;width:90%;">
-            <div class="modal-title" id="confirmTitle" style="font-size:16px;margin-bottom:12px;">确认</div>
-            <div id="confirmMessage" style="color:#888;font-size:14px;margin-bottom:20px;"></div>
+    
+    <!-- Confirm/Alert 弹窗 -->
+    <div id="confirmBackdrop" class="modal" onclick="closeConfirmModal()" style="display:none;background:rgba(0,0,0,0.5);">
+        <div class="modal-content" onclick="event.stopPropagation()" style="max-width:320px;">
+            <div class="modal-title" id="confirmTitle">确认</div>
+            <div id="confirmMessage" style="color:#888;margin-bottom:20px;"></div>
             <div style="display:flex;gap:12px;justify-content:flex-end;">
                 <button onclick="closeConfirmModal()" style="padding:10px 16px;background:#0f3460;border:none;border-radius:8px;color:#ccc;cursor:pointer;">取消</button>
                 <button id="confirmBtn" onclick="performConfirm()" style="padding:10px 16px;border:none;border-radius:8px;color:#fff;cursor:pointer;">确认</button>
             </div>
         </div>
     </div>
-
-    <!-- Alert 弹窗 -->
-    <div id="alertBackdrop" class="modal-backdrop" onclick="closeAlertModal()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1001;align-items:center;justify-content:center;">
-        <div class="modal-content" onclick="event.stopPropagation()" style="background:#1a1a2e;border-radius:12px;max-width:360px;width:90%;padding:20px;">
-            <div id="alertTitle" style="font-size:16px;margin-bottom:8px;font-weight:500;"></div>
-            <div id="alertMessage" style="color:#888;font-size:14px;"></div>
-        </div>
-    </div>
-
+    
     <script>
-        let connections = [];
-        let currentConn = null;
-        let currentDb = null;
-        let currentTable = null;
-        let expandedDatabases = [];
-        let sqlHistory = [];
-        let lastSql = '';
-
-        // 分页相关
-        let currentPage = 1;
-        let totalPages = 1;
-        let pageSize = 200;
-        let allResults = []; // 存储所有查询结果用于分页
-
-        // 从服务端加载状态
-        async function loadStateFromServer() {
-            try {
-                const r = await fetch('/api/db/state');
-                const data = await r.json();
-                if (data.success && data.data) {
-                    return data.data;
-                }
-            } catch (e) { console.error('Load state failed:', e); }
-            return {};
-        }
-
-        // 保存状态到服务端
-        async function saveStateToServer() {
-            const state = {
-                connId: currentConn?.id || null,
-                dbName: currentDb || null,
-                tableName: currentTable || null,
-                expandedDatabases: expandedDatabases,
-                lastSql: lastSql,
-                sqlHistory: sqlHistory
-            };
-            try {
-                await fetch('/api/db/state', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify(state)
-                });
-            } catch (e) { console.error('Save state failed:', e); }
-        }
-
-        // 本地 SQL 历史
-        function loadLocalSqlHistory() {
-            sqlHistory = JSON.parse(localStorage.getItem('db_sql_history') || '[]');
-        }
-
-        function saveLocalSqlHistory() {
-            localStorage.setItem('db_sql_history', JSON.stringify(sqlHistory));
-        }
-
-        // 保存 SQL 到历史
-        function addSqlToHistory(sql) {
-            if (!sql || sql.trim().length < 3) return;
-            sqlHistory = sqlHistory.filter(s => s !== sql);
-            sqlHistory.unshift(sql);
-            sqlHistory = sqlHistory.slice(0, 50);
-            saveLocalSqlHistory();
-            saveStateToServer();
-        }
-
-        // 清空编辑器
-        let isRefreshing = false;
-        let lastScrollTop = 0;
-        let pullStartY = 0;
-        let pullDistance = 0;
-
-        function initPullRefresh() {
-            // 监听滚动事件
-            window.addEventListener('scroll', async () => {
-                const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-
-                // 在顶部且向下拉时触发
-                if (scrollTop === 0 && lastScrollTop > 0 && !isRefreshing && currentConn) {
-                    isRefreshing = true;
-                    showStatus('刷新中...', false);
-
-                    if (currentDb) {
-                        await loadDatabases();
-                    } else {
-                        await loadConnections();
-                    }
-
-                    setTimeout(() => {
-                        isRefreshing = false;
-                        showStatus('已刷新', false);
-                    }, 500);
-                }
-
-                lastScrollTop = scrollTop <= 0 ? 0 : scrollTop;
-            }, { passive: true });
-        }
-
-        // SQL 编辑器开关
-        function toggleSqlEditor() {
-            const panel = $('sqlEditorPanel');
-            const toggle = $('sqlToggle');
-            panel.classList.toggle('open');
-            toggle.classList.toggle('open');
-        }
-
-        // 抽屉控制
-        function toggleDrawer() {
-            $('drawer').classList.toggle('open');
-            $('drawerBackdrop').classList.toggle('show');
-        }
-
-        function closeDrawer() {
-            $('drawer').classList.remove('open');
-            $('drawerBackdrop').classList.remove('show');
-        }
-
-        // Tab 切换
-        function switchTab(tab) {
-            document.querySelectorAll('.drawer-tab').forEach(t => t.classList.remove('active'));
-            $('tab' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('active');
-            $('connectionsPanel').style.display = tab === 'connections' ? 'block' : 'none';
-            $('databasesPanel').style.display = tab === 'databases' ? 'block' : 'none';
-            if (tab === 'databases' && currentConn) loadDatabases();
-        }
-
         const $ = id => document.getElementById(id);
-
-        // 弹窗函数（内联副本，避免 globals.js 加载延迟）
+        let connections = [], currentConn = null, currentDb = null, currentTable = null;
+        let allResults = [], currentPage = 1, totalPages = 1, pageSize = 200;
         let __confirmCallback = null;
-        function showConfirm(title, message, onConfirm, danger) {
-            const b = document.getElementById('confirmBackdrop');
-            if (b) {
-                document.getElementById('confirmTitle').textContent = title;
-                document.getElementById('confirmMessage').textContent = message;
-                __confirmCallback = onConfirm;
-                const icon = document.getElementById('confirmIcon');
-                const btn = document.getElementById('confirmBtn');
-                if (icon) icon.className = 'gh-dialog-icon ' + (danger ? 'danger' : 'warning');
-                if (btn) btn.className = 'gh-btn ' + (danger ? 'gh-btn-danger' : 'gh-btn-primary');
-                if (btn) btn.textContent = danger ? '删除' : '确认';
-                b.style.display = 'flex';
-            }
-        }
-        function performConfirm() {
-            if (typeof __confirmCallback === 'function') __confirmCallback();
-            closeConfirmModal();
-        }
-        function closeConfirmModal() {
-            const b = document.getElementById('confirmBackdrop');
-            if (b) b.style.display = 'none';
-        }
-        function showAlert(title, message, type) {
-            const icon = document.getElementById('alertIcon');
-            const box = document.getElementById('alertBox');
-            if (icon) icon.className = 'gh-dialog-icon ' + (type || 'info');
-            if (box) box.className = 'gh-alert ' + (type || 'info');
-            document.getElementById('alertTitle').textContent = title || '';
-            document.getElementById('alertMessage').textContent = message || '';
-            const b = document.getElementById('alertBackdrop');
-            if (b) b.style.display = 'flex';
-            setTimeout(closeAlertModal, 2500);
-        }
-        function closeAlertModal() {
-            const b = document.getElementById('alertBackdrop');
-            if (b) b.style.display = 'none';
-        }
-        function copyToClipboard(text) {
-            if (typeof clipboard !== 'undefined' && clipboard.copy) {
-                clipboard.copy(text).then(() => showStatus('已复制到剪贴板', false)).catch(() => fallbackCopy(text));
-            } else {
-                fallbackCopy(text);
-            }
-        }
-        function fallbackCopy(text) {
-            const ta = document.createElement('textarea');
-            ta.value = text;
-            ta.style.position = 'fixed';
-            ta.style.opacity = '0';
-            document.body.appendChild(ta);
-            ta.select();
-            try {
-                document.execCommand('copy');
-                showStatus('已复制到剪贴板', false);
-            } catch (e) {
-                showAlert('复制失败', '请手动复制', 'error');
-            }
-            document.body.removeChild(ta);
-        }
-
-        function showStatus(msg, error) {
-            const bar = $('statusBar');
-            bar.innerHTML = `<span class="${error ? 'error' : 'success'}">${msg}</span>`;
-        }
-
-        function updateBreadcrumb() {
-            let html = '';
-            if (currentConn) {
-                html += `<span>${currentConn.name}</span>`;
-                if (currentDb) {
-                    html += ` / <span>${currentDb}</span>`;
-                    if (currentTable) html += ` / <span>${currentTable}</span>`;
-                }
-            } else {
-                html = '<span>未选择</span>';
-            }
-            $('breadcrumb').innerHTML = html;
-            saveStateToServer();
-        }
-
+        
+        // 引擎配置
+        const ENGINE_CONFIG = {
+            mysql: { port: 3306, icon: '🐬' }, postgresql: { port: 5432, icon: '🐘' },
+            sqlite: { port: 0, icon: '📄' }, mariadb: { port: 3306, icon: '🐬' },
+            oracle: { port: 1521, icon: '🔴' }, mssql: { port: 1433, icon: '🪟' }
+        };
+        
+        // 加载连接
         async function loadConnections() {
-            // 加载本地 SQL 历史
-            loadLocalSqlHistory();
-
-            try {
-                const r = await fetch('/api/db/connections');
-                const data = await r.json();
-                if (data.success) {
-                    connections = data.data?.connections || [];
-                    renderConnections();
-                    // 恢复状态
-                    restoreSession();
-                }
-            } catch (e) { console.error(e); }
-        }
-
-        // 恢复会话
-        async function restoreSession() {
-            const state = await loadStateFromServer();
-            if (!state || !state.connId) return;
-
-            const conn = connections.find(c => c.id === state.connId);
-            if (conn) {
-                currentConn = conn;
-                // 恢复展开的数据库
-                expandedDatabases = state.expandedDatabases || [];
-                // 恢复 SQL 历史
-                sqlHistory = state.sqlHistory || [];
-                lastSql = state.lastSql || '';
-                if (lastSql) $('sqlEditor').value = lastSql;
-
+            const r = await fetch('/api/db/connections');
+            const data = await r.json();
+            if (data.success) {
+                connections = data.data?.connections || [];
                 renderConnections();
-                updateBreadcrumb();
-                await loadDatabases();
-                switchTab('databases');
-
-                // 恢复展开的数据库和选中的表
-                for (const dbName of expandedDatabases) {
-                    const tablesEl = $('tables-' + dbName);
-                    if (tablesEl) {
-                        tablesEl.style.display = 'block';
-                        $('db-' + dbName)?.classList.add('active');
-                    }
-                }
-
-                if (state.dbName) {
-                    currentDb = state.dbName;
-                    updateBreadcrumb();
-
-                    // 恢复表选择
-                    if (state.tableName) {
-                        // 等待表格加载完成后再高亮
-                        setTimeout(() => {
-                            const tableEl = $('table-' + state.tableName);
-                            if (tableEl) {
-                                currentTable = state.tableName;
-                                tableEl.classList.add('active');
-                                // 展开编辑器
-                                $('sqlEditorPanel').classList.add('open');
-                                $('sqlToggle').classList.add('open');
-                            }
-                        }, 800);
-                    }
-                }
             }
         }
-
+        
+        // 渲染连接列表
         function renderConnections() {
             let html = '';
             connections.forEach(c => {
+                const icon = ENGINE_CONFIG[c.engine || 'mysql']?.icon || '🗄️';
                 const active = currentConn?.id === c.id ? 'active' : '';
-                const engineIcon = {'mysql': '🐬', 'postgresql': '🐘', 'sqlite': '📄', 'mariadb': '🐬', 'oracle': '🔴', 'mssql': '🪟', 'firebird': '🔥', 'sybase': '📊'}[c.engine || 'mysql'] || '🗄️';
-                html += `
-                    <div class="conn-item ${active}" onclick="selectConnection('${c.id}')">
-                        <div class="name">${engineIcon} ${c.name}</div>
-                        <div class="info">${c.host ? c.host + ':' + c.port : c.database} | ${c.user || '-'}</div>
-                        <div class="actions">
-                            <button onclick="event.stopPropagation(); openEditModal('${c.id}')">编辑</button>
-                            <button onclick="event.stopPropagation(); deleteConnection('${c.id}')">删除</button>
-                        </div>
+                html += `<div class="conn-item ${active}" onclick="selectConnection('${c.id}')">
+                    <span style="font-size:16px;">${icon}</span>
+                    <span class="name">${c.name}</span>
+                    <div class="actions">
+                        <button onclick="event.stopPropagation();openEditModal('${c.id}')">编辑</button>
+                        <button onclick="event.stopPropagation();deleteConnection('${c.id}')">删除</button>
                     </div>
-                `;
+                </div>`;
             });
             $('connList').innerHTML = html || '<div class="results-empty">暂无连接</div>';
         }
-
+        
+        // 点击连接
         async function selectConnection(id) {
             currentConn = connections.find(c => c.id === id);
-            currentDb = null;
-            currentTable = null;
-            expandedDatabases = [];
+            currentDb = null; currentTable = null;
             renderConnections();
-            updateBreadcrumb();
             await loadDatabases();
-            switchTab('databases');
-            saveStateToServer();
+            saveState();
         }
-
+        
+        // 加载数据库列表
         async function loadDatabases() {
-            if (!currentConn) return;
-            $('dbTree').innerHTML = '<div class="loading"><div class="spinner"></div>加载中...</div>';
+            $('connList').innerHTML = '<div class="tree-loading"><div class="spinner"></div>加载中...</div>';
             try {
                 const r = await fetch(`/api/db/${currentConn.id}/databases`);
                 const data = await r.json();
-                if (data.success) renderDatabases(data.data?.databases || []);
-            } catch (e) { $('dbTree').innerHTML = '<div class="results-empty">加载失败</div>'; }
+                if (data.success) {
+                    renderDatabases(data.data?.databases || []);
+                }
+            } catch (e) { $('connList').innerHTML = '<div class="results-empty">加载失败</div>'; }
         }
-
+        
+        // 渲染数据库列表
         function renderDatabases(dbs) {
-            let html = '';
+            let html = `<div class="tree-item" onclick="loadConnections()">← 返回连接</div>`;
             dbs.forEach(db => {
                 const active = currentDb === db ? 'active' : '';
-                html += `
-                    <div class="db-group">
-                        <div class="db-title">${db}</div>
-                        <div class="db-item ${active}" onclick="selectDatabase('${db}')" id="db-${db}">
-                            <span>📁</span>
-                            <span class="name">${db}</span>
-                        </div>
-                        <div class="table-tree" id="tables-${db}" style="display:none;"></div>
-                    </div>
-                `;
+                html += `<div class="tree-item ${active}" onclick="selectDatabase('${db}')">
+                    <span class="icon">📁</span><span class="name">${db}</span>
+                </div>`;
             });
-            $('dbTree').innerHTML = html || '<div class="results-empty">暂无数据库</div>';
+            $('connList').innerHTML = html;
+            updateBreadcrumb();
         }
-
-        async function selectDatabase(dbName, shouldSave = true) {
-            // 如果点击已展开的数据库，收起表格列表
-            if (currentDb === dbName && shouldSave) {
-                const tablesEl = $('tables-' + dbName);
-                if (tablesEl && tablesEl.style.display !== 'none') {
-                    tablesEl.style.display = 'none';
-                    $('db-' + dbName)?.classList.remove('active');
-                    currentDb = null;
-                    currentTable = null;
-                    expandedDatabases = expandedDatabases.filter(d => d !== dbName);
-                    updateBreadcrumb();
-                    if (shouldSave) saveStateToServer();
-                    return;
-                }
-            }
-
-            currentDb = dbName;
+        
+        // 点击数据库
+        async function selectDatabase(db) {
+            currentDb = db;
             currentTable = null;
-            // 添加到展开列表
-            if (!expandedDatabases.includes(dbName)) {
-                expandedDatabases.push(dbName);
-            }
-            updateBreadcrumb();
-            document.querySelectorAll('.db-item').forEach(el => el.classList.remove('active'));
-            $('db-' + dbName)?.classList.add('active');
-            document.querySelectorAll('.table-tree').forEach(el => el.style.display = 'none');
-            const tablesEl = $('tables-' + dbName);
-            tablesEl.style.display = 'block';
-            await loadTables(dbName, tablesEl);
-            if (shouldSave) saveStateToServer();
+            renderDatabases((await (await fetch(`/api/db/${currentConn.id}/databases`)).json()).data?.databases || []);
+            await loadTables(db);
         }
-
-        async function loadTables(dbName, container) {
-            container.innerHTML = '<div class="loading"><div class="spinner"></div>加载中...</div>';
+        
+        // 加载表列表
+        async function loadTables(db) {
+            $('connList').innerHTML = '<div class="tree-loading"><div class="spinner"></div>加载表...</div>';
             try {
-                const r = await fetch(`/api/db/${currentConn.id}/tables?database=${encodeURIComponent(dbName)}`);
+                const r = await fetch(`/api/db/${currentConn.id}/databases/${db}/tables`);
                 const data = await r.json();
-                if (data.success) renderTables(data.data?.tables || [], container);
-            } catch (e) { container.innerHTML = '<div class="results-empty">加载失败</div>'; }
+                if (data.success) {
+                    renderTables(db, data.data?.tables || []);
+                }
+            } catch (e) { $('connList').innerHTML = '<div class="results-empty">加载失败</div>'; }
         }
-
-        function renderTables(tables, container) {
-            let html = tables.length === 0
-                ? '<div class="results-empty" style="padding:8px;font-size:11px;">无表</div>'
-                : tables.map(t => `
-                    <div class="table-item" onclick="selectTable('${t.name}')" id="table-${t.name}">
-                        <span>📋</span>
-                        <span class="name">${t.name}</span>
-                        <span class="rows">${parseInt(t.rows||0).toLocaleString()}</span>
-                    </div>
-                `).join('');
-            container.innerHTML = html;
+        
+        // 渲染表列表
+        function renderTables(db, tables) {
+            let html = `<div class="tree-item" onclick="loadDatabases()">← ${db}</div>`;
+            tables.forEach(t => {
+                html += `<div class="tree-item" onclick="selectTable('${t.name}')">
+                    <span class="icon">📋</span><span class="name">${t.name}</span>
+                </div>`;
+            });
+            $('connList').innerHTML = html || '<div class="results-empty">无表</div>';
         }
-
-        async function selectTable(tableName) {
-            currentTable = tableName;
+        
+        // 点击表
+        async function selectTable(table) {
+            currentTable = table;
+            $('connList').innerHTML = `<div class="tree-item" onclick="loadTables('${currentDb}')">← ${currentDb}</div>` +
+                `<div class="tree-item active"><span class="icon">📋</span><span class="name">${table}</span></div>`;
             updateBreadcrumb();
-            document.querySelectorAll('.table-item').forEach(el => el.classList.remove('active'));
-            $('table-' + tableName)?.classList.add('active');
-
-            // 关闭侧边栏
-            closeDrawer();
-
-            // 确保 SQL 编辑器展开
+            
+            // 执行查询
+            const sql = `SELECT * FROM \`${table}\` LIMIT 200`;
+            $('sqlEditor').value = sql;
             $('sqlEditorPanel').classList.add('open');
             $('sqlToggle').classList.add('open');
-
-            const sql = `SELECT * FROM \`${tableName}\` LIMIT 100`;
-            $('sqlEditor').value = sql;
-            lastSql = sql;
-
-            // 切换到数据 tab
-            switchResultsTab('results');
-
             await executeQuery();
-
-            // 预加载表结构
-            loadTableSchema();
-
-            saveStateToServer();
         }
-
+        
+        function updateBreadcrumb() {
+            let html = '';
+            if (currentConn) html += `<span>${currentConn.name}</span>`;
+            if (currentDb) html += ` / <span>${currentDb}</span>`;
+            if (currentTable) html += ` / <span>${currentTable}</span>`;
+            $('breadcrumb').innerHTML = html || '<span>未选择</span>';
+        }
+        
+        // 抽屉控制
+        function toggleDrawer() { $('drawer').classList.toggle('open'); $('drawerBackdrop').classList.toggle('show'); }
+        function closeDrawer() { $('drawer').classList.remove('open'); $('drawerBackdrop').classList.remove('show'); }
+        
+        // SQL 编辑器
+        function toggleSqlEditor() { $('sqlEditorPanel').classList.toggle('open'); $('sqlToggle').classList.toggle('open'); }
+        function clearEditor() { $('sqlEditor').value = ''; }
+        
+        // 执行查询
         async function executeQuery() {
-            if (!currentConn) { showStatus('请先选择连接', true); return; }
             const sql = $('sqlEditor').value.trim();
             if (!sql) return;
             $('resultsContent').innerHTML = '<div class="loading"><div class="spinner"></div>执行中...</div>';
-
-            // 保存 SQL 到历史
-            addSqlToHistory(sql);
-            lastSql = sql;
-
+            
             try {
                 const r = await fetch('/api/db/execute', {
                     method: 'POST', headers: {'Content-Type': 'application/json'},
@@ -984,456 +516,202 @@
                 });
                 const data = await r.json();
                 if (data.success) {
-                    allResults = data.data.rows || [];
+                    allResults = data.data?.rows || [];
                     currentPage = 1;
                     totalPages = Math.ceil(allResults.length / pageSize);
                     renderResults(data.data.headers || [], getPageData());
-                    showStatus(`成功，返回 ${allResults.length} 行`, false);
+                    showStatus(`成功 ${allResults.length} 行`, false);
                     $('resultsToolbar').style.display = allResults.length > pageSize ? 'flex' : 'none';
                 } else {
                     showStatus('失败: ' + data.message, true);
-                    allResults = [];
                     $('resultsContent').innerHTML = `<div class="results-empty" style="color:#ef4444;">${data.message}</div>`;
                     $('resultsToolbar').style.display = 'none';
                 }
             } catch (e) {
                 showStatus('失败: ' + e.message, true);
-                allResults = [];
                 $('resultsContent').innerHTML = `<div class="results-empty" style="color:#ef4444;">${e.message}</div>`;
-                $('resultsToolbar').style.display = 'none';
             }
         }
-
+        
         function getPageData() {
             const start = (currentPage - 1) * pageSize;
             return allResults.slice(start, start + pageSize);
         }
-
+        
         function goToPage(page) {
             if (page < 1 || page > totalPages) return;
             currentPage = page;
             const headers = $('resultsContent').querySelectorAll('thead th');
             const headerArr = Array.from(headers).map(th => th.textContent);
             renderResults(headerArr, getPageData());
-            updatePagination();
         }
-
-        function updatePagination() {
-            const info = $('pageInfo');
-            if (info) info.textContent = `${currentPage} / ${totalPages}`;
-        }
-
+        
         function renderResults(headers, rows) {
-            $('resultsContent').innerHTML = rows.length === 0
-                ? '<div class="results-empty">无数据</div>'
-                : `<div class="data-table-wrapper"><table class="data-table" id="resultsTable"><thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>${rows.map((row, ri) => `<tr>${row.map((cell, ci) => `<td onclick="editCell(this, ${(currentPage-1)*pageSize + ri}, '${headers[ci]}')" title="双击编辑">${cell||''}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
-            updatePagination();
+            $('resultsContent').innerHTML = rows.length === 0 
+                ? '<div class="results-empty">无数据</div>' 
+                : `<div class="data-table-wrapper"><table class="data-table"><thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>${rows.map(row => `<tr>${row.map(cell => `<td>${cell||''}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+            $('pageInfo').textContent = `${currentPage} / ${totalPages}`;
         }
-
-        // 单元格编辑
-        function editCell(td, rowIndex, colName) {
-            if (td.classList.contains('editing')) return;
-            const original = td.textContent;
-            td.classList.add('editing');
-            td.innerHTML = `<input type="text" value="${original.replace(/"/g, '&quot;')}" onblur="saveCell(this, ${rowIndex}, '${colName}')" onkeydown="if(event.key==='Enter'){this.blur()}"/>`;
-            td.querySelector('input').focus();
+        
+        // 快捷查询
+        function quickQuery(sql) {
+            if (!currentConn) { showStatus('请先选择连接', true); return; }
+            $('sqlEditor').value = sql;
+            $('sqlEditorPanel').classList.add('open');
+            $('sqlToggle').classList.add('open');
+            executeQuery();
         }
-
-        function saveCell(input, rowIndex, colName) {
-            const td = input.parentElement;
-            td.classList.remove('editing');
-            td.textContent = input.value;
-            showStatus('单元格编辑功能需要后端支持', false);
-        }
-
-        // 导出数据
+        
+        // 导出
         function exportData(format) {
             if (allResults.length === 0) { showStatus('无可导出数据', true); return; }
             const headers = $('resultsContent').querySelectorAll('thead th');
             const headerArr = Array.from(headers).map(th => th.textContent);
-
             let content = '', filename = `export_${Date.now()}`;
-
+            
             if (format === 'csv') {
                 content = headerArr.map(h => `"${h}"`).join(',') + '\n';
-                allResults.forEach(row => {
-                    content += row.map(cell => `"${(cell||'').replace(/"/g, '""')}"`).join(',') + '\n';
-                });
+                allResults.forEach(row => content += row.map(cell => `"${(cell||'').replace(/"/g, '""')}"`).join(',') + '\n');
                 filename += '.csv';
             } else if (format === 'xls') {
-                content = '<html><meta charset="utf-8"><table border="1"><tr>' +
-                    headerArr.map(h => `<th style="background:#eee;padding:4px;">${h}</th>`).join('') + '</tr>' +
-                    allResults.map(row => '<tr>' + row.map(cell => `<td style="padding:4px;">${cell||''}</td>`).join('') + '</tr>').join('') +
-                    '</table></html>';
+                content = '<html><meta charset="utf-8"><table border="1"><tr>' + headerArr.map(h => `<th style="background:#eee;padding:4px;">${h}</th>`).join('') + '</tr>' + allResults.map(row => '<tr>' + row.map(cell => `<td style="padding:4px;">${cell||''}</td>`).join('') + '</tr>').join('') + '</table></html>';
                 filename += '.xls';
             } else if (format === 'sql') {
                 const table = currentTable || 'table_name';
                 content = `-- ${table}\n`;
                 allResults.forEach(row => {
-                    const values = row.map(cell => {
-                        if (cell === null) return 'NULL';
-                        if (typeof cell === 'number') return cell;
-                        return `'${String(cell).replace(/'/g, "''")}'`;
-                    }).join(', ');
-                    content += `INSERT INTO \`${table}\` VALUES (${values});\n`;
+                    const vals = row.map(cell => cell === null ? 'NULL' : typeof cell === 'number' ? cell : `'${String(cell).replace(/'/g, "''")}'`).join(', ');
+                    content += `INSERT INTO \`${table}\` VALUES (${vals});\n`;
                 });
                 filename += '.sql';
             }
-
-            // 下载
-            const blob = new Blob([content], {type: format === 'csv' ? 'text/csv' : format === 'xls' ? 'application/vnd.ms-excel' : 'text/plain'});
-            const url = URL.createObjectURL(blob);
+            const blob = new Blob([content], {type: format === 'csv' ? 'text/csv' : 'application/vnd.ms-excel'});
             const a = document.createElement('a');
-            a.href = url;
+            a.href = URL.createObjectURL(blob);
             a.download = filename;
             a.click();
-            URL.revokeObjectURL(url);
-            showStatus(`已导出 ${allResults.length} 行到 ${filename}`, false);
+            URL.revokeObjectURL(blob);
+            showStatus(`已导出 ${allResults.length} 行`, false);
         }
-
-        // 切换结果 tabs
+        
+        // 切换 Tab
         function switchResultsTab(tab) {
             document.querySelectorAll('.results-tab').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.results-panel').forEach(p => p.classList.remove('active'));
-
-            const tabEl = $('tab' + tab.charAt(0).toUpperCase() + tab.slice(1));
-            const panelEl = document.getElementById(tab + 'Panel');
-
-            if (tabEl) tabEl.classList.add('active');
-            if (panelEl) panelEl.classList.add('active');
-
-            // 如果切换到结构 tab 且有选中的表，加载结构
-            if (tab === 'schema' && currentTable) {
-                const schemaContent = $('schemaContent');
-                if (schemaContent && !schemaContent.querySelector('.schema-table')) {
-                    loadTableSchema();
-                }
-            }
+            $('tab' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('active');
+            $('resultsContent').style.display = tab === 'results' ? 'block' : 'none';
+            $('schemaPanel').style.display = tab === 'schema' ? 'block' : 'none';
+            if (tab === 'schema' && currentTable) loadTableSchema();
         }
-
-        // 加载表结构
+        
         async function loadTableSchema() {
             if (!currentConn || !currentTable) return;
-
-            $('schemaContent').innerHTML = '<div class="loading"><div class="spinner"></div>加载中...</div>';
-
+            $('schemaPanel').innerHTML = '<div class="loading"><div class="spinner"></div>加载中...</div>';
             try {
                 const r = await fetch(`/api/db/${currentConn.id}/table/${currentTable}/schema`);
                 const data = await r.json();
-
                 if (data.success) {
                     const cols = data.data?.columns || [];
-                    const idxs = data.data?.indexes || [];
-
-                    if (cols.length === 0) {
-                        $('schemaContent').innerHTML = '<div class="results-empty">无结构信息</div>';
-                        return;
-                    }
-
-                    let html = '<div style="padding:8px;font-size:11px;color:#888;">' +
-                               `${currentTable} - ${cols.length} 列, ${idxs.length} 索引</div>`;
-                    html += '<table class="schema-table"><thead><tr><th>列名</th><th>类型</th><th>可空</th><th>键</th><th>默认值</th></tr></thead><tbody>';
-
-                    cols.forEach(c => {
-                        html += `<tr>
-                            <td style="color:#58a6ff;font-weight:500;">${c.field}</td>
-                            <td><span class="type-tag">${c.type}</span></td>
-                            <td>${c.null === 'YES' ? '✓' : '✗'}</td>
-                            <td>${c.key ? '<span class="key-tag">KEY</span>' : ''}</td>
-                            <td>${c.default || '-'}</td>
-                        </tr>`;
-                    });
-                    html += '</tbody></table>';
-
-                    if (idxs.length > 0) {
-                        html += '<div style="padding:12px 8px 8px;font-size:11px;color:#888;">索引</div>';
-                        html += '<table class="schema-table"><thead><tr><th>索引名</th><th>列</th><th>唯一</th></tr></thead><tbody>';
-                        idxs.forEach(i => {
-                            html += `<tr><td>${i.name}</td><td>${i.columns}</td><td>${i.unique ? '是' : '否'}</td></tr>`;
-                        });
-                        html += '</tbody></table>';
-                    }
-
-                    $('schemaContent').innerHTML = html;
-                } else {
-                    $('schemaContent').innerHTML = '<div class="results-empty">' + (data.message || '加载失败') + '</div>';
+                    $('schemaPanel').innerHTML = cols.length ? `<table class="data-table"><thead><tr><th>列名</th><th>类型</th><th>可空</th><th>键</th></tr></thead><tbody>` + 
+                        cols.map(c => `<tr><td>${c.field}</td><td>${c.type}</td><td>${c.null === 'YES' ? '✓' : '✗'}</td><td>${c.key || ''}</td></tr>`).join('') + '</tbody></table>' : '<div class="results-empty">无结构</div>';
                 }
-            } catch (e) {
-                $('schemaContent').innerHTML = '<div class="results-empty">' + e.message + '</div>';
-            }
-        }
-
-        function quickQuery(sql) {
-            if (!currentConn) { showStatus('请先选择连接', true); return; }
-            $('sqlEditor').value = sql;
-            switchResultsTab('results');
-            executeQuery();
-        }
-
-        function clearEditor() { $('sqlEditor').value = ''; }
-
-        // 引擎配置映射
-        const ENGINE_CONFIG = {
-            mysql: { port: 3306, urlPrefix: 'mysql+pymysql' },
-            postgresql: { port: 5432, urlPrefix: 'postgresql' },
-            mariadb: { port: 3306, urlPrefix: 'mariadb+pymysql' },
-            oracle: { port: 1521, urlPrefix: 'oracle' },
-            mssql: { port: 1433, urlPrefix: 'mssql+pymysql' },
-            sqlite: { port: null, urlPrefix: 'sqlite' },
-            firebird: { port: 3050, urlPrefix: 'firebird' },
-            sybase: { port: 5000, urlPrefix: 'sybase' }
-        };
-
-        // 切换引擎时更新字段显示
-        function onEngineChange(isEdit = false) {
-            const prefix = isEdit ? 'edit' : '';
-            const engine = $(prefix + 'dbEngine')?.value || 'mysql';
-            const config = ENGINE_CONFIG[engine] || ENGINE_CONFIG.mysql;
-            
-            // 更新端口默认值
-            if (config.port && $(prefix + 'dbPort')) {
-                $(prefix + 'dbPort').value = config.port;
-            }
-            
-            // 显示/隐藏字段
-            document.querySelectorAll(`.engine-field`).forEach(el => {
-                const engines = el.dataset.engines?.split(',') || [];
-                if (engines.includes(engine)) {
-                    el.style.display = 'block';
-                } else {
-                    el.style.display = 'none';
-                }
-            });
-        }
-
-        // 生成 SQLAlchemy URL
-        function buildSqlalchemyUrl(connData = null, isEdit = false) {
-            const prefix = isEdit ? 'edit' : '';
-            const engine = $(prefix + 'dbEngine')?.value || connData?.engine || 'mysql';
-            const config = ENGINE_CONFIG[engine];
-            
-            if (engine === 'sqlite') {
-                const path = isEdit ? $(prefix + 'dbSqlitePath')?.value : (connData?.database || '');
-                return `sqlite:///${path}`;
-            }
-            
-            const host = isEdit ? $(prefix + 'dbHost')?.value : (connData?.host || '');
-            const port = isEdit ? $(prefix + 'dbPort')?.value : (connData?.port || config.port);
-            const user = isEdit ? $(prefix + 'dbUser')?.value : (connData?.user || '');
-            const pass = isEdit ? $(prefix + 'dbPass')?.value : (connData?.password || '');
-            const database = isEdit ? $(prefix + 'dbDatabase')?.value : (connData?.database || '');
-            
-            const auth = user ? (pass ? `${encodeURIComponent(user)}:${encodeURIComponent(pass)}@` : `${encodeURIComponent(user)}@`) : '';
-            return `${config.urlPrefix}://${auth}${host}:${port}/${database}`;
-        }
-
-        // 复制到剪贴板
-        function copyToClipboard(text) {
-            if (typeof clipboard !== 'undefined' && clipboard.copy) {
-                clipboard.copy(text).then(() => {
-                    showStatus('已复制到剪贴板', false);
-                }).catch(() => {
-                    fallbackCopy(text);
-                });
-            } else {
-                fallbackCopy(text);
-            }
+            } catch (e) { $('schemaPanel').innerHTML = '<div class="results-empty">加载失败</div>'; }
         }
         
+        // 弹窗函数
+        function showStatus(msg, error) { $('statusBar').innerHTML = `<span class="${error ? 'error' : 'success'}">${msg}</span>`; }
+        
+        function showConfirm(title, msg, onConfirm, danger) {
+            $('confirmTitle').textContent = title;
+            $('confirmMessage').textContent = msg;
+            __confirmCallback = onConfirm;
+            $('confirmBtn').className = 'confirm' + (danger ? ' danger' : '');
+            $('confirmBtn').textContent = danger ? '删除' : '确认';
+            $('confirmBackdrop').style.display = 'flex';
+        }
+        function performConfirm() { if (__confirmCallback) __confirmCallback(); closeConfirmModal(); }
+        function closeConfirmModal() { $('confirmBackdrop').style.display = 'none'; }
+        
+        function copyToClipboard(text) {
+            if (typeof clipboard !== 'undefined' && clipboard.copy) clipboard.copy(text).then(() => showStatus('已复制', false)).catch(() => fallbackCopy(text));
+            else fallbackCopy(text);
+        }
         function fallbackCopy(text) {
-            const textarea = document.createElement('textarea');
-            textarea.value = text;
-            textarea.style.position = 'fixed';
-            textarea.style.opacity = '0';
-            document.body.appendChild(textarea);
-            textarea.select();
-            try {
-                document.execCommand('copy');
-                showStatus('已复制到剪贴板', false);
-            } catch (e) {
-                showAlert('复制失败', '请手动复制', 'error');
-            }
-            document.body.removeChild(textarea);
+            const ta = document.createElement('textarea');
+            ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+            document.body.appendChild(ta);
+            ta.select();
+            try { document.execCommand('copy'); showStatus('已复制', false); } catch (e) { showStatus('复制失败', true); }
+            document.body.removeChild(ta);
         }
-
-        // 解析 URI
-        function parseUri() {
-            const uri = $('dbUri').value.trim();
-            if (!uri) return;
-
-            // 解析引擎类型
-            let engine = 'mysql';
-            let cleanUri = uri;
-            const engineMatch = uri.match(/^(\w+):\/\//);
-            if (engineMatch) {
-                const type = engineMatch[1].toLowerCase();
-                const engineMap = {
-                    'mysql': 'mysql', 'postgres': 'postgresql', 'postgresql': 'postgresql',
-                    'sqlite': 'sqlite', 'mariadb': 'mariadb', 'oracle': 'oracle',
-                    'mssql': 'mssql', 'firebird': 'firebird', 'sybase': 'sybase'
-                };
-                engine = engineMap[type] || type;
-                $('dbEngine').value = engine;
-                onEngineChange();
-            }
-
-            // 解析连接信息
-            const regex = /^(mysql|postgres|postgresql|mariadb|oracle|mssql|sqlite|firebird|sybase):\/\/([^:]+):([^@]+)@([^:]+):(\d+)\/([^/?]+)/;
-            const match = uri.match(regex);
-
-            if (match) {
-                $('dbHost').value = match[4];
-                $('dbPort').value = match[5];
-                $('dbUser').value = match[2];
-                $('dbPass').value = match[3];
-                $('dbDatabase').value = match[6];
-            } else {
-                const simpleMatch = uri.match(/^(mysql|postgres|postgresql|mariadb|oracle|mssql|sqlite|firebird|sybase):\/\/([^@]+)@([^:/]+):?(\d+)?:?\/([^/?]+)?/);
-                if (simpleMatch) {
-                    $('dbHost').value = simpleMatch[3];
-                    if (simpleMatch[4]) $('dbPort').value = simpleMatch[4];
-                    const creds = simpleMatch[2].split(':');
-                    if (creds[0]) $('dbUser').value = creds[0];
-                    if (creds[1]) $('dbPass').value = creds[1];
-                    if (simpleMatch[5]) $('dbDatabase').value = simpleMatch[5];
-                }
-            }
-
-            if (!$('dbName').value && $('dbHost').value) {
-                $('dbName').value = $('dbHost').value;
-            }
-            showStatus('URI 解析成功', false);
-        }
-
-        function openAddModal() { 
-            $('addModal').classList.add('show'); 
-            $('dbEngine').value = 'mysql';
-            onEngineChange();
+        
+        // 添加连接
+        const ENGINE_OPTS = {mysql:'MySQL',postgresql:'PostgreSQL',sqlite:'SQLite',mariadb:'MariaDB',oracle:'Oracle',mssql:'SQL Server'};
+        function openAddModal() {
+            $('dbEngine').value = 'mysql'; $('dbName').value = ''; $('dbHost').value = ''; $('dbPort').value = '3306';
+            $('dbUser').value = ''; $('dbPass').value = ''; $('dbDatabase').value = ''; $('dbSqlitePath').value = '';
+            updateEngineFields();
+            $('addModal').classList.add('show');
         }
         function closeAddModal() { $('addModal').classList.remove('show'); }
-
-        async function testAndSave() {
-            const engine = $('dbEngine').value;
-            const config = ENGINE_CONFIG[engine];
-            const sqlitePath = engine === 'sqlite' ? $('dbSqlitePath').value : '';
-            
-            const data = {
-                name: $('dbName').value,
-                engine: engine,
-                host: engine === 'sqlite' ? '' : $('dbHost').value,
-                port: engine === 'sqlite' ? '' : String($('dbPort').value || config.port),
-                user: engine === 'sqlite' ? '' : $('dbUser').value,
-                password: engine === 'sqlite' ? '' : $('dbPass').value,
-                database: engine === 'sqlite' ? sqlitePath : $('dbDatabase').value
-            };
-            
-            if (!data.name) { showAlert('提示', '请填写名称', 'warning'); return; }
-            if (engine !== 'sqlite' && (!data.host || !data.user)) { showAlert('提示', '请填写必要信息', 'warning'); return; }
-            
-            try {
-                const r = await fetch('/api/db/test', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) });
-                const result = await r.json();
-                if (result.success) {
-                    await fetch('/api/db/connect', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) });
-                    closeAddModal();
-                    loadConnections();
-                    showStatus('已保存', false);
-                } else { showAlert('连接失败', result.message, 'error'); }
-            } catch (e) { showAlert('连接失败', e.message, 'error'); }
+        function updateEngineFields() {
+            const eng = $('dbEngine').value;
+            document.querySelectorAll('.host-field').forEach(el => el.style.display = eng === 'sqlite' ? 'none' : 'block');
+            document.querySelectorAll('.sqlite-field').forEach(el => el.style.display = eng === 'sqlite' ? 'block' : 'none');
         }
-
+        async function testAndSave() {
+            const eng = $('dbEngine').value;
+            const data = {name:$('dbName').value, engine:eng, host:eng==='sqlite'?'':$('dbHost').value, port:String($('dbPort').value||ENGINE_CONFIG[eng]?.port||3306), 
+                user:eng==='sqlite'?'':$('dbUser').value, password:eng==='sqlite'?'':$('dbPass').value, database:eng==='sqlite'?$('dbSqlitePath').value:$('dbDatabase').value};
+            if (!data.name) { showStatus('请填写名称', true); return; }
+            if (eng !== 'sqlite' && (!data.host || !data.user)) { showStatus('请填写必要信息', true); return; }
+            try {
+                await fetch('/api/db/connect', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)});
+                closeAddModal(); loadConnections(); showStatus('已保存', false);
+            } catch (e) { showStatus('保存失败: ' + e.message, true); }
+        }
+        
         // 编辑连接
         async function openEditModal(id) {
             const conn = connections.find(c => c.id === id);
             if (!conn) return;
-            
-            // 获取原始密码（从前端存储或服务端获取）
-            let password = '';
-            try {
-                const r = await fetch('/api/db/connection/' + id + '/password');
-                const data = await r.json();
-                if (data.success) password = data.password || '';
-            } catch (e) {}
-            
-            const connData = {
-                engine: conn.engine || 'mysql',
-                host: conn.host || '',
-                port: conn.port || '',
-                user: conn.user || '',
-                password: password,
-                database: conn.database || ''
-            };
-            
-            $('editConnId').value = id;
-            $('editDbName').value = conn.name || '';
-            $('editDbHost').value = conn.host || '';
-            $('editDbPort').value = conn.port || '';
-            $('editDbUser').value = conn.user || '';
-            $('editDbPass').value = '';
-            $('editDbDatabase').value = conn.database || '';
-            $('editDbSqlitePath').value = conn.engine === 'sqlite' ? conn.database : '';
-            
-            // 显示 URL（传入实际连接数据）
-            const url = buildSqlalchemyUrl(connData, false);
+            $('editConnId').value = id; $('editDbName').value = conn.name || '';
+            $('editDbHost').value = conn.host || ''; $('editDbPort').value = conn.port || '';
+            $('editDbUser').value = conn.user || ''; $('editDbPass').value = '';
+            $('editDbDatabase').value = conn.database || ''; $('editDbSqlitePath').value = conn.engine === 'sqlite' ? conn.database : '';
+            const url = `${conn.engine || 'mysql'}://${conn.user||''}:***@${conn.host||''}:${conn.port||3306}/${conn.database||''}`;
             $('editDbUrl').value = url;
-            
             $('editModal').classList.add('show');
         }
-        
         function closeEditModal() { $('editModal').classList.remove('show'); }
-        
-        function copyDbUrl() {
-            const url = $('editDbUrl').value;
-            copyToClipboard(url);
-        }
-        
+        function copyDbUrl() { copyToClipboard($('editDbUrl').value); }
         async function saveEditConnection() {
             const id = $('editConnId').value;
-            const engine = $('editDbEngine')?.value || 'mysql';
-            
-            const data = {
-                name: $('editDbName').value,
-                engine: engine,
-                host: $('editDbHost').value,
-                port: String($('editDbPort').value || ENGINE_CONFIG[engine]?.port || ''),
-                user: $('editDbUser').value,
-                password: $('editDbPass').value, // 留空则保持原密码
-                database: engine === 'sqlite' ? $('editDbSqlitePath').value : $('editDbDatabase').value
-            };
-            
-            if (!data.name) { showAlert('提示', '请填写名称', 'warning'); return; }
-            
+            const eng = connections.find(c => c.id === id)?.engine || 'mysql';
+            const data = {name:$('editDbName').value, engine:eng, host:$('editDbHost').value, port:String($('editDbPort').value), user:$('editDbUser').value, password:$('editDbPass').value, database:$('editDbDatabase').value};
             try {
-                await fetch(`/api/db/connection/${id}`, { 
-                    method: 'PUT',
-                    headers: {'Content-Type': 'application/json'}, 
-                    body: JSON.stringify(data) 
-                });
-                closeEditModal();
-                loadConnections();
-                showStatus('已更新', false);
-            } catch (e) { showAlert('保存失败', e.message, 'error'); }
+                await fetch(`/api/db/connection/${id}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)});
+                closeEditModal(); loadConnections(); showStatus('已更新', false);
+            } catch (e) { showStatus('保存失败', true); }
         }
-
-        async function deleteConnection(id) {
+        
+        // 删除连接
+        function deleteConnection(id) {
             showConfirm('删除连接', '确定要删除此连接吗？', async () => {
                 try {
-                    await fetch(`/api/db/connections/${id}`, {method: 'DELETE'});
+                    await fetch(`/api/db/connections/${id}`, {method:'DELETE'});
                     currentConn = null; currentDb = null; currentTable = null;
-                    loadConnections(); updateBreadcrumb();
-                    showStatus('已删除', false);
+                    loadConnections(); updateBreadcrumb(); showStatus('已删除', false);
                 } catch (e) { showStatus('删除失败', true); }
             }, true);
         }
-
+        
+        function saveState() {
+            fetch('/api/db/state', {method:'POST', headers:{'Content-Type':'application/json'}, 
+                body:JSON.stringify({connId:currentConn?.id, dbName:currentDb, tableName:currentTable})}).catch(()=>{});
+        }
+        
         document.addEventListener('keydown', e => { if ((e.ctrlKey||e.metaKey) && e.key==='Enter') executeQuery(); });
-
-        // 初始化
         loadConnections();
-        initPullRefresh();
-        // 默认合上 SQL 编辑器
-        $('sqlEditorPanel').classList.remove('open');
-        $('sqlToggle').classList.remove('open');
     </script>
 </body>
 </html>
