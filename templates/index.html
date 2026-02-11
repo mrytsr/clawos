@@ -474,8 +474,6 @@
 
         #dialogBackdrop { z-index: 20040; }
         #dialogDrawer { z-index: 20041; }
-        #confirmBackdrop { z-index: 20050; }
-        #confirmModal { z-index: 20051; }
         #previewBackdrop, #detailsBackdrop { z-index: 20020; }
         #previewModal, #detailsModal { z-index: 20021; }
         
@@ -1330,19 +1328,31 @@
     </div>
 
     <!-- 删除确认抽屉 -->
-    <div id="confirmBackdrop" class="drawer-backdrop" onclick="closeConfirmModal()"></div>
-    <div id="confirmModal" class="drawer">
-        <div class="drawer-handle"></div>
-        <div class="drawer-header">
-            <div class="drawer-title">确认删除</div>
-            <button class="drawer-close-btn" onclick="closeConfirmModal()">&times;</button>
+    <div id="confirmBackdrop" class="gh-dialog-backdrop" onclick="closeConfirmModal()" style="display:none;">
+        <div class="gh-dialog">
+            <div class="gh-dialog-header">
+                <svg id="confirmIcon" class="gh-dialog-icon danger" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+                </svg>
+                <div class="gh-dialog-title" id="confirmTitle">确认操作</div>
+            </div>
+            <div class="gh-dialog-body" id="confirmMessage">确定要执行此操作吗？</div>
+            <div class="gh-dialog-footer">
+                <button class="gh-btn gh-btn-secondary" onclick="closeConfirmModal()">取消</button>
+                <button class="gh-btn gh-btn-primary" id="confirmBtn" onclick="performConfirm()">确认</button>
+            </div>
         </div>
-        <div class="drawer-content">
-            <p style="margin: 0 0 12px 0; color: #666; font-size: var(--global-font-size, 14px);">您确定要删除这个项目吗？</p>
-            <p id="itemNameToDelete" style="font-weight: bold; margin: 0 0 16px 0; font-size: var(--global-font-size, 16px);"></p>
-            <div class="modal-buttons" style="padding: 0; border: none; background: none; gap: 12px;">
-                <button class="modal-btn modal-btn-cancel" style="flex: 1; padding: 12px; border-radius: 8px;" onclick="closeConfirmModal()">取消</button>
-                <button class="modal-btn modal-btn-confirm" style="flex: 1; padding: 12px; border-radius: 8px;" onclick="performDelete()">确认删除</button>
+    </div>
+
+    <!-- GitHub Alert 弹窗 -->
+    <div id="alertBackdrop" class="gh-dialog-backdrop" onclick="closeAlertModal()" style="display:none;">
+        <div class="gh-alert" id="alertBox">
+            <svg id="alertIcon" class="gh-dialog-icon info" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+            </svg>
+            <div style="flex:1;">
+                <div class="gh-dialog-title" id="alertTitle" style="margin-bottom:4px;"></div>
+                <div class="gh-dialog-body" id="alertMessage" style="padding:0;"></div>
             </div>
         </div>
     </div>

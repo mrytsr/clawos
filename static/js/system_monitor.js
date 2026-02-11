@@ -1191,13 +1191,13 @@ window.clashControl = function(action) {
     __postJson('/api/clash/control', { action: action })
         .then(function(data) {
             if (data && data.success) {
-                alert('Clash 服务已' + actions[action]);
+                showToast('Clash 服务已' + actions[action], 'success');
                 window.clashRefreshStatus();
                 return;
             }
             alert(actions[action] + '失败: ' + ((data && (data.message || data.error)) || '未知错误'));
         })
-        .catch(function(err) { alert('请求失败: ' + err.message); });
+        .catch(function(err) { showToast('请求失败: ' + err.message, 'error'); });
 };
 
 window.openClashModal = function() { Drawer.open('clashModal'); };
@@ -1345,7 +1345,7 @@ window.frpcControl = function(action) {
             }
             alert(actions[action] + '失败: ' + ((data && (data.message || data.error)) || '未知错误'));
         })
-        .catch(function(err) { alert('请求失败: ' + err.message); });
+        .catch(function(err) { showToast('请求失败: ' + err.message, 'error'); });
 };
 
 window.openFrpModal = function() { Drawer.open('frpModal'); };
@@ -1586,7 +1586,7 @@ window.clashUpdateSub = function() {
                 alert('更新失败: ' + ((data && (data.message || data.error)) || '未知错误'));
             }
         })
-        .catch(function(err) { alert('请求失败: ' + err.message); });
+        .catch(function(err) { showToast('请求失败: ' + err.message, 'error'); });
 };
 
 window.clashOpenProxyList = function(groupName) {
@@ -1626,7 +1626,7 @@ window.clashSwitchProxy = function(groupName, proxyName) {
                 alert('切换失败: ' + ((data && (data.message || data.error)) || '未知错误'));
             }
         })
-        .catch(function(err) { alert('请求失败: ' + err.message); });
+        .catch(function(err) { showToast('请求失败: ' + err.message, 'error'); });
 };
 
 // 覆盖原来的打开函数

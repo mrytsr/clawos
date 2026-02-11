@@ -19,7 +19,7 @@ function showUploadStatus(message) {
     }
 }
 
-function showToast(message, type) {
+function showToast(message, type, title) {
     var t = type || 'info';
     var container = document.getElementById('toastContainer');
     if (!container) return;
@@ -28,22 +28,27 @@ function showToast(message, type) {
     toast.className = 'toast toast-' + t;
 
     var icons = {
-        success: '✅',
-        error: '❌',
-        warning: '⚠️',
-        info: 'ℹ️'
+        success: '<svg class="toast-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>',
+        error: '<svg class="toast-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/></svg>',
+        warning: '<svg class="toast-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>',
+        info: '<svg class="toast-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/></svg>'
     };
 
-    toast.innerHTML =
-        '<span style="font-size: 18px;">' + (icons[t] || icons.info) + '</span>' +
-        '<span class="toast-message">' + escapeHtml(message) + '</span>';
+    var titleHtml = title ? '<div class="toast-title">' + escapeHtml(title) + '</div>' : '';
+    
+    toast.innerHTML = icons[t] || icons.info +
+        '<div class="toast-content">' + titleHtml +
+        '<div class="toast-message">' + escapeHtml(message) + '</div></div>' +
+        '<button class="toast-close" onclick="this.parentElement.remove()">' +
+        '<svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M4.646 4.646a.5.5 0 01.708 0L8 7.293l2.646-2.647a.5.5 0 01.708.708L8.707 8l2.647 2.646a.5.5 0 01-.708.708L8 8.707l-2.646 2.647a.5.5 0 01-.708-.708L7.293 8 4.646 5.354a.5.5 0 010-.708z"/></svg>' +
+        '</button>';
 
     container.appendChild(toast);
 
     setTimeout(function() {
         toast.classList.add('toast-out');
-        setTimeout(function() { toast.remove(); }, 300);
-    }, 3000);
+        setTimeout(function() { toast.remove(); }, 200);
+    }, 4000);
 }
 
 window.showToast = showToast;
@@ -472,7 +477,10 @@ window.closeOpenclawModal = function() {
 // 通用关闭函数
 window.closeMenuModal = function() { Drawer.close('menuModal'); };
 window.closePreviewModal = function() { Drawer.close('previewModal'); };
-window.closeConfirmModal = function() { Drawer.close('confirmModal'); };
+window.closeConfirmModal = function() {
+    var b = document.getElementById('confirmBackdrop');
+    if (b) b.style.display = 'none';
+};
 window.closeRenameModal = function() { Drawer.close('renameModal'); };
 window.closeMoveModal = function() { Drawer.close('moveModal'); };
 window.closeSearchModal = function() { 
@@ -698,20 +706,77 @@ window.showMenuModal = function(path, name, isDir) {
     if (t) { t.textContent = name; }
     Drawer.open('menuModal');
 };
-window.confirmDelete = function(path, name) {
-    if (window.showConfirmDrawer && typeof window.performDelete === 'function') {
-        window.showConfirmDrawer(
-            '删除',
-            '确定要删除 "' + (name || '') + '" 吗？',
-            '删除',
-            function() { window.performDelete(path); },
-            true
-        );
-        return;
+
+// GitHub 风格确认框
+window.__confirmCallback = null;
+window.__confirmDanger = false;
+
+window.showConfirm = function(title, message, onConfirm, danger) {
+    var b = document.getElementById('confirmBackdrop');
+    var icon = document.getElementById('confirmIcon');
+    var titleEl = document.getElementById('confirmTitle');
+    var msgEl = document.getElementById('confirmMessage');
+    var btn = document.getElementById('confirmBtn');
+    
+    if (titleEl) titleEl.textContent = title || '确认操作';
+    if (msgEl) msgEl.textContent = message || '确定要执行此操作吗？';
+    
+    window.__confirmCallback = onConfirm;
+    window.__confirmDanger = danger;
+    
+    if (icon) {
+        icon.className = 'gh-dialog-icon ' + (danger ? 'danger' : 'warning');
     }
-    document.getElementById('itemNameToDelete').textContent = name;
-    Drawer.open('confirmModal');
+    if (btn) {
+        btn.className = 'gh-btn ' + (danger ? 'gh-btn-danger' : 'gh-btn-primary');
+        btn.textContent = danger ? '删除' : '确认';
+    }
+    
+    if (b) b.style.display = 'flex';
 };
+
+window.performConfirm = function() {
+    if (typeof window.__confirmCallback === 'function') {
+        window.__confirmCallback();
+    }
+    window.closeConfirmModal();
+};
+
+window.confirmDelete = function(path, name) {
+    window.showConfirm(
+        '删除 "' + (name || '') + '"',
+        '此操作无法撤销，确定要继续吗？',
+        function() { window.performDelete(path); },
+        true
+    );
+};
+
+// GitHub 风格 Alert
+window.showAlert = function(title, message, type) {
+    var b = document.getElementById('alertBackdrop');
+    var icon = document.getElementById('alertIcon');
+    var titleEl = document.getElementById('alertTitle');
+    var msgEl = document.getElementById('alertMessage');
+    var box = document.getElementById('alertBox');
+    
+    if (titleEl) titleEl.textContent = title || '';
+    if (msgEl) msgEl.textContent = message || '';
+    
+    var t = type || 'info';
+    if (icon) icon.className = 'gh-dialog-icon ' + t;
+    if (box) box.className = 'gh-alert ' + t;
+    
+    if (b) b.style.display = 'flex';
+    
+    // 3秒后自动关闭
+    setTimeout(function() { window.closeAlertModal(); }, 3000);
+};
+
+window.closeAlertModal = function() {
+    var b = document.getElementById('alertBackdrop');
+    if (b) b.style.display = 'none';
+};
+
 window.showRenameModal = function() {
     Drawer.open('renameModal');
     document.getElementById('renameInput').value = currentItemName;
@@ -1043,7 +1108,7 @@ window.renderPkgList = function(elId, list) {
 };
 
 window.showPkgActions = function(name) {
-    alert('操作: ' + name + '\n\n功能开发中...');
+    showAlert('提示', '功能开发中...', 'info');
 };
 
 window.filterPkgList = function() {
@@ -1093,13 +1158,13 @@ window.loadSources = function() {
 window.switchPipSource = function(url) {
     localStorage.setItem('pip_source', url);
     loadSources();
-    alert('pip 源已切换为: ' + url);
+    showAlert('提示', 'pip 源已切换为: ' + url, 'success');
 };
 
 window.switchNpmSource = function(url) {
     localStorage.setItem('npm_source', url);
     loadSources();
-    alert('npm 源已切换为: ' + url);
+    showAlert('提示', 'npm 源已切换为: ' + url, 'success');
 };
 
 // ========== 批量操作 ==========

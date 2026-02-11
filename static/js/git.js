@@ -270,39 +270,43 @@ function __gitDoDiff(repoPath) {
 
 // Checkout 放弃所有更改
 function __gitDoCheckout(repoPath) {
-    if (!confirm('确定要放弃所有本地更改吗？此操作不可恢复！')) return;
-    
-    const headers = authHeaders ? (authHeaders() || {}) : {};
-    headers['Content-Type'] = 'application/json';
+    window.showConfirm(
+        '放弃本地更改',
+        '确定要放弃所有本地更改吗？此操作不可恢复！',
+        function() {
+            const headers = authHeaders ? (authHeaders() || {}) : {};
+            headers['Content-Type'] = 'application/json';
 
-    if (typeof window.showTaskListener === 'function') {
-        window.showTaskListener('正在 checkout…');
-    }
-
-    fetch('/api/git/checkout', {
-        method: 'POST',
-        headers: headers,
-        body: JSON.stringify({ path: String(repoPath || ''), all: true })
-    })
-        .then(function(r) { return r.json(); })
-        .then(function(resp) {
-            const payload = apiData(resp);
-            if (typeof window.hideTaskListener === 'function') {
-                window.hideTaskListener();
-            }
-            const msg = payload && payload.message ? payload.message : (resp.error && resp.error.message ? resp.error.message : '操作完成');
             if (typeof window.showTaskListener === 'function') {
-                window.showTaskListener(msg);
+                window.showTaskListener('正在 checkout…');
             }
-            // 刷新列表
-            __gitLoadDiffFileList(repoPath, { has_changes: false });
-            window.loadGitList();
-        })
-        .catch(function() {
-            if (typeof window.hideTaskListener === 'function') {
-                window.hideTaskListener();
-            }
-        });
+
+            fetch('/api/git/checkout', {
+                method: 'POST',
+                headers: headers,
+                body: JSON.stringify({ path: String(repoPath || ''), all: true })
+            })
+                .then(function(r) { return r.json(); })
+                .then(function(resp) {
+                    const payload = apiData(resp);
+                    if (typeof window.hideTaskListener === 'function') {
+                        window.hideTaskListener();
+                    }
+                    const msg = payload && payload.message ? payload.message : (resp.error && resp.error.message ? resp.error.message : '操作完成');
+                    if (typeof window.showTaskListener === 'function') {
+                        window.showTaskListener(msg);
+                    }
+                    // 刷新列表
+                    __gitLoadDiffFileList(repoPath, { has_changes: false });
+                    window.loadGitList();
+                })
+                .catch(function() {
+                    if (typeof window.hideTaskListener === 'function') {
+                        window.hideTaskListener();
+                    }
+                });
+        }
+    );
 }
 
 // 直接执行 Pull
