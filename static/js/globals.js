@@ -584,9 +584,6 @@ window.openMainMenuModal = function() {
     var c = document.getElementById('mainMenuItems');
     if (c) {
         var items = [
-            { action: 'bot', icon: '🤖', text: 'claw对话' },
-            { action: 'terminal', icon: '🖥️', text: '终端' },
-            { action: 'config', icon: '⚙️', text: '配置' },
             { action: 'process', icon: '📊', text: '进程管理' },
             { action: 'gpu', icon: '🖥️', text: '显卡' },
             { action: 'ollama', icon: '🦙', text: 'Ollama' },
@@ -601,7 +598,6 @@ window.openMainMenuModal = function() {
             { action: 'disk', icon: '💾', text: '磁盘管理' },
             { action: 'network', icon: '🌐', text: '网络管理' },
             { action: 'cron', icon: '⏰', text: 'Cron管理' },
-            { action: 'db', icon: '🗄️', text: '数据库管理' },
             { action: 'cockpit', icon: '🖥️', text: 'Cockpit' },
             { action: 'aiqiu', icon: '⚽', text: '爱球网' }
         ];
