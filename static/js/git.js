@@ -361,38 +361,45 @@ function __gitRenderDiffFileTable(container, rows, repoPath, meta) {
     const statusHtml = hasChanges
         ? '<span style="font-size:12px;color:#e3b341;">⚠️ Dirty</span>'
         : '<span style="font-size:12px;color:#2da44e;">✓ Clean</span>';
-    const infoHtml = changeInfo ? '<span style="font-size:11px;color:#666;">' + escapeHtml(changeInfo) + '</span>' : '';
+    const infoHtml = changeInfo ? '<span style="font-size:11px;color:#666;margin-left:8px;">' + escapeHtml(changeInfo) + '</span>' : '';
+    
+    // 更新时间
+    const now = Date.now();
+    const timeAgo = function(ms) {
+        if (!ms) return '-';
+        const s = Math.floor(ms / 1000);
+        if (s < 60) return s + 's ago';
+        if (s < 3600) return Math.floor(s / 60) + 'm ago';
+        if (s < 86400) return Math.floor(s / 3600) + 'h ago';
+        return Math.floor(s / 86400) + 'd ago';
+    };
+    const updateTime = timeAgo(now - (window.__gitLastRefresh || now));
+    window.__gitLastRefresh = now;
+    
     if (!list.length) {
         container.innerHTML = '<div style="padding:10px 12px;color:#57606a;font-size:12px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">' +
-            statusHtml +
-            infoHtml +
-            '<span>暂无变更</span>' +
+            statusHtml + infoHtml +
+            '<span>暂无变更 · ' + updateTime + '</span>' +
             '</div>';
         return;
     }
 
-    const header = '<div style="margin:8px 0 6px;padding-left:4px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">' +
-        statusHtml +
-        infoHtml +
-        '</div>';
-    const table = '<div style="background:#fff;border:1px solid #d0d7de;border-radius:8px;overflow:hidden;">' +
-        '<table class="git-diffstat-table">' +
-        '<thead><tr><th style="width:70%;">文件</th><th class="git-diffstat-num" style="width:15%;">+</th><th class="git-diffstat-num" style="width:15%;">-</th></tr></thead>' +
-        '<tbody>' +
+    const header = '<div style="margin:8px 0 4px;padding-left:4px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:12px;color:#57606a;">' +
+        statusHtml + infoHtml + '<span style="margin-left:auto;">' + updateTime + '</span></div>';
+    const table = '<div style="background:#fff;border:1px solid #d0d7de;border-radius:8px;overflow:hidden;margin:0 -16px;padding:0 16px;">' +
+        '<table class="git-diffstat-table" style="width:100%;border-collapse:collapse;">' +
         list.map(function(r, idx) {
             const path = String((r && r.path) || '-');
             const pathEsc = escapeHtml(path);
             const add = (r && (r.added === null || r.added === undefined)) ? '-' : String(r.added || 0);
             const del = (r && (r.deleted === null || r.deleted === undefined)) ? '-' : String(r.deleted || 0);
-            const trStyle = idx < list.length - 1 ? '' : ' style="border-bottom:0;"';
-            const rowStyle = 'cursor:pointer;' + (idx < list.length - 1 ? '' : '');
-            return '<tr onclick="__gitOpenFileDiff(\'' + escapeHtml(repoPath) + '\', \'' + pathEsc + '\');" style="' + rowStyle + '">' +
-                '<td class="git-diffstat-path" title="' + pathEsc + '" style="color:#0969da;">' + pathEsc + '</td>' +
-                '<td class="git-diffstat-num" style="color:#2da44e;"' + trStyle + '>' + escapeHtml(add) + '</td>' +
-                '<td class="git-diffstat-num" style="color:#cf222e;"' + trStyle + '>' + escapeHtml(del) + '</td>' +
+            return '<tr onclick="__gitOpenFileDiff(\'' + escapeHtml(repoPath) + '\', \'' + pathEsc + '\');" style="cursor:pointer;border-bottom:1px solid #eee;">' +
+                '<td class="git-diffstat-path" title="' + pathEsc + '" style="color:#0969da;padding:8px 12px;text-align:left;">' + pathEsc + '</td>' +
+                '<td class="git-diffstat-num" style="color:#2da44e;padding:8px 12px;text-align:right;white-space:nowrap;">+' + escapeHtml(add) + '</td>' +
+                '<td class="git-diffstat-num" style="color:#cf222e;padding:8px 12px;text-align:right;white-space:nowrap;">-' + escapeHtml(del) + '</td>' +
                 '</tr>';
         }).join('') +
-        '</tbody></table></div>';
+        '</table></div>';
 
     container.innerHTML = header + table;
 }
