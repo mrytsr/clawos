@@ -492,31 +492,18 @@
         }
         
         // 下拉刷新（整个页面）
+        let isRefreshing = false;
+        let lastScrollTop = 0;
         let pullStartY = 0;
         let pullDistance = 0;
-        let isRefreshing = false;
         
         function initPullRefresh() {
-            document.body.addEventListener('touchstart', e => {
-                if (window.scrollY === 0 && !isRefreshing) {
-                    pullStartY = e.touches[0].clientY;
-                }
-            }, { passive: true });
-            
-            document.body.addEventListener('touchmove', e => {
-                if (pullStartY > 0 && !isRefreshing && window.scrollY === 0) {
-                    pullDistance = e.touches[0].clientY - pullStartY;
-                    document.body.style.overflow = 'hidden';
-                    document.body.style.transition = 'transform 0s';
-                    document.body.style.transform = `translateY(${Math.min(pullDistance, 80)}px)`;
-                }
-            }, { passive: false });
-            
-            document.body.addEventListener('touchend', async e => {
-                document.body.style.transition = 'transform 0.3s ease';
-                document.body.style.transform = 'translateY(0)';
+            // 监听滚动事件
+            window.addEventListener('scroll', async () => {
+                const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
                 
-                if (pullDistance > 50 && !isRefreshing && currentConn) {
+                // 在顶部且向下拉时触发
+                if (scrollTop === 0 && lastScrollTop > 0 && !isRefreshing && currentConn) {
                     isRefreshing = true;
                     showStatus('刷新中...', false);
                     
@@ -528,18 +515,11 @@
                     
                     setTimeout(() => {
                         isRefreshing = false;
-                        pullStartY = 0;
-                        pullDistance = 0;
                         showStatus('已刷新', false);
-                        document.body.style.overflow = '';
                     }, 500);
-                } else {
-                    pullStartY = 0;
-                    pullDistance = 0;
-                    setTimeout(() => {
-                        document.body.style.overflow = '';
-                    }, 300);
                 }
+                
+                lastScrollTop = scrollTop <= 0 ? 0 : scrollTop;
             }, { passive: true });
         }
         
