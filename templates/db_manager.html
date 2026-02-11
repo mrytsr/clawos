@@ -229,6 +229,37 @@
         .modal-actions .cancel { background: #0f3460; color: #ccc; }
         .modal-actions .confirm { background: #e94560; color: #fff; }
         
+        /* 结果 tabs */
+        .results-tabs {
+            display: flex; gap: 4px; margin-top: 12px; background: #16213e; border-radius: 8px 8px 0 0; padding: 4px 4px 0 4px;
+        }
+        .results-tab {
+            padding: 8px 16px; border-radius: 6px 6px 0 0; border: none;
+            background: transparent; color: #888; cursor: pointer; font-size: 12px;
+        }
+        .results-tab.active { background: #1a1a2e; color: #e94560; }
+        .results-panel { 
+            display: none; flex: 1; overflow: auto; 
+            background: #16213e; border-radius: 0 0 12px 12px; border: 1px solid #0f3460; border-top: none;
+        }
+        .results-panel.active { display: flex; flex-direction: column; }
+        
+        /* 结果区 */
+        .results { 
+            flex: 1; overflow: auto; border-radius: 0 0 12px 12px;
+        }
+        
+        /* 结构表格 */
+        .schema-table { width: 100%; border-collapse: collapse; }
+        .schema-table th, .schema-table td {
+            padding: 8px 12px; text-align: left; border-bottom: 1px solid #0f3460;
+            font-size: 12px;
+        }
+        .schema-table th { background: #16213e; color: #e94560; }
+        .schema-table td { color: #ccc; font-family: 'SF Mono', monospace; font-size: 11px; }
+        .type-tag { display: inline-block; padding: 2px 6px; background: #0f3460; border-radius: 4px; font-size: 10px; color: #888; }
+        .key-tag { display: inline-block; padding: 2px 6px; background: #e3b341; color: #000; border-radius: 4px; font-size: 10px; margin-left: 4px; }
+        
         /* 加载动画 */
         .loading { 
             display: flex; align-items: center; justify-content: center; padding: 30px; 
@@ -307,8 +338,20 @@
             </div>
             
             <!-- 结果 -->
-            <div class="results" id="results">
-                <div class="results-empty">选择表后自动查询</div>
+            <div class="results-tabs">
+                <div class="results-tab active" id="tabResults" onclick="switchResultsTab('results')">数据</div>
+                <div class="results-tab" id="tabSchema" onclick="switchResultsTab('schema')">结构</div>
+            </div>
+            
+            <div class="results-panel active" id="resultsPanel">
+                <div class="results" id="resultsContent">
+                    <div class="results-empty">选择表后自动查询</div>
+                </div>
+            </div>
+            <div class="results-panel" id="schemaPanel">
+                <div class="results" id="schemaContent">
+                    <div class="results-empty">选择表查看结构</div>
+                </div>
             </div>
             
             <!-- 状态栏 -->
@@ -757,7 +800,15 @@
             const sql = `SELECT * FROM \`${tableName}\` LIMIT 100`;
             $('sqlEditor').value = sql;
             lastSql = sql;
+            
+            // 切换到数据 tab
+            switchResultsTab('results');
+            
             await executeQuery();
+            
+            // 预加载表结构
+            loadTableSchema();
+            
             saveStateToServer();
         }
         
@@ -765,7 +816,7 @@
             if (!currentConn) { showStatus('请先选择连接', true); return; }
             const sql = $('sqlEditor').value.trim();
             if (!sql) return;
-            $('results').innerHTML = '<div class="loading"><div class="spinner"></div>执行中...</div>';
+            $('resultsContent').innerHTML = '<div class="loading"><div class="spinner"></div>执行中...</div>';
             
             // 保存 SQL 到历史
             addSqlToHistory(sql);
@@ -782,29 +833,98 @@
                     showStatus(`成功，返回 ${data.data?.rows?.length || 0} 行`, false);
                 } else {
                     showStatus('失败: ' + data.message, true);
-                    $('results').innerHTML = `<div class="results-empty" style="color:#ef4444;">${data.message}</div>`;
+                    $('resultsContent').innerHTML = `<div class="results-empty" style="color:#ef4444;">${data.message}</div>`;
                 }
             } catch (e) {
                 showStatus('失败: ' + e.message, true);
-                $('results').innerHTML = `<div class="results-empty" style="color:#ef4444;">${e.message}</div>`;
+                $('resultsContent').innerHTML = `<div class="results-empty" style="color:#ef4444;">${e.message}</div>`;
             }
         }
         
         function renderResults(data) {
             const headers = data.headers || [];
             const rows = data.rows || [];
-            if (rows.length === 0) { $('results').innerHTML = '<div class="results-empty">无数据</div>'; return; }
-            let html = '<div class="data-table-wrapper"><table class="data-table"><thead><tr>';
-            headers.forEach(h => html += `<th>${h}</th>`);
-            html += '</tr></thead><tbody>';
-            rows.forEach(row => { html += '<tr>'; row.forEach(cell => html += `<td>${cell||''}</td>`); html += '</tr>'; });
-            html += '</tbody></table></div>';
-            $('results').innerHTML = html;
+            $('resultsContent').innerHTML = rows.length === 0 
+                ? '<div class="results-empty">无数据</div>' 
+                : `<div class="data-table-wrapper"><table class="data-table"><thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>${rows.map(row => `<tr>${row.map(cell => `<td>${cell||''}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+        }
+        
+        // 切换结果 tabs
+        function switchResultsTab(tab) {
+            document.querySelectorAll('.results-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.results-panel').forEach(p => p.classList.remove('active'));
+            
+            const tabEl = $('tab' + tab.charAt(0).toUpperCase() + tab.slice(1));
+            const panelEl = document.getElementById(tab + 'Panel');
+            
+            if (tabEl) tabEl.classList.add('active');
+            if (panelEl) panelEl.classList.add('active');
+            
+            // 如果切换到结构 tab 且有选中的表，加载结构
+            if (tab === 'schema' && currentTable) {
+                const schemaContent = $('schemaContent');
+                if (schemaContent && !schemaContent.querySelector('.schema-table')) {
+                    loadTableSchema();
+                }
+            }
+        }
+        
+        // 加载表结构
+        async function loadTableSchema() {
+            if (!currentConn || !currentTable) return;
+            
+            $('schemaContent').innerHTML = '<div class="loading"><div class="spinner"></div>加载中...</div>';
+            
+            try {
+                const r = await fetch(`/api/db/${currentConn.id}/table/${currentTable}/schema`);
+                const data = await r.json();
+                
+                if (data.success) {
+                    const cols = data.data?.columns || [];
+                    const idxs = data.data?.indexes || [];
+                    
+                    if (cols.length === 0) {
+                        $('schemaContent').innerHTML = '<div class="results-empty">无结构信息</div>';
+                        return;
+                    }
+                    
+                    let html = '<div style="padding:8px;font-size:11px;color:#888;">' + 
+                               `${currentTable} - ${cols.length} 列, ${idxs.length} 索引</div>`;
+                    html += '<table class="schema-table"><thead><tr><th>列名</th><th>类型</th><th>可空</th><th>键</th><th>默认值</th></tr></thead><tbody>';
+                    
+                    cols.forEach(c => {
+                        html += `<tr>
+                            <td style="color:#58a6ff;font-weight:500;">${c.field}</td>
+                            <td><span class="type-tag">${c.type}</span></td>
+                            <td>${c.null === 'YES' ? '✓' : '✗'}</td>
+                            <td>${c.key ? '<span class="key-tag">KEY</span>' : ''}</td>
+                            <td>${c.default || '-'}</td>
+                        </tr>`;
+                    });
+                    html += '</tbody></table>';
+                    
+                    if (idxs.length > 0) {
+                        html += '<div style="padding:12px 8px 8px;font-size:11px;color:#888;">索引</div>';
+                        html += '<table class="schema-table"><thead><tr><th>索引名</th><th>列</th><th>唯一</th></tr></thead><tbody>';
+                        idxs.forEach(i => {
+                            html += `<tr><td>${i.name}</td><td>${i.columns}</td><td>${i.unique ? '是' : '否'}</td></tr>`;
+                        });
+                        html += '</tbody></table>';
+                    }
+                    
+                    $('schemaContent').innerHTML = html;
+                } else {
+                    $('schemaContent').innerHTML = '<div class="results-empty">' + (data.message || '加载失败') + '</div>';
+                }
+            } catch (e) {
+                $('schemaContent').innerHTML = '<div class="results-empty">' + e.message + '</div>';
+            }
         }
         
         function quickQuery(sql) {
             if (!currentConn) { showStatus('请先选择连接', true); return; }
             $('sqlEditor').value = sql;
+            switchResultsTab('results');
             executeQuery();
         }
         

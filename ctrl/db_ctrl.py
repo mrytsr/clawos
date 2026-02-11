@@ -339,21 +339,49 @@ def api_db_execute():
         if not result or result.returncode != 0:
             return api_error(result.stderr if result else 'Query failed', status=400)
         
-        headers = []
-        rows = []
-        
-        for i, line in enumerate(result.stdout.strip().split('\n')):
+        # 解析所有行
+        all_rows = []
+        for line in result.stdout.strip().split('\n'):
             if line.strip():
-                cells = line.split('\t')
-                if i == 0:
-                    headers = cells
-                else:
-                    rows.append(cells)
+                all_rows.append(line.split('\t'))
+        
+        # 获取表头
+        headers = []
+        
+        if query_upper.startswith('DESCRIBE') or query_upper.startswith('EXPLAIN'):
+            # DESCRIBE/EXPLAIN 第一行是表头
+            if all_rows:
+                headers = all_rows.pop(0)
+        
+        elif query_upper.startswith('SHOW'):
+            # SHOW 命令使用第一行作为表头
+            if all_rows:
+                headers = all_rows.pop(0)
+        
+        else:
+            # SELECT 查询 - 获取列名
+            import re
+            # 提取表名
+            table_match = re.search(r'FROM\s+`?(\w+)`?', query, re.IGNORECASE)
+            if table_match:
+                table_name = table_match.group(1)
+                # 获取列信息
+                schema_result = _run_mysql(conn, f'DESCRIBE `{table_name}`')
+                if schema_result and schema_result.returncode == 0:
+                    for line in schema_result.stdout.strip().split('\n'):
+                        if line.strip():
+                            parts = line.split('\t')
+                            headers.append(parts[0])
+            
+            # 如果无法获取列名，用泛型名称
+            if not headers and all_rows:
+                cols = len(all_rows[0])
+                headers = [f'Column_{i+1}' for i in range(cols)]
         
         return api_ok({
             'headers': headers,
-            'rows': rows,
-            'affected': len(rows)
+            'rows': all_rows,
+            'affected': len(all_rows)
         })
     
     elif query_upper.startswith('INSERT') or query_upper.startswith('UPDATE') or query_upper.startswith('DELETE'):
