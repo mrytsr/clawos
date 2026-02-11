@@ -1431,6 +1431,9 @@
         // 初始化
         loadConnections();
         initPullRefresh();
+        // 默认合上 SQL 编辑器
+        $('sqlEditorPanel').classList.remove('open');
+        $('sqlToggle').classList.remove('open');
     </script>
 </body>
 </html>
