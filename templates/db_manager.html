@@ -279,7 +279,7 @@
         </div>
         
         <!-- 主内容区 -->
-        <div class="main-content">
+        <div class="main-content" id="mainContent">
             <!-- 顶部栏 -->
             <div class="top-bar">
                 <h1>数据库</h1>
@@ -370,32 +370,177 @@
         let currentConn = null;
         let currentDb = null;
         let currentTable = null;
+        let expandedDatabases = [];
+        let sqlHistory = [];
+        let lastSql = '';
+        
+        // 从服务端加载状态
+        async function loadStateFromServer() {
+            try {
+                const r = await fetch('/api/db/state');
+                const data = await r.json();
+                if (data.success && data.data) {
+                    return data.data;
+                }
+            } catch (e) { console.error('Load state failed:', e); }
+            return {};
+        }
+        
+        // 保存状态到服务端
+        async function saveStateToServer() {
+            const state = {
+                connId: currentConn?.id || null,
+                dbName: currentDb || null,
+                tableName: currentTable || null,
+                expandedDatabases: expandedDatabases,
+                lastSql: lastSql,
+                sqlHistory: sqlHistory
+            };
+            try {
+                await fetch('/api/db/state', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(state)
+                });
+            } catch (e) { console.error('Save state failed:', e); }
+        }
+        
+        // 本地 SQL 历史
+        function loadLocalSqlHistory() {
+            sqlHistory = JSON.parse(localStorage.getItem('db_sql_history') || '[]');
+        }
+        
+        function saveLocalSqlHistory() {
+            localStorage.setItem('db_sql_history', JSON.stringify(sqlHistory));
+        }
+        
+        // 保存 SQL 到历史
+        function addSqlToHistory(sql) {
+            if (!sql || sql.trim().length < 3) return;
+            sqlHistory = sqlHistory.filter(s => s !== sql);
+            sqlHistory.unshift(sql);
+            sqlHistory = sqlHistory.slice(0, 50);
+            saveLocalSqlHistory();
+            saveStateToServer();
+        }
+        
+        // 显示 SQL 历史
+        function showSqlHistory() {
+            if (sqlHistory.length === 0) return;
+            
+            let html = '<div style="padding:8px 12px;border-bottom:1px solid #0f3460;font-size:11px;color:#888;">历史记录</div>';
+            sqlHistory.forEach((sql, i) => {
+                const shortSql = sql.length > 40 ? sql.substring(0, 40) + '...' : sql;
+                html += `
+                    <div class="table-item" onclick="useHistorySql('${sql.replace(/'/g, "\\'")}')" 
+                         style="padding:8px 12px 8px 24px;font-size:11px;border-bottom:1px solid #0f3460;">
+                        ${shortSql}
+                    </div>
+                `;
+            });
+            return html;
+        }
+        
+        function useHistorySql(sql) {
+            $('sqlEditor').value = sql;
+            // 展开编辑器
+            $('sqlEditorPanel').classList.add('open');
+            $('sqlToggle').classList.add('open');
+        }
+        
+        // 下拉刷新（整个页面）
+        let pullStartY = 0;
+        let pullDistance = 0;
+        let isRefreshing = false;
+        
+        function initPullRefresh() {
+            document.body.addEventListener('touchstart', e => {
+                if (window.scrollY === 0 && !isRefreshing) {
+                    pullStartY = e.touches[0].clientY;
+                }
+            }, { passive: true });
+            
+            document.body.addEventListener('touchmove', e => {
+                if (pullStartY > 0 && !isRefreshing && window.scrollY === 0) {
+                    pullDistance = e.touches[0].clientY - pullStartY;
+                    document.body.style.overflow = 'hidden';
+                    document.body.style.transition = 'transform 0s';
+                    document.body.style.transform = `translateY(${Math.min(pullDistance, 80)}px)`;
+                }
+            }, { passive: false });
+            
+            document.body.addEventListener('touchend', async e => {
+                document.body.style.transition = 'transform 0.3s ease';
+                document.body.style.transform = 'translateY(0)';
+                
+                if (pullDistance > 50 && !isRefreshing && currentConn) {
+                    isRefreshing = true;
+                    showStatus('刷新中...', false);
+                    
+                    if (currentDb) {
+                        await loadDatabases();
+                    } else {
+                        await loadConnections();
+                    }
+                    
+                    setTimeout(() => {
+                        isRefreshing = false;
+                        pullStartY = 0;
+                        pullDistance = 0;
+                        showStatus('已刷新', false);
+                        document.body.style.overflow = '';
+                    }, 500);
+                } else {
+                    pullStartY = 0;
+                    pullDistance = 0;
+                    setTimeout(() => {
+                        document.body.style.overflow = '';
+                    }, 300);
+                }
+            }, { passive: true });
+        }
         
         // SQL 编辑器开关
         function toggleSqlEditor() {
-            const panel = document.getElementById('sqlEditorPanel');
-            const toggle = document.getElementById('sqlToggle');
+            const panel = $('sqlEditorPanel');
+            const toggle = $('sqlToggle');
             panel.classList.toggle('open');
             toggle.classList.toggle('open');
+            
+            // 如果展开，显示历史记录
+            if (panel.classList.contains('open')) {
+                const historyHtml = showSqlHistory();
+                if (historyHtml) {
+                    // 在编辑器下方添加历史记录
+                    let historyEl = $('sqlHistoryPanel');
+                    if (!historyEl) {
+                        historyEl = document.createElement('div');
+                        historyEl.id = 'sqlHistoryPanel';
+                        historyEl.style.cssText = 'max-height:200px;overflow-y:auto;background:#1a1a2e;border-radius:8px;margin-top:8px;';
+                        panel.insertBefore(historyEl, panel.querySelector('.sql-toolbar'));
+                    }
+                    historyEl.innerHTML = historyHtml;
+                }
+            }
         }
         
         // 抽屉控制
         function toggleDrawer() {
-            document.getElementById('drawer').classList.toggle('open');
-            document.getElementById('drawerBackdrop').classList.toggle('show');
+            $('drawer').classList.toggle('open');
+            $('drawerBackdrop').classList.toggle('show');
         }
         
         function closeDrawer() {
-            document.getElementById('drawer').classList.remove('open');
-            document.getElementById('drawerBackdrop').classList.remove('show');
+            $('drawer').classList.remove('open');
+            $('drawerBackdrop').classList.remove('show');
         }
         
         // Tab 切换
         function switchTab(tab) {
             document.querySelectorAll('.drawer-tab').forEach(t => t.classList.remove('active'));
-            document.getElementById('tab' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('active');
-            document.getElementById('connectionsPanel').style.display = tab === 'connections' ? 'block' : 'none';
-            document.getElementById('databasesPanel').style.display = tab === 'databases' ? 'block' : 'none';
+            $('tab' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('active');
+            $('connectionsPanel').style.display = tab === 'connections' ? 'block' : 'none';
+            $('databasesPanel').style.display = tab === 'databases' ? 'block' : 'none';
             if (tab === 'databases' && currentConn) loadDatabases();
         }
         
@@ -418,17 +563,74 @@
                 html = '<span>未选择</span>';
             }
             $('breadcrumb').innerHTML = html;
+            saveStateToServer();
         }
         
         async function loadConnections() {
+            // 加载本地 SQL 历史
+            loadLocalSqlHistory();
+            
             try {
                 const r = await fetch('/api/db/connections');
                 const data = await r.json();
                 if (data.success) {
                     connections = data.data?.connections || [];
                     renderConnections();
+                    // 恢复状态
+                    restoreSession();
                 }
             } catch (e) { console.error(e); }
+        }
+        
+        // 恢复会话
+        async function restoreSession() {
+            const state = await loadStateFromServer();
+            if (!state || !state.connId) return;
+            
+            const conn = connections.find(c => c.id === state.connId);
+            if (conn) {
+                currentConn = conn;
+                // 恢复展开的数据库
+                expandedDatabases = state.expandedDatabases || [];
+                // 恢复 SQL 历史
+                sqlHistory = state.sqlHistory || [];
+                lastSql = state.lastSql || '';
+                if (lastSql) $('sqlEditor').value = lastSql;
+                
+                renderConnections();
+                updateBreadcrumb();
+                await loadDatabases();
+                switchTab('databases');
+                
+                // 恢复展开的数据库和选中的表
+                for (const dbName of expandedDatabases) {
+                    const tablesEl = $('tables-' + dbName);
+                    if (tablesEl) {
+                        tablesEl.style.display = 'block';
+                        $('db-' + dbName)?.classList.add('active');
+                    }
+                }
+                
+                if (state.dbName) {
+                    currentDb = state.dbName;
+                    updateBreadcrumb();
+                    
+                    // 恢复表选择
+                    if (state.tableName) {
+                        // 等待表格加载完成后再高亮
+                        setTimeout(() => {
+                            const tableEl = $('table-' + state.tableName);
+                            if (tableEl) {
+                                currentTable = state.tableName;
+                                tableEl.classList.add('active');
+                                // 展开编辑器
+                                $('sqlEditorPanel').classList.add('open');
+                                $('sqlToggle').classList.add('open');
+                            }
+                        }, 800);
+                    }
+                }
+            }
         }
         
         function renderConnections() {
@@ -452,10 +654,12 @@
             currentConn = connections.find(c => c.id === id);
             currentDb = null;
             currentTable = null;
+            expandedDatabases = [];
             renderConnections();
             updateBreadcrumb();
             await loadDatabases();
             switchTab('databases');
+            saveStateToServer();
         }
         
         async function loadDatabases() {
@@ -486,22 +690,28 @@
             $('dbTree').innerHTML = html || '<div class="results-empty">暂无数据库</div>';
         }
         
-        async function selectDatabase(dbName) {
+        async function selectDatabase(dbName, shouldSave = true) {
             // 如果点击已展开的数据库，收起表格列表
-            if (currentDb === dbName) {
+            if (currentDb === dbName && shouldSave) {
                 const tablesEl = $('tables-' + dbName);
                 if (tablesEl && tablesEl.style.display !== 'none') {
                     tablesEl.style.display = 'none';
                     $('db-' + dbName)?.classList.remove('active');
                     currentDb = null;
                     currentTable = null;
+                    expandedDatabases = expandedDatabases.filter(d => d !== dbName);
                     updateBreadcrumb();
+                    if (shouldSave) saveStateToServer();
                     return;
                 }
             }
             
             currentDb = dbName;
             currentTable = null;
+            // 添加到展开列表
+            if (!expandedDatabases.includes(dbName)) {
+                expandedDatabases.push(dbName);
+            }
             updateBreadcrumb();
             document.querySelectorAll('.db-item').forEach(el => el.classList.remove('active'));
             $('db-' + dbName)?.classList.add('active');
@@ -509,6 +719,7 @@
             const tablesEl = $('tables-' + dbName);
             tablesEl.style.display = 'block';
             await loadTables(dbName, tablesEl);
+            if (shouldSave) saveStateToServer();
         }
         
         async function loadTables(dbName, container) {
@@ -540,13 +751,14 @@
             $('table-' + tableName)?.classList.add('active');
             
             // 确保 SQL 编辑器展开
-            const panel = document.getElementById('sqlEditorPanel');
-            const toggle = document.getElementById('sqlToggle');
-            panel.classList.add('open');
-            toggle.classList.add('open');
+            $('sqlEditorPanel').classList.add('open');
+            $('sqlToggle').classList.add('open');
             
-            $('sqlEditor').value = `SELECT * FROM \`${tableName}\` LIMIT 100`;
+            const sql = `SELECT * FROM \`${tableName}\` LIMIT 100`;
+            $('sqlEditor').value = sql;
+            lastSql = sql;
             await executeQuery();
+            saveStateToServer();
         }
         
         async function executeQuery() {
@@ -554,6 +766,11 @@
             const sql = $('sqlEditor').value.trim();
             if (!sql) return;
             $('results').innerHTML = '<div class="loading"><div class="spinner"></div>执行中...</div>';
+            
+            // 保存 SQL 到历史
+            addSqlToHistory(sql);
+            lastSql = sql;
+            
             try {
                 const r = await fetch('/api/db/execute', {
                     method: 'POST', headers: {'Content-Type': 'application/json'},
@@ -660,7 +877,9 @@
         
         document.addEventListener('keydown', e => { if ((e.ctrlKey||e.metaKey) && e.key==='Enter') executeQuery(); });
         
+        // 初始化
         loadConnections();
+        initPullRefresh();
     </script>
 </body>
 </html>

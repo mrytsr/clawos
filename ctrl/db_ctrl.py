@@ -438,3 +438,57 @@ def api_db_export(conn_id):
         mimetype='text/csv',
         headers={'Content-Disposition': f'attachment; filename=export.csv'}
     )
+
+
+# 用户会话状态存储
+DB_STATE_FILE = os.path.join(DB_CONFIG_DIR, 'db_state.json')
+
+
+def _load_state():
+    """加载用户会话状态."""
+    try:
+        if os.path.exists(DB_STATE_FILE):
+            with open(DB_STATE_FILE, 'r') as f:
+                return json.load(f)
+    except:
+        pass
+    return {}
+
+
+def _save_state(state):
+    """保存用户会话状态."""
+    with open(DB_STATE_FILE, 'w') as f:
+        json.dump(state, f, indent=2)
+
+
+@db_bp.route('/api/db/state')
+def api_db_get_state():
+    """获取用户会话状态."""
+    state = _load_state()
+    # 不返回敏感信息
+    return api_ok(state)
+
+
+@db_bp.route('/api/db/state', methods=['POST'])
+def api_db_save_state():
+    """保存用户会话状态."""
+    data = request.get_json(silent=True) or {}
+    state = {
+        'connId': data.get('connId'),
+        'dbName': data.get('dbName'),
+        'tableName': data.get('tableName'),
+        'expandedDatabases': data.get('expandedDatabases', []),
+        'lastSql': data.get('lastSql'),
+        'sqlHistory': data.get('sqlHistory', []),
+        'updated': datetime.now().isoformat()
+    }
+    _save_state(state)
+    return api_ok({'success': True})
+
+
+@db_bp.route('/api/db/state', methods=['DELETE'])
+def api_db_clear_state():
+    """清除用户会话状态."""
+    if os.path.exists(DB_STATE_FILE):
+        os.remove(DB_STATE_FILE)
+    return api_ok({'success': True})
