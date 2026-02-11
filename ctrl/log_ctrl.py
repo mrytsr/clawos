@@ -72,7 +72,19 @@ def api_log_journal():
         cmd.extend(['-g', keyword])
     
     try:
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+        # system 级别使用 sg 切换到 systemd-journal 组
+        if scope == 'system':
+            cmd_str = 'sg systemd-journal "journalctl -n {} -o short'.format(lines)
+            if service:
+                cmd_str += ' -u {}.service'.format(svc)
+            if level:
+                cmd_str += ' -p {}'.format(level)
+            if keyword:
+                cmd_str += ' -g {}'.format(keyword)
+            cmd_str += '"'
+            result = subprocess.run(cmd_str, capture_output=True, text=True, timeout=10, shell=True)
+        else:
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
         
         logs = []
         for line in result.stdout.strip().split('\n')[-lines:]:
