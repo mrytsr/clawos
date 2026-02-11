@@ -601,7 +601,9 @@ window.openMainMenuModal = function() {
             { action: 'disk', icon: '💾', text: '磁盘管理' },
             { action: 'network', icon: '🌐', text: '网络管理' },
             { action: 'cron', icon: '⏰', text: 'Cron管理' },
-            { action: 'db', icon: '🗄️', text: '数据库管理' }
+            { action: 'db', icon: '🗄️', text: '数据库管理' },
+            { action: 'cockpit', icon: '🖥️', text: 'Cockpit' },
+            { action: 'aiqiu', icon: '⚽', text: '爱球网' }
         ];
         c.innerHTML = items.map(function(item) {
             return '<div class="modal-item menu-item" data-action="' + item.action + '"><span style="margin-right:12px;">' + item.icon + '</span>' + item.text + '</div>';
@@ -655,7 +657,9 @@ window.actionToModalMap = {
     'network': { modal: 'networkModal', load: 'loadNetworkList', open: 'openNetworkModal' },
     'gpu': { modal: 'gpuModal', load: 'loadGpuInfo', open: 'openGpuModal' },
     'ollama': { modal: 'ollamaModal', load: 'loadOllamaModels', open: 'openOllamaModal' },
-    'openclaw': { modal: 'openclawModal', load: 'loadOpenclawConfig', open: 'openOpenclawModal' }
+    'openclaw': { modal: 'openclawModal', load: 'loadOpenclawConfig', open: 'openOpenclawModal' },
+    'cockpit': { url: 'http://' + window.location.hostname + ':9090', target: '_blank' },
+    'aiqiu': { url: 'https://w.utjx.cn/aiqiu/list', target: '_blank' }
 };
 
 // 主菜单处理函数（需要在 globals.js 中定义，因为菜单项 onclick 使用）
