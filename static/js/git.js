@@ -104,6 +104,10 @@ function __gitListCss() {
         '.git-hash:hover { color:#0969da; text-decoration:underline; }' +
         '.git-author { font-size:12px; color:#57606a; }' +
         '.git-subject { font-size:13px; color:#24292f; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }' +
+        '.git-link-group { display:inline-flex; align-items:stretch; border:1px solid #d0d7de; border-radius:999px; overflow:hidden; }' +
+        '.git-link-btn { border:0; background:#f6f8fa; color:#0969da; padding:4px 10px; cursor:pointer; font-size:12px; line-height:18px; }' +
+        '.git-link-btn + .git-link-btn { border-left:1px solid #d0d7de; }' +
+        '.git-link-btn:hover { background:#ddf4ff; }' +
         '.git-diff-btn { border:1px solid #d0d7de; background:#fff; border-radius:6px; padding:4px 10px; cursor:pointer; font-size:12px; }' +
         '.git-diff-btn:hover { background:#f6f8fa; }' +
         '.git-pull-btn { border:1px solid #d0d7de; background:#fff; border-radius:6px; padding:4px 10px; cursor:pointer; font-size:12px; }' +
@@ -349,15 +353,28 @@ function __gitDoPush(repoPath) {
         });
 }
 
-function __gitRenderDiffFileTable(container, rows, repoPath) {
+function __gitRenderDiffFileTable(container, rows, repoPath, meta) {
     if (!container) return;
     const list = Array.isArray(rows) ? rows : [];
+    const hasChanges = !!(meta && meta.has_changes);
+    const changeInfo = meta && meta.change_info ? String(meta.change_info) : '';
+    const statusHtml = hasChanges
+        ? '<span style="font-size:12px;color:#e3b341;">⚠️ Dirty</span>'
+        : '<span style="font-size:12px;color:#2da44e;">✓ Clean</span>';
+    const infoHtml = changeInfo ? '<span style="font-size:11px;color:#666;">' + escapeHtml(changeInfo) + '</span>' : '';
     if (!list.length) {
-        container.innerHTML = '<div style="padding:10px 12px;color:#57606a;font-size:12px;">暂无变更</div>';
+        container.innerHTML = '<div style="padding:10px 12px;color:#57606a;font-size:12px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">' +
+            statusHtml +
+            infoHtml +
+            '<span>暂无变更</span>' +
+            '</div>';
         return;
     }
 
-    const header = '<div style="font-size:13px;color:#666;margin:8px 0 6px;padding-left:4px;">当前 diff 文件</div>';
+    const header = '<div style="margin:8px 0 6px;padding-left:4px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">' +
+        statusHtml +
+        infoHtml +
+        '</div>';
     const table = '<div style="background:#fff;border:1px solid #d0d7de;border-radius:8px;overflow:hidden;">' +
         '<table class="git-diffstat-table">' +
         '<thead><tr><th style="width:70%;">文件</th><th class="git-diffstat-num" style="width:15%;">+</th><th class="git-diffstat-num" style="width:15%;">-</th></tr></thead>' +
@@ -386,7 +403,7 @@ function __gitOpenFileDiff(repoPath, filePath) {
     window.open(url, '_blank');
 }
 
-function __gitLoadDiffFileList(repoPath) {
+function __gitLoadDiffFileList(repoPath, meta) {
     const el = document.getElementById('gitDiffFilesBox');
     if (!el) return;
     el.innerHTML = '<div style="padding:10px 12px;color:#57606a;font-size:12px;">加载变更…</div>';
@@ -398,11 +415,17 @@ function __gitLoadDiffFileList(repoPath) {
                 const msg = resp && resp.error && resp.error.message ? resp.error.message : '加载失败';
                 throw new Error(msg);
             }
-            __gitRenderDiffFileTable(el, payload.files || [], repoPath);
+            __gitRenderDiffFileTable(el, payload.files || [], repoPath, meta);
         })
         .catch(function() {
             el.innerHTML = '<div style="padding:10px 12px;color:#cf222e;font-size:12px;">加载失败</div>';
         });
+}
+
+function __gitSetDrawerTitle(html) {
+    const el = document.getElementById('gitDrawerTitle');
+    if (!el) return;
+    el.innerHTML = html || '🔀 Git管理';
 }
 
 function __gitSkeletonHtml(rows) {
@@ -647,6 +670,7 @@ function __gitMountCommitList(container, repoPath, headerData) {
 window.loadGitList = function(specificRepoPath) {
     const container = document.getElementById('gitListContainer');
     if (container) container.innerHTML = __gitListCss() + '<div class="git-shell"><div class="git-list">' + __gitSkeletonHtml(8) + '</div></div>';
+    __gitSetDrawerTitle('🔀 Git管理');
     
     if (specificRepoPath) {
         fetch('/api/git/repo-status?path=' + encodeURIComponent(specificRepoPath), { headers: authHeaders() })
@@ -674,22 +698,21 @@ window.loadGitList = function(specificRepoPath) {
                     changeInfo = changes.length ? ' · ' + changes.join(', ') : '';
                 }
 
-                const headerHtml = '<div style="padding:12px 12px 8px;">' +
-                    '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">' +
+                const titleHtml = '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">' +
                     '<span style="font-weight:600;word-break:break-all;font-size:15px;">' + escapeHtml(repoName) + '</span>' +
-                    '<div style="display:flex;gap:4px;">' +
-                    '<button onclick="__gitDoDiff(' + repoPathArg + ');" style="padding:4px 8px;font-size:12px;border:1px solid #404040;background:#3c3c3c;color:#ccc;border-radius:4px;cursor:pointer;">📊 Diff</button>' +
-                    '<button onclick="__gitDoPull(' + repoPathArg + ');" style="padding:4px 8px;font-size:12px;border:1px solid #404040;background:#3c3c3c;color:#ccc;border-radius:4px;cursor:pointer;">⬇️ Pull</button>' +
-                    '<button onclick="__gitDoPush(' + repoPathArg + ');" style="padding:4px 8px;font-size:12px;border:1px solid #404040;background:#3c3c3c;color:#ccc;border-radius:4px;cursor:pointer;">⬆️ Push</button>' +
+                    '<div class="git-link-group">' +
+                    '<button type="button" class="git-link-btn" onclick="__gitDoDiff(' + repoPathArg + ');">diff</button>' +
+                    '<button type="button" class="git-link-btn" onclick="__gitDoPull(' + repoPathArg + ');">pull</button>' +
+                    '<button type="button" class="git-link-btn" onclick="__gitDoPush(' + repoPathArg + ');">push</button>' +
                     '</div>' +
-                    (hasChanges ? '<span style="font-size:12px;color:#e3b341;margin-left:4px;">⚠️ Dirty</span>' : '<span style="font-size:12px;color:#2da44e;margin-left:4px;">✓ Clean</span>') +
-                    (changeInfo ? '<span style="font-size:11px;color:#666;">' + escapeHtml(changeInfo) + '</span>' : '') +
-                    '</div>' +
-                    '<div id="gitDiffFilesBox"></div>' +
                     '</div>';
+                __gitSetDrawerTitle(titleHtml);
+
+                const headerHtml = '<div style="padding:12px 12px 8px;"><div id="gitDiffFilesBox"></div></div>';
+                const diffMeta = { has_changes: hasChanges, change_info: changeInfo };
 
                 __gitMountCommitList(container, specificRepoPath, { html: headerHtml, branch: '' });
-                __gitLoadDiffFileList(specificRepoPath);
+                __gitLoadDiffFileList(specificRepoPath, diffMeta);
             })
             .catch(function() {
                 if (container) container.innerHTML = __gitErrorBannerHtml('加载失败');
@@ -733,22 +756,21 @@ window.loadGitList = function(specificRepoPath) {
                     changeInfo = changes.length ? ' · ' + changes.join(', ') : '';
                 }
 
-                const headerHtml = '<div style="padding:12px 12px 8px;">' +
-                    '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">' +
+                const titleHtml = '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">' +
                     '<span style="font-weight:600;word-break:break-all;font-size:15px;">' + escapeHtml(repoName) + '</span>' +
-                    '<div style="display:flex;gap:4px;">' +
-                    '<button onclick="__gitDoDiff(' + repoPathArg + ');" style="padding:4px 8px;font-size:12px;border:1px solid #404040;background:#3c3c3c;color:#ccc;border-radius:4px;cursor:pointer;">📊 Diff</button>' +
-                    '<button onclick="__gitDoPull(' + repoPathArg + ');" style="padding:4px 8px;font-size:12px;border:1px solid #404040;background:#3c3c3c;color:#ccc;border-radius:4px;cursor:pointer;">⬇️ Pull</button>' +
-                    '<button onclick="__gitDoPush(' + repoPathArg + ');" style="padding:4px 8px;font-size:12px;border:1px solid #404040;background:#3c3c3c;color:#ccc;border-radius:4px;cursor:pointer;">⬆️ Push</button>' +
+                    '<div class="git-link-group">' +
+                    '<button type="button" class="git-link-btn" onclick="__gitDoDiff(' + repoPathArg + ');">diff</button>' +
+                    '<button type="button" class="git-link-btn" onclick="__gitDoPull(' + repoPathArg + ');">pull</button>' +
+                    '<button type="button" class="git-link-btn" onclick="__gitDoPush(' + repoPathArg + ');">push</button>' +
                     '</div>' +
-                    (hasChanges ? '<span style="font-size:12px;color:#e3b341;margin-left:4px;">⚠️ Dirty</span>' : '<span style="font-size:12px;color:#2da44e;margin-left:4px;">✓ Clean</span>') +
-                    (changeInfo ? '<span style="font-size:11px;color:#666;">' + escapeHtml(changeInfo) + '</span>' : '') +
-                    '</div>' +
-                    '<div id="gitDiffFilesBox"></div>' +
                     '</div>';
+                __gitSetDrawerTitle(titleHtml);
+
+                const headerHtml = '<div style="padding:12px 12px 8px;"><div id="gitDiffFilesBox"></div></div>';
+                const diffMeta = { has_changes: hasChanges, change_info: changeInfo };
 
                 __gitMountCommitList(panelEl, repoPath, { html: headerHtml, branch: '' });
-                __gitLoadDiffFileList(repoPath);
+                __gitLoadDiffFileList(repoPath, diffMeta);
             }
 
             repos.forEach(function(r) {

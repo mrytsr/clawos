@@ -554,7 +554,7 @@ window.loadSystemdList = function() {
             window._systemdSystemLoaded = false;
             
             // 默认显示 User
-            switchSystemdTab('user');
+            window.switchSystemdTab('user');
             
             // 后台加载 System tab
             fetch('/api/systemd/list?scope=system', { headers: authHeaders() })
@@ -601,7 +601,7 @@ window.switchSystemdTab = function(scope) {
                 window._systemdData.system = systemServices;
                 window._systemdSystemLoaded = true;
                 document.getElementById('systemdSystemCount').textContent = systemServices.length;
-                switchSystemdTab('system'); // 重新渲染
+                window.switchSystemdTab('system'); // 重新渲染
             })
             .catch(function() {
                 container.innerHTML = __errorHtml('加载失败');
@@ -697,7 +697,7 @@ window.switchSystemdTab = function(scope) {
 // 搜索过滤
 window.filterSystemdServices = function() {
     const scope = document.getElementById('systemdTabUser').style.background === 'rgb(255, 255, 255)' ? 'user' : 'system';
-    switchSystemdTab(scope);
+    window.switchSystemdTab(scope);
 };
 
 window.loadDiskList = function() {
