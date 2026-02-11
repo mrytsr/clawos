@@ -62,6 +62,7 @@ def _run_mysql(conn, query, timeout=30):
         'mysql', '-h', conn['host'],
         '-P', str(conn['port']),
         '-u', conn['user'],
+        '--ssl-mode=DISABLED',
     ]
     if conn.get('password'):
         cmd.append(f"-p{conn['password']}")
