@@ -588,9 +588,7 @@ window.openMainMenuModal = function() {
             { action: 'gpu', icon: '🖥️', text: '显卡' },
             { action: 'ollama', icon: '🦙', text: 'Ollama' },
             { action: 'openclaw', icon: '⚙️', text: 'OpenClaw' },
-            { action: 'system-package', icon: '📦', text: '系统包管理' },
-            { action: 'pip', icon: '🐍', text: 'pip包管理' },
-            { action: 'npm', icon: '📦', text: 'npm包管理' },
+            { action: 'pkg', icon: '📦', text: '包管理' },
             { action: 'docker', icon: '🐳', text: 'docker管理' },
             { action: 'systemd', icon: '🔧', text: 'systemd管理' },
             { action: 'clash', icon: '🌐', text: 'Clash代理' },
@@ -640,9 +638,7 @@ window.logoutAuth = function() { window.location.href = '/logout'; };
 window.actionToModalMap = {
     'git': { modal: 'gitModal', load: 'loadGitList', open: 'openGitModal' },
     'process': { modal: 'processModal', load: 'loadProcessList', open: 'openProcessModal' },
-    'system-package': { modal: 'systemPackageModal', load: 'loadSystemPackageList', open: 'openSystemPackageModal' },
-    'pip': { modal: 'pipModal', load: 'loadPipList', open: 'openPipModal' },
-    'npm': { modal: 'npmModal', load: 'loadNpmList', open: 'openNpmModal' },
+    'pkg': { func: 'openPkgDrawer' },
     'docker': { modal: 'dockerModal', load: 'loadDockerTabs', open: 'openDockerModal' },
     'systemd': { modal: 'systemdModal', load: 'loadSystemdList', open: 'openSystemdModal' },
     'clash': { modal: 'clashModal', load: 'loadClashConfigEnhanced', open: 'openClashModal' },
@@ -668,9 +664,13 @@ window.handleMainMenu = function(action) {
         openTerminal(currentPath, true);
     } else if (action === 'config') {
         openConfigModal();
+    } else if (action === 'pkg') {
+        window.openPkgDrawer();
     } else if (window.actionToModalMap && window.actionToModalMap[action]) {
         var config = window.actionToModalMap[action];
-        if (config.url) {
+        if (config.func && window[config.func]) {
+            window[config.func]();
+        } else if (config.url) {
             // 新窗口打开
             var target = config.target || '_blank';
             window.open(config.url, target);
@@ -933,7 +933,168 @@ function updateBatchBar() {
     }
 }
 
-// 全局变量（通过 window 对象暴露）
-window.isDragging = false;
-window.startY = 0;
-window.startHeight = 0;
+// ========== 包管理 ==========
+window.pkgCurrentTab = 'system';
+window.pkgData = { system: [], pip: [], npm: [] };
+window.pkgFilter = '';
+
+window.openPkgDrawer = function() {
+    Drawer.open('pkgDrawer');
+    document.getElementById('pkgDrawerBackdrop').style.display = 'block';
+    loadPkgCurrentTab();
+};
+
+window.closePkgDrawer = function() {
+    Drawer.close('pkgDrawer');
+    document.getElementById('pkgDrawerBackdrop').style.display = 'none';
+};
+
+window.switchPkgTab = function(tab) {
+    window.pkgCurrentTab = tab;
+    document.querySelectorAll('.pkg-tab').forEach(function(el) {
+        el.classList.toggle('active', el.dataset.tab === tab);
+    });
+    document.querySelectorAll('.pkg-tab-panel').forEach(function(el) {
+        el.classList.toggle('active', el.id === 'pkg' + tab.charAt(0).toUpperCase() + tab.slice(1));
+    });
+    loadPkgCurrentTab();
+};
+
+window.loadPkgCurrentTab = function() {
+    switch(window.pkgCurrentTab) {
+        case 'system': loadSystemPackages(); break;
+        case 'pip': loadPipPackages(); break;
+        case 'npm': loadNpmPackages(); break;
+        case 'source': loadSources(); break;
+    }
+};
+
+window.loadSystemPackages = function() {
+    var el = document.getElementById('pkgSystemList');
+    el.innerHTML = '<div style="text-align:center;padding:20px;color:#666;">加载中...</div>';
+    fetch('/api/system-packages/list').then(function(r){return r.json()}).then(function(data){
+        if (data.success && data.data && data.data.packages) {
+            window.pkgData.system = data.data.packages;
+            renderPkgList('pkgSystemList', window.pkgData.system);
+        } else {
+            el.innerHTML = '<div style="text-align:center;padding:20px;color:#cf222e;">加载失败</div>';
+        }
+    }).catch(function(e){
+        el.innerHTML = '<div style="text-align:center;padding:20px;color:#cf222e;">' + e.message + '</div>';
+    });
+};
+
+window.loadPipPackages = function() {
+    var el = document.getElementById('pkgPipList');
+    el.innerHTML = '<div style="text-align:center;padding:20px;color:#666;">加载中...</div>';
+    fetch('/api/pip/list').then(function(r){return r.json()}).then(function(data){
+        if (data.success && data.data && data.data.packages) {
+            window.pkgData.pip = data.data.packages;
+            renderPkgList('pkgPipList', window.pkgData.pip);
+        } else {
+            el.innerHTML = '<div style="text-align:center;padding:20px;color:#cf222e;">加载失败</div>';
+        }
+    }).catch(function(e){
+        el.innerHTML = '<div style="text-align:center;padding:20px;color:#cf222e;">' + e.message + '</div>';
+    });
+};
+
+window.loadNpmPackages = function() {
+    var el = document.getElementById('pkgNpmList');
+    el.innerHTML = '<div style="text-align:center;padding:20px;color:#666;">加载中...</div>';
+    fetch('/api/npm/list').then(function(r){return r.json()}).then(function(data){
+        if (data.success && data.data && data.data.packages) {
+            window.pkgData.npm = data.data.packages;
+            renderPkgList('pkgNpmList', window.pkgData.npm);
+        } else {
+            el.innerHTML = '<div style="text-align:center;padding:20px;color:#cf222e;">加载失败</div>';
+        }
+    }).catch(function(e){
+        el.innerHTML = '<div style="text-align:center;padding:20px;color:#cf222e;">' + e.message + '</div>';
+    });
+};
+
+window.renderPkgList = function(elId, list) {
+    var el = document.getElementById(elId);
+    var filter = window.pkgFilter.toLowerCase();
+    var filtered = list.filter(function(pkg) {
+        var name = pkg.name || pkg;
+        return name.toLowerCase().indexOf(filter) >= 0;
+    });
+    if (filtered.length === 0) {
+        el.innerHTML = '<div style="text-align:center;padding:20px;color:#666;">无匹配项</div>';
+        return;
+    }
+    var html = '';
+    filtered.slice(0, 100).forEach(function(pkg) {
+        var name = pkg.name || pkg;
+        var version = pkg.version || '';
+        html += '<div class="pkg-item" onclick="showPkgActions(\'' + name.replace(/'/g, "\\'") + '\')">' +
+            '<span class="pkg-item-name">' + name + '</span>' +
+            (version ? '<span class="pkg-item-version">' + version + '</span>' : '') +
+            '</div>';
+    });
+    el.innerHTML = html;
+};
+
+window.showPkgActions = function(name) {
+    alert('操作: ' + name + '\n\n功能开发中...');
+};
+
+window.filterPkgList = function() {
+    window.pkgFilter = document.getElementById('pkgSearchInput').value || '';
+    switch(window.pkgCurrentTab) {
+        case 'system': renderPkgList('pkgSystemList', window.pkgData.system); break;
+        case 'pip': renderPkgList('pkgPipList', window.pkgData.pip); break;
+        case 'npm': renderPkgList('pkgNpmList', window.pkgData.npm); break;
+    }
+};
+
+// 源管理
+window.loadSources = function() {
+    // pip 源
+    var pipSources = [
+        { name: '官方源 (pypi.org)', url: 'https://pypi.org/simple' },
+        { name: '阿里云', url: 'https://mirrors.aliyun.com/pypi/simple' },
+        { name: '清华源', url: 'https://pypi.tuna.tsinghua.edu.cn/simple' },
+        { name: '腾讯云', url: 'https://mirrors.cloud.tencent.com/pypi/simple' }
+    ];
+    var currentPip = localStorage.getItem('pip_source') || pipSources[1].url;
+    document.getElementById('pipSourceCurrent').innerHTML = '<span style="color:#1a7f37;">✓</span> ' + 
+        (pipSources.find(function(s) { return s.url === currentPip; }) || pipSources[0]).name;
+    var pipHtml = pipSources.map(function(s) {
+        return '<div class="source-item' + (s.url === currentPip ? ' active' : '') + '" onclick="switchPipSource(\'' + s.url + '\')">' +
+            '<span class="source-item-name">' + s.name + '</span>' +
+            '<span class="source-item-arrow">' + (s.url === currentPip ? '✓' : '→') + '</span></div>';
+    }).join('');
+    document.getElementById('pipSourceList').innerHTML = pipHtml;
+    
+    // npm 源
+    var npmSources = [
+        { name: '官方源 (registry.npmjs.org)', url: 'https://registry.npmjs.org' },
+        { name: '淘宝/阿里', url: 'https://registry.npmmirror.com' }
+    ];
+    var currentNpm = localStorage.getItem('npm_source') || npmSources[1].url;
+    document.getElementById('npmSourceCurrent').innerHTML = '<span style="color:#1a7f37;">✓</span> ' + 
+        (npmSources.find(function(s) { return s.url === currentNpm; }) || npmSources[0]).name;
+    var npmHtml = npmSources.map(function(s) {
+        return '<div class="source-item' + (s.url === currentNpm ? ' active' : '') + '" onclick="switchNpmSource(\'' + s.url + '\')">' +
+            '<span class="source-item-name">' + s.name + '</span>' +
+            '<span class="source-item-arrow">' + (s.url === currentNpm ? '✓' : '→') + '</span></div>';
+    }).join('');
+    document.getElementById('npmSourceList').innerHTML = npmHtml;
+};
+
+window.switchPipSource = function(url) {
+    localStorage.setItem('pip_source', url);
+    loadSources();
+    alert('pip 源已切换为: ' + url);
+};
+
+window.switchNpmSource = function(url) {
+    localStorage.setItem('npm_source', url);
+    loadSources();
+    alert('npm 源已切换为: ' + url);
+};
+
+// ========== 批量操作 ==========

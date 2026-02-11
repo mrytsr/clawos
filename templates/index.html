@@ -966,6 +966,96 @@
     <div id="mainMenuBackdrop" class="right-drawer-backdrop" onclick="closeMainMenuModal()" aria-hidden="true"></div>
     <div id="srAnnouncer" aria-live="polite" aria-atomic="true" style="position: fixed; width: 1px; height: 1px; overflow: hidden; clip: rect(1px, 1px, 1px, 1px); white-space: nowrap;"></div>
 
+    <!-- 包管理抽屉 -->
+    <div id="pkgDrawer" class="right-drawer" style="width: 480px; max-width: 100vw;">
+        <div class="right-drawer-header">
+            <div class="drawer-title">📦 包管理</div>
+            <button class="drawer-close-btn" onclick="closePkgDrawer()">&times;</button>
+        </div>
+        <div class="right-drawer-content" style="padding: 0;">
+            <!-- 搜索框 -->
+            <div style="padding: 12px 16px; border-bottom: 1px solid #d0d7de; display: flex; gap: 8px;">
+                <input type="text" id="pkgSearchInput" placeholder="搜索..." 
+                    style="flex: 1; padding: 8px 12px; border: 1px solid #d0d7de; border-radius: 6px; font-size: 14px;"
+                    oninput="filterPkgList()">
+                <button onclick="loadPkgCurrentTab()" style="padding: 8px 16px; background: #0969da; color: #fff; border: none; border-radius: 6px; cursor: pointer;">刷新</button>
+            </div>
+            <!-- Tab 栏 -->
+            <div style="display: flex; border-bottom: 1px solid #d0d7de; background: #f6f8fa;">
+                <button class="pkg-tab active" data-tab="system" onclick="switchPkgTab('system')">系统</button>
+                <button class="pkg-tab" data-tab="pip" onclick="switchPkgTab('pip')">pip</button>
+                <button class="pkg-tab" data-tab="npm" onclick="switchPkgTab('npm')">npm</button>
+                <button class="pkg-tab" data-tab="source" onclick="switchPkgTab('source')">源</button>
+            </div>
+            <!-- Tab 内容 -->
+            <div id="pkgTabContent" style="height: calc(100vh - 180px); overflow-y: auto; padding: 12px;">
+                <!-- 系统包 -->
+                <div id="pkgSystem" class="pkg-tab-panel active">
+                    <div id="pkgSystemList" class="pkg-list">加载中...</div>
+                </div>
+                <!-- pip 包 -->
+                <div id="pkgPip" class="pkg-tab-panel">
+                    <div id="pkgPipList" class="pkg-list">加载中...</div>
+                </div>
+                <!-- npm 包 -->
+                <div id="pkgNpm" class="pkg-tab-panel">
+                    <div id="pkgNpmList" class="pkg-list">加载中...</div>
+                </div>
+                <!-- 源管理 -->
+                <div id="pkgSource" class="pkg-tab-panel">
+                    <!-- pip 源 -->
+                    <div style="margin-bottom: 20px;">
+                        <div style="font-size: 13px; color: #57606a; margin-bottom: 8px;">pip 源</div>
+                        <div id="pipSourceCurrent" style="padding: 8px 12px; background: #f6f8fa; border-radius: 6px; margin-bottom: 8px; font-size: 13px;"></div>
+                        <div id="pipSourceList" class="source-list"></div>
+                    </div>
+                    <!-- npm 源 -->
+                    <div>
+                        <div style="font-size: 13px; color: #57606a; margin-bottom: 8px;">npm 源</div>
+                        <div id="npmSourceCurrent" style="padding: 8px 12px; background: #f6f8fa; border-radius: 6px; margin-bottom: 8px; font-size: 13px;"></div>
+                        <div id="npmSourceList" class="source-list"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="pkgDrawerBackdrop" class="right-drawer-backdrop" onclick="closePkgDrawer()" aria-hidden="true" style="display:none;"></div>
+
+    <!-- 样式 -->
+    <style>
+    .pkg-tab {
+        flex: 1; padding: 10px; border: none; background: transparent; 
+        font-size: 13px; color: #57606a; cursor: pointer; border-bottom: 2px solid transparent;
+    }
+    .pkg-tab.active {
+        color: #0969da; border-bottom-color: #0969da; font-weight: 500;
+    }
+    .pkg-tab:hover:not(.active) { background: #f6f8fa; }
+    .pkg-tab-panel { display: none; }
+    .pkg-tab-panel.active { display: block; }
+    .pkg-item {
+        display: flex; align-items: center; padding: 8px 12px; 
+        border-bottom: 1px solid #eaecef; cursor: pointer;
+    }
+    .pkg-item:hover { background: #f6f8fa; }
+    .pkg-item-name { flex: 1; font-size: 13px; font-weight: 500; }
+    .pkg-item-version { font-size: 11px; color: #8b949e; margin-right: 8px; }
+    .pkg-item-action { 
+        padding: 4px 8px; font-size: 11px; border-radius: 4px; 
+        cursor: pointer; border: 1px solid #d0d7de; background: #fff;
+    }
+    .pkg-item-action:hover { background: #f6f8fa; }
+    .source-item {
+        display: flex; align-items: center; padding: 8px 12px;
+        border-bottom: 1px solid #eaecef; cursor: pointer;
+    }
+    .source-item:hover { background: #f6f8fa; }
+    .source-item-name { flex: 1; font-size: 13px; }
+    .source-item-arrow { color: #8b949e; }
+    .source-item.active { background: #f6f8fa; }
+    .source-item.active .source-item-arrow { color: #1a7f37; }
+    </style>
+
     <!-- Bot Drawer 遮罩层 -->
     <div id="botBackdrop" class="drawer-backdrop" onclick="closeBotModal()"></div>
     <div id="botDrawer" class="drawer" style="height: 90vh;">
