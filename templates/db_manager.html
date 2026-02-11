@@ -29,7 +29,7 @@
         /* 抽屉侧边栏 */
         .drawer {
             position: fixed; left: -100%; top: 0; bottom: 0;
-            width: 60%; max-width: 280px; z-index: 200;
+            width: 60%; max-width: 320px; z-index: 200;
             background: #16213e; border-right: 1px solid #0f3460;
             display: flex; flex-direction: column;
             transition: left 0.3s ease;
@@ -53,41 +53,39 @@
         }
         .drawer-content { flex: 1; overflow-y: auto; padding: 12px; }
         
-        /* 连接列表 - 简化版 */
-        .conn-list { display: flex; flex-direction: column; gap: 6px; }
-        .conn-item {
-            background: #1a1a2e; border-radius: 8px; padding: 10px 12px;
-            cursor: pointer; border: 2px solid transparent;
-            display: flex; align-items: center; gap: 10px;
-        }
-        .conn-item.active { border-color: #e94560; background: #1f1f3a; }
-        .conn-item .name { flex: 1; font-size: 13px; font-weight: 500; color: #fff; }
-        .conn-item .actions { display: flex; gap: 4px; }
-        .conn-item .actions button {
-            padding: 4px 8px; border-radius: 4px; border: none;
-            background: #0f3460; color: #888; cursor: pointer; font-size: 11px;
-        }
-        .conn-item .actions button:hover { background: #e94560; color: #fff; }
-        
-        /* 树形结构 */
-        .tree-item {
-            padding: 8px 12px; border-radius: 6px; cursor: pointer;
+        /* 树组件 */
+        .tree { font-size: 13px; }
+        .tree-node { }
+        .tree-node-content {
+            padding: 8px 10px; border-radius: 6px; cursor: pointer;
             display: flex; align-items: center; gap: 8px;
-            font-size: 13px;
+            transition: background 0.15s;
         }
-        .tree-item:hover { background: #0f3460; }
-        .tree-item.active { background: #0f3460; color: #e94560; }
-        .tree-item .icon { width: 18px; text-align: center; }
-        .tree-item .name { flex: 1; }
-        .tree-children { padding-left: 16px; }
+        .tree-node-content:hover { background: #0f3460; }
+        .tree-node-content.active { background: #0f3460; color: #e94560; }
+        .tree-toggle {
+            width: 18px; height: 18px; display: flex; align-items: center; justify-content: center;
+            font-size: 10px; color: #666; flex-shrink: 0;
+        }
+        .tree-toggle.expanded { transform: rotate(90deg); }
+        .tree-icon { width: 18px; text-align: center; flex-shrink: 0; }
+        .tree-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .tree-actions { display: flex; gap: 4px; opacity: 0; transition: opacity 0.15s; }
+        .tree-node-content:hover .tree-actions { opacity: 1; }
+        .tree-actions button {
+            padding: 2px 6px; border-radius: 4px; border: none;
+            background: rgba(255,255,255,0.1); color: #888; cursor: pointer; font-size: 10px;
+        }
+        .tree-actions button:hover { background: #e94560; color: #fff; }
+        .tree-children { padding-left: 20px; overflow: hidden; }
+        .tree-children.collapsed { display: none; }
         .tree-loading { padding: 10px; text-align: center; color: #666; font-size: 12px; }
         
         /* 新建按钮 */
         .add-btn {
             width: 100%; padding: 10px; border-radius: 8px;
             background: #0f3460; border: none; color: #ccc;
-            cursor: pointer; font-size: 13px;
-            margin-bottom: 12px;
+            cursor: pointer; font-size: 13px; margin-bottom: 12px;
         }
         
         /* 主内容区 */
@@ -233,7 +231,7 @@
         <!-- 抽屉遮罩 -->
         <div class="drawer-backdrop" id="drawerBackdrop" onclick="closeDrawer()"></div>
         
-        <!-- 抽屉侧边栏 -->
+        <!-- 抽屉 -->
         <div class="drawer" id="drawer">
             <div class="drawer-header">
                 <h2>📊 数据库</h2>
@@ -241,7 +239,7 @@
             </div>
             <div class="drawer-content">
                 <button class="add-btn" onclick="openAddModal()">+ 新建连接</button>
-                <div class="conn-list" id="connList"></div>
+                <div class="tree" id="dbTree"></div>
             </div>
         </div>
         
@@ -265,14 +263,13 @@
                     <div class="quick-btns">
                         <button onclick="quickQuery('SHOW TABLES')">Tables</button>
                         <button onclick="quickQuery('SHOW PROCESSLIST')">Process</button>
-                        <button onclick="quickQuery('SHOW STATUS')">Status</button>
                         <button onclick="quickQuery('DESCRIBE \`table_name\`')">Desc</button>
                         <button onclick="quickQuery('SELECT COUNT(*) FROM \`table_name\`')">Count</button>
                     </div>
                 </div>
             </div>
             
-            <!-- 导出和分页 -->
+            <!-- 工具栏 -->
             <div class="results-toolbar" id="resultsToolbar" style="display:none;">
                 <div class="export-btns">
                     <button class="export-btn" onclick="exportData('csv')">CSV</button>
@@ -339,7 +336,7 @@
         <div class="modal-content">
             <div class="modal-title">编辑连接</div>
             <input type="hidden" id="editConnId">
-            <div class="form-group"><label>SQLAlchemy URL</label><div style="display:flex;gap:8px;"><input type="text" id="editDbUrl" readonly style="background:#0f3460;color:#4ade80;"><button onclick="copyDbUrl()" style="background:#0f3460;border:none;border-radius:8px;color:#ccc;cursor:pointer;padding:0 12px;">复制</button></div></div>
+            <div class="form-group"><label>SQLAlchemy URL</label><div style="display:flex;gap:8px;"><input type="text" id="editDbUrl" readonly style="background:#0f3460;color:#4ade80;font-size:11px;"><button onclick="copyDbUrl()" style="background:#0f3460;border:none;border-radius:8px;color:#ccc;cursor:pointer;padding:0 12px;">复制</button></div></div>
             <div class="form-group"><label>名称</label><input type="text" id="editDbName"></div>
             <div class="form-group host-field"><label>主机</label><input type="text" id="editDbHost"></div>
             <div class="form-group host-field"><label>端口</label><input type="number" id="editDbPort"></div>
@@ -354,7 +351,7 @@
         </div>
     </div>
     
-    <!-- Confirm/Alert 弹窗 -->
+    <!-- Confirm 弹窗 -->
     <div id="confirmBackdrop" class="modal" onclick="closeConfirmModal()" style="display:none;background:rgba(0,0,0,0.5);">
         <div class="modal-content" onclick="event.stopPropagation()" style="max-width:320px;">
             <div class="modal-title" id="confirmTitle">确认</div>
@@ -372,119 +369,104 @@
         let allResults = [], currentPage = 1, totalPages = 1, pageSize = 200;
         let __confirmCallback = null;
         
-        // 引擎配置
         const ENGINE_CONFIG = {
             mysql: { port: 3306, icon: '🐬' }, postgresql: { port: 5432, icon: '🐘' },
             sqlite: { port: 0, icon: '📄' }, mariadb: { port: 3306, icon: '🐬' },
             oracle: { port: 1521, icon: '🔴' }, mssql: { port: 1433, icon: '🪟' }
         };
         
-        // 加载连接
-        async function loadConnections() {
-            const r = await fetch('/api/db/connections');
-            const data = await r.json();
-            if (data.success) {
-                connections = data.data?.connections || [];
-                renderConnections();
+        // 加载树数据
+        async function loadTree() {
+            $('dbTree').innerHTML = '<div class="tree-loading"><div class="spinner"></div>加载中...</div>';
+            try {
+                const r = await fetch('/api/db/tree');
+                const data = await r.json();
+                if (data.success) {
+                    renderTree(data.data || []);
+                } else {
+                    $('dbTree').innerHTML = '<div class="results-empty">加载失败</div>';
+                }
+            } catch (e) {
+                $('dbTree').innerHTML = '<div class="results-empty">加载失败</div>';
             }
         }
         
-        // 渲染连接列表
-        function renderConnections() {
-            let html = '';
-            connections.forEach(c => {
-                const icon = ENGINE_CONFIG[c.engine || 'mysql']?.icon || '🗄️';
-                const active = currentConn?.id === c.id ? 'active' : '';
-                html += `<div class="conn-item ${active}" onclick="selectConnection('${c.id}')">
-                    <span style="font-size:16px;">${icon}</span>
-                    <span class="name">${c.name}</span>
-                    <div class="actions">
-                        <button onclick="event.stopPropagation();openEditModal('${c.id}')">编辑</button>
-                        <button onclick="event.stopPropagation();deleteConnection('${c.id}')">删除</button>
-                    </div>
-                </div>`;
+        // 渲染树
+        function renderTree(treeData) {
+            let html = '<div class="tree">';
+            treeData.forEach(conn => {
+                html += renderTreeNode(conn, 'conn', null);
             });
-            $('connList').innerHTML = html || '<div class="results-empty">暂无连接</div>';
+            html += '</div>';
+            $('dbTree').innerHTML = html || '<div class="results-empty">暂无连接</div>';
         }
         
-        // 点击连接
-        async function selectConnection(id) {
-            currentConn = connections.find(c => c.id === id);
-            currentDb = null; currentTable = null;
-            renderConnections();
-            await loadDatabases();
-            saveState();
-        }
-        
-        // 加载数据库列表
-        async function loadDatabases() {
-            $('connList').innerHTML = '<div class="tree-loading"><div class="spinner"></div>加载中...</div>';
-            try {
-                const r = await fetch(`/api/db/${currentConn.id}/databases`);
-                const data = await r.json();
-                if (data.success) {
-                    renderDatabases(data.data?.databases || []);
-                }
-            } catch (e) { $('connList').innerHTML = '<div class="results-empty">加载失败</div>'; }
-        }
-        
-        // 渲染数据库列表
-        function renderDatabases(dbs) {
-            let html = `<div class="tree-item" onclick="loadConnections()">← 返回连接</div>`;
-            dbs.forEach(db => {
-                const active = currentDb === db ? 'active' : '';
-                html += `<div class="tree-item ${active}" onclick="selectDatabase('${db}')">
-                    <span class="icon">📁</span><span class="name">${db}</span>
-                </div>`;
-            });
-            $('connList').innerHTML = html;
-            updateBreadcrumb();
-        }
-        
-        // 点击数据库
-        async function selectDatabase(db) {
-            currentDb = db;
-            currentTable = null;
-            renderDatabases((await (await fetch(`/api/db/${currentConn.id}/databases`)).json()).data?.databases || []);
-            await loadTables(db);
-        }
-        
-        // 加载表列表
-        async function loadTables(db) {
-            $('connList').innerHTML = '<div class="tree-loading"><div class="spinner"></div>加载表...</div>';
-            try {
-                const r = await fetch(`/api/db/${currentConn.id}/databases/${db}/tables`);
-                const data = await r.json();
-                if (data.success) {
-                    renderTables(db, data.data?.tables || []);
-                }
-            } catch (e) { $('connList').innerHTML = '<div class="results-empty">加载失败</div>'; }
-        }
-        
-        // 渲染表列表
-        function renderTables(db, tables) {
-            let html = `<div class="tree-item" onclick="loadDatabases()">← ${db}</div>`;
-            tables.forEach(t => {
-                html += `<div class="tree-item" onclick="selectTable('${t.name}')">
-                    <span class="icon">📋</span><span class="name">${t.name}</span>
-                </div>`;
-            });
-            $('connList').innerHTML = html || '<div class="results-empty">无表</div>';
-        }
-        
-        // 点击表
-        async function selectTable(table) {
-            currentTable = table;
-            $('connList').innerHTML = `<div class="tree-item" onclick="loadTables('${currentDb}')">← ${currentDb}</div>` +
-                `<div class="tree-item active"><span class="icon">📋</span><span class="name">${table}</span></div>`;
-            updateBreadcrumb();
+        function renderTreeNode(node, type, parentConnId) {
+            const id = type === 'conn' ? node.id : node.name;
+            const connId = type === 'conn' ? node.id : parentConnId;
+            const label = type === 'conn' ? node.name : node.name;
+            const icon = type === 'conn' ? (ENGINE_CONFIG[node.engine || 'mysql']?.icon || '🗄️') : (type === 'db' ? '📁' : '📋');
+            const hasChildren = node.children && node.children.length > 0 && type !== 'table';
+            const expanded = type === 'conn';
             
-            // 执行查询
-            const sql = `SELECT * FROM \`${table}\` LIMIT 200`;
-            $('sqlEditor').value = sql;
-            $('sqlEditorPanel').classList.add('open');
-            $('sqlToggle').classList.add('open');
-            await executeQuery();
+            let html = `<div class="tree-node" data-type="${type}" data-id="${id}" data-connid="${connId}" data-db="${type === 'conn' ? node.database : (type === 'db' ? node.name : parentConnId)}">
+                <div class="tree-node-content" onclick="onNodeClick(this, '${type}', '${id}', '${type === 'db' ? node.name : (type === 'table' ? parentConnId : node.database)}')">
+                    ${type === 'table' ? '' : `<span class="tree-toggle ${expanded ? 'expanded' : ''}" onclick="event.stopPropagation();toggleNode(this)">▶</span>`}
+                    <span class="tree-icon">${icon}</span>
+                    <span class="tree-label">${label}</span>
+                    ${type === 'conn' ? `<div class="tree-actions">
+                        <button onclick="event.stopPropagation();openEditModal('${id}')">编辑</button>
+                        <button onclick="event.stopPropagation();deleteConnection('${id}')">删除</button>
+                    </div>` : ''}
+                </div>`;
+            
+            if (hasChildren) {
+                html += `<div class="tree-children ${expanded ? '' : 'collapsed'}">`;
+                node.children.forEach(child => {
+                    const childType = type === 'conn' ? 'db' : (child.children && child.children.length > 0 ? 'db' : 'table');
+                    html += renderTreeNode(child, childType, connId);
+                });
+                html += '</div>';
+            }
+            html += '</div>';
+            return html;
+        }
+        
+        function toggleNode(el) {
+            el.classList.toggle('expanded');
+            const children = el.parentElement.nextElementSibling;
+            if (children && children.classList.contains('tree-children')) {
+                children.classList.toggle('collapsed');
+            }
+        }
+        
+        async function onNodeClick(el, type, id, dbName) {
+            // 更新选中状态
+            document.querySelectorAll('.tree-node-content').forEach(n => n.classList.remove('active'));
+            el.classList.add('active');
+            
+            if (type === 'table') {
+                // 点击表
+                const nodeEl = el.closest('.tree-node');
+                const connId = nodeEl.dataset.connid;
+                const db = nodeEl.dataset.db;
+                const conn = connections.find(c => c.id === connId);
+                if (!conn) { console.error('Connection not found:', connId); return; }
+                currentConn = conn;
+                currentDb = db;
+                currentTable = id;
+                updateBreadcrumb();
+                
+                // 关闭侧边栏
+                closeDrawer();
+                
+                // 执行查询
+                const sql = `SELECT * FROM \`${id}\` LIMIT 200`;
+                $('sqlEditor').value = sql;
+                $('sqlEditorPanel').classList.add('open');
+                $('sqlToggle').classList.add('open');
+                executeQuery();
+            }
         }
         
         function updateBreadcrumb() {
@@ -495,15 +477,12 @@
             $('breadcrumb').innerHTML = html || '<span>未选择</span>';
         }
         
-        // 抽屉控制
         function toggleDrawer() { $('drawer').classList.toggle('open'); $('drawerBackdrop').classList.toggle('show'); }
         function closeDrawer() { $('drawer').classList.remove('open'); $('drawerBackdrop').classList.remove('show'); }
         
-        // SQL 编辑器
         function toggleSqlEditor() { $('sqlEditorPanel').classList.toggle('open'); $('sqlToggle').classList.toggle('open'); }
         function clearEditor() { $('sqlEditor').value = ''; }
         
-        // 执行查询
         async function executeQuery() {
             const sql = $('sqlEditor').value.trim();
             if (!sql) return;
@@ -553,16 +532,14 @@
             $('pageInfo').textContent = `${currentPage} / ${totalPages}`;
         }
         
-        // 快捷查询
         function quickQuery(sql) {
-            if (!currentConn) { showStatus('请先选择连接', true); return; }
+            if (!currentConn) { showStatus('请先选择表', true); return; }
             $('sqlEditor').value = sql;
             $('sqlEditorPanel').classList.add('open');
             $('sqlToggle').classList.add('open');
             executeQuery();
         }
         
-        // 导出
         function exportData(format) {
             if (allResults.length === 0) { showStatus('无可导出数据', true); return; }
             const headers = $('resultsContent').querySelectorAll('thead th');
@@ -594,7 +571,6 @@
             showStatus(`已导出 ${allResults.length} 行`, false);
         }
         
-        // 切换 Tab
         function switchResultsTab(tab) {
             document.querySelectorAll('.results-tab').forEach(t => t.classList.remove('active'));
             $('tab' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('active');
@@ -617,14 +593,13 @@
             } catch (e) { $('schemaPanel').innerHTML = '<div class="results-empty">加载失败</div>'; }
         }
         
-        // 弹窗函数
         function showStatus(msg, error) { $('statusBar').innerHTML = `<span class="${error ? 'error' : 'success'}">${msg}</span>`; }
         
         function showConfirm(title, msg, onConfirm, danger) {
             $('confirmTitle').textContent = title;
             $('confirmMessage').textContent = msg;
             __confirmCallback = onConfirm;
-            $('confirmBtn').className = 'confirm' + (danger ? ' danger' : '');
+            $('confirmBtn').className = danger ? 'confirm' : '';
             $('confirmBtn').textContent = danger ? '删除' : '确认';
             $('confirmBackdrop').style.display = 'flex';
         }
@@ -645,7 +620,6 @@
         }
         
         // 添加连接
-        const ENGINE_OPTS = {mysql:'MySQL',postgresql:'PostgreSQL',sqlite:'SQLite',mariadb:'MariaDB',oracle:'Oracle',mssql:'SQL Server'};
         function openAddModal() {
             $('dbEngine').value = 'mysql'; $('dbName').value = ''; $('dbHost').value = ''; $('dbPort').value = '3306';
             $('dbUser').value = ''; $('dbPass').value = ''; $('dbDatabase').value = ''; $('dbSqlitePath').value = '';
@@ -666,7 +640,7 @@
             if (eng !== 'sqlite' && (!data.host || !data.user)) { showStatus('请填写必要信息', true); return; }
             try {
                 await fetch('/api/db/connect', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)});
-                closeAddModal(); loadConnections(); showStatus('已保存', false);
+                closeAddModal(); loadTree(); loadConnections(); showStatus('已保存', false);
             } catch (e) { showStatus('保存失败: ' + e.message, true); }
         }
         
@@ -690,28 +664,28 @@
             const data = {name:$('editDbName').value, engine:eng, host:$('editDbHost').value, port:String($('editDbPort').value), user:$('editDbUser').value, password:$('editDbPass').value, database:$('editDbDatabase').value};
             try {
                 await fetch(`/api/db/connection/${id}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)});
-                closeEditModal(); loadConnections(); showStatus('已更新', false);
+                closeEditModal(); loadTree(); loadConnections(); showStatus('已更新', false);
             } catch (e) { showStatus('保存失败', true); }
         }
         
-        // 删除连接
         function deleteConnection(id) {
             showConfirm('删除连接', '确定要删除此连接吗？', async () => {
                 try {
                     await fetch(`/api/db/connections/${id}`, {method:'DELETE'});
                     currentConn = null; currentDb = null; currentTable = null;
-                    loadConnections(); updateBreadcrumb(); showStatus('已删除', false);
+                    loadTree(); loadConnections(); updateBreadcrumb(); showStatus('已删除', false);
                 } catch (e) { showStatus('删除失败', true); }
             }, true);
         }
         
-        function saveState() {
-            fetch('/api/db/state', {method:'POST', headers:{'Content-Type':'application/json'}, 
-                body:JSON.stringify({connId:currentConn?.id, dbName:currentDb, tableName:currentTable})}).catch(()=>{});
+        async function loadConnections() {
+            const r = await fetch('/api/db/connections');
+            const data = await r.json();
+            if (data.success) connections = data.data?.connections || [];
         }
         
         document.addEventListener('keydown', e => { if ((e.ctrlKey||e.metaKey) && e.key==='Enter') executeQuery(); });
-        loadConnections();
+        loadConnections().then(loadTree);
     </script>
 </body>
 </html>

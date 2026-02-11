@@ -509,6 +509,76 @@ def api_db_state():
     return api_ok(state)
 
 
+@db_bp.route('/api/db/tree')
+def api_db_tree():
+    """获取完整的数据库树结构."""
+    conns = _load_connections()
+    result = []
+    
+    for conn_id, conn in conns.items():
+        try:
+            from sqlalchemy import create_engine, text, inspect
+            from sqlalchemy.engine.url import make_url
+            
+            # 构建引擎 URL
+            password = _decrypt(conn.get('password', '')) if conn.get('password') else ''
+            
+            if conn.get('engine') == 'sqlite':
+                url = f"sqlite:///{conn.get('database', '')}"
+            else:
+                url = f"mysql+pymysql://{conn['user']}:{password}@{conn['host']}:{conn['port']}/{conn.get('database', '')}"
+            
+            engine = create_engine(url, echo=False)
+            
+            # 获取数据库列表
+            try:
+                with engine.connect() as c:
+                    db_result = c.execute(text('SHOW DATABASES'))
+                    databases = [row[0] for row in db_result.fetchall()]
+            except:
+                databases = [conn.get('database', '')] if conn.get('database') else []
+            
+            # 构建树节点
+            conn_node = {
+                'id': conn_id,
+                'name': conn.get('name', conn_id),
+                'engine': conn.get('engine', 'mysql'),
+                'database': conn.get('database', ''),
+                'children': []
+            }
+            
+            # 获取每个数据库的表
+            for db in databases:
+                try:
+                    db_url = f"mysql+pymysql://{conn['user']}:{password}@{conn['host']}:{conn['port']}/{db}"
+                    db_engine = create_engine(db_url, echo=False)
+                    inspector = inspect(db_engine)
+                    tables = [{'name': t} for t in inspector.get_table_names()]
+                    conn_node['children'].append({
+                        'name': db,
+                        'children': tables
+                    })
+                    db_engine.dispose()
+                except:
+                    continue
+            
+            engine.dispose()
+            result.append(conn_node)
+            
+        except Exception as e:
+            # 连接失败时返回基本信息
+            result.append({
+                'id': conn_id,
+                'name': conn.get('name', conn_id),
+                'engine': conn.get('engine', 'mysql'),
+                'database': conn.get('database', ''),
+                'children': [],
+                'error': str(e)
+            })
+    
+    return api_ok(result)
+
+
 @db_bp.route('/api/db/<conn_id>/databases')
 def api_db_databases(conn_id):
     """获取数据库列表 (SHOW DATABASES)."""
