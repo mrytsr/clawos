@@ -538,34 +538,42 @@ function __systemdControl(service, action, scope) {
 window.loadSystemdList = function() {
     const container = __setContainerHtml('systemdListContainer', __loadingHtml('加载中...'));
     
-    // 先获取 user 和 system 两个列表
-    Promise.all([
-        fetch('/api/systemd/list?scope=user', { headers: authHeaders() }).then(r => r.json()),
-        fetch('/api/systemd/list?scope=system', { headers: authHeaders() }).then(r => r.json())
-    ]).then(function(results) {
-        if (!container) return;
-        
-        const userData = apiData(results[0]) || { services: [] };
-        const systemData = apiData(results[1]) || { services: [] };
-        
-        const userServices = Array.isArray(userData.services) ? userData.services : [];
-        const systemServices = Array.isArray(systemData.services) ? systemData.services : [];
-        
-        // 更新计数
-        document.getElementById('systemdUserCount').textContent = userServices.length;
-        document.getElementById('systemdSystemCount').textContent = systemServices.length;
-        
-        // 保存数据到全局
-        window._systemdData = {
-            user: userServices,
-            system: systemServices
-        };
-        
-        // 默认显示 user
-        switchSystemdTab('user');
-    }).catch(function() {
-        if (container) container.innerHTML = __errorHtml('加载失败（可能不支持此系统）');
-    });
+    // 先加载 User tab（默认显示）
+    fetch('/api/systemd/list?scope=user', { headers: authHeaders() })
+        .then(r => r.json())
+        .then(function(data) {
+            if (!container) return;
+            const userData = apiData(data) || { services: [] };
+            const userServices = Array.isArray(userData.services) ? userData.services : [];
+            
+            // 更新计数
+            document.getElementById('systemdUserCount').textContent = userServices.length;
+            
+            // 保存 User 数据
+            window._systemdData = { user: userServices, system: [] };
+            window._systemdSystemLoaded = false;
+            
+            // 默认显示 User
+            switchSystemdTab('user');
+            
+            // 后台加载 System tab
+            fetch('/api/systemd/list?scope=system', { headers: authHeaders() })
+                .then(r => r.json())
+                .then(function(sysData) {
+                    const systemData = apiData(sysData) || { services: [] };
+                    const systemServices = Array.isArray(systemData.services) ? systemData.services : [];
+                    
+                    window._systemdData.system = systemServices;
+                    window._systemdSystemLoaded = true;
+                    document.getElementById('systemdSystemCount').textContent = systemServices.length;
+                })
+                .catch(function() {
+                    document.getElementById('systemdSystemCount').textContent = '?';
+                });
+        })
+        .catch(function() {
+            if (container) container.innerHTML = __errorHtml('加载失败（可能不支持此系统）');
+        });
 };
 
 // Tab 切换
@@ -579,6 +587,28 @@ window.switchSystemdTab = function(scope) {
     document.getElementById('systemdTabSystem').style.background = scope === 'system' ? '#fff' : '#f6f8fa';
     document.getElementById('systemdTabSystem').style.borderColor = scope === 'system' ? '#0969da' : '#d0d7de';
     
+    const container = document.getElementById('systemdListContainer');
+    if (!container) return;
+    
+    // 如果是 System tab 且还没加载，显示 loading 并触发加载
+    if (scope === 'system' && !window._systemdSystemLoaded) {
+        container.innerHTML = __loadingHtml('加载中...');
+        fetch('/api/systemd/list?scope=system', { headers: authHeaders() })
+            .then(r => r.json())
+            .then(function(sysData) {
+                const systemData = apiData(sysData) || { services: [] };
+                const systemServices = Array.isArray(systemData.services) ? systemData.services : [];
+                window._systemdData.system = systemServices;
+                window._systemdSystemLoaded = true;
+                document.getElementById('systemdSystemCount').textContent = systemServices.length;
+                switchSystemdTab('system'); // 重新渲染
+            })
+            .catch(function() {
+                container.innerHTML = __errorHtml('加载失败');
+            });
+        return;
+    }
+    
     // 获取搜索关键词
     const searchInput = document.getElementById('systemdSearch');
     const keyword = (searchInput?.value || '').toLowerCase();
@@ -587,9 +617,6 @@ window.switchSystemdTab = function(scope) {
     const data = window._systemdData || { user: [], system: [] };
     const services = scope === 'user' ? data.user : data.system;
     const filtered = keyword ? services.filter(s => s.name.toLowerCase().includes(keyword)) : services;
-    
-    const container = document.getElementById('systemdListContainer');
-    if (!container) return;
     
     if (!filtered.length) {
         container.innerHTML = __emptyHtml(keyword ? '未找到匹配的服务' : '暂无服务');
