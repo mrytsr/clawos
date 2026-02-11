@@ -1329,7 +1329,7 @@
 
     <!-- 删除确认抽屉 -->
     <div id="confirmBackdrop" class="gh-dialog-backdrop" onclick="closeConfirmModal()" style="display:none;">
-        <div class="gh-dialog">
+        <div class="gh-dialog" onclick="event.stopPropagation()">
             <div class="gh-dialog-header">
                 <svg id="confirmIcon" class="gh-dialog-icon danger" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
@@ -1346,7 +1346,7 @@
 
     <!-- GitHub Alert 弹窗 -->
     <div id="alertBackdrop" class="gh-dialog-backdrop" onclick="closeAlertModal()" style="display:none;">
-        <div class="gh-alert" id="alertBox">
+        <div class="gh-alert" id="alertBox" onclick="event.stopPropagation()">
             <svg id="alertIcon" class="gh-dialog-icon info" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
             </svg>
