@@ -487,6 +487,19 @@
         }
         
         async function selectDatabase(dbName) {
+            // 如果点击已展开的数据库，收起表格列表
+            if (currentDb === dbName) {
+                const tablesEl = $('tables-' + dbName);
+                if (tablesEl && tablesEl.style.display !== 'none') {
+                    tablesEl.style.display = 'none';
+                    $('db-' + dbName)?.classList.remove('active');
+                    currentDb = null;
+                    currentTable = null;
+                    updateBreadcrumb();
+                    return;
+                }
+            }
+            
             currentDb = dbName;
             currentTable = null;
             updateBreadcrumb();
