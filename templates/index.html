@@ -358,27 +358,6 @@
 
         /* Bot 悬浮按钮 (已移除，改用菜单按钮) */
         
-        /* 菜单按钮样式 */
-        .menu-float-btn {
-            position: fixed;
-            left: 20px;
-            bottom: 20px;
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            background: #ffffff;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
-            cursor: pointer;
-            z-index: 1000;
-            transition: transform 0.2s;
-            border: 1px solid #eee;
-        }
-        .menu-float-btn:hover { transform: scale(1.1); }
-        
         /* 右侧抽屉样式 */
         .right-drawer {
             position: fixed;
@@ -946,11 +925,6 @@
         </div>
 
     </div><!-- end container -->
-
-    <!-- 菜单按钮 -->
-    <div class="menu-float-btn" onclick="openMainMenuModal()" title="菜单">
-        ☰
-    </div>
 
     <!-- 主菜单抽屉 -->
     <div id="mainMenuDrawer" class="right-drawer" role="dialog" aria-modal="true" aria-label="开始菜单" aria-hidden="true" tabindex="-1">
