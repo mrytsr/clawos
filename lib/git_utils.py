@@ -749,6 +749,17 @@ def git_commit(repo_path, message):
         return None
 
 
+def git_checkout_all(repo_path):
+    try:
+        if not _is_git_repo(repo_path):
+            return None
+        result = _run_git(repo_path, ['checkout', '.'], timeout=60)
+        return result
+    except Exception as e:
+        print(f"Error checkout all in {repo_path}: {e}")
+        return None
+
+
 def git_push_origin_master(repo_path):
     try:
         if not _is_git_repo(repo_path):

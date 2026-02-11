@@ -255,6 +255,34 @@ def api_git_pull():
     return api_ok({'ok': True, 'message': msg})
 
 
+@git_bp.route('/api/git/checkout', methods=['POST'])
+def api_git_checkout():
+    payload = request.get_json(silent=True) or {}
+    path = payload.get('path') or request.args.get('path', '')
+
+    if path:
+        root_dir = os.path.normpath(config.ROOT_DIR)
+        candidate = os.path.normpath(path)
+        if candidate.startswith(root_dir):
+            full_path = candidate
+        else:
+            full_path = os.path.normpath(os.path.join(config.ROOT_DIR, path))
+    else:
+        full_path = config.ROOT_DIR
+
+    if not full_path.startswith(os.path.normpath(config.ROOT_DIR)):
+        return api_error('Invalid path', status=403)
+
+    result = git_utils.git_checkout_all(full_path)
+    if not result:
+        return api_error('git checkout failed', status=500)
+    if result.returncode != 0:
+        out = (result.stderr or result.stdout or '').strip()
+        return api_error(('git checkout failed: ' + out)[:400], status=500)
+
+    return api_ok({'ok': True, 'message': '已放弃所有本地更改'})
+
+
 @git_bp.route('/api/git/diff-numstat')
 def api_git_diff_numstat():
     path = request.args.get('path', '')

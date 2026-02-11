@@ -268,6 +268,43 @@ function __gitDoDiff(repoPath) {
     }, 1000);
 }
 
+// Checkout 放弃所有更改
+function __gitDoCheckout(repoPath) {
+    if (!confirm('确定要放弃所有本地更改吗？此操作不可恢复！')) return;
+    
+    const headers = authHeaders ? (authHeaders() || {}) : {};
+    headers['Content-Type'] = 'application/json';
+
+    if (typeof window.showTaskListener === 'function') {
+        window.showTaskListener('正在 checkout…');
+    }
+
+    fetch('/api/git/checkout', {
+        method: 'POST',
+        headers: headers,
+        body: JSON.stringify({ path: String(repoPath || ''), all: true })
+    })
+        .then(function(r) { return r.json(); })
+        .then(function(resp) {
+            const payload = apiData(resp);
+            if (typeof window.hideTaskListener === 'function') {
+                window.hideTaskListener();
+            }
+            const msg = payload && payload.message ? payload.message : (resp.error && resp.error.message ? resp.error.message : '操作完成');
+            if (typeof window.showTaskListener === 'function') {
+                window.showTaskListener(msg);
+            }
+            // 刷新列表
+            __gitLoadDiffFileList(repoPath, { has_changes: false });
+            window.loadGitList();
+        })
+        .catch(function() {
+            if (typeof window.hideTaskListener === 'function') {
+                window.hideTaskListener();
+            }
+        });
+}
+
 // 直接执行 Pull
 function __gitDoPull(repoPath) {
     const headers = authHeaders ? (authHeaders() || {}) : {};
@@ -724,6 +761,7 @@ window.loadGitList = function(specificRepoPath) {
                     '<span style="font-weight:600;word-break:break-all;font-size:15px;">' + escapeHtml(repoName) + '</span>' +
                     '<div class="git-link-group">' +
                     '<button type="button" class="git-link-btn" onclick="__gitDoDiff(' + repoPathArg + ');">diff</button>' +
+                    '<button type="button" class="git-link-btn" onclick="__gitDoCheckout(' + repoPathArg + ');">checkout</button>' +
                     '<button type="button" class="git-link-btn" onclick="__gitDoPull(' + repoPathArg + ');">pull</button>' +
                     '<button type="button" class="git-link-btn" onclick="__gitDoPush(' + repoPathArg + ');">push</button>' +
                     '</div>' +
@@ -782,6 +820,7 @@ window.loadGitList = function(specificRepoPath) {
                     '<span style="font-weight:600;word-break:break-all;font-size:15px;">' + escapeHtml(repoName) + '</span>' +
                     '<div class="git-link-group">' +
                     '<button type="button" class="git-link-btn" onclick="__gitDoDiff(' + repoPathArg + ');">diff</button>' +
+                    '<button type="button" class="git-link-btn" onclick="__gitDoCheckout(' + repoPathArg + ');">checkout</button>' +
                     '<button type="button" class="git-link-btn" onclick="__gitDoPull(' + repoPathArg + ');">pull</button>' +
                     '<button type="button" class="git-link-btn" onclick="__gitDoPush(' + repoPathArg + ');">push</button>' +
                     '</div>' +
