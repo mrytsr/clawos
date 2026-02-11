@@ -62,7 +62,7 @@ def _run_mysql(conn, query, timeout=30):
         'mysql', '-h', conn['host'],
         '-P', str(conn['port']),
         '-u', conn['user'],
-        '--ssl-mode=DISABLED',
+        '--ssl=0',
     ]
     if conn.get('password'):
         cmd.append(f"-p{conn['password']}")
@@ -175,9 +175,12 @@ def api_db_tables(conn_id):
     
     conn['password'] = _decrypt(conn.get('password', ''))
     
-    # 如果没有指定数据库，先获取
-    if not conn.get('database'):
+    # 获取用户选择的数据库，优先使用请求参数，其次使用连接配置的默认库
+    database = request.args.get('database') or conn.get('database')
+    if not database:
         return api_error('请先选择数据库', status=400)
+    
+    conn['database'] = database
     
     result = _run_mysql(conn, 'SHOW TABLE STATUS')
     if not result or result.returncode != 0:
