@@ -17,6 +17,7 @@
             flex-wrap: wrap;
         }
         .service-name { color: #58a6ff; font-weight: 500; margin-right: 8px; }
+        .scope-badge { font-size: 11px; padding: 2px 6px; border-radius: 4px; background: #3c3c3c; color: #888; margin-right: 8px; }
         select, input, button {
             padding: 5px 10px; border-radius: 4px; border: 1px solid #404040;
             background: #3c3c3c; color: #ccc; font-size: 12px;
@@ -45,6 +46,7 @@
     <div id="app">
         <div class="toolbar">
             <span class="service-name" id="serviceDisplay"></span>
+            <span class="scope-badge" id="scopeBadge"></span>
             <input type="text" id="keyword" placeholder="搜索...">
             <button onclick="loadLogs()">刷新</button>
             <button onclick="toggleTail()" id="tailBtn" class="active">实时</button>
@@ -61,6 +63,12 @@
     function getServiceFromUrl() {
         const params = new URLSearchParams(window.location.search);
         return params.get('service') || '';
+    }
+    
+    // 从 URL 获取 scope
+    function getScopeFromUrl() {
+        const params = new URLSearchParams(window.location.search);
+        return params.get('scope') || 'user';
     }
     
     // 去掉 .service 后缀
@@ -89,7 +97,7 @@
             const timeMatch = raw.match(/^(\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2})/);
             const time = timeMatch ? timeMatch[1] : '';
             let msg = raw;
-            msg = msg.replace(/^\d+\s+\w+\s+\d+:\d+:\d+\s+\S+\s+\w+\[\d+\]:\s*/, '');
+            msg = msg.replace(/^\d+\s+\w+\s+\d+:\d{2}:\d+\s+\S+\s+\w+\[\d+\]:\s*/, '');
             msg = msg.replace(/^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}[.\d+Z+]?\s*/i, '');
             msg = msg.replace(/^\[[^\]]+\]\s*/i, '');
             msg = msg.replace(/^\w+\s*:/, '');
@@ -103,16 +111,17 @@
     
     async function loadLogs() {
         const service = getServiceFromUrl();
+        const scope = getScopeFromUrl();
         const keyword = document.getElementById('keyword').value;
         
         try {
-            const params = new URLSearchParams({service, keyword, lines: '200'});
+            const params = new URLSearchParams({service, scope, keyword, lines: '200'});
             const r = await fetch('/api/log/journal?' + params);
             const data = await r.json();
             
             if (data.success) {
                 renderLogs((data.data && data.data.logs) || []);
-                showStatus(`已加载 ${(data.data && data.data.logs)?.length || 0} 条日志`, 'success');
+                showStatus(`已加载 ${(data.data && data.data.logs)?.length || 0} 条日志 (${scope})`, 'success');
             } else {
                 showStatus(data.error || '加载失败', 'error');
             }
@@ -138,8 +147,10 @@
     
     // 初始化
     const service = getServiceFromUrl();
+    const scope = getScopeFromUrl();
     if (service) {
         document.getElementById('serviceDisplay').textContent = formatServiceName(service);
+        document.getElementById('scopeBadge').textContent = scope === 'user' ? 'User' : 'System';
         document.title = formatServiceName(service) + ' - 日志';
     }
     

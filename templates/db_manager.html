@@ -386,66 +386,68 @@
         }
         
         currentConn = connections.find(c => c.id === id);
-        await loadDatabases();
+        await loadAllTables();
     }
     
-    async function loadDatabases() {
-        if (!currentConn) return;
-        
+    async function loadAllTables() {
+        // 直接加载第一个数据库的表
         try {
             const r = await fetch(`/api/db/${currentConn.id}/databases`);
             const data = await r.json();
             
             if (data.success) {
                 const dbs = data.data?.databases || [];
-                let html = '<div class="conn-group">';
-                dbs.forEach(db => {
-                    html += `
-                        <div class="db-item" onclick="selectDatabase('${db}')" id="db-${db}">
-                            <span>📁</span>
-                            <span>${db}</span>
-                        </div>
-                        <div class="table-list" id="tables-${db}" style="display:none;"></div>
-                    `;
-                });
-                html += '</div>';
-                $('sidebarContent').innerHTML = html;
+                if (dbs.length === 0) {
+                    $('sidebarContent').innerHTML = '<div class="results-empty">该连接没有数据库</div>';
+                    return;
+                }
+                
+                // 取第一个数据库加载表
+                await loadTablesForDb(dbs[0]);
             }
         } catch (e) {
-            showStatus('加载数据库失败', true);
+            showStatus('加载失败: ' + e.message, true);
         }
     }
     
-    async function selectDatabase(dbName) {
+    async function loadTablesForDb(dbName) {
         currentDb = dbName;
         
-        // 切换显示
-        document.querySelectorAll('.db-item').forEach(el => el.classList.remove('active'));
-        $('db-' + dbName)?.classList.add('active');
-        document.querySelectorAll('.table-list').forEach(el => el.style.display = 'none');
-        
-        // 加载表
         try {
             const r = await fetch(`/api/db/${currentConn.id}/tables`);
             const data = await r.json();
             
             if (data.success) {
                 const tables = data.data?.tables || [];
-                let html = '';
-                tables.forEach(t => {
-                    html += `
-                        <div class="table-item" onclick="showTableData('${t.name}')" id="table-${t.name}">
-                            <span class="table-icon">📋</span>
-                            <span class="table-name">${t.name}</span>
-                            <span class="row-count">${parseInt(t.rows || 0).toLocaleString()}</span>
-                        </div>
-                    `;
-                });
-                $('tables-' + dbName).innerHTML = html;
-                $('tables-' + dbName).style.display = 'block';
+                
+                // 渲染侧边栏
+                let html = '<div class="conn-group">';
+                html += `<div class="db-item active"><span>📁</span><span>${dbName}</span></div>`;
+                html += '<div class="table-list" style="display:block;margin-left:20px;">';
+                
+                if (tables.length === 0) {
+                    html += '<div style="padding:8px;color:#666;font-size:12px;">无表</div>';
+                } else {
+                    tables.forEach(t => {
+                        html += `
+                            <div class="table-item" onclick="showTableData('${t.name}')" id="table-${t.name}">
+                                <span class="table-icon">📋</span>
+                                <span class="table-name">${t.name}</span>
+                                <span class="row-count">${parseInt(t.rows || 0).toLocaleString()}</span>
+                            </div>
+                        `;
+                    });
+                }
+                html += '</div></div>';
+                $('sidebarContent').innerHTML = html;
+                
+                // 如果有表，自动加载第一个
+                if (tables.length > 0) {
+                    showTableData(tables[0].name);
+                }
             }
         } catch (e) {
-            showStatus('加载表失败', true);
+            showStatus('加载表失败: ' + e.message, true);
         }
     }
     
@@ -456,9 +458,9 @@
         document.querySelectorAll('.table-item').forEach(el => el.classList.remove('active'));
         $('table-' + tableName)?.classList.add('active');
         
-        // 加载表数据
+        // 加载表数据（默认50行）
         try {
-            const r = await fetch(`/api/db/${currentConn.id}/table/${tableName}/data?page=1&page_size=100`);
+            const r = await fetch(`/api/db/${currentConn.id}/table/${tableName}/data?page=1&page_size=50`);
             const data = await r.json();
             
             if (data.success) {
@@ -466,7 +468,7 @@
                 await loadTableSchema(tableName);
             }
         } catch (e) {
-            showStatus('加载数据失败', true);
+            showStatus('加载数据失败: ' + e.message, true);
         }
     }
     

@@ -489,12 +489,13 @@ window.loadDockerTabs = function(tab) {
     }
 };
 
-function __systemdControl(service, action) {
+function __systemdControl(service, action, scope) {
     const svc = String(service || '');
     const act = String(action || '');
+    const scp = scope || 'user';
     if (!svc || !act) return;
     if (typeof window.showTaskListener === 'function') window.showTaskListener('正在执行 ' + act + ' …');
-    __postJson('/api/systemd/control', { service: svc, action: act })
+    __postJson('/api/systemd/control', { service: svc, action: act, scope: scp })
         .then(function(data) {
             const payload = apiData(data);
             const taskId = payload && payload.taskId ? payload.taskId : null;
@@ -536,89 +537,140 @@ function __systemdControl(service, action) {
 
 window.loadSystemdList = function() {
     const container = __setContainerHtml('systemdListContainer', __loadingHtml('加载中...'));
-    fetch('/api/systemd/list', { headers: authHeaders() })
-        .then(function(r) { return r.json(); })
-        .then(function(data) {
-            const payload = apiData(data);
-            if (!container) return;
-            const services = payload && Array.isArray(payload.services) ? payload.services : [];
-            if (!services.length) {
-                container.innerHTML = __emptyHtml('暂无服务数据');
-                return;
-            }
-            
-            // 排序：enabled 的在前，同样状态的按活跃时间倒序
-            services.sort(function(a, b) {
-                // enabled 优先
-                if (a.enabled && !b.enabled) return -1;
-                if (!a.enabled && b.enabled) return 1;
-                // 同为 enabled 或同为 disabled，按活跃时间倒序
-                const timeA = a.active_since ? new Date(a.active_since).getTime() : 0;
-                const timeB = b.active_since ? new Date(b.active_since).getTime() : 0;
-                return timeB - timeA;
-            });
-            
-            function formatSinceAgo(iso) {
-                if (!iso) return '';
-                var ts = Date.parse(String(iso));
-                if (!Number.isFinite(ts)) return '';
-                var diffMs = Date.now() - ts;
-                if (!Number.isFinite(diffMs) || diffMs < 0) return '';
-                var sec = Math.floor(diffMs / 1000);
-                if (sec < 10) return '刚刚';
-                if (sec < 60) return sec + 's ago';
-                var min = Math.floor(sec / 60);
-                if (min < 60) return min + 'm ago';
-                var hr = Math.floor(min / 60);
-                if (hr < 24) return hr + 'h ago';
-                var day = Math.floor(hr / 24);
-                return day + 'd ago';
-            }
-            container.innerHTML = '<div style="display:flex;flex-direction:column;gap:10px;">' + services.map(function(s) {
-                const name = s.name || '-';
-                const desc = s.description || '';
-                const active = s.active || '';
-                const sub = s.sub || '';
-                const sinceAgo = formatSinceAgo(s.active_since);
-                const enabled = !!s.enabled;
-                const isActive = String(active).toLowerCase() === 'active';
-                const badgeColor = isActive ? '#2da44e' : '#cf222e';
-                const badgeText = isActive ? 'active' : (active || 'inactive');
-                return '<div style="border:1px solid #d0d7de;border-radius:10px;background:#fff;padding:12px 14px;">'
-                    + '<div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;">'
-                    + '<div style="min-width:0;">'
-                    + '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">'
-                    + '<div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + escapeHtml(String(name)) + '</div>'
-                    + '<span style="font-size:11px;padding:2px 8px;border-radius:999px;background:' + badgeColor + ';color:#fff;">' + escapeHtml(String(badgeText)) + '</span>'
-                    + (enabled ? '<span style="font-size:11px;padding:2px 8px;border-radius:999px;background:#ddf4ff;color:#0969da;">enabled</span>' : '')
-                    + '</div>'
-                    + (desc ? '<div style="font-size:12px;color:#57606a;margin-top:2px;word-break:break-word;">' + escapeHtml(String(desc)) + '</div>' : '')
-                    + '<div style="font-size:12px;color:#57606a;margin-top:2px;">' + escapeHtml(String(active)) + (sub ? ' (' + escapeHtml(String(sub)) + ')' : '') + '</div>'
-                    + (sinceAgo ? '<div style="font-size:12px;color:#57606a;margin-top:2px;">启动于 ' + escapeHtml(String(sinceAgo)) + '</div>' : '')
-                    + '</div>'
-                    + '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:4px;flex-shrink:0;width:80px;">'
-                    + '<button type="button" onclick="openServiceLog(\'' + escapeHtml(String(name)) + '\')" style="border:1px solid #8250df;background:#fff;border-radius:4px;padding:4px;cursor:pointer;color:#8250df;" title="日志">📋</button>'
-                    + '<button type="button" data-action="systemd" data-op="restart" data-name="' + escapeHtml(String(name)) + '" style="border:1px solid #0969da;background:#fff;border-radius:4px;padding:4px;cursor:pointer;color:#0969da;" title="重启">🔄</button>'
-                    + '<button type="button" data-action="systemd" data-op="start" data-name="' + escapeHtml(String(name)) + '" style="border:1px solid #2da44e;background:#fff;border-radius:4px;padding:4px;cursor:pointer;color:#2da44e;" title="启动">▶</button>'
-                    + '<button type="button" data-action="systemd" data-op="stop" data-name="' + escapeHtml(String(name)) + '" style="border:1px solid #cf222e;background:#fff;border-radius:4px;padding:4px;cursor:pointer;color:#cf222e;" title="停止">⏹</button>'
-                    + '</div>'
-                    + '</div>'
-                    + '</div>';
-            }).join('') + '</div>';
+    
+    // 先获取 user 和 system 两个列表
+    Promise.all([
+        fetch('/api/systemd/list?scope=user', { headers: authHeaders() }).then(r => r.json()),
+        fetch('/api/systemd/list?scope=system', { headers: authHeaders() }).then(r => r.json())
+    ]).then(function(results) {
+        if (!container) return;
+        
+        const userData = apiData(results[0]) || { services: [] };
+        const systemData = apiData(results[1]) || { services: [] };
+        
+        const userServices = Array.isArray(userData.services) ? userData.services : [];
+        const systemServices = Array.isArray(systemData.services) ? systemData.services : [];
+        
+        // 更新计数
+        document.getElementById('systemdUserCount').textContent = userServices.length;
+        document.getElementById('systemdSystemCount').textContent = systemServices.length;
+        
+        // 保存数据到全局
+        window._systemdData = {
+            user: userServices,
+            system: systemServices
+        };
+        
+        // 默认显示 user
+        switchSystemdTab('user');
+    }).catch(function() {
+        if (container) container.innerHTML = __errorHtml('加载失败（可能不支持此系统）');
+    });
+};
 
-            Array.from(container.querySelectorAll('button[data-action="systemd"]')).forEach(function(btn) {
-                btn.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    const op = btn.getAttribute('data-op') || '';
-                    const name = btn.getAttribute('data-name') || '';
-                    if (!op || !name) return;
-                    __systemdControl(name, op);
-                });
-            });
-        })
-        .catch(function() {
-            if (container) container.innerHTML = __errorHtml('加载失败（可能不支持此系统）');
+// Tab 切换
+window.switchSystemdTab = function(scope) {
+    // 保存当前 scope 到全局
+    window._systemdCurrentScope = scope;
+    
+    // 更新 Tab 样式
+    document.getElementById('systemdTabUser').style.background = scope === 'user' ? '#fff' : '#f6f8fa';
+    document.getElementById('systemdTabUser').style.borderColor = scope === 'user' ? '#0969da' : '#d0d7de';
+    document.getElementById('systemdTabSystem').style.background = scope === 'system' ? '#fff' : '#f6f8fa';
+    document.getElementById('systemdTabSystem').style.borderColor = scope === 'system' ? '#0969da' : '#d0d7de';
+    
+    // 获取搜索关键词
+    const searchInput = document.getElementById('systemdSearch');
+    const keyword = (searchInput?.value || '').toLowerCase();
+    
+    // 过滤并渲染
+    const data = window._systemdData || { user: [], system: [] };
+    const services = scope === 'user' ? data.user : data.system;
+    const filtered = keyword ? services.filter(s => s.name.toLowerCase().includes(keyword)) : services;
+    
+    const container = document.getElementById('systemdListContainer');
+    if (!container) return;
+    
+    if (!filtered.length) {
+        container.innerHTML = __emptyHtml(keyword ? '未找到匹配的服务' : '暂无服务');
+        return;
+    }
+    
+    // 排序
+    filtered.sort(function(a, b) {
+        if (a.enabled && !b.enabled) return -1;
+        if (!a.enabled && b.enabled) return 1;
+        const timeA = a.active_since ? new Date(a.active_since).getTime() : 0;
+        const timeB = b.active_since ? new Date(b.active_since).getTime() : 0;
+        return timeB - timeA;
+    });
+    
+    function formatSinceAgo(iso) {
+        if (!iso) return '';
+        var ts = Date.parse(String(iso));
+        if (!Number.isFinite(ts)) return '';
+        var diffMs = Date.now() - ts;
+        if (!Number.isFinite(diffMs) || diffMs < 0) return '';
+        var sec = Math.floor(diffMs / 1000);
+        if (sec < 10) return '刚刚';
+        if (sec < 60) return sec + 's ago';
+        var min = Math.floor(sec / 60);
+        if (min < 60) return min + 'm ago';
+        var hr = Math.floor(min / 60);
+        if (hr < 24) return hr + 'h ago';
+        var day = Math.floor(hr / 24);
+        return day + 'd ago';
+    }
+    
+    container.innerHTML = '<div style="display:flex;flex-direction:column;gap:10px;">' + filtered.map(function(s) {
+        const name = s.name || '-';
+        const desc = s.description || '';
+        const active = s.active || '';
+        const sub = s.sub || '';
+        const sinceAgo = formatSinceAgo(s.active_since);
+        const enabled = !!s.enabled;
+        const isActive = String(active).toLowerCase() === 'active';
+        const badgeColor = isActive ? '#2da44e' : '#cf222e';
+        const badgeText = isActive ? 'active' : (active || 'inactive');
+        return '<div style="border:1px solid #d0d7de;border-radius:10px;background:#fff;padding:12px 14px;">'
+            + '<div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;">'
+            + '<div style="min-width:0;">'
+            + '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">'
+            + '<div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + escapeHtml(String(name)) + '</div>'
+            + '<span style="font-size:11px;padding:2px 8px;border-radius:999px;background:' + badgeColor + ';color:#fff;">' + escapeHtml(String(badgeText)) + '</span>'
+            + (enabled ? '<span style="font-size:11px;padding:2px 8px;border-radius:999px;background:#ddf4ff;color:#0969da;">enabled</span>' : '')
+            + '</div>'
+            + (desc ? '<div style="font-size:12px;color:#57606a;margin-top:2px;word-break:break-word;">' + escapeHtml(String(desc)) + '</div>' : '')
+            + '<div style="font-size:12px;color:#57606a;margin-top:2px;">' + escapeHtml(String(active)) + (sub ? ' (' + escapeHtml(String(sub)) + ')' : '') + '</div>'
+            + (sinceAgo ? '<div style="font-size:12px;color:#57606a;margin-top:2px;">启动于 ' + escapeHtml(String(sinceAgo)) + '</div>' : '')
+            + '</div>'
+            + '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:4px;flex-shrink:0;width:80px;">'
+            + '<button type="button" onclick="openServiceLog(\'' + escapeHtml(String(name)) + '\')" style="border:1px solid #8250df;background:#fff;border-radius:4px;padding:4px;cursor:pointer;color:#8250df;" title="日志">📋</button>'
+            + '<button type="button" data-action="systemd" data-op="restart" data-name="' + escapeHtml(String(name)) + '" style="border:1px solid #0969da;background:#fff;border-radius:4px;padding:4px;cursor:pointer;color:#0969da;" title="重启">🔄</button>'
+            + '<button type="button" data-action="systemd" data-op="start" data-name="' + escapeHtml(String(name)) + '" style="border:1px solid #2da44e;background:#fff;border-radius:4px;padding:4px;cursor:pointer;color:#2da44e;" title="启动">▶</button>'
+            + '<button type="button" data-action="systemd" data-op="stop" data-name="' + escapeHtml(String(name)) + '" style="border:1px solid #cf222e;background:#fff;border-radius:4px;padding:4px;cursor:pointer;color:#cf222e;" title="停止">⏹</button>'
+            + '</div>'
+            + '</div>'
+            + '</div>';
+    }).join('') + '</div>';
+
+    Array.from(container.querySelectorAll('button[data-action="systemd"]')).forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const op = btn.getAttribute('data-op') || '';
+            const name = btn.getAttribute('data-name') || '';
+            if (!op || !name) return;
+            // 获取当前 scope
+            const scope = document.getElementById('systemdTabUser').style.background === 'rgb(255, 255, 255)' ? 'user' : 'system';
+            __systemdControl(name, op, scope);
         });
+    });
+};
+
+// 搜索过滤
+window.filterSystemdServices = function() {
+    const scope = document.getElementById('systemdTabUser').style.background === 'rgb(255, 255, 255)' ? 'user' : 'system';
+    switchSystemdTab(scope);
 };
 
 window.loadDiskList = function() {
@@ -710,7 +762,8 @@ window.openDiskModal = function() { Drawer.open('diskModal'); loadDiskList(); };
 
 // 打开服务日志
 window.openServiceLog = function(serviceName) {
-    const url = '/log/viewer?service=' + encodeURIComponent(serviceName);
+    const scope = window._systemdCurrentScope || 'user';
+    const url = '/log/viewer?service=' + encodeURIComponent(serviceName) + '&scope=' + scope;
     window.open(url, '_blank');
 };
 
@@ -893,7 +946,9 @@ window.loadOpenclawConfig = function() {
             html += '<div style="padding:10px 12px;border-bottom:1px solid #eee;display:flex;justify-content:space-between;align-items:center;"><span style="color:#666;font-size:13px;">版本</span><span style="font-weight:500;font-size:14px;">' + escapeHtml(ov.version || '-') + '</span></div>';
             html += '<div style="padding:10px 12px;border-bottom:1px solid #eee;display:flex;justify-content:space-between;align-items:center;"><span style="color:#666;font-size:13px;">系统</span><span style="font-size:12px;color:#57606a;max-width:200px;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + escapeHtml(ov.os || '-') + '</span></div>';
             html += '<div style="padding:10px 12px;border-bottom:1px solid #eee;display:flex;justify-content:space-between;align-items:center;"><span style="color:#666;font-size:13px;">Node</span><span style="font-weight:500;font-size:14px;">' + escapeHtml(ov.node || '-') + '</span></div>';
-            html += '<div style="padding:10px 12px;border-bottom:1px solid #eee;display:flex;justify-content:space-between;align-items:center;"><span style="color:#666;font-size:13px;">仪表板</span><a href="' + escapeHtml(ov.dashboard || '#') + '" target="_blank" style="color:#0969da;font-size:13px;">打开 ↗</a></div>';
+            // 获取仪表板链接
+            const dashboardUrl = 'http://' + window.location.hostname + ':18789';
+            html += '<div style="padding:10px 12px;border-bottom:1px solid #eee;display:flex;justify-content:space-between;align-items:center;"><span style="color:#666;font-size:13px;">仪表板</span><a href="' + escapeHtml(dashboardUrl) + '" target="_blank" style="color:#0969da;font-size:13px;">打开 ↗</a></div>';
             html += '<div style="padding:10px 12px;display:flex;justify-content:space-between;align-items:center;"><span style="color:#666;font-size:13px;">频道</span><span style="font-size:13px;">' + escapeHtml(ov.channel || '-') + '</span></div>';
             html += '</div></div>';
             

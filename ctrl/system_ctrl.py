@@ -248,7 +248,8 @@ def api_docker_container_start():
 
 @system_bp.route('/api/systemd/list')
 def api_systemd_list():
-    result = systemd_utils.list_systemd_services()
+    scope = request.args.get('scope', 'user')
+    result = systemd_utils.list_systemd_services(scope)
     return _wrap(result)
 
 
@@ -259,9 +260,10 @@ def api_systemd_control():
         return api_error('Invalid JSON', status=400)
     service = data.get('service')
     action = data.get('action')
+    scope = data.get('scope', 'user')
 
     def _run():
-        result = systemd_utils.control_systemd_service(service, action)
+        result = systemd_utils.control_systemd_service(service, action, scope)
         if isinstance(result, dict) and result.get('success'):
             return
         message = None

@@ -53,8 +53,12 @@ def api_log_journal():
     lines = int(request.args.get('lines', '100'))
     level = request.args.get('level', '')
     keyword = request.args.get('keyword', '')
+    scope = request.args.get('scope', 'user')  # user 或 system
     
-    cmd = ['journalctl', '--user', '-n', str(lines), '-o', 'short']
+    cmd = ['journalctl']
+    if scope == 'user':
+        cmd.append('--user')
+    cmd.extend(['-n', str(lines), '-o', 'short'])
     
     if service:
         # 去掉可能已经存在的 .service 后缀

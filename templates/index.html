@@ -1488,6 +1488,13 @@
                 <button class="drawer-close-btn" onclick="closeSystemdModal()">&times;</button>
             </div>
         </div>
+        <div class="drawer-header" style="border-bottom:1px solid #d0d7de;padding:8px 16px;background:#f6f8fa;">
+            <div style="display:flex;gap:8px;align-items:center;">
+                <button id="systemdTabUser" onclick="switchSystemdTab('user')" style="padding:6px 14px;border:1px solid #d0d7de;border-radius:6px;background:#fff;cursor:pointer;font-size:13px;">User (<span id="systemdUserCount">-</span>)</button>
+                <button id="systemdTabSystem" onclick="switchSystemdTab('system')" style="padding:6px 14px;border:1px solid #d0d7de;border-radius:6px;background:#f6f8fa;cursor:pointer;font-size:13px;">System (<span id="systemdSystemCount">-</span>)</button>
+            </div>
+            <input type="text" id="systemdSearch" oninput="filterSystemdServices()" placeholder="搜索服务..." style="padding:6px 10px;border:1px solid #d0d7de;border-radius:6px;font-size:13px;width:150px;">
+        </div>
         <div class="drawer-content" style="padding:0;">
             <div id="systemdListContainer" style="padding: 16px;"></div>
         </div>
