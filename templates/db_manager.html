@@ -14,9 +14,9 @@
         
         #app { display: flex; flex-direction: column; height: 100vh; }
         
-        /* 悬浮按钮 */
+        /* 悬浮按钮 - 左下角 */
         .float-btn {
-            position: fixed; left: 16px; top: 16px; z-index: 100;
+            position: fixed; left: 16px; bottom: 40px; z-index: 100;
             width: 44px; height: 44px; border-radius: 12px;
             background: linear-gradient(135deg, #e94560, #ff6b6b);
             border: none; cursor: pointer;
@@ -30,7 +30,7 @@
         /* 抽屉侧边栏 */
         .drawer {
             position: fixed; left: -100%; top: 0; bottom: 0;
-            width: 85%; max-width: 320px; z-index: 200;
+            width: 60%; max-width: 280px; z-index: 200;
             background: #16213e; border-right: 1px solid #0f3460;
             display: flex; flex-direction: column;
             transition: left 0.3s ease;
@@ -120,13 +120,13 @@
         /* 主内容区 */
         .main-content {
             flex: 1; display: flex; flex-direction: column; 
-            padding: 70px 16px 16px 16px; overflow: hidden;
+            padding: 5px 16px 16px 16px; overflow: hidden;
         }
         
         /* 顶部栏 */
         .top-bar {
             flex-shrink: 0; display: flex; align-items: center; gap: 8px;
-            margin-bottom: 12px; flex-wrap: wrap;
+            margin-bottom: 4px; flex-wrap: wrap;
         }
         .top-bar h1 { font-size: 18px; font-weight: 500; color: #fff; }
         .breadcrumb { 
@@ -160,7 +160,7 @@
             padding: 12px; resize: none; outline: none;
         }
         .sql-toolbar { 
-            display: flex; gap: 8px; padding: 10px 0; flex-wrap: wrap;
+            display: flex; gap: 8px; padding: 10px 0; flex-wrap: wrap; align-items: center;
         }
         .sql-toolbar button { 
             padding: 8px 14px; border-radius: 6px; border: none;
@@ -283,6 +283,18 @@
         <!-- 抽屉遮罩 -->
         <div class="drawer-backdrop" id="drawerBackdrop" onclick="closeDrawer()"></div>
         
+        <!-- SQL 历史抽屉 -->
+        <div class="drawer-backdrop" id="historyBackdrop" onclick="closeSqlHistoryDrawer()" style="display:none;"></div>
+        <div class="drawer" id="historyDrawer" style="left: -100%; width: 60%; max-width: 280px; background: #16213e; border-right: 1px solid #0f3460;">
+            <div class="drawer-header">
+                <h2>📜 SQL 历史</h2>
+                <button class="drawer-close" onclick="closeSqlHistoryDrawer()">×</button>
+            </div>
+            <div class="drawer-content" id="historyDrawerContent" style="padding: 0; overflow-y: auto;">
+                <!-- 历史列表由 JS 渲染 -->
+            </div>
+        </div>
+        
         <!-- 抽屉侧边栏 -->
         <div class="drawer" id="drawer">
             <div class="drawer-header">
@@ -333,6 +345,7 @@
                         <button onclick="quickQuery('SHOW TABLES')">Tables</button>
                         <button onclick="quickQuery('SHOW PROCESSLIST')">Process</button>
                         <button onclick="quickQuery('SHOW STATUS')">Status</button>
+                        <button onclick="toggleSqlHistory()">历史</button>
                     </div>
                 </div>
             </div>
@@ -467,31 +480,76 @@
             saveStateToServer();
         }
         
-        // 显示 SQL 历史
-        function showSqlHistory() {
-            if (sqlHistory.length === 0) return;
+        // 切换历史抽屉
+        function toggleSqlHistory() {
+            const backdrop = $('historyBackdrop');
+            const drawer = $('historyDrawer');
+            if (!backdrop || !drawer) return;
             
-            let html = '<div style="padding:8px 12px;border-bottom:1px solid #0f3460;font-size:11px;color:#888;">历史记录</div>';
+            if (drawer.classList.contains('open')) {
+                closeSqlHistoryDrawer();
+            } else {
+                renderSqlHistory();
+                backdrop.style.display = 'block';
+                setTimeout(() => {
+                    drawer.classList.add('open');
+                    drawer.style.left = '0';
+                }, 10);
+            }
+        }
+        
+        function closeSqlHistoryDrawer() {
+            const backdrop = $('historyBackdrop');
+            const drawer = $('historyDrawer');
+            if (drawer) {
+                drawer.classList.remove('open');
+                drawer.style.left = '-100%';
+            }
+            if (backdrop) {
+                setTimeout(() => {
+                    backdrop.style.display = 'none';
+                }, 300);
+            }
+        }
+        
+        // 渲染历史记录到抽屉
+        function renderSqlHistory() {
+            const content = $('historyDrawerContent');
+            if (!content) return;
+            
+            if (sqlHistory.length === 0) {
+                content.innerHTML = '<div style="padding: 20px; text-align: center; color: #666;">暂无历史记录</div>';
+                return;
+            }
+            
+            let html = '';
             sqlHistory.forEach((sql, i) => {
                 const shortSql = sql.length > 40 ? sql.substring(0, 40) + '...' : sql;
-                html += `
-                    <div class="table-item" onclick="useHistorySql('${sql.replace(/'/g, "\\'")}')" 
-                         style="padding:8px 12px 8px 24px;font-size:11px;border-bottom:1px solid #0f3460;">
-                        ${shortSql}
-                    </div>
-                `;
+                const safeSql = sql.replace(/'/g, "\\'").replace(/\n/g, ' ');
+                html += '<div class="history-item" data-sql="' + safeSql + '"><div class="history-sql">' + shortSql + '</div></div>';
             });
-            return html;
+            content.innerHTML = html;
+            
+            // 绑定点击事件
+            content.querySelectorAll('.history-item').forEach(item => {
+                item.onclick = function() {
+                    $('sqlEditor').value = this.dataset.sql;
+                    closeSqlHistoryDrawer();
+                };
+            });
         }
         
-        function useHistorySql(sql) {
-            $('sqlEditor').value = sql;
-            // 展开编辑器
-            $('sqlEditorPanel').classList.add('open');
-            $('sqlToggle').classList.add('open');
-        }
+        // 历史记录样式
+        const style = document.createElement('style');
+        style.textContent = `
+            .history-item { padding: 12px 16px; border-bottom: 1px solid #0f3460; cursor: pointer; }
+            .history-item:hover { background: #0f3460; }
+            .history-item:active { background: #1a4a7a; }
+            .history-sql { font-size: 12px; color: #ccc; font-family: monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        `;
+        document.head.appendChild(style);
         
-        // 下拉刷新（整个页面）
+        // 清空编辑器
         let isRefreshing = false;
         let lastScrollTop = 0;
         let pullStartY = 0;
@@ -529,22 +587,6 @@
             const toggle = $('sqlToggle');
             panel.classList.toggle('open');
             toggle.classList.toggle('open');
-            
-            // 如果展开，显示历史记录
-            if (panel.classList.contains('open')) {
-                const historyHtml = showSqlHistory();
-                if (historyHtml) {
-                    // 在编辑器下方添加历史记录
-                    let historyEl = $('sqlHistoryPanel');
-                    if (!historyEl) {
-                        historyEl = document.createElement('div');
-                        historyEl.id = 'sqlHistoryPanel';
-                        historyEl.style.cssText = 'max-height:200px;overflow-y:auto;background:#1a1a2e;border-radius:8px;margin-top:8px;';
-                        panel.insertBefore(historyEl, panel.querySelector('.sql-toolbar'));
-                    }
-                    historyEl.innerHTML = historyHtml;
-                }
-            }
         }
         
         // 抽屉控制
@@ -772,6 +814,9 @@
             updateBreadcrumb();
             document.querySelectorAll('.table-item').forEach(el => el.classList.remove('active'));
             $('table-' + tableName)?.classList.add('active');
+            
+            // 关闭侧边栏
+            closeDrawer();
             
             // 确保 SQL 编辑器展开
             $('sqlEditorPanel').classList.add('open');
