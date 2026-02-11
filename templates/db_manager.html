@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>数据库管理</title>
+    <script src="/static/js/clipboard.min.js"></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         html, body { height: 100%; overflow: hidden; }
@@ -416,7 +417,7 @@
     <!-- 添加连接弹窗 -->
     <div id="addModal" class="modal">
         <div class="modal-content">
-            <div class="modal-title">新建连接</div>
+            <div class="modal-title" id="addModalTitle">新建连接</div>
 
             <!-- URI 解析 -->
             <div class="form-group">
@@ -430,33 +431,122 @@
             <hr style="border:none;border-top:1px solid #0f3460;margin:16px 0;">
 
             <div class="form-group">
+                <label>数据库引擎</label>
+                <select id="dbEngine" style="width:100%;padding:12px;background:#1a1a2e;border:1px solid #0f3460;border-radius:8px;color:#fff;font-size:14px;">
+                    <option value="mysql">MySQL</option>
+                    <option value="postgresql">PostgreSQL</option>
+                    <option value="sqlite">SQLite</option>
+                    <option value="mariadb">MariaDB</option>
+                    <option value="oracle">Oracle</option>
+                    <option value="mssql">Microsoft SQL Server</option>
+                    <option value="firebird">Firebird</option>
+                    <option value="sybase">Sybase</option>
+                </select>
+            </div>
+
+            <div class="form-group">
                 <label>名称</label>
                 <input type="text" id="dbName" placeholder="例如: 生产库">
             </div>
-            <div class="form-group">
+            <div class="form-group engine-field" data-engines="mysql,mariadb,postgresql,oracle,mssql,firebird,sybase">
                 <label>主机</label>
                 <input type="text" id="dbHost" placeholder="localhost">
             </div>
-            <div class="form-group">
+            <div class="form-group engine-field" data-engines="mysql,mariadb,postgresql,oracle,mssql,firebird,sybase">
                 <label>端口</label>
                 <input type="number" id="dbPort" value="3306">
             </div>
-            <div class="form-group">
+            <div class="form-group engine-field" data-engines="mysql,mariadb,postgresql,oracle,mssql,firebird,sybase">
                 <label>用户名</label>
                 <input type="text" id="dbUser" placeholder="root">
             </div>
-            <div class="form-group">
+            <div class="form-group engine-field" data-engines="mysql,mariadb,postgresql,oracle,mssql,firebird,sybase">
                 <label>密码</label>
                 <input type="password" id="dbPass" placeholder="密码">
             </div>
-            <div class="form-group">
+            <div class="form-group engine-field" data-engines="mysql,mariadb,postgresql,oracle,mssql,firebird,sybase,sqlite">
                 <label>数据库（可选）</label>
                 <input type="text" id="dbDatabase" placeholder="可稍后选择">
+            </div>
+            <div class="form-group engine-field" data-engines="sqlite">
+                <label>数据库文件路径</label>
+                <input type="text" id="dbSqlitePath" placeholder="/path/to/database.db">
             </div>
             <div class="modal-actions">
                 <button class="cancel" onclick="closeAddModal()">取消</button>
                 <button class="confirm" onclick="testAndSave()">保存</button>
             </div>
+        </div>
+    </div>
+
+    <!-- 编辑连接弹窗 -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-title">编辑连接</div>
+            <input type="hidden" id="editConnId">
+
+            <div class="form-group">
+                <label>连接 URL (SQLAlchemy)</label>
+                <div style="display:flex;gap:8px;">
+                    <input type="text" id="editDbUrl" readonly style="background:#0f3460;color:#4ade80;font-family:monospace;font-size:11px;">
+                    <button onclick="copyDbUrl()" style="padding:10px 14px;background:#0f3460;border:none;border-radius:8px;color:#ccc;cursor:pointer;">复制</button>
+                </div>
+            </div>
+
+            <hr style="border:none;border-top:1px solid #0f3460;margin:16px 0;">
+
+            <div class="form-group">
+                <label>名称</label>
+                <input type="text" id="editDbName">
+            </div>
+            <div class="form-group engine-field" data-engines="mysql,mariadb,postgresql,oracle,mssql,firebird,sybase">
+                <label>主机</label>
+                <input type="text" id="editDbHost">
+            </div>
+            <div class="form-group engine-field" data-engines="mysql,mariadb,postgresql,oracle,mssql,firebird,sybase">
+                <label>端口</label>
+                <input type="number" id="editDbPort">
+            </div>
+            <div class="form-group engine-field" data-engines="mysql,mariadb,postgresql,oracle,mssql,firebird,sybase">
+                <label>用户名</label>
+                <input type="text" id="editDbUser">
+            </div>
+            <div class="form-group engine-field" data-engines="mysql,mariadb,postgresql,oracle,mssql,firebird,sybase">
+                <label>密码</label>
+                <input type="password" id="editDbPass" placeholder="留空保持原密码">
+            </div>
+            <div class="form-group engine-field" data-engines="mysql,mariadb,postgresql,oracle,mssql,firebird,sybase,sqlite">
+                <label>数据库</label>
+                <input type="text" id="editDbDatabase">
+            </div>
+            <div class="form-group engine-field" data-engines="sqlite">
+                <label>数据库文件路径</label>
+                <input type="text" id="editDbSqlitePath">
+            </div>
+            <div class="modal-actions">
+                <button class="cancel" onclick="closeEditModal()">取消</button>
+                <button class="confirm" onclick="saveEditConnection()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirm 弹窗 -->
+    <div id="confirmBackdrop" class="modal-backdrop" onclick="closeConfirmModal()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center;">
+        <div class="modal-content" onclick="event.stopPropagation()" style="background:#1a1a2e;border-radius:12px;max-width:360px;width:90%;">
+            <div class="modal-title" id="confirmTitle" style="font-size:16px;margin-bottom:12px;">确认</div>
+            <div id="confirmMessage" style="color:#888;font-size:14px;margin-bottom:20px;"></div>
+            <div style="display:flex;gap:12px;justify-content:flex-end;">
+                <button onclick="closeConfirmModal()" style="padding:10px 16px;background:#0f3460;border:none;border-radius:8px;color:#ccc;cursor:pointer;">取消</button>
+                <button id="confirmBtn" onclick="performConfirm()" style="padding:10px 16px;border:none;border-radius:8px;color:#fff;cursor:pointer;">确认</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alert 弹窗 -->
+    <div id="alertBackdrop" class="modal-backdrop" onclick="closeAlertModal()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1001;align-items:center;justify-content:center;">
+        <div class="modal-content" onclick="event.stopPropagation()" style="background:#1a1a2e;border-radius:12px;max-width:360px;width:90%;padding:20px;">
+            <div id="alertTitle" style="font-size:16px;margin-bottom:8px;font-weight:500;"></div>
+            <div id="alertMessage" style="color:#888;font-size:14px;"></div>
         </div>
     </div>
 
@@ -587,6 +677,68 @@
 
         const $ = id => document.getElementById(id);
 
+        // 弹窗函数（内联副本，避免 globals.js 加载延迟）
+        let __confirmCallback = null;
+        function showConfirm(title, message, onConfirm, danger) {
+            const b = document.getElementById('confirmBackdrop');
+            if (b) {
+                document.getElementById('confirmTitle').textContent = title;
+                document.getElementById('confirmMessage').textContent = message;
+                __confirmCallback = onConfirm;
+                const icon = document.getElementById('confirmIcon');
+                const btn = document.getElementById('confirmBtn');
+                if (icon) icon.className = 'gh-dialog-icon ' + (danger ? 'danger' : 'warning');
+                if (btn) btn.className = 'gh-btn ' + (danger ? 'gh-btn-danger' : 'gh-btn-primary');
+                if (btn) btn.textContent = danger ? '删除' : '确认';
+                b.style.display = 'flex';
+            }
+        }
+        function performConfirm() {
+            if (typeof __confirmCallback === 'function') __confirmCallback();
+            closeConfirmModal();
+        }
+        function closeConfirmModal() {
+            const b = document.getElementById('confirmBackdrop');
+            if (b) b.style.display = 'none';
+        }
+        function showAlert(title, message, type) {
+            const icon = document.getElementById('alertIcon');
+            const box = document.getElementById('alertBox');
+            if (icon) icon.className = 'gh-dialog-icon ' + (type || 'info');
+            if (box) box.className = 'gh-alert ' + (type || 'info');
+            document.getElementById('alertTitle').textContent = title || '';
+            document.getElementById('alertMessage').textContent = message || '';
+            const b = document.getElementById('alertBackdrop');
+            if (b) b.style.display = 'flex';
+            setTimeout(closeAlertModal, 2500);
+        }
+        function closeAlertModal() {
+            const b = document.getElementById('alertBackdrop');
+            if (b) b.style.display = 'none';
+        }
+        function copyToClipboard(text) {
+            if (typeof clipboard !== 'undefined' && clipboard.copy) {
+                clipboard.copy(text).then(() => showStatus('已复制到剪贴板', false)).catch(() => fallbackCopy(text));
+            } else {
+                fallbackCopy(text);
+            }
+        }
+        function fallbackCopy(text) {
+            const ta = document.createElement('textarea');
+            ta.value = text;
+            ta.style.position = 'fixed';
+            ta.style.opacity = '0';
+            document.body.appendChild(ta);
+            ta.select();
+            try {
+                document.execCommand('copy');
+                showStatus('已复制到剪贴板', false);
+            } catch (e) {
+                showAlert('复制失败', '请手动复制', 'error');
+            }
+            document.body.removeChild(ta);
+        }
+
         function showStatus(msg, error) {
             const bar = $('statusBar');
             bar.innerHTML = `<span class="${error ? 'error' : 'success'}">${msg}</span>`;
@@ -678,11 +830,13 @@
             let html = '';
             connections.forEach(c => {
                 const active = currentConn?.id === c.id ? 'active' : '';
+                const engineIcon = {'mysql': '🐬', 'postgresql': '🐘', 'sqlite': '📄', 'mariadb': '🐬', 'oracle': '🔴', 'mssql': '🪟', 'firebird': '🔥', 'sybase': '📊'}[c.engine || 'mysql'] || '🗄️';
                 html += `
                     <div class="conn-item ${active}" onclick="selectConnection('${c.id}')">
-                        <div class="name">${c.name}</div>
-                        <div class="info">${c.host}:${c.port} | ${c.user}</div>
+                        <div class="name">${engineIcon} ${c.name}</div>
+                        <div class="info">${c.host ? c.host + ':' + c.port : c.database} | ${c.user || '-'}</div>
                         <div class="actions">
+                            <button onclick="event.stopPropagation(); openEditModal('${c.id}')">编辑</button>
                             <button onclick="event.stopPropagation(); deleteConnection('${c.id}')">删除</button>
                         </div>
                     </div>
@@ -1018,13 +1172,113 @@
 
         function clearEditor() { $('sqlEditor').value = ''; }
 
+        // 引擎配置映射
+        const ENGINE_CONFIG = {
+            mysql: { port: 3306, urlPrefix: 'mysql+pymysql' },
+            postgresql: { port: 5432, urlPrefix: 'postgresql' },
+            mariadb: { port: 3306, urlPrefix: 'mariadb+pymysql' },
+            oracle: { port: 1521, urlPrefix: 'oracle' },
+            mssql: { port: 1433, urlPrefix: 'mssql+pymysql' },
+            sqlite: { port: null, urlPrefix: 'sqlite' },
+            firebird: { port: 3050, urlPrefix: 'firebird' },
+            sybase: { port: 5000, urlPrefix: 'sybase' }
+        };
+
+        // 切换引擎时更新字段显示
+        function onEngineChange(isEdit = false) {
+            const prefix = isEdit ? 'edit' : '';
+            const engine = $(prefix + 'dbEngine')?.value || 'mysql';
+            const config = ENGINE_CONFIG[engine] || ENGINE_CONFIG.mysql;
+            
+            // 更新端口默认值
+            if (config.port && $(prefix + 'dbPort')) {
+                $(prefix + 'dbPort').value = config.port;
+            }
+            
+            // 显示/隐藏字段
+            document.querySelectorAll(`.engine-field`).forEach(el => {
+                const engines = el.dataset.engines?.split(',') || [];
+                if (engines.includes(engine)) {
+                    el.style.display = 'block';
+                } else {
+                    el.style.display = 'none';
+                }
+            });
+        }
+
+        // 生成 SQLAlchemy URL
+        function buildSqlalchemyUrl(connData = null, isEdit = false) {
+            const prefix = isEdit ? 'edit' : '';
+            const engine = $(prefix + 'dbEngine')?.value || connData?.engine || 'mysql';
+            const config = ENGINE_CONFIG[engine];
+            
+            if (engine === 'sqlite') {
+                const path = isEdit ? $(prefix + 'dbSqlitePath')?.value : (connData?.database || '');
+                return `sqlite:///${path}`;
+            }
+            
+            const host = isEdit ? $(prefix + 'dbHost')?.value : (connData?.host || '');
+            const port = isEdit ? $(prefix + 'dbPort')?.value : (connData?.port || config.port);
+            const user = isEdit ? $(prefix + 'dbUser')?.value : (connData?.user || '');
+            const pass = isEdit ? $(prefix + 'dbPass')?.value : (connData?.password || '');
+            const database = isEdit ? $(prefix + 'dbDatabase')?.value : (connData?.database || '');
+            
+            const auth = user ? (pass ? `${encodeURIComponent(user)}:${encodeURIComponent(pass)}@` : `${encodeURIComponent(user)}@`) : '';
+            return `${config.urlPrefix}://${auth}${host}:${port}/${database}`;
+        }
+
+        // 复制到剪贴板
+        function copyToClipboard(text) {
+            if (typeof clipboard !== 'undefined' && clipboard.copy) {
+                clipboard.copy(text).then(() => {
+                    showStatus('已复制到剪贴板', false);
+                }).catch(() => {
+                    fallbackCopy(text);
+                });
+            } else {
+                fallbackCopy(text);
+            }
+        }
+        
+        function fallbackCopy(text) {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            document.body.appendChild(textarea);
+            textarea.select();
+            try {
+                document.execCommand('copy');
+                showStatus('已复制到剪贴板', false);
+            } catch (e) {
+                showAlert('复制失败', '请手动复制', 'error');
+            }
+            document.body.removeChild(textarea);
+        }
+
         // 解析 URI
         function parseUri() {
             const uri = $('dbUri').value.trim();
             if (!uri) return;
 
-            // 支持格式: mysql://user:pass@host:port/database
-            const regex = /^(mysql|postgres|postgresql):\/\/([^:]+):([^@]+)@([^:]+):(\d+)\/([^/?]+)/;
+            // 解析引擎类型
+            let engine = 'mysql';
+            let cleanUri = uri;
+            const engineMatch = uri.match(/^(\w+):\/\//);
+            if (engineMatch) {
+                const type = engineMatch[1].toLowerCase();
+                const engineMap = {
+                    'mysql': 'mysql', 'postgres': 'postgresql', 'postgresql': 'postgresql',
+                    'sqlite': 'sqlite', 'mariadb': 'mariadb', 'oracle': 'oracle',
+                    'mssql': 'mssql', 'firebird': 'firebird', 'sybase': 'sybase'
+                };
+                engine = engineMap[type] || type;
+                $('dbEngine').value = engine;
+                onEngineChange();
+            }
+
+            // 解析连接信息
+            const regex = /^(mysql|postgres|postgresql|mariadb|oracle|mssql|sqlite|firebird|sybase):\/\/([^:]+):([^@]+)@([^:]+):(\d+)\/([^/?]+)/;
             const match = uri.match(regex);
 
             if (match) {
@@ -1033,16 +1287,8 @@
                 $('dbUser').value = match[2];
                 $('dbPass').value = match[3];
                 $('dbDatabase').value = match[6];
-
-                // 如果名称为空，用 host 作为默认名称
-                if (!$('dbName').value) {
-                    $('dbName').value = match[4];
-                }
-
-                showStatus('URI 解析成功', false);
             } else {
-                // 尝试简单解析
-                const simpleMatch = uri.match(/^([^:]+):\/\/([^@]+)@([^:/]+):?(\d+)?:?\/([^/?]+)?/);
+                const simpleMatch = uri.match(/^(mysql|postgres|postgresql|mariadb|oracle|mssql|sqlite|firebird|sybase):\/\/([^@]+)@([^:/]+):?(\d+)?:?\/([^/?]+)?/);
                 if (simpleMatch) {
                     $('dbHost').value = simpleMatch[3];
                     if (simpleMatch[4]) $('dbPort').value = simpleMatch[4];
@@ -1050,19 +1296,40 @@
                     if (creds[0]) $('dbUser').value = creds[0];
                     if (creds[1]) $('dbPass').value = creds[1];
                     if (simpleMatch[5]) $('dbDatabase').value = simpleMatch[5];
-                    showStatus('URI 解析成功', false);
-                } else {
-                    showStatus('无法解析 URI 格式', true);
                 }
             }
+
+            if (!$('dbName').value && $('dbHost').value) {
+                $('dbName').value = $('dbHost').value;
+            }
+            showStatus('URI 解析成功', false);
         }
 
-        function openAddModal() { $('addModal').classList.add('show'); }
+        function openAddModal() { 
+            $('addModal').classList.add('show'); 
+            $('dbEngine').value = 'mysql';
+            onEngineChange();
+        }
         function closeAddModal() { $('addModal').classList.remove('show'); }
 
         async function testAndSave() {
-            const data = { name: $('dbName').value, host: $('dbHost').value, port: $('dbPort').value||'3306', user: $('dbUser').value, password: $('dbPass').value, database: $('dbDatabase').value };
-            if (!data.name || !data.host || !data.user) { alert('请填写必要信息'); return; }
+            const engine = $('dbEngine').value;
+            const config = ENGINE_CONFIG[engine];
+            const sqlitePath = engine === 'sqlite' ? $('dbSqlitePath').value : '';
+            
+            const data = {
+                name: $('dbName').value,
+                engine: engine,
+                host: engine === 'sqlite' ? '' : $('dbHost').value,
+                port: engine === 'sqlite' ? '' : String($('dbPort').value || config.port),
+                user: engine === 'sqlite' ? '' : $('dbUser').value,
+                password: engine === 'sqlite' ? '' : $('dbPass').value,
+                database: engine === 'sqlite' ? sqlitePath : $('dbDatabase').value
+            };
+            
+            if (!data.name) { showAlert('提示', '请填写名称', 'warning'); return; }
+            if (engine !== 'sqlite' && (!data.host || !data.user)) { showAlert('提示', '请填写必要信息', 'warning'); return; }
+            
             try {
                 const r = await fetch('/api/db/test', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) });
                 const result = await r.json();
@@ -1071,16 +1338,92 @@
                     closeAddModal();
                     loadConnections();
                     showStatus('已保存', false);
-                } else { alert('连接失败: ' + result.message); }
-            } catch (e) { alert('连接失败: ' + e.message); }
+                } else { showAlert('连接失败', result.message, 'error'); }
+            } catch (e) { showAlert('连接失败', e.message, 'error'); }
+        }
+
+        // 编辑连接
+        async function openEditModal(id) {
+            const conn = connections.find(c => c.id === id);
+            if (!conn) return;
+            
+            // 获取原始密码（从前端存储或服务端获取）
+            let password = '';
+            try {
+                const r = await fetch('/api/db/connection/' + id + '/password');
+                const data = await r.json();
+                if (data.success) password = data.password || '';
+            } catch (e) {}
+            
+            const connData = {
+                engine: conn.engine || 'mysql',
+                host: conn.host || '',
+                port: conn.port || '',
+                user: conn.user || '',
+                password: password,
+                database: conn.database || ''
+            };
+            
+            $('editConnId').value = id;
+            $('editDbName').value = conn.name || '';
+            $('editDbHost').value = conn.host || '';
+            $('editDbPort').value = conn.port || '';
+            $('editDbUser').value = conn.user || '';
+            $('editDbPass').value = '';
+            $('editDbDatabase').value = conn.database || '';
+            $('editDbSqlitePath').value = conn.engine === 'sqlite' ? conn.database : '';
+            
+            // 显示 URL（传入实际连接数据）
+            const url = buildSqlalchemyUrl(connData, false);
+            $('editDbUrl').value = url;
+            
+            $('editModal').classList.add('show');
+        }
+        
+        function closeEditModal() { $('editModal').classList.remove('show'); }
+        
+        function copyDbUrl() {
+            const url = $('editDbUrl').value;
+            copyToClipboard(url);
+        }
+        
+        async function saveEditConnection() {
+            const id = $('editConnId').value;
+            const engine = $('editDbEngine')?.value || 'mysql';
+            
+            const data = {
+                name: $('editDbName').value,
+                engine: engine,
+                host: $('editDbHost').value,
+                port: String($('editDbPort').value || ENGINE_CONFIG[engine]?.port || ''),
+                user: $('editDbUser').value,
+                password: $('editDbPass').value, // 留空则保持原密码
+                database: engine === 'sqlite' ? $('editDbSqlitePath').value : $('editDbDatabase').value
+            };
+            
+            if (!data.name) { showAlert('提示', '请填写名称', 'warning'); return; }
+            
+            try {
+                await fetch(`/api/db/connection/${id}`, { 
+                    method: 'PUT',
+                    headers: {'Content-Type': 'application/json'}, 
+                    body: JSON.stringify(data) 
+                });
+                closeEditModal();
+                loadConnections();
+                showStatus('已更新', false);
+            } catch (e) { showAlert('保存失败', e.message, 'error'); }
         }
 
         async function deleteConnection(id) {
-            if (!confirm('确定删除？')) return;
-            try {
-                const r = await fetch(`/api/db/connection/${id}`, {method: 'DELETE'});
-                if (r.json().success) { currentConn = null; currentDb = null; currentTable = null; loadConnections(); updateBreadcrumb(); }
-            } catch (e) { showStatus('删除失败', true); }
+            showConfirm('删除连接', '确定要删除此连接吗？', async () => {
+                try {
+                    await fetch(`/api/db/connections/${id}`, {method: 'DELETE'});
+                    currentConn = null; currentDb = null; currentTable = null;
+                    loadConnections(); updateBreadcrumb();
+                    showStatus('已删除', false);
+                } catch (e) { showStatus('删除失败', true); }
+            }, true);
         }
 
         document.addEventListener('keydown', e => { if ((e.ctrlKey||e.metaKey) && e.key==='Enter') executeQuery(); });

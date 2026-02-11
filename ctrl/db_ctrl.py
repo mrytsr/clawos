@@ -164,6 +164,114 @@ def api_db_connect():
     return api_ok({'id': conn_id, **conn})
 
 
+@db_bp.route('/api/db/test', methods=['POST'])
+def api_db_test():
+    """测试数据库连接."""
+    data = request.get_json(silent=True) or {}
+    engine_type = data.get('engine', 'mysql')
+    
+    # 构建临时连接数据
+    conn = {
+        'host': data.get('host', ''),
+        'port': str(data.get('port', 3306)),
+        'user': data.get('user', ''),
+        'password': data.get('password', ''),
+        'database': data.get('database', ''),
+    }
+    
+    # SQLite 特殊处理
+    if engine_type == 'sqlite':
+        conn['host'] = ''
+        conn['user'] = ''
+        conn['password'] = ''
+        conn['database'] = data.get('database', '')
+    
+    try:
+        from sqlalchemy import create_engine, text
+        
+        if engine_type == 'sqlite':
+            url = f"sqlite:///{conn['database']}"
+        else:
+            password = conn['password']
+            user = conn['user']
+            host = conn['host']
+            port = conn['port']
+            database = conn['database']
+            
+            url_map = {
+                'mysql': f'mysql+pymysql://{user}:{password}@{host}:{port}/{database}',
+                'postgresql': f'postgresql://{user}:{password}@{host}:{port}/{database}',
+                'mariadb': f'mariadb+pymysql://{user}:{password}@{host}:{port}/{database}',
+                'oracle': f'oracle://{user}:{password}@{host}:{port}/{database}',
+                'mssql': f'mssql+pymysql://{user}:{password}@{host}:{port}/{database}',
+                'firebird': f'firebird://{user}:{password}@{host}:{port}/{database}',
+                'sybase': f'sybase://{user}:{password}@{host}:{port}/{database}',
+            }
+            url = url_map.get(engine_type, url_map['mysql'])
+        
+        engine = create_engine(url, echo=False, timeout=10)
+        with engine.connect() as c:
+            c.execute(text('SELECT 1'))
+        engine.dispose()
+        
+        return api_ok({'message': '连接成功'})
+    except Exception as e:
+        return api_error(str(e))
+
+
+@db_bp.route('/api/db/connection/<conn_id>', methods=['PUT'])
+def api_db_update_connection(conn_id):
+    """更新数据库连接."""
+    conns = _load_connections()
+    if conn_id not in conns:
+        return api_error('Connection not found')
+    
+    data = request.get_json(silent=True) or {}
+    old_conn = conns[conn_id]
+    
+    # 保留原密码（如果未提供新密码）
+    password = data.get('password', '')
+    encrypted_password = password if password else old_conn.get('password', '')
+    
+    conn = {
+        'name': data.get('name', old_conn.get('name', '')),
+        'engine': data.get('engine', old_conn.get('engine', 'mysql')),
+        'host': data.get('host', old_conn.get('host', '')),
+        'port': int(data.get('port', old_conn.get('port', 3306))),
+        'user': data.get('user', old_conn.get('user', '')),
+        'password': encrypted_password,
+        'database': data.get('database', old_conn.get('database', '')),
+        'created_at': old_conn.get('created_at', datetime.now().isoformat()),
+    }
+    
+    conns[conn_id] = conn
+    _save_connections(conns)
+    
+    # 清除旧引擎缓存
+    with _engines_lock:
+        if conn_id in _engines:
+            try:
+                _engines[conn_id][0].dispose()
+            except:
+                pass
+            del _engines[conn_id]
+    
+    return api_ok({'id': conn_id, **conn})
+
+
+@db_bp.route('/api/db/connection/<conn_id>/password')
+def api_db_get_password(conn_id):
+    """获取连接密码（解密后）."""
+    conns = _load_connections()
+    if conn_id not in conns:
+        return api_error('Connection not found')
+    
+    conn = conns[conn_id]
+    password = _decrypt(conn.get('password', '')) if conn.get('password') else ''
+    
+    return api_ok({'password': password})
+
+
 @db_bp.route('/api/db/connections/<conn_id>', methods=['DELETE'])
 def api_db_delete_connection(conn_id):
     """删除数据库连接."""
