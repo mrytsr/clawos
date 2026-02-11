@@ -589,12 +589,14 @@ window.openMainMenuModal = function() {
             { action: 'ollama', icon: '🦙', text: 'Ollama' },
             { action: 'openclaw', icon: '⚙️', text: 'OpenClaw' },
             { action: 'pkg', icon: '📦', text: '包管理' },
+            { action: 'perf', icon: '📈', text: '性能监控' },
+            { action: 'network', icon: '🌐', text: '网络管理' },
+            { action: 'users', icon: '👥', text: '用户管理' },
             { action: 'docker', icon: '🐳', text: 'docker管理' },
             { action: 'systemd', icon: '🔧', text: 'systemd管理' },
             { action: 'clash', icon: '🌐', text: 'Clash代理' },
             { action: 'frp', icon: '🔗', text: 'FRP内网穿透' },
             { action: 'disk', icon: '💾', text: '磁盘管理' },
-            { action: 'network', icon: '🌐', text: '网络管理' },
             { action: 'cron', icon: '⏰', text: 'Cron管理' },
             { action: 'cockpit', icon: '🖥️', text: 'Cockpit' },
             { action: 'aiqiu', icon: '⚽', text: '爱球网' }
@@ -638,6 +640,9 @@ window.logoutAuth = function() { window.location.href = '/logout'; };
 window.actionToModalMap = {
     'git': { modal: 'gitModal', load: 'loadGitList', open: 'openGitModal' },
     'process': { modal: 'processModal', load: 'loadProcessList', open: 'openProcessModal' },
+    'perf': { func: 'openPerfDrawer' },
+    'network': { func: 'openNetworkDrawer' },
+    'users': { func: 'openUsersDrawer' },
     'pkg': { func: 'openPkgDrawer' },
     'docker': { modal: 'dockerModal', load: 'loadDockerTabs', open: 'openDockerModal' },
     'systemd': { modal: 'systemdModal', load: 'loadSystemdList', open: 'openSystemdModal' },
@@ -1096,5 +1101,226 @@ window.switchNpmSource = function(url) {
     loadSources();
     alert('npm 源已切换为: ' + url);
 };
+
+// ========== 批量操作 ==========
+
+// ========== 性能监控 ==========
+window.perfInterval = null;
+window.perfLastNet = null;
+window.perfLastTime = null;
+
+window.openPerfDrawer = function() {
+    Drawer.open('perfDrawer');
+    document.getElementById('perfDrawerBackdrop').style.display = 'block';
+    startPerfMonitor();
+};
+
+window.closePerfDrawer = function() {
+    Drawer.close('perfDrawer');
+    document.getElementById('perfDrawerBackdrop').style.display = 'none';
+    stopPerfMonitor();
+};
+
+window.startPerfMonitor = function() {
+    stopPerfMonitor();
+    updatePerfData();
+    window.perfInterval = setInterval(updatePerfData, 2000);
+};
+
+window.stopPerfMonitor = function() {
+    if (window.perfInterval) {
+        clearInterval(window.perfInterval);
+        window.perfInterval = null;
+    }
+};
+
+function updatePerfData() {
+    fetch('/api/performance/realtime').then(function(r){return r.json()}).then(function(data){
+        if (!data.success || !data.data) return;
+        var d = data.data;
+        
+        // 更新时间
+        var now = new Date();
+        document.getElementById('perfUpdateTime').textContent = 
+            now.getHours().toString().padStart(2,'0') + ':' + 
+            now.getMinutes().toString().padStart(2,'0') + ':' + 
+            now.getSeconds().toString().padStart(2,'0');
+        
+        // CPU
+        var cpu = d.cpu || {};
+        var cpuPct = cpu.percent || 0;
+        document.getElementById('perfCpuFill').style.width = cpuPct + '%';
+        document.getElementById('perfCpuText').textContent = Math.round(cpuPct) + '%';
+        
+        // 内存
+        var mem = d.memory || {};
+        var memPct = mem.percent || 0;
+        document.getElementById('perfMemFill').style.width = memPct + '%';
+        document.getElementById('perfMemText').textContent = 
+            formatSize(mem.used || 0) + ' / ' + formatSize(mem.total || 0);
+        
+        // 磁盘
+        var disk = d.disk || {};
+        var diskPct = disk.percent || 0;
+        document.getElementById('perfDiskFill').style.width = diskPct + '%';
+        document.getElementById('perfDiskText').textContent = Math.round(diskPct) + '%';
+        
+        // 网络流量
+        var net = d.network || {};
+        var nowTime = Date.now();
+        if (window.perfLastNet && window.perfLastTime) {
+            var sent = (net.bytes_sent - window.perfLastNet.bytes_sent) / ((nowTime - window.perfLastTime) / 1000);
+            var recv = (net.bytes_recv - window.perfLastNet.bytes_recv) / ((nowTime - window.perfLastTime) / 1000);
+            document.getElementById('perfNetText').textContent = 
+                '↓ ' + formatSize(recv) + '/s  ↑ ' + formatSize(sent) + '/s';
+        }
+        window.perfLastNet = net;
+        window.perfLastTime = nowTime;
+        
+        // GPU
+        var gpu = d.gpu || {};
+        var gpuSection = document.getElementById('perfGpuSection');
+        if (gpu.available) {
+            gpuSection.style.display = 'block';
+            var gpuPct = gpu.utilization || 0;
+            document.getElementById('perfGpuFill').style.width = gpuPct + '%';
+            document.getElementById('perfGpuText').textContent = Math.round(gpuPct) + '%';
+            document.getElementById('perfGpuInfo').textContent = 
+                formatSize((gpu.memory_used || 0) * 1024 * 1024) + ' / ' + 
+                formatSize((gpu.memory_total || 0) * 1024 * 1024) + ' | ' + 
+                (gpu.temperature || '--') + '°C';
+        } else {
+            gpuSection.style.display = 'none';
+        }
+    }).catch(function(){});
+}
+
+function formatSize(bytes) {
+    if (!bytes) return '0 B';
+    var sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+    var i = Math.floor(Math.log(bytes) / Math.log(1024));
+    return parseFloat((bytes / Math.pow(1024, i)).toFixed(1)) + ' ' + sizes[i];
+}
+
+// ========== 网络管理 ==========
+window.openNetworkDrawer = function() {
+    Drawer.open('networkDrawer');
+    document.getElementById('networkDrawerBackdrop').style.display = 'block';
+    loadNetworkData();
+};
+
+window.closeNetworkDrawer = function() {
+    Drawer.close('networkDrawer');
+    document.getElementById('networkDrawerBackdrop').style.display = 'none';
+};
+
+window.switchNetTab = function(tab) {
+    document.querySelectorAll('.net-tab').forEach(function(el){
+        el.classList.toggle('active', el.dataset.tab === tab);
+    });
+    document.getElementById('netInterfaces').style.display = tab === 'interfaces' ? 'block' : 'none';
+    document.getElementById('netConnections').style.display = tab === 'connections' ? 'block' : 'none';
+    loadNetworkData();
+};
+
+function loadNetworkData() {
+    // 接口
+    fetch('/api/network/interfaces').then(function(r){return r.json()}).then(function(data){
+        if (!data.success || !data.data) return;
+        var ifaces = data.data.interfaces || [];
+        var html = '';
+        ifaces.length === 0 ? html = '<div style="text-align:center;padding:20px;color:#666;">无网络接口</div>' :
+        ifaces.forEach(function(i){
+            html += '<div style="padding:12px;border-bottom:1px solid #eaecef;">' +
+                '<div style="font-weight:500;margin-bottom:4px;">' + i.name + '</div>' +
+                '<div style="font-size:12px;color:#57606a;">' +
+                '<span style="margin-right:16px;">IP: ' + i.ip + '</span>' +
+                '<span style="margin-right:16px;">↓ ' + formatSize(i.bytes_recv) + '</span>' +
+                '<span>↑ ' + formatSize(i.bytes_sent) + '</span>' +
+                '</div></div>';
+        });
+        document.getElementById('netInterfaces').innerHTML = html;
+    }).catch(function(){});
+    
+    // 连接
+    fetch('/api/network/connections').then(function(r){return r.json()}).then(function(data){
+        if (!data.success || !data.data) return;
+        var conns = data.data.connections || [];
+        var html = '';
+        if (conns.length === 0) {
+            html = '<div style="text-align:center;padding:20px;color:#666;">无网络连接</div>';
+        } else {
+            conns.forEach(function(c){
+                var color = c.status === 'ESTABLISHED' ? '#1a7f37' : '#57606a';
+                html += '<div style="padding:8px 12px;border-bottom:1px solid #eaecef;font-size:12px;">' +
+                    '<span style="color:#24292f;">' + c.local_addr + '</span>' +
+                    ' → ' +
+                    '<span style="color:' + color + ';">' + c.remote_addr + '</span>' +
+                    '</div>';
+            });
+        }
+        document.getElementById('netConnections').innerHTML = html;
+    }).catch(function(){});
+}
+
+// ========== 用户管理 ==========
+window.openUsersDrawer = function() {
+    Drawer.open('usersDrawer');
+    document.getElementById('usersDrawerBackdrop').style.display = 'block';
+    loadUsersData();
+};
+
+window.closeUsersDrawer = function() {
+    Drawer.close('usersDrawer');
+    document.getElementById('usersDrawerBackdrop').style.display = 'none';
+};
+
+window.switchUserTab = function(tab) {
+    document.querySelectorAll('.user-tab').forEach(function(el){
+        el.classList.toggle('active', el.dataset.tab === tab);
+    });
+    document.getElementById('userUsers').style.display = tab === 'users' ? 'block' : 'none';
+    document.getElementById('userGroups').style.display = tab === 'groups' ? 'block' : 'none';
+    loadUsersData();
+};
+
+function loadUsersData() {
+    // 用户
+    fetch('/api/users/list').then(function(r){return r.json()}).then(function(data){
+        if (!data.success || !data.data) return;
+        var users = data.data.users || [];
+        var html = '';
+        if (users.length === 0) {
+            html = '<div style="text-align:center;padding:20px;color:#666;">无用户</div>';
+        } else {
+            users.forEach(function(u){
+                html += '<div style="padding:10px 12px;border-bottom:1px solid #eaecef;">' +
+                    '<div style="font-weight:500;">' + u.name + '</div>' +
+                    '<div style="font-size:11px;color:#57606a;margin-top:2px;">UID:' + u.uid + ' | Shell:' + u.shell + '</div>' +
+                    '</div>';
+            });
+        }
+        document.getElementById('userUsers').innerHTML = html;
+    }).catch(function(){});
+    
+    // 组
+    fetch('/api/users/groups').then(function(r){return r.json()}).then(function(data){
+        if (!data.success || !data.data) return;
+        var groups = data.data.groups || [];
+        var html = '';
+        if (groups.length === 0) {
+            html = '<div style="text-align:center;padding:20px;color:#666;">无用户组</div>';
+        } else {
+            groups.forEach(function(g){
+                var members = g.members || [];
+                html += '<div style="padding:10px 12px;border-bottom:1px solid #eaecef;">' +
+                    '<div style="font-weight:500;">' + g.name + '</div>' +
+                    '<div style="font-size:11px;color:#57606a;margin-top:2px;">GID:' + g.gid + ' | 成员: ' + (members.length ? members.join(', ') : '无') + '</div>' +
+                    '</div>';
+            });
+        }
+        document.getElementById('userGroups').innerHTML = html;
+    }).catch(function(){});
+}
 
 // ========== 批量操作 ==========

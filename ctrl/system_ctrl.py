@@ -476,3 +476,140 @@ def api_system_exec():
         return api_error('命令执行超时', status=408)
     except Exception as e:
         return api_error(str(e), status=500)
+
+
+# ========== 性能监控 ==========
+@system_bp.route('/api/performance/realtime')
+def api_performance_realtime():
+    """获取实时性能数据"""
+    import psutil
+    
+    try:
+        # CPU
+        cpu_percent = psutil.cpu_percent(interval=None)
+        cpu_counts = psutil.cpu_count()
+        
+        # 内存
+        mem = psutil.virtual_memory()
+        
+        # 磁盘 IO
+        disk = psutil.disk_usage('/')
+        disk_io = psutil.disk_io_counters()
+        
+        # 网络 IO
+        net_io = psutil.net_io_counters()
+        
+        # GPU 信息
+        gpu_info = {'available': False}
+        try:
+            result = subprocess.run(['nvidia-smi', '--query-gpu=name,utilization.gpu,memory.used,memory.total,temperature.gpu,fan.speed', '--format=csv,noheader,nounits'],
+                                   capture_output=True, text=True, timeout=10)
+            if result.returncode == 0:
+                parts = [p.strip() for p in result.stdout.strip().split(',')]
+                if len(parts) >= 6:
+                    gpu_info = {
+                        'available': True,
+                        'name': parts[0],
+                        'utilization': int(parts[1]) if parts[1] else 0,
+                        'memory_used': int(parts[2]) if parts[2] else 0,
+                        'memory_total': int(parts[3]) if parts[3] else 0,
+                        'temperature': int(parts[4]) if parts[4] else 0,
+                        'fan_speed': int(parts[5]) if parts[5] else 0,
+                    }
+        except:
+            pass
+        
+        return api_ok({
+            'cpu': {'percent': cpu_percent, 'count': cpu_counts},
+            'memory': {'percent': mem.percent, 'used': mem.used, 'total': mem.total, 'available': mem.available},
+            'disk': {'percent': disk.percent, 'used': disk.used, 'total': disk.total, 
+                     'read_bytes': disk_io.read_bytes if disk_io else 0, 'write_bytes': disk_io.write_bytes if disk_io else 0},
+            'network': {'bytes_sent': net_io.bytes_sent, 'bytes_recv': net_io.bytes_recv,
+                       'packets_sent': net_io.packets_sent, 'packets_recv': net_io.packets_recv},
+            'gpu': gpu_info,
+            'timestamp': __import__('time').time()
+        })
+    except Exception as e:
+        return api_error(str(e), status=500)
+
+
+# ========== 网络管理 ==========
+@system_bp.route('/api/network/interfaces')
+def api_network_interfaces():
+    """获取网络接口详情"""
+    import psutil
+    
+    try:
+        interfaces = []
+        net_io = psutil.net_io_counters(pernic=True)
+        
+        for name, stats in net_io.items():
+            addrs = psutil.net_if_addrs()
+            if name in addrs:
+                for addr in addrs[name]:
+                    if addr.family == 2:  # AF_INET
+                        interfaces.append({
+                            'name': name,
+                            'ip': addr.address,
+                            'netmask': addr.netmask or '',
+                            'bytes_sent': stats.bytes_sent,
+                            'bytes_recv': stats.bytes_recv,
+                            'is_up': True
+                        })
+                        break
+        
+        return api_ok({'interfaces': interfaces})
+    except Exception as e:
+        return api_error(str(e), status=500)
+
+
+@system_bp.route('/api/network/connections')
+def api_network_connections():
+    """获取网络连接"""
+    try:
+        connections = []
+        for conn in psutil.net_connections(kind='inet'):
+            if conn.status:
+                connections.append({
+                    'local_addr': f"{conn.laddr.ip}:{conn.laddr.port}" if conn.laddr else '-',
+                    'remote_addr': f"{conn.raddr.ip}:{conn.raddr.port}" if conn.raddr else '-',
+                    'status': conn.status,
+                    'pid': conn.pid or '-'
+                })
+        return api_ok({'connections': connections[:100]})
+    except Exception as e:
+        return api_error(str(e), status=500)
+
+
+# ========== 用户管理 ==========
+@system_bp.route('/api/users/list')
+def api_users_list():
+    """获取用户列表"""
+    try:
+        import pwd
+        users = []
+        for entry in pwd.getpwall():
+            users.append({
+                'name': entry.pw_name,
+                'uid': entry.pw_uid,
+                'gid': entry.pw_gid,
+                'home': entry.pw_dir,
+                'shell': entry.pw_shell
+            })
+        return api_ok({'users': users})
+    except Exception as e:
+        return api_error(str(e), status=500)
+
+
+@system_bp.route('/api/users/groups')
+def api_users_groups():
+    """获取用户组列表"""
+    try:
+        import grp
+        groups = []
+        for entry in grp.getgrall():
+            members = list(entry.gr_mem) if entry.gr_mem else []
+            groups.append({'name': entry.gr_name, 'gid': entry.gr_gid, 'members': members})
+        return api_ok({'groups': groups})
+    except Exception as e:
+        return api_error(str(e), status=500)

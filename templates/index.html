@@ -1021,6 +1021,105 @@
     </div>
     <div id="pkgDrawerBackdrop" class="right-drawer-backdrop" onclick="closePkgDrawer()" aria-hidden="true" style="display:none;"></div>
 
+    <!-- 性能监控抽屉 -->
+    <div id="perfDrawer" class="right-drawer" style="width: 480px; max-width: 100vw;">
+        <div class="right-drawer-header">
+            <div class="drawer-title">📈 性能监控</div>
+            <button class="drawer-close-btn" onclick="closePerfDrawer()">&times;</button>
+        </div>
+        <div class="right-drawer-content" style="padding: 0;">
+            <!-- 刷新状态 -->
+            <div id="perfStatus" style="padding: 8px 16px; background: #f6f8fa; border-bottom: 1px solid #d0d7de; font-size: 12px; color: #57606a; display: flex; justify-content: space-between;">
+                <span id="perfUpdateTime">--:--:--</span>
+                <span id="perfAuto" style="color: #0969da;">🔄 自动刷新中</span>
+            </div>
+            <!-- 监控项 -->
+            <div style="padding: 12px; overflow-y: auto; max-height: calc(100vh - 120px);">
+                <!-- CPU -->
+                <div style="margin-bottom: 16px;">
+                    <div style="font-size: 13px; color: #57606a; margin-bottom: 6px;">CPU 使用率</div>
+                    <div id="perfCpuBar" style="height: 24px; background: #eaecef; border-radius: 12px; overflow: hidden; position: relative;">
+                        <div id="perfCpuFill" style="height: 100%; background: linear-gradient(90deg, #0969da, #58a6ff); transition: width 0.3s; width: 0%;"></div>
+                        <div id="perfCpuText" style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 500; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.3);">--%</div>
+                    </div>
+                </div>
+                <!-- 内存 -->
+                <div style="margin-bottom: 16px;">
+                    <div style="font-size: 13px; color: #57606a; margin-bottom: 6px;">内存使用</div>
+                    <div id="perfMemBar" style="height: 24px; background: #eaecef; border-radius: 12px; overflow: hidden; position: relative;">
+                        <div id="perfMemFill" style="height: 100%; background: linear-gradient(90deg, #1a7f37, #2ea043); transition: width 0.3s; width: 0%;"></div>
+                        <div id="perfMemText" style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 500; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.3);">-- / --</div>
+                    </div>
+                </div>
+                <!-- 磁盘 -->
+                <div style="margin-bottom: 16px;">
+                    <div style="font-size: 13px; color: #57606a; margin-bottom: 6px;">磁盘使用</div>
+                    <div id="perfDiskBar" style="height: 24px; background: #eaecef; border-radius: 12px; overflow: hidden; position: relative;">
+                        <div id="perfDiskFill" style="height: 100%; background: linear-gradient(90deg, #bf8700, #d4a72c); transition: width 0.3s; width: 0%;"></div>
+                        <div id="perfDiskText" style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 500; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.3);">--%</div>
+                    </div>
+                </div>
+                <!-- 网络 -->
+                <div style="margin-bottom: 16px;">
+                    <div style="font-size: 13px; color: #57606a; margin-bottom: 6px;">网络流量</div>
+                    <div id="perfNetText" style="font-size: 13px; color: #24292f;">↓ -- / ↑ --</div>
+                </div>
+                <!-- GPU -->
+                <div id="perfGpuSection" style="margin-bottom: 16px; display: none;">
+                    <div style="font-size: 13px; color: #57606a; margin-bottom: 6px;">GPU</div>
+                    <div id="perfGpuBar" style="height: 24px; background: #eaecef; border-radius: 12px; overflow: hidden; position: relative;">
+                        <div id="perfGpuFill" style="height: 100%; background: linear-gradient(90deg, #cf222e, #f85149); transition: width 0.3s; width: 0%;"></div>
+                        <div id="perfGpuText" style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 500; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.3);">--%</div>
+                    </div>
+                    <div id="perfGpuInfo" style="font-size: 12px; color: #57606a; margin-top: 6px;">-- / -- MB | --°C</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="perfDrawerBackdrop" class="right-drawer-backdrop" onclick="closePerfDrawer()" aria-hidden="true" style="display:none;"></div>
+
+    <!-- 网络管理抽屉 -->
+    <div id="networkDrawer" class="right-drawer" style="width: 480px; max-width: 100vw;">
+        <div class="right-drawer-header">
+            <div class="drawer-title">🌐 网络管理</div>
+            <button class="drawer-close-btn" onclick="closeNetworkDrawer()">&times;</button>
+        </div>
+        <div class="right-drawer-content" style="padding: 0;">
+            <!-- Tab -->
+            <div style="display: flex; border-bottom: 1px solid #d0d7de; background: #f6f8fa;">
+                <button class="net-tab active" data-tab="interfaces" onclick="switchNetTab('interfaces')" style="flex:1;padding:10px;border:none;background:transparent;font-size:13px;color:#57606a;cursor:pointer;border-bottom:2px solid transparent;">接口</button>
+                <button class="net-tab" data-tab="connections" onclick="switchNetTab('connections')" style="flex:1;padding:10px;border:none;background:transparent;font-size:13px;color:#57606a;cursor:pointer;border-bottom:2px solid transparent;">连接</button>
+            </div>
+            <!-- 内容 -->
+            <div id="netTabContent" style="padding: 12px; overflow-y: auto; max-height: calc(100vh - 180px);">
+                <div id="netInterfaces" class="net-tab-panel active"></div>
+                <div id="netConnections" class="net-tab-panel" style="display:none;"></div>
+            </div>
+        </div>
+    </div>
+    <div id="networkDrawerBackdrop" class="right-drawer-backdrop" onclick="closeNetworkDrawer()" aria-hidden="true" style="display:none;"></div>
+
+    <!-- 用户管理抽屉 -->
+    <div id="usersDrawer" class="right-drawer" style="width: 480px; max-width: 100vw;">
+        <div class="right-drawer-header">
+            <div class="drawer-title">👥 用户管理</div>
+            <button class="drawer-close-btn" onclick="closeUsersDrawer()">&times;</button>
+        </div>
+        <div class="right-drawer-content" style="padding: 0;">
+            <!-- Tab -->
+            <div style="display: flex; border-bottom: 1px solid #d0d7de; background: #f6f8fa;">
+                <button class="user-tab active" data-tab="users" onclick="switchUserTab('users')" style="flex:1;padding:10px;border:none;background:transparent;font-size:13px;color:#57606a;cursor:pointer;border-bottom:2px solid transparent;">用户</button>
+                <button class="user-tab" data-tab="groups" onclick="switchUserTab('groups')" style="flex:1;padding:10px;border:none;background:transparent;font-size:13px;color:#57606a;cursor:pointer;border-bottom:2px solid transparent;">组</button>
+            </div>
+            <!-- 内容 -->
+            <div id="userTabContent" style="padding: 12px; overflow-y: auto; max-height: calc(100vh - 180px);">
+                <div id="userUsers" class="user-tab-panel active"></div>
+                <div id="userGroups" class="user-tab-panel" style="display:none;"></div>
+            </div>
+        </div>
+    </div>
+    <div id="usersDrawerBackdrop" class="right-drawer-backdrop" onclick="closeUsersDrawer()" aria-hidden="true" style="display:none;"></div>
+
     <!-- 样式 -->
     <style>
     .pkg-tab {
