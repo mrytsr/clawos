@@ -253,13 +253,13 @@ function __gitBindDiffButton(repoPath) {
 // 直接执行 Diff：打开新窗口显示 diff
 function __gitDoDiff(repoPath) {
     const url = '/git/diff?repoPath=' + encodeURIComponent(String(repoPath || ''));
-    
+
     // 显示 loading
     if (typeof window.showTaskListener === 'function') {
         window.showTaskListener('正在加载 diff…');
     }
     window.open(url, '_blank');
-    
+
     // 延迟隐藏
     setTimeout(function() {
         if (typeof window.hideTaskListener === 'function') {
@@ -272,12 +272,12 @@ function __gitDoDiff(repoPath) {
 function __gitDoPull(repoPath) {
     const headers = authHeaders ? (authHeaders() || {}) : {};
     headers['Content-Type'] = 'application/json';
-    
+
     // 显示 loading
     if (typeof window.showTaskListener === 'function') {
         window.showTaskListener('正在拉取…');
     }
-    
+
     fetch('/api/git/pull', {
         method: 'POST',
         headers: headers,
@@ -289,7 +289,7 @@ function __gitDoPull(repoPath) {
             if (typeof window.hideTaskListener === 'function') {
                 window.hideTaskListener();
             }
-            
+
             if (!payload) {
                 const msg = resp && resp.error && resp.error.message ? resp.error.message : '拉取失败';
                 throw new Error(msg);
@@ -310,12 +310,12 @@ function __gitDoPull(repoPath) {
 function __gitDoPush(repoPath) {
     const headers = authHeaders ? (authHeaders() || {}) : {};
     headers['Content-Type'] = 'application/json';
-    
+
     // 显示 loading
     if (typeof window.showTaskListener === 'function') {
         window.showTaskListener('正在推送…');
     }
-    
+
     fetch('/api/git/push-changes', {
         method: 'POST',
         headers: headers,
@@ -327,7 +327,7 @@ function __gitDoPush(repoPath) {
             if (typeof window.hideTaskListener === 'function') {
                 window.hideTaskListener();
             }
-            
+
             if (!payload) {
                 const msg = resp && resp.error && resp.error.message ? resp.error.message : '推送失败';
                 throw new Error(msg);
@@ -382,8 +382,8 @@ function __gitRenderDiffFileTable(container, rows, repoPath, meta) {
         list.map(function(r, idx) {
             const path = String((r && r.path) || '-');
             const pathEsc = escapeHtml(path);
-            const add = (r && (r.added === null || r.added === undefined)) ? '—' : String(r.added || 0);
-            const del = (r && (r.deleted === null || r.deleted === undefined)) ? '—' : String(r.deleted || 0);
+            const add = (r && (r.added === null || r.added === undefined)) ? '-' : String(r.added || 0);
+            const del = (r && (r.deleted === null || r.deleted === undefined)) ? '-' : String(r.deleted || 0);
             const trStyle = idx < list.length - 1 ? '' : ' style="border-bottom:0;"';
             const rowStyle = 'cursor:pointer;' + (idx < list.length - 1 ? '' : '');
             return '<tr onclick="__gitOpenFileDiff(\'' + escapeHtml(repoPath) + '\', \'' + pathEsc + '\');" style="' + rowStyle + '">' +
@@ -404,8 +404,23 @@ function __gitOpenFileDiff(repoPath, filePath) {
 }
 
 function __gitLoadDiffFileList(repoPath, meta) {
+    window.__gitCurrentRepoPath = repoPath;  // 保存当前仓库路径用于自动刷新
+
     const el = document.getElementById('gitDiffFilesBox');
     if (!el) return;
+
+    // 保存 meta 用于刷新
+    let metaEl = document.getElementById('gitDiffMeta');
+    if (metaEl) {
+        metaEl.textContent = JSON.stringify(meta);
+    } else {
+        metaEl = document.createElement('div');
+        metaEl.id = 'gitDiffMeta';
+        metaEl.style.display = 'none';
+        metaEl.textContent = JSON.stringify(meta || { has_changes: false });
+        el.parentNode.insertBefore(metaEl, el);
+    }
+
     el.innerHTML = '<div style="padding:10px 12px;color:#57606a;font-size:12px;">加载变更…</div>';
     fetch('/api/git/diff-numstat?path=' + encodeURIComponent(String(repoPath || '')), { headers: authHeaders() })
         .then(function(r) { return r.json(); })
@@ -671,7 +686,7 @@ window.loadGitList = function(specificRepoPath) {
     const container = document.getElementById('gitListContainer');
     if (container) container.innerHTML = __gitListCss() + '<div class="git-shell"><div class="git-list">' + __gitSkeletonHtml(8) + '</div></div>';
     __gitSetDrawerTitle('🔀 Git管理');
-    
+
     if (specificRepoPath) {
         fetch('/api/git/repo-status?path=' + encodeURIComponent(specificRepoPath), { headers: authHeaders() })
             .then(function(r) { return r.json(); })
@@ -798,8 +813,77 @@ window.loadGitList = function(specificRepoPath) {
         });
 };
 
-window.closeGitModal = function() { Drawer.close('gitModal'); };
-window.openGitModal = function() { Drawer.open('gitModal'); window.loadGitList(); };
+// Git 自动刷新
+window.__gitAutoRefreshInterval = null;
+window.__gitAutoRefreshEnabled = false;
+window.__gitCurrentRepoPath = null;
+
+window.toggleGitAutoRefresh = function() {
+    const btn = document.getElementById('gitRefreshBtn');
+    const icon = document.getElementById('gitRefreshIcon');
+
+    if (window.__gitAutoRefreshEnabled) {
+        // 关闭自动刷新
+        window.__gitAutoRefreshEnabled = false;
+        if (window.__gitAutoRefreshInterval) {
+            clearInterval(window.__gitAutoRefreshInterval);
+            window.__gitAutoRefreshInterval = null;
+        }
+        if (btn) btn.classList.remove('git-spinning');
+    } else {
+        // 开启自动刷新
+        window.__gitAutoRefreshEnabled = true;
+        if (btn) btn.classList.add('git-spinning');
+        // 立即刷新一次
+        if (window.__gitCurrentRepoPath) {
+            __gitRefreshDiffFiles(window.__gitCurrentRepoPath);
+        }
+        // 每 3 秒刷新
+        window.__gitAutoRefreshInterval = setInterval(function() {
+            if (window.__gitAutoRefreshEnabled && window.__gitCurrentRepoPath) {
+                __gitRefreshDiffFiles(window.__gitCurrentRepoPath);
+            }
+        }, 3000);
+    }
+};
+
+function __gitRefreshDiffFiles(repoPath) {
+    if (!repoPath) return;
+    fetch('/api/git/diff-numstat?path=' + encodeURIComponent(String(repoPath || '')), { headers: authHeaders() })
+        .then(function(r) { return r.json(); })
+        .then(function(resp) {
+            const payload = apiData(resp);
+            const el = document.getElementById('gitDiffFilesBox');
+            if (!el || !payload) return;
+            // 获取当前 meta
+            const metaEl = document.getElementById('gitDiffMeta');
+            const meta = metaEl ? JSON.parse(metaEl.textContent) : { has_changes: true };
+            __gitRenderDiffFileTable(el, payload.files || [], repoPath, meta);
+        })
+        .catch(function() {});
+}
+
+window.closeGitModal = function() { 
+    Drawer.close('gitModal'); 
+    // 关闭自动刷新
+    if (window.__gitAutoRefreshInterval) {
+        clearInterval(window.__gitAutoRefreshInterval);
+        window.__gitAutoRefreshInterval = null;
+    }
+    window.__gitAutoRefreshEnabled = false;
+    window.__gitCurrentRepoPath = null;
+    const btn = document.getElementById('gitRefreshBtn');
+    if (btn) btn.classList.remove('git-spinning');
+};
+
+window.openGitModal = function() {
+    Drawer.open('gitModal');
+    window.loadGitList();
+    // 默认开启自动刷新
+    if (!window.__gitAutoRefreshEnabled) {
+        window.toggleGitAutoRefresh();
+    }
+};
 
 window.__gitCommitListTestApi = {
     commitShortId: __gitCommitShortId,
