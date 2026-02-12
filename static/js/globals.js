@@ -806,9 +806,9 @@ window.handleMainMenu = function(action) {
 
 // 文件操作函数
 window.showMenuModal = function(path, name, isDir) {
-    currentItemPath = path;
-    currentItemName = name;
-    currentItemIsDir = isDir;
+    window.currentItemPath = path;
+    window.currentItemName = name;
+    window.currentItemIsDir = isDir;
     var t = document.getElementById('menuTitle');
     if (t) { t.textContent = name; }
     Drawer.open('menuModal');

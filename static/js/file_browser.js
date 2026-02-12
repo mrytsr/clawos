@@ -64,7 +64,7 @@ function showMenuModal(path, name, isDir, opts) {
         editEl.style.display = isDir ? 'none' : '';
         editEl.onclick = function() {
             closeMenuModal();
-            openEditor(window.currentItemPath);
+            editFile(window.currentItemPath);
         };
     }
     var downloadEl = document.getElementById('menuDownloadItem');
@@ -1690,6 +1690,7 @@ window.copyFilePath = copyFilePath;
 window.shareMenuDownloadUrl = shareMenuDownloadUrl;
 window.shareMenuPath = shareMenuPath;
 window.editFile = editFile;
+window.openEditor = openEditor;
 window.addToChat = addToChat;
 window.refreshFileList = refreshFileList;
 window.openArchiveCreateDialog = openArchiveCreateDialog;
