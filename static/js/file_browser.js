@@ -970,7 +970,7 @@ function confirmDelete(path, name) {
     Drawer.open('confirmModal');
 }
 
-function closeConfirmModal() {
+function closeLegacyConfirmModal() {
     Drawer.close('confirmModal');
 }
 
@@ -988,7 +988,7 @@ function performDelete(path) {
         })
         .catch(() => showToast('删除失败', 'error'));
     if (document.getElementById('confirmModal') && document.getElementById('confirmModal').classList.contains('open')) {
-        closeConfirmModal();
+        closeLegacyConfirmModal();
     }
 }
 
@@ -1674,7 +1674,7 @@ window.closeMenuOnBackdrop = closeMenuOnBackdrop;
 window.startDrag = startDrag;
 window.handleMenuAction = handleMenuAction;
 window.confirmDelete = confirmDelete;
-window.closeConfirmModal = closeConfirmModal;
+window.closeLegacyConfirmModal = closeLegacyConfirmModal;
 window.performDelete = performDelete;
 window.showRenameModal = showRenameModal;
 window.closeRenameModal = closeRenameModal;

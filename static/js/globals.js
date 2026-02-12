@@ -719,9 +719,10 @@ window.showMenuModal = function(path, name, isDir) {
 
 // GitHub 风格确认框
 window.__confirmCallback = null;
+window.__confirmCancelCallback = null;
 window.__confirmDanger = false;
 
-window.showConfirm = function(title, message, onConfirm, danger) {
+window.showConfirm = function(title, message, onConfirm, danger, onCancel) {
     var b = document.getElementById('confirmBackdrop');
     var icon = document.getElementById('confirmIcon');
     var titleEl = document.getElementById('confirmTitle');
@@ -732,6 +733,7 @@ window.showConfirm = function(title, message, onConfirm, danger) {
     if (msgEl) msgEl.textContent = message || '确定要执行此操作吗？';
     
     window.__confirmCallback = onConfirm;
+    window.__confirmCancelCallback = onCancel;
     window.__confirmDanger = danger;
     
     if (icon) {
@@ -746,10 +748,55 @@ window.showConfirm = function(title, message, onConfirm, danger) {
 };
 
 window.performConfirm = function() {
-    if (typeof window.__confirmCallback === 'function') {
-        window.__confirmCallback();
+    var close = function() {
+        window.__confirmCallback = null;
+        window.__confirmCancelCallback = null;
+        window.__confirmDanger = false;
+        window.closeConfirmModal();
+    };
+
+    if (typeof window.__confirmCallback !== 'function') {
+        close();
+        return;
     }
-    window.closeConfirmModal();
+
+    try {
+        var ret = window.__confirmCallback();
+        if (ret && typeof ret.then === 'function') {
+            ret.then(close).catch(close);
+            return;
+        }
+    } catch (e) {
+        close();
+        return;
+    }
+    close();
+};
+
+window.cancelConfirm = function() {
+    var close = function() {
+        window.__confirmCallback = null;
+        window.__confirmCancelCallback = null;
+        window.__confirmDanger = false;
+        window.closeConfirmModal();
+    };
+
+    if (typeof window.__confirmCancelCallback !== 'function') {
+        close();
+        return;
+    }
+
+    try {
+        var ret = window.__confirmCancelCallback();
+        if (ret && typeof ret.then === 'function') {
+            ret.then(close).catch(close);
+            return;
+        }
+    } catch (e) {
+        close();
+        return;
+    }
+    close();
 };
 
 window.confirmDelete = function(path, name) {
@@ -1021,7 +1068,7 @@ window.pkgFilter = '';
 window.openPkgDrawer = function() {
     Drawer.open('pkgDrawer');
     document.getElementById('pkgDrawerBackdrop').style.display = 'block';
-    loadPkgCurrentTab();
+    window.loadPkgCurrentTab();
 };
 
 window.closePkgDrawer = function() {
@@ -1037,25 +1084,25 @@ window.switchPkgTab = function(tab) {
     document.querySelectorAll('.pkg-tab-panel').forEach(function(el) {
         el.classList.toggle('active', el.id === 'pkg' + tab.charAt(0).toUpperCase() + tab.slice(1));
     });
-    loadPkgCurrentTab();
+    window.loadPkgCurrentTab();
 };
 
 window.loadPkgCurrentTab = function() {
     switch(window.pkgCurrentTab) {
-        case 'system': loadSystemPackages(); break;
-        case 'pip': loadPipPackages(); break;
-        case 'npm': loadNpmPackages(); break;
-        case 'source': loadSources(); break;
+        case 'system': window.loadSystemPackages(); break;
+        case 'pip': window.loadPipPackages(); break;
+        case 'npm': window.loadNpmPackages(); break;
+        case 'source': window.loadSources(); break;
     }
 };
 
 window.loadSystemPackages = function() {
     var el = document.getElementById('pkgSystemList');
     el.innerHTML = '<div style="text-align:center;padding:20px;color:#666;">加载中...</div>';
-    fetch('/api/system-packages/list').then(function(r){return r.json()}).then(function(data){
+    fetch('/api/system-packages/list').then(function(r){return r.json();}).then(function(data){
         if (data.success && data.data && data.data.packages) {
             window.pkgData.system = data.data.packages;
-            renderPkgList('pkgSystemList', window.pkgData.system);
+            window.renderPkgList('pkgSystemList', window.pkgData.system);
         } else {
             el.innerHTML = '<div style="text-align:center;padding:20px;color:#cf222e;">加载失败</div>';
         }
@@ -1067,10 +1114,10 @@ window.loadSystemPackages = function() {
 window.loadPipPackages = function() {
     var el = document.getElementById('pkgPipList');
     el.innerHTML = '<div style="text-align:center;padding:20px;color:#666;">加载中...</div>';
-    fetch('/api/pip/list').then(function(r){return r.json()}).then(function(data){
+    fetch('/api/pip/list').then(function(r){return r.json();}).then(function(data){
         if (data.success && data.data && data.data.packages) {
             window.pkgData.pip = data.data.packages;
-            renderPkgList('pkgPipList', window.pkgData.pip);
+            window.renderPkgList('pkgPipList', window.pkgData.pip);
         } else {
             el.innerHTML = '<div style="text-align:center;padding:20px;color:#cf222e;">加载失败</div>';
         }
@@ -1082,10 +1129,10 @@ window.loadPipPackages = function() {
 window.loadNpmPackages = function() {
     var el = document.getElementById('pkgNpmList');
     el.innerHTML = '<div style="text-align:center;padding:20px;color:#666;">加载中...</div>';
-    fetch('/api/npm/list').then(function(r){return r.json()}).then(function(data){
+    fetch('/api/npm/list').then(function(r){return r.json();}).then(function(data){
         if (data.success && data.data && data.data.packages) {
             window.pkgData.npm = data.data.packages;
-            renderPkgList('pkgNpmList', window.pkgData.npm);
+            window.renderPkgList('pkgNpmList', window.pkgData.npm);
         } else {
             el.innerHTML = '<div style="text-align:center;padding:20px;color:#cf222e;">加载失败</div>';
         }
@@ -1118,15 +1165,15 @@ window.renderPkgList = function(elId, list) {
 };
 
 window.showPkgActions = function(name) {
-    showAlert('提示', '功能开发中...', 'info');
+    window.showAlert('提示', '功能开发中...', 'info');
 };
 
 window.filterPkgList = function() {
     window.pkgFilter = document.getElementById('pkgSearchInput').value || '';
     switch(window.pkgCurrentTab) {
-        case 'system': renderPkgList('pkgSystemList', window.pkgData.system); break;
-        case 'pip': renderPkgList('pkgPipList', window.pkgData.pip); break;
-        case 'npm': renderPkgList('pkgNpmList', window.pkgData.npm); break;
+        case 'system': window.renderPkgList('pkgSystemList', window.pkgData.system); break;
+        case 'pip': window.renderPkgList('pkgPipList', window.pkgData.pip); break;
+        case 'npm': window.renderPkgList('pkgNpmList', window.pkgData.npm); break;
     }
 };
 
@@ -1167,14 +1214,14 @@ window.loadSources = function() {
 
 window.switchPipSource = function(url) {
     localStorage.setItem('pip_source', url);
-    loadSources();
-    showAlert('提示', 'pip 源已切换为: ' + url, 'success');
+    window.loadSources();
+    window.showAlert('提示', 'pip 源已切换为: ' + url, 'success');
 };
 
 window.switchNpmSource = function(url) {
     localStorage.setItem('npm_source', url);
-    loadSources();
-    showAlert('提示', 'npm 源已切换为: ' + url, 'success');
+    window.loadSources();
+    window.showAlert('提示', 'npm 源已切换为: ' + url, 'success');
 };
 
 // ========== 批量操作 ==========
@@ -1187,17 +1234,17 @@ window.perfLastTime = null;
 window.openPerfDrawer = function() {
     Drawer.open('perfDrawer');
     document.getElementById('perfDrawerBackdrop').style.display = 'block';
-    startPerfMonitor();
+    window.startPerfMonitor();
 };
 
 window.closePerfDrawer = function() {
     Drawer.close('perfDrawer');
     document.getElementById('perfDrawerBackdrop').style.display = 'none';
-    stopPerfMonitor();
+    window.stopPerfMonitor();
 };
 
 window.startPerfMonitor = function() {
-    stopPerfMonitor();
+    window.stopPerfMonitor();
     updatePerfData();
     window.perfInterval = setInterval(updatePerfData, 2000);
 };
@@ -1210,7 +1257,7 @@ window.stopPerfMonitor = function() {
 };
 
 function updatePerfData() {
-    fetch('/api/performance/realtime').then(function(r){return r.json()}).then(function(data){
+    fetch('/api/performance/realtime').then(function(r){return r.json();}).then(function(data){
         if (!data.success || !data.data) return;
         var d = data.data;
         
@@ -1300,7 +1347,7 @@ window.switchNetTab = function(tab) {
 
 function loadNetworkData() {
     // 接口
-    fetch('/api/network/interfaces').then(function(r){return r.json()}).then(function(data){
+    fetch('/api/network/interfaces').then(function(r){return r.json();}).then(function(data){
         if (!data.success || !data.data) return;
         var ifaces = data.data.interfaces || [];
         var html = '';
@@ -1318,7 +1365,7 @@ function loadNetworkData() {
     }).catch(function(){});
     
     // 连接
-    fetch('/api/network/connections').then(function(r){return r.json()}).then(function(data){
+    fetch('/api/network/connections').then(function(r){return r.json();}).then(function(data){
         if (!data.success || !data.data) return;
         var conns = data.data.connections || [];
         var html = '';
@@ -1361,7 +1408,7 @@ window.switchUserTab = function(tab) {
 
 function loadUsersData() {
     // 用户
-    fetch('/api/users/list').then(function(r){return r.json()}).then(function(data){
+    fetch('/api/users/list').then(function(r){return r.json();}).then(function(data){
         if (!data.success || !data.data) return;
         var users = data.data.users || [];
         var html = '';
@@ -1379,7 +1426,7 @@ function loadUsersData() {
     }).catch(function(){});
     
     // 组
-    fetch('/api/users/groups').then(function(r){return r.json()}).then(function(data){
+    fetch('/api/users/groups').then(function(r){return r.json();}).then(function(data){
         if (!data.success || !data.data) return;
         var groups = data.data.groups || [];
         var html = '';
