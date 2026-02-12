@@ -613,3 +613,83 @@ def api_users_groups():
         return api_ok({'groups': groups})
     except Exception as e:
         return api_error(str(e), status=500)
+
+
+# ========== 统一系统状态 API ==========
+
+@system_bp.route('/api/system/status')
+def api_system_status():
+    """获取统一系统状态（CPU/内存/磁盘/GPU/网络）"""
+    import time
+    from lib import disk_utils, network_utils
+    
+    status = {
+        'cpu': 0,
+        'memory_percent': 0,
+        'disk_percent': 0,
+        'gpu_utilization': 0,
+        'gpu_memory_percent': 0,
+        'gpu_power': 0,
+        'network_rx': 0,
+        'network_tx': 0
+    }
+    
+    # CPU 和 内存
+    if psutil:
+        try:
+            status['cpu'] = psutil.cpu_percent(interval=None)
+            mem = psutil.virtual_memory()
+            status['memory_percent'] = mem.percent
+        except Exception:
+            pass
+    
+    # 磁盘
+    try:
+        disks = disk_utils.list_disks().get('disks', [])
+        for disk in disks:
+            if disk.get('mountpoint') == '/':
+                status['disk_percent'] = float(disk.get('use_percent', 0))
+                break
+    except Exception:
+        pass
+    
+    # GPU
+    try:
+        gpu_result = subprocess.run(['nvidia-smi'], capture_output=True, text=True, timeout=10)
+        output = gpu_result.stdout or gpu_result.stderr
+        
+        # 解析显存使用率
+        mem_match = re.search(r'(\d+)\s+MiB\s+/\s+(\d+)\s+MiB', output)
+        if mem_match:
+            mem_used = int(mem_match.group(1))
+            mem_total = int(mem_match.group(2))
+            status['gpu_memory_percent'] = round(mem_used / mem_total * 100, 1) if mem_total > 0 else 0
+        
+        # 解析利用率
+        util_match = re.search(r'(\d+)%\s+Default', output)
+        if util_match:
+            status['gpu_utilization'] = int(util_match.group(1))
+        
+        # 解析功耗
+        power_match = re.search(r'(\d+)\s+W\s+/\s+(\d+)\s+W', output)
+        if power_match:
+            status['gpu_power'] = int(power_match.group(1))
+    except Exception:
+        pass
+    
+    # 网络
+    try:
+        net1 = network_utils.get_network_speed()
+        time.sleep(0.5)
+        net2 = network_utils.get_network_speed()
+        
+        if net1.get('success') and net2.get('success'):
+            rx_diff = max(0, net2['rx'] - net1['rx'])
+            tx_diff = max(0, net2['tx'] - net1['tx'])
+            # 转换为 KB/s
+            status['network_rx'] = round(rx_diff / 1024, 1)
+            status['network_tx'] = round(tx_diff / 1024, 1)
+    except Exception:
+        pass
+    
+    return api_ok(status)

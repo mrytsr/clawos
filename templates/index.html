@@ -192,6 +192,33 @@
         .success { background-color: #dafbe1; color: #1a7f37; }
         .error { background-color: #ffebe9; color: #cf222e; }
 
+        /* 文件浏览器顶部状态栏 */
+        .file-status-bar {
+            height: 32px;
+            background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
+            display: flex;
+            align-items: center;
+            padding: 0 16px;
+            gap: 16px;
+            font-size: 12px;
+            font-family: 'SF Mono', 'Consolas', 'Monaco', monospace;
+            color: #fff;
+            white-space: nowrap;
+            overflow-x: auto;
+        }
+        .file-status-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .file-status-item .icon { font-size: 12px; }
+        .file-status-item .value { font-weight: 500; }
+        .file-status-item .unit { color: #8b949e; font-size: 11px; }
+        .file-status-item .divider { color: #484f58; margin: 0 4px; }
+        .file-status-item .danger { color: #f85149; }
+        .file-status-item .warning { color: #d29922; }
+        .file-status-item .normal { color: #3fb950; }
+        
         /* 文件列表区域 */
         .files-section {
             padding: 0;
@@ -884,6 +911,44 @@
 
         <div v-if="message" class="message" :class="messageTypeClass">
             {{ message }}
+        </div>
+
+        <!-- 文件浏览器顶部状态栏 -->
+        <div class="file-status-bar" id="fileStatusBar">
+            <div class="file-status-item">
+                <span class="icon">👤</span>
+                <span class="value" id="statusUser">-</span>
+            </div>
+            <div class="file-status-item">
+                <span class="icon">🖥️</span>
+                <span class="value" id="statusCpu">-</span>
+            </div>
+            <div class="file-status-item">
+                <span class="icon">💾</span>
+                <span class="value" id="statusMemory">-</span>
+            </div>
+            <div class="file-status-item">
+                <span class="icon">💿</span>
+                <span class="value" id="statusDisk">-</span>
+            </div>
+            <div class="file-status-item">
+                <span class="icon">🎮</span>
+                <span class="value" id="statusGpu">-</span>
+            </div>
+            <div class="file-status-item">
+                <span class="icon">📦</span>
+                <span class="value" id="statusVram">-</span>
+            </div>
+            <div class="file-status-item">
+                <span class="icon">⚡</span>
+                <span class="value" id="statusPower">-</span>
+            </div>
+            <div class="file-status-item">
+                <span class="icon">🌐</span>
+                <span class="value" id="statusNetworkUp">-</span>
+                <span class="unit">↓</span>
+                <span class="value" id="statusNetworkDown">-</span>
+            </div>
         </div>
 
         <div class="files-section">
@@ -2049,8 +2114,62 @@
                             .finally((function() {
                                 this.loading = false;
                             }).bind(this));
+                    },
+                    _statusTimer: null,
+                    _initStatusBar: function() {
+                        var _this = this;
+                        var user = 'guest';
+                        try {
+                            var match = document.cookie.match(/auth_user=([^;]+)/);
+                            if (match) user = decodeURIComponent(match[1]);
+                        } catch(e) {}
+                        var userEl = document.getElementById('statusUser');
+                        if (userEl) userEl.textContent = user;
+                        
+                        _this._updateStatusBar();
+                        _this._statusTimer = setInterval(function() {
+                            _this._updateStatusBar();
+                        }, 3000);
+                    },
+                    _updateStatusBar: function() {
+                        var _this = this;
+                        fetch('/api/system/status', { headers: authHeaders() })
+                            .then(function(r) { return r.json(); })
+                            .then(function(d) {
+                                if (!d || !d.success) return;
+                                var s = d.data || {};
+                                
+                                function colorClass(pct) {
+                                    if (pct >= 80) return 'danger';
+                                    if (pct >= 50) return 'warning';
+                                    return 'normal';
+                                }
+                                
+                                var cpu = document.getElementById('statusCpu');
+                                if (cpu) { cpu.textContent = s.cpu ? Math.round(s.cpu) : 0; cpu.className = 'value ' + colorClass(s.cpu); }
+                                
+                                var mem = document.getElementById('statusMemory');
+                                if (mem) { mem.textContent = s.memory_percent ? Math.round(s.memory_percent) : 0; mem.className = 'value ' + colorClass(s.memory_percent); }
+                                
+                                var disk = document.getElementById('statusDisk');
+                                if (disk) { disk.textContent = s.disk_percent ? Math.round(s.disk_percent) : 0; disk.className = 'value ' + colorClass(s.disk_percent); }
+                                
+                                var gpu = document.getElementById('statusGpu');
+                                if (gpu) { gpu.textContent = s.gpu_utilization || 0; gpu.className = 'value ' + colorClass(s.gpu_utilization); }
+                                
+                                var vram = document.getElementById('statusVram');
+                                if (vram) { vram.textContent = s.gpu_memory_percent ? Math.round(s.gpu_memory_percent) : 0; vram.className = 'value ' + colorClass(s.gpu_memory_percent); }
+                                
+                                var power = document.getElementById('statusPower');
+                                if (power) power.textContent = s.gpu_power || 0;
+                                
+                                document.getElementById('statusNetworkUp').textContent = s.network_rx || 0;
+                                document.getElementById('statusNetworkDown').textContent = s.network_tx || 0;
+                            })
+                            .catch(function() {});
                     }
                 },
+
                 mounted: function() {
                     var app = this;
                     var nav = {
@@ -2167,6 +2286,7 @@
                     }
 
                     app.loadState();
+                    app._initStatusBar();
                 }
             }).mount('#browseApp');
         })();

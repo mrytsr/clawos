@@ -1,6 +1,32 @@
 import subprocess
 
 
+def get_network_speed():
+    """获取网络上下行速度（字节/秒）"""
+    try:
+        result = subprocess.run(['cat', '/proc/net/dev'], capture_output=True, text=True)
+        lines = result.stdout.strip().split('\n')
+        
+        # 跳过前两行（头部）
+        # 格式: Inter-|   Receive                                                |  Transmit
+        #      face: bytes    packets errs drop fifo frame compressed multicast | bytes    packets errs drop fifo colls carrier compressed
+        rx_bytes, tx_bytes = 0, 0
+        
+        for line in lines[2:]:  # 跳过前两行
+            if ':' in line:
+                parts = line.split(':')[1].split()
+                if len(parts) >= 8:
+                    rx = int(parts[0])  # receive bytes
+                    tx = int(parts[8])  # transmit bytes
+                    rx_bytes += rx
+                    tx_bytes += tx
+        
+        # 返回字节数和对应的时间戳（秒）
+        return {'success': True, 'rx': rx_bytes, 'tx': tx_bytes}
+    except Exception as e:
+        return {'success': False, 'message': str(e), 'rx': 0, 'tx': 0}
+
+
 def list_network():
     """获取网络接口信息"""
     try:
