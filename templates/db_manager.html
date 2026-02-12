@@ -365,6 +365,13 @@
                     <option value="mssql">SQL Server</option>
                 </select>
             </div>
+            <div class="form-group">
+                <label>URL</label>
+                <div style="display:flex;gap:8px;">
+                    <input type="text" id="dbUrl" placeholder="mysql+pymysql://user:pass@host:3306/db">
+                    <button onclick="applyDbUrl(true)" style="background:#0f3460;border:none;border-radius:8px;color:#ccc;cursor:pointer;padding:0 12px;">解析</button>
+                </div>
+            </div>
             <div class="form-group"><label>名称</label><input type="text" id="dbName" placeholder="例如: 生产库"></div>
             <div class="form-group host-field"><label>主机</label><input type="text" id="dbHost" placeholder="localhost"></div>
             <div class="form-group host-field"><label>端口</label><input type="number" id="dbPort" value="3306"></div>
@@ -649,43 +656,112 @@
                 return Promise.resolve(_acColumns[tableName]);
             } catch(e) { _acColumns[tableName] = []; return Promise.resolve([]); }
         }
+
+        function getLastPartTableName(raw) {
+            var s = String(raw || '').trim();
+            if (!s) return '';
+            s = s.replace(/`/g, '');
+            var parts = s.split('.');
+            return parts[parts.length - 1] || '';
+        }
+
+        function extractTableRefs(sqlBeforeCursor) {
+            var text = String(sqlBeforeCursor || '');
+            var refs = [];
+            var re = /\b(from|join)\s+`?([\w.]+)`?(?:\s+(?:as\s+)?`?(\w+)`?)?/ig;
+            var m;
+            while ((m = re.exec(text))) {
+                var tableRaw = m[2] || '';
+                var alias = m[3] || '';
+                var tableName = getLastPartTableName(tableRaw);
+                if (!tableName) continue;
+                refs.push({ table: tableName, alias: alias });
+            }
+            return refs;
+        }
+
+        function getAliasMap(sqlBeforeCursor) {
+            var refs = extractTableRefs(sqlBeforeCursor);
+            var map = {};
+            refs.forEach(function(r) {
+                map[r.table] = r.table;
+                if (r.alias) map[r.alias] = r.table;
+            });
+            return map;
+        }
+
+        function getPreferredTable(sqlBeforeCursor) {
+            var refs = extractTableRefs(sqlBeforeCursor);
+            if (!refs.length) return '';
+            return refs[refs.length - 1].table || '';
+        }
         
         function showAutocomplete(text, cursorPos) {
             // 获取光标前最后一个单词
             const before = text.substring(0, cursorPos);
-            const match = before.match(/[\w`*]+$/);
+            const match = before.match(/[\w`*.]+$/);
             if (!match || match[0].length < 1) { closeAutocomplete(); return; }
-            const word = match[0].toUpperCase().replace(/`/g, '');
+            const rawToken = match[0].replace(/`/g, '');
+            const tokenUpper = rawToken.toUpperCase();
+            const isQualified = rawToken.indexOf('.') >= 0;
+            const aliasMap = getAliasMap(before);
             
             // 生成候选列表
             const items = [];
-            // 关键字
-            SQL_KEYWORDS.filter(k => k && k.startsWith(word) && k !== word).forEach(k => items.push({text: k, type: 'key'}));
-            // 函数
-            SQL_FUNCTIONS.filter(f => f && f.startsWith(word) && f !== word).forEach(f => items.push({text: f, type: 'func'}));
-            // 表名
-            _acTableNames.filter(t => t && t.toUpperCase().startsWith(word) && t.toUpperCase() !== word).forEach(t => items.push({text: t, type: 'tbl'}));
-            // 字段
-            const tableMatch = before.match(/FROM\s+`?(\w+)`?\s*$/i);
-            if (tableMatch) {
-                const tbl = tableMatch[1];
-                // 异步获取字段，获取后再筛选
-                const cols = _acColumns[tbl] || [];
-                if (cols.length === 0) {
-                    loadTableColumns(tbl).then(() => {
-                        const newCols = (_acColumns[tbl] || []).filter(c => c && c.toUpperCase().startsWith(word));
-                        newCols.forEach(c => items.push({text: c, type: 'col'}));
-                        if (items.length === 0) { closeAutocomplete(); return; }
+            if (isQualified) {
+                var lastDot = rawToken.lastIndexOf('.');
+                var qualifier = rawToken.slice(0, lastDot);
+                var prefix = rawToken.slice(lastDot + 1);
+                var qualifierUpper = qualifier.toUpperCase();
+                var prefixUpper = prefix.toUpperCase();
+                var tableForCols = aliasMap[qualifier] || getLastPartTableName(qualifier);
+                if (!tableForCols) { closeAutocomplete(); return; }
+                var cols = _acColumns[tableForCols] || [];
+                if (!cols.length) {
+                    loadTableColumns(tableForCols).then(function() {
+                        var newCols = (_acColumns[tableForCols] || []).filter(function(c) { return c && c.toUpperCase().startsWith(prefixUpper); });
+                        newCols.forEach(function(c) { items.push({ text: qualifier + '.' + c, type: 'col' }); });
+                        if (!items.length) { closeAutocomplete(); return; }
                         _acItems = items.slice(0, 10);
                         _acSelected = 0;
                         renderAutocomplete();
                     });
-                    return; // 等待异步结果
+                    return;
                 }
-                cols.filter(c => c && c.toUpperCase().startsWith(word)).forEach(c => items.push({text: c, type: 'col'}));
+                cols.filter(function(c) { return c && c.toUpperCase().startsWith(prefixUpper); })
+                    .forEach(function(c) { items.push({ text: qualifier + '.' + c, type: 'col' }); });
+                if (!items.length) { closeAutocomplete(); return; }
+                _acItems = items.slice(0, 10);
+                _acSelected = 0;
+                renderAutocomplete();
+                return;
+            }
+
+            // 关键字
+            SQL_KEYWORDS.filter(k => k && k.startsWith(tokenUpper) && k !== tokenUpper).forEach(k => items.push({text: k, type: 'key'}));
+            // 函数
+            SQL_FUNCTIONS.filter(f => f && f.startsWith(tokenUpper) && f !== tokenUpper).forEach(f => items.push({text: f, type: 'func'}));
+            // 表名
+            _acTableNames.filter(t => t && t.toUpperCase().startsWith(tokenUpper) && t.toUpperCase() !== tokenUpper).forEach(t => items.push({text: t, type: 'tbl'}));
+            // 字段：优先使用最后一个 FROM/JOIN 表（支持别名后续通过 t. 触发）
+            var preferredTbl = getPreferredTable(before);
+            if (preferredTbl) {
+                var cols2 = _acColumns[preferredTbl] || [];
+                if (!cols2.length) {
+                    loadTableColumns(preferredTbl).then(function() {
+                        var newCols = (_acColumns[preferredTbl] || []).filter(function(c) { return c && c.toUpperCase().startsWith(tokenUpper); });
+                        newCols.forEach(function(c) { items.push({ text: c, type: 'col' }); });
+                        if (!items.length) { closeAutocomplete(); return; }
+                        _acItems = items.slice(0, 10);
+                        _acSelected = 0;
+                        renderAutocomplete();
+                    });
+                    return;
+                }
+                cols2.filter(function(c) { return c && c.toUpperCase().startsWith(tokenUpper); }).forEach(function(c) { items.push({ text: c, type: 'col' }); });
             }
             // 历史
-            _acHistory.filter(h => h && h.toUpperCase().startsWith(word)).slice(0, 5).forEach(h => items.push({text: h, type: 'his'}));
+            _acHistory.filter(h => h && h.toUpperCase().startsWith(tokenUpper)).slice(0, 5).forEach(h => items.push({text: h, type: 'his'}));
             
             if (items.length === 0) { closeAutocomplete(); return; }
             
@@ -718,7 +794,7 @@
             const text = textarea.value;
             const pos = textarea.selectionStart;
             const before = text.substring(0, pos);
-            const wordMatch = before.match(/[\w`*]+$/);
+            const wordMatch = before.match(/[\w`*.]+$/);
             if (wordMatch) {
                 const start = pos - wordMatch[0].length;
                 textarea.value = text.substring(0, start) + item.text + text.substring(pos);
@@ -960,6 +1036,7 @@
         function openAddModal() {
             $('dbEngine').value = 'mysql'; $('dbName').value = ''; $('dbHost').value = ''; $('dbPort').value = '3306';
             $('dbUser').value = ''; $('dbPass').value = ''; $('dbDatabase').value = ''; $('dbSqlitePath').value = '';
+            $('dbUrl').value = '';
             updateEngineFields();
             $('addModal').classList.add('show');
         }
@@ -968,6 +1045,75 @@
             const eng = $('dbEngine').value;
             document.querySelectorAll('.host-field').forEach(el => el.style.display = eng === 'sqlite' ? 'none' : 'block');
             document.querySelectorAll('.sqlite-field').forEach(el => el.style.display = eng === 'sqlite' ? 'block' : 'none');
+        }
+
+        function normalizeEngineFromScheme(scheme) {
+            var s = String(scheme || '').toLowerCase();
+            if (!s) return '';
+            var base = s.split('+')[0];
+            if (base === 'postgres') base = 'postgresql';
+            if (base === 'sqlserver') base = 'mssql';
+            if (base === 'mssql') base = 'mssql';
+            if (base === 'mysql') base = 'mysql';
+            if (base === 'mariadb') base = 'mariadb';
+            if (base === 'sqlite') base = 'sqlite';
+            if (base === 'oracle') base = 'oracle';
+            return base;
+        }
+
+        function parseDbUrl(raw) {
+            var input = String(raw || '').trim();
+            if (!input) return null;
+            if (input.toLowerCase().startsWith('sqlite:')) {
+                var m4 = input.match(/^sqlite:(\/\/\/\/)(.+)$/i);
+                var m3 = input.match(/^sqlite:(\/\/\/)(.+)$/i);
+                var m2 = input.match(/^sqlite:(\/\/)(.+)$/i);
+                var rest = m4 ? ('/' + m4[2]) : (m3 ? m3[2] : (m2 ? m2[2] : input.replace(/^sqlite:/i, '')));
+                var path = '';
+                try { path = decodeURIComponent(rest); } catch (e) { path = rest; }
+                return { engine: 'sqlite', sqlitePath: path };
+            }
+
+            var u = null;
+            try { u = new URL(input); } catch (e) { return null; }
+            var engine = normalizeEngineFromScheme((u && u.protocol ? u.protocol.replace(':', '') : ''));
+            if (!engine) return null;
+            var database = '';
+            try { database = decodeURIComponent(String(u.pathname || '').replace(/^\/+/, '')); } catch (e) { database = String(u.pathname || '').replace(/^\/+/, ''); }
+            var port = u.port ? String(u.port) : '';
+            return {
+                engine: engine,
+                host: u.hostname || '',
+                port: port,
+                user: u.username || '',
+                password: u.password || '',
+                database: database
+            };
+        }
+
+        function applyDbUrl(showErr) {
+            var url = $('dbUrl') ? $('dbUrl').value : '';
+            var parsed = parseDbUrl(url);
+            if (!parsed) {
+                if (showErr) showStatus('URL 解析失败', true);
+                return;
+            }
+
+            var eng = parsed.engine || '';
+            if (eng && $('dbEngine')) $('dbEngine').value = eng;
+            updateEngineFields();
+
+            if (eng === 'sqlite') {
+                if ($('dbSqlitePath')) $('dbSqlitePath').value = parsed.sqlitePath || '';
+                if ($('dbPort')) $('dbPort').value = '0';
+                return;
+            }
+
+            if ($('dbHost')) $('dbHost').value = parsed.host || $('dbHost').value;
+            if ($('dbUser')) $('dbUser').value = parsed.user || $('dbUser').value;
+            if ($('dbPass')) $('dbPass').value = parsed.password || $('dbPass').value;
+            if ($('dbDatabase')) $('dbDatabase').value = parsed.database || $('dbDatabase').value;
+            if ($('dbPort')) $('dbPort').value = parsed.port || String(ENGINE_CONFIG[eng]?.port || $('dbPort').value || '');
         }
         async function testAndSave() {
             const eng = $('dbEngine').value;
@@ -1019,6 +1165,13 @@
             const r = await fetch('/api/db/connections');
             const data = await r.json();
             if (data.success) connections = data.data?.connections || [];
+        }
+
+        if ($('dbEngine')) $('dbEngine').addEventListener('change', function() { updateEngineFields(); });
+        if ($('dbUrl')) {
+            $('dbUrl').addEventListener('change', function() { applyDbUrl(false); });
+            $('dbUrl').addEventListener('keydown', function(e) { if (e && e.key === 'Enter') { e.preventDefault(); applyDbUrl(false); } });
+            $('dbUrl').addEventListener('paste', function() { setTimeout(function() { applyDbUrl(false); }, 0); });
         }
         
         document.addEventListener('keydown', e => { if ((e.ctrlKey||e.metaKey) && e.key==='Enter') executeQuery(); });
