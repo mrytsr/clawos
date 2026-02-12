@@ -261,3 +261,35 @@ def api_cron_templates():
         {'name': 'On Boot', 'schedule': '@reboot', 'command': ''},
     ]
     return api_ok({'templates': templates})
+
+
+@cron_bp.route('/api/cron/run', methods=['POST'])
+def api_cron_run():
+    """立即执行一次 cron 命令."""
+    data = request.get_json(silent=True) or {}
+    command = data.get('command', '').strip()
+    
+    if not command:
+        return api_error('缺少命令')
+    
+    try:
+        # 直接执行命令
+        proc = subprocess.run(
+            command,
+            shell=True,
+            capture_output=True,
+            text=True,
+            timeout=30
+        )
+        
+        return api_ok({
+            'success': proc.returncode == 0,
+            'stdout': proc.stdout,
+            'stderr': proc.stderr,
+            'returncode': proc.returncode
+        })
+        
+    except subprocess.TimeoutExpired:
+        return api_error('执行超时', status=500)
+    except Exception as e:
+        return api_error(str(e), status=500)
