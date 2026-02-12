@@ -1612,6 +1612,60 @@ function createMenuNewFile() {
     );
 }
 
+// 网页快捷方式创建
+function createMenuNewUrl() {
+    closeCreateMenuDrawer();
+    document.getElementById('urlShortcutName').value = '';
+    document.getElementById('urlShortcutUrl').value = '';
+    document.getElementById('urlShortcutDrawer').classList.add('open');
+    document.getElementById('urlShortcutBackdrop').classList.add('open');
+    setTimeout(function() { document.getElementById('urlShortcutName').focus(); }, 100);
+}
+
+function closeUrlShortcutDrawer() {
+    document.getElementById('urlShortcutDrawer').classList.remove('open');
+    document.getElementById('urlShortcutBackdrop').classList.remove('open');
+}
+
+function confirmUrlShortcut() {
+    var name = document.getElementById('urlShortcutName').value.trim();
+    var url = document.getElementById('urlShortcutUrl').value.trim();
+    
+    if (!name) {
+        if (typeof showToast === 'function') showToast('请输入名称', 'warning');
+        return;
+    }
+    if (!url) {
+        if (typeof showToast === 'function') showToast('请输入网址', 'warning');
+        return;
+    }
+    
+    // 添加 .url 后缀
+    var filename = name.endsWith('.url') ? name : name + '.url';
+    var content = '[InternetShortcut]\nURL=' + url;
+    
+    var currentPathEl = document.getElementById('currentBrowsePath');
+    var currentPath = currentPathEl ? String(currentPathEl.value || '') : '';
+    var filePath = currentPath ? currentPath + '/' + filename : filename;
+    
+    fetch('/api/file/write', {
+        method: 'POST',
+        headers: Object.assign({ 'Content-Type': 'application/json' }, (typeof authHeaders === 'function') ? authHeaders() : {}),
+        body: JSON.stringify({ path: filePath, content: content })
+    })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data && data.success) {
+                if (typeof showToast === 'function') showToast('创建成功', 'success');
+                refreshFileList();
+                closeUrlShortcutDrawer();
+            } else {
+                if (typeof showToast === 'function') showToast((data && (data.message || (data.error && data.error.message))) || '创建失败', 'error');
+            }
+        })
+        .catch(function() { if (typeof showToast === 'function') showToast('创建失败', 'error'); });
+}
+
 // 导出到 window
 window.showMenuModal = showMenuModal;
 window.openCurrentFolderMenu = openCurrentFolderMenu;
@@ -1658,6 +1712,9 @@ window.closeCreateMenuDrawer = closeCreateMenuDrawer;
 window.createMenuUpload = createMenuUpload;
 window.createMenuNewFolder = createMenuNewFolder;
 window.createMenuNewFile = createMenuNewFile;
+window.createMenuNewUrl = createMenuNewUrl;
+window.closeUrlShortcutDrawer = closeUrlShortcutDrawer;
+window.confirmUrlShortcut = confirmUrlShortcut;
 
 // ============ Git状态栏 ============
 

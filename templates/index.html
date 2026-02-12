@@ -1369,6 +1369,7 @@
             <div class="modal-item" onclick="createMenuUpload()">📤 上传</div>
             <div class="modal-item" onclick="createMenuNewFolder()">📁 新建文件夹</div>
             <div class="modal-item" onclick="createMenuNewFile()">📄 新建文件</div>
+            <div class="modal-item" onclick="createMenuNewUrl()">🔗 网页快捷方式</div>
         </div>
     </div>
 
@@ -1386,6 +1387,30 @@
             <div class="modal-buttons" style="padding: 0; border: none; background: none; gap: 12px; display:flex;">
                 <button style="flex: 1; padding: 12px; border-radius: 8px; border: 1px solid #d0d7de; background: #f6f8fa; cursor: pointer;" onclick="closeDialogDrawer()">取消</button>
                 <button id="dialogConfirmBtn" style="flex: 1; padding: 12px; border-radius: 8px; border: 1px solid transparent; background: #2da44e; color: #fff; cursor: pointer;" onclick="confirmDialogDrawer()">确认</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 网页快捷方式创建弹窗 -->
+    <div id="urlShortcutBackdrop" class="drawer-backdrop" onclick="closeUrlShortcutDrawer()"></div>
+    <div id="urlShortcutDrawer" class="drawer" style="width: 360px;">
+        <div class="drawer-handle"></div>
+        <div class="drawer-header">
+            <div class="drawer-title">创建网页快捷方式</div>
+            <button class="drawer-close-btn" onclick="closeUrlShortcutDrawer()">&times;</button>
+        </div>
+        <div class="drawer-content" style="padding: 16px;">
+            <div class="form-group" style="margin-bottom: 12px;">
+                <label style="display: block; font-size: 12px; color: #888; margin-bottom: 4px;">名称</label>
+                <input type="text" id="urlShortcutName" placeholder="例如：爱球网" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; box-sizing: border-box;">
+            </div>
+            <div class="form-group" style="margin-bottom: 16px;">
+                <label style="display: block; font-size: 12px; color: #888; margin-bottom: 4px;">网址 URL</label>
+                <input type="text" id="urlShortcutUrl" placeholder="例如：https://w.utjx.cn/aiqiu/list" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; box-sizing: border-box;">
+            </div>
+            <div style="display: flex; gap: 12px;">
+                <button onclick="closeUrlShortcutDrawer()" style="flex: 1; padding: 10px; border-radius: 6px; border: 1px solid #ddd; background: #f6f8fa; cursor: pointer;">取消</button>
+                <button onclick="confirmUrlShortcut()" style="flex: 1; padding: 10px; border-radius: 6px; border: none; background: #2da44e; color: #fff; cursor: pointer;">创建</button>
             </div>
         </div>
     </div>

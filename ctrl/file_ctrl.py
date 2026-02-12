@@ -232,3 +232,32 @@ def api_file_read():
     except Exception as e:
         return {'success': False, 'error': {'message': str(e)}}
 
+
+@file_bp.route('/api/file/write', methods=['POST'])
+def api_file_write():
+    """写入文件内容（用于创建 URL 文件等）"""
+    data = request.get_json(silent=True) or {}
+    path = data.get('path', '').strip()
+    content = data.get('content', '')
+    
+    if not path:
+        return {'success': False, 'error': {'message': '缺少 path 参数'}}
+    
+    root_dir = _get_root_dir()
+    full_path = os.path.normpath(os.path.join(root_dir, path))
+    if not full_path.startswith(root_dir):
+        return {'success': False, 'error': {'message': '非法路径'}}
+    
+    try:
+        # 确保父目录存在
+        parent_dir = os.path.dirname(full_path)
+        if parent_dir and not os.path.exists(parent_dir):
+            os.makedirs(parent_dir, exist_ok=True)
+        
+        with open(full_path, 'w', encoding='utf-8') as f:
+            f.write(content)
+        
+        return {'success': True, 'data': {'path': path}}
+    except Exception as e:
+        return {'success': False, 'error': {'message': str(e)}}
+
