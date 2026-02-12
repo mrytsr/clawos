@@ -198,8 +198,8 @@
             background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
             display: flex;
             align-items: center;
-            padding: 0 16px;
-            gap: 16px;
+            padding: 0 12px;
+            gap: 8px;
             font-size: 12px;
             font-family: 'SF Mono', 'Consolas', 'Monaco', monospace;
             color: #fff;
@@ -2116,13 +2116,8 @@
                     _statusTimer: null,
                     _initStatusBar: function() {
                         var _this = this;
-                        var user = 'guest';
-                        try {
-                            var match = document.cookie.match(/auth_user=([^;]+)/);
-                            if (match) user = decodeURIComponent(match[1]);
-                        } catch(e) {}
                         var userEl = document.getElementById('statusUser');
-                        if (userEl) userEl.textContent = user;
+                        if (userEl) userEl.textContent = 'tjx';
                         
                         _this._updateStatusBar();
                         _this._statusTimer = setInterval(function() {

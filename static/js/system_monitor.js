@@ -123,11 +123,17 @@ window.loadProcessList = function() {
                         .then(function(r) { return r.json(); })
                         .then(function(data) {
                             const payload = apiData(data);
-                            if (payload && payload.message && typeof window.showToast === 'function') window.showToast(payload.message, 'success');
+                            if (payload?.message) {
+                                window.showToast(payload.message, payload.success ? 'success' : 'error');
+                            } else if (payload?.success) {
+                                window.showToast('结束进程成功', 'success');
+                            } else {
+                                window.showToast('结束进程失败', 'error');
+                            }
                             window.loadProcessList();
                         })
-                        .catch(function() {
-                            if (typeof window.showToast === 'function') window.showToast('结束失败', 'error');
+                        .catch(function(err) {
+                            window.showToast('结束进程失败: ' + err.message, 'error');
                         });
                 });
             });
@@ -224,12 +230,15 @@ window.loadSystemPackageList = function() {
                     __postJson('/api/system-packages/uninstall', { name: name, manager: manager })
                         .then(function(data) {
                             const payload = apiData(data);
-                            const msg = payload && payload.message ? payload.message : '已提交';
-                            if (typeof window.showToast === 'function') window.showToast(msg, 'success');
+                            if (payload?.success) {
+                                window.showToast('卸载成功', 'success');
+                            } else {
+                                window.showToast(payload?.message || '卸载失败', 'error');
+                            }
                             window.loadSystemPackageList();
                         })
-                        .catch(function() {
-                            if (typeof window.showToast === 'function') window.showToast('卸载失败', 'error');
+                        .catch(function(err) {
+                            window.showToast('卸载失败: ' + err.message, 'error');
                         });
                 });
             });
@@ -286,12 +295,15 @@ function __renderPkgList(containerId, opts) {
                     __postJson(installUrl, { package: pkg })
                         .then(function(data) {
                             const payload = apiData(data);
-                            const msg = payload && payload.message ? payload.message : '已提交';
-                            if (typeof window.showToast === 'function') window.showToast(msg, 'success');
+                            if (payload?.success) {
+                                window.showToast('安装成功', 'success');
+                            } else {
+                                window.showToast(payload?.message || '安装失败', 'error');
+                            }
                             __renderPkgList(containerId, options);
                         })
-                        .catch(function() {
-                            if (typeof window.showToast === 'function') window.showToast('安装失败', 'error');
+                        .catch(function(err) {
+                            window.showToast('安装失败: ' + err.message, 'error');
                         })
                         .finally(function() {
                             installBtn.disabled = false;
@@ -453,12 +465,15 @@ window.loadDockerTabs = function(tab) {
                         __postJson(url, { id: id })
                             .then(function(data) {
                                 const payload = apiData(data);
-                                const msg = payload && payload.message ? payload.message : '已提交';
-                                if (typeof window.showToast === 'function') window.showToast(msg, 'success');
+                                if (payload?.success) {
+                                    window.showToast('操作成功', 'success');
+                                } else {
+                                    window.showToast(payload?.message || '操作失败', 'error');
+                                }
                                 window.loadDockerTabs('containers');
                             })
-                            .catch(function() {
-                                if (typeof window.showToast === 'function') window.showToast('操作失败', 'error');
+                            .catch(function(err) {
+                                window.showToast('操作失败: ' + err.message, 'error');
                             });
                     });
                 });
@@ -473,12 +488,15 @@ window.loadDockerTabs = function(tab) {
                         __postJson('/api/docker/container/rm', { id: id, force: true })
                             .then(function(data) {
                                 const payload = apiData(data);
-                                const msg = payload && payload.message ? payload.message : '已提交';
-                                if (typeof window.showToast === 'function') window.showToast(msg, 'success');
+                                if (payload?.success) {
+                                    window.showToast('删除成功', 'success');
+                                } else {
+                                    window.showToast(payload?.message || '删除失败', 'error');
+                                }
                                 window.loadDockerTabs('containers');
                             })
-                            .catch(function() {
-                                if (typeof window.showToast === 'function') window.showToast('删除失败', 'error');
+                            .catch(function(err) {
+                                window.showToast('删除失败: ' + err.message, 'error');
                             });
                     });
                 });

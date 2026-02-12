@@ -829,10 +829,10 @@ window.batchDelete = function() {
         }).then(function(r) { return r.json(); })
         .then(function(d) { 
             if (d && d.success) { 
-                showToast((d.data && d.data.message) || '删除成功', 'success'); 
+                showToast('删除成功 ' + paths.length + ' 个项目', 'success'); 
                 refreshFileList(); 
             } else { 
-                showToast((d && d.error && d.error.message) || '删除失败', 'error'); 
+                showToast(d.error?.message || '删除失败', 'error'); 
             } 
         }).catch(function() { showToast('删除失败', 'error'); });
         window.clearSelection();
@@ -846,7 +846,7 @@ window.batchCopy = function() {
 
     if (window.Clipboard && typeof window.Clipboard.set === 'function') {
         window.Clipboard.set('copy', paths);
-        showToast('已复制 ' + paths.length + ' 个项目', 'success');
+        showToast('已复制到剪贴板', 'success');
         window.clearSelection();
     } else {
         showToast('复制不可用', 'error');
@@ -860,7 +860,7 @@ window.batchMove = function() {
 
     if (window.Clipboard && typeof window.Clipboard.set === 'function') {
         window.Clipboard.set('cut', paths);
-        showToast('已剪切 ' + paths.length + ' 个项目', 'success');
+        showToast('已剪切到剪贴板', 'success');
         window.clearSelection();
     } else {
         showToast('剪切不可用', 'error');
@@ -899,11 +899,11 @@ window.confirmTargetPath = function() {
     .then(function(r) { return r.json(); })
     .then(function(d) {
         if (d && d.success) {
-            showToast((d.data && d.data.message) || (action === 'move' ? '移动成功' : '复制成功'), 'success');
+            showToast(action === 'move' ? '移动成功' : '复制成功', 'success');
             window.clearSelection();
             refreshFileList();
         } else {
-            showToast((d && d.error && d.error.message) || (action === 'move' ? '移动失败' : '复制失败'), 'error');
+            showToast(d.error?.message || (action === 'move' ? '移动失败' : '复制失败'), 'error');
         }
     })
     .catch(function() { showToast('操作失败', 'error'); });
