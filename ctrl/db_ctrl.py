@@ -589,6 +589,27 @@ def api_db_tree():
     return api_ok(result)
 
 
+@db_bp.route('/api/db/<conn_id>/table/<table>/columns')
+def api_db_table_columns(conn_id, table):
+    """获取表的字段列表（用于SQL自动补全）."""
+    conns = _load_connections()
+    if conn_id not in conns:
+        return api_error('Connection not found')
+    
+    conn = conns[conn_id]
+    
+    try:
+        from sqlalchemy import text
+        with _get_connection(conn) as c:
+            result = c.execute(text(f'DESCRIBE `{table}`'))
+            columns = []
+            for row in result.fetchall():
+                columns.append(row[0])  # 字段名
+        return api_ok({'columns': columns})
+    except Exception as e:
+        return api_error(str(e))
+
+
 @db_bp.route('/api/db/<conn_id>/databases')
 def api_db_databases(conn_id):
     """获取数据库列表 (SHOW DATABASES)."""

@@ -118,12 +118,36 @@
             background: #16213e; border-radius: 10px; padding: 12px;
         }
         .sql-editor.open { display: flex; }
+        .sql-editor-wrapper { position: relative; }
         .sql-editor textarea {
             width: 100%; height: 80px; background: #1a1a2e; border: none;
             padding: 12px; resize: none; outline: none;
             color: #fff; font-family: 'SF Mono', monospace; font-size: 12px;
             border-radius: 6px;
         }
+        .sql-autocomplete {
+            position: absolute; top: 100%; left: 0; right: 0;
+            background: #1a1a2e; border: 1px solid #0f3460;
+            border-radius: 6px; max-height: 150px; overflow-y: auto;
+            z-index: 100;
+        }
+        .sql-autocomplete-item {
+            padding: 8px 12px; cursor: pointer; color: #ccc;
+            font-family: 'SF Mono', monospace; font-size: 12px;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .sql-autocomplete-item:hover, .sql-autocomplete-item.selected {
+            background: #0f3460; color: #fff;
+        }
+        .sql-autocomplete-item .type-tag {
+            font-size: 10px; padding: 2px 6px; border-radius: 4px;
+            background: #2d2d2d; color: #888;
+        }
+        .sql-autocomplete-item .type-tag.key { background: #1e3a5f; color: #58a6ff; }
+        .sql-autocomplete-item .type-tag.func { background: #3d5a3d; color: #7ee787; }
+        .sql-autocomplete-item .type-tag.col { background: #5a3d2d; color: #f0883e; }
+        .sql-autocomplete-item .type-tag.tbl { background: #3d3d5a; color: #a371f7; }
+        .sql-autocomplete-item .type-tag.his { background: #5a3d5a; color: #db61a2; }
         .sql-toolbar { display: flex; gap: 8px; padding: 10px 0; flex-wrap: wrap; align-items: center; }
         .sql-toolbar button {
             padding: 8px 14px; border-radius: 6px; border: none;
@@ -269,7 +293,10 @@
                 <span class="arrow">▼</span>
             </div>
             <div class="sql-editor" id="sqlEditorPanel">
-                <textarea id="sqlEditor" placeholder="输入 SQL... (Ctrl+Enter 执行)"></textarea>
+                <div class="sql-editor-wrapper">
+                    <textarea id="sqlEditor" placeholder="输入 SQL... (Ctrl+Enter 执行)"></textarea>
+                    <div class="sql-autocomplete" id="sqlAutocomplete" style="display:none;"></div>
+                </div>
                 <div class="sql-toolbar">
                     <button onclick="executeQuery()">▶ 执行</button>
                     <button class="secondary" onclick="clearEditor()">清空</button>
@@ -414,6 +441,8 @@
         
         // 渲染树
         function renderTree(treeData) {
+            window.dbTreeData = treeData; // 保存供自动补全使用
+            updateAutocompleteData(); // 更新表列表
             let html = '<div class="tree">';
             treeData.forEach(conn => {
                 html += renderTreeNode(conn, 'conn', null);
@@ -487,6 +516,7 @@
                 currentDb = dbName;
                 currentTable = id;
                 updateBreadcrumb();
+                updateAutocompleteData();
                 
                 // 关闭侧边栏
                 closeDrawer();
@@ -506,8 +536,8 @@
             $('breadcrumb').innerHTML = html || '<span>未选择</span>';
         }
         
-        function toggleDrawer() { $('drawer').classList.toggle('open'); $('drawerBackdrop').classList.toggle('show'); }
-        function closeDrawer() { $('drawer').classList.remove('open'); $('drawerBackdrop').classList.remove('show'); }
+        window.toggleDrawer = function() { $('drawer').classList.toggle('open'); $('drawerBackdrop').classList.toggle('show'); };
+        window.closeDrawer = function() { $('drawer').classList.remove('open'); $('drawerBackdrop').classList.remove('show'); };
         
         // SQL历史
         const FIXED_SQLS = [
@@ -566,7 +596,175 @@
         }
         
         function toggleSqlEditor() { $('sqlEditorPanel').classList.toggle('open'); $('sqlToggle').classList.toggle('open'); }
-        function clearEditor() { $('sqlEditor').value = ''; }
+        function clearEditor() { $('sqlEditor').value = ''; closeAutocomplete(); }
+        
+        // ========== SQL 自动补全 ==========
+        const SQL_KEYWORDS = [
+            'SELECT', 'FROM', 'WHERE', 'AND', 'OR', 'NOT', 'IN', 'LIKE', 'BETWEEN',
+            'JOIN', 'LEFT JOIN', 'RIGHT JOIN', 'INNER JOIN', 'OUTER JOIN', 'ON',
+            'ORDER BY', 'ASC', 'DESC', 'LIMIT', 'OFFSET',
+            'GROUP BY', 'HAVING', 'DISTINCT', 'COUNT', 'SUM', 'AVG', 'MIN', 'MAX',
+            'INSERT INTO', 'VALUES', 'UPDATE', 'SET', 'DELETE FROM',
+            'CREATE TABLE', 'DROP TABLE', 'ALTER TABLE', 'ADD COLUMN', 'MODIFY COLUMN',
+            'INDEX', 'UNIQUE', 'PRIMARY KEY', 'FOREIGN KEY',
+            'AS', 'NULL', 'IS NULL', 'IS NOT NULL', 'EXISTS', 'ALL', 'ANY',
+            'UNION', 'UNION ALL', 'INTERSECT', 'EXCEPT',
+            'CASE', 'WHEN', 'THEN', 'ELSE', 'END', 'AS', 'CAST', 'COALESCE', 'IFNULL', 'NULLIF'
+        ];
+        const SQL_FUNCTIONS = [
+            'NOW()', 'CURDATE()', 'CURTIME()', 'DATE()', 'TIME()', 'YEAR()', 'MONTH()', 'DAY()', 'HOUR()', 'MINUTE()', 'SECOND()',
+            'DATE_FORMAT()', 'DATE_ADD()', 'DATE_SUB()', 'DATEDIFF()', 'TIMESTAMPDIFF()',
+            'CONCAT()', 'CONCAT_WS()', 'SUBSTRING()', 'LEFT()', 'RIGHT()', 'LENGTH()', 'TRIM()', 'UPPER()', 'LOWER()',
+            'REPLACE()', 'INSERT()', 'INSTR()', 'LOCATE()',
+            'ROUND()', 'FLOOR()', 'CEIL()', 'ABS()', 'SQRT()', 'POW()', 'MOD()',
+            'IFNULL()', 'COALESCE()', 'NULLIF()', 'IF()', 'CASE WHEN()',
+            'RAND()', 'UUID()', 'LAST_INSERT_ID()', 'ROW_COUNT()',
+            'COUNT()', 'SUM()', 'AVG()', 'MIN()', 'MAX()', 'GROUP_CONCAT()'
+        ];
+        let _acTableNames = [], _acColumns = {};
+        let _acHistory = JSON.parse(localStorage.getItem('db_sql_history') || '[]').map(h => (h && h.sql) || h).filter(h => h && typeof h === 'string').filter((v, i, a) => a.indexOf(v) === i);
+        let _acSelected = -1, _acItems = [];
+        
+        function updateAutocompleteData() {
+            // 更新表名列表
+            if (window.dbTreeData) {
+                _acTableNames = [];
+                const findTables = nodes => {
+                    nodes.children?.forEach(c => {
+                        if (c.children) findTables(c);
+                        else _acTableNames.push(c.name);
+                    });
+                };
+                dbTreeData.forEach(findTables);
+            }
+        }
+        
+        async function loadTableColumns(tableName) {
+            if (!currentConn || !tableName) return Promise.resolve([]);
+            if (_acColumns[tableName]) return Promise.resolve(_acColumns[tableName]);
+            try {
+                const r = await fetch(`/api/db/${currentConn.id}/table/${encodeURIComponent(tableName)}/columns`);
+                const d = await r.json();
+                _acColumns[tableName] = d.data?.columns || [];
+                return Promise.resolve(_acColumns[tableName]);
+            } catch(e) { _acColumns[tableName] = []; return Promise.resolve([]); }
+        }
+        
+        function showAutocomplete(text, cursorPos) {
+            // 获取光标前最后一个单词
+            const before = text.substring(0, cursorPos);
+            const match = before.match(/[\w`*]+$/);
+            if (!match || match[0].length < 1) { closeAutocomplete(); return; }
+            const word = match[0].toUpperCase().replace(/`/g, '');
+            
+            // 生成候选列表
+            const items = [];
+            // 关键字
+            SQL_KEYWORDS.filter(k => k && k.startsWith(word) && k !== word).forEach(k => items.push({text: k, type: 'key'}));
+            // 函数
+            SQL_FUNCTIONS.filter(f => f && f.startsWith(word) && f !== word).forEach(f => items.push({text: f, type: 'func'}));
+            // 表名
+            _acTableNames.filter(t => t && t.toUpperCase().startsWith(word) && t.toUpperCase() !== word).forEach(t => items.push({text: t, type: 'tbl'}));
+            // 字段
+            const tableMatch = before.match(/FROM\s+`?(\w+)`?\s*$/i);
+            if (tableMatch) {
+                const tbl = tableMatch[1];
+                // 异步获取字段，获取后再筛选
+                const cols = _acColumns[tbl] || [];
+                if (cols.length === 0) {
+                    loadTableColumns(tbl).then(() => {
+                        const newCols = (_acColumns[tbl] || []).filter(c => c && c.toUpperCase().startsWith(word));
+                        newCols.forEach(c => items.push({text: c, type: 'col'}));
+                        if (items.length === 0) { closeAutocomplete(); return; }
+                        _acItems = items.slice(0, 10);
+                        _acSelected = 0;
+                        renderAutocomplete();
+                    });
+                    return; // 等待异步结果
+                }
+                cols.filter(c => c && c.toUpperCase().startsWith(word)).forEach(c => items.push({text: c, type: 'col'}));
+            }
+            // 历史
+            _acHistory.filter(h => h && h.toUpperCase().startsWith(word)).slice(0, 5).forEach(h => items.push({text: h, type: 'his'}));
+            
+            if (items.length === 0) { closeAutocomplete(); return; }
+            
+            _acItems = items.slice(0, 10);
+            _acSelected = 0;
+            renderAutocomplete();
+        }
+        
+        function renderAutocomplete() {
+            const el = $('sqlAutocomplete');
+            if (!_acItems.length) { el.style.display = 'none'; return; }
+            el.innerHTML = _acItems.map((item, i) => 
+                `<div class="sql-autocomplete-item ${i === _acSelected ? 'selected' : ''}" data-index="${i}">
+                    <span class="type-tag ${item.type}">${item.type.toUpperCase()}</span>
+                    <span>${item.text}</span>
+                </div>`
+            ).join('');
+            el.style.display = 'block';
+            
+            // 点击选择
+            el.querySelectorAll('.sql-autocomplete-item').forEach((div, i) => {
+                div.onclick = () => selectAutocomplete(i);
+            });
+        }
+        
+        function selectAutocomplete(index) {
+            const item = _acItems[index];
+            if (!item) return;
+            const textarea = $('sqlEditor');
+            const text = textarea.value;
+            const pos = textarea.selectionStart;
+            const before = text.substring(0, pos);
+            const wordMatch = before.match(/[\w`*]+$/);
+            if (wordMatch) {
+                const start = pos - wordMatch[0].length;
+                textarea.value = text.substring(0, start) + item.text + text.substring(pos);
+                textarea.selectionStart = textarea.selectionEnd = start + item.text.length;
+            }
+            closeAutocomplete();
+            textarea.focus();
+        }
+        
+        function closeAutocomplete() {
+            $('sqlAutocomplete').style.display = 'none';
+            _acItems = [];
+            _acSelected = -1;
+        }
+        
+        function initAutocomplete() {
+            const textarea = $('sqlEditor');
+            textarea.addEventListener('input', e => {
+                showAutocomplete(e.target.value, e.target.selectionStart);
+            });
+            textarea.addEventListener('keydown', e => {
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    if (_acItems.length) {
+                        _acSelected = (_acSelected + 1) % _acItems.length;
+                        renderAutocomplete();
+                    }
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    if (_acItems.length) {
+                        _acSelected = (_acSelected - 1 + _acItems.length) % _acItems.length;
+                        renderAutocomplete();
+                    }
+                } else if (e.key === 'Enter' || e.key === 'Tab') {
+                    if (_acItems.length && $('sqlAutocomplete').style.display !== 'none') {
+                        e.preventDefault();
+                        selectAutocomplete(_acSelected);
+                    }
+                } else if (e.key === 'Escape') {
+                    closeAutocomplete();
+                }
+            });
+            textarea.addEventListener('blur', () => {
+                setTimeout(closeAutocomplete, 200);
+            });
+        }
         
         async function executeQuery() {
             const sql = $('sqlEditor').value.trim();
@@ -824,7 +1022,7 @@
         }
         
         document.addEventListener('keydown', e => { if ((e.ctrlKey||e.metaKey) && e.key==='Enter') executeQuery(); });
-        loadConnections().then(loadTree);
+        loadConnections().then(loadTree).then(() => { updateAutocompleteData(); initAutocomplete(); });
     </script>
 </body>
 </html>
