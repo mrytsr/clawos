@@ -2116,8 +2116,16 @@
                     _statusTimer: null,
                     _initStatusBar: function() {
                         var _this = this;
-                        var userEl = document.getElementById('statusUser');
-                        if (userEl) userEl.textContent = 'tjx';
+                        // 获取当前用户名
+                        fetch('/api/users/me', { headers: authHeaders() })
+                            .then(function(r) { return r.json(); })
+                            .then(function(d) {
+                                var userEl = document.getElementById('statusUser');
+                                if (userEl && d?.success && d?.data?.name) {
+                                    userEl.textContent = d.data.name;
+                                }
+                            })
+                            .catch(function() {});
                         
                         _this._updateStatusBar();
                         _this._statusTimer = setInterval(function() {

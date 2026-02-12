@@ -693,3 +693,22 @@ def api_system_status():
         pass
     
     return api_ok(status)
+
+
+# ========== 当前用户 ==========
+@system_bp.route('/api/users/me')
+def api_users_me():
+    """获取当前用户信息"""
+    try:
+        import pwd
+        uid = os.getuid()
+        entry = pwd.getpwuid(uid)
+        return api_ok({
+            'name': entry.pw_name,
+            'uid': entry.pw_uid,
+            'gid': entry.pw_gid,
+            'home': entry.pw_dir,
+            'shell': entry.pw_shell
+        })
+    except Exception as e:
+        return api_error(str(e), status=500)
