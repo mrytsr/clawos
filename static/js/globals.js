@@ -86,6 +86,37 @@ function dispatchDrawerEvent(modalId, eventName, detail) {
         return !!document.querySelector('.drawer.open, .right-drawer.open');
     }
 
+    (function() {
+        var syncScheduled = false;
+        var lastOpen = anyDrawerOpen();
+
+        function sync() {
+            syncScheduled = false;
+            var nowOpen = anyDrawerOpen();
+            if (nowOpen && !lastOpen) {
+                window.__drawerHistoryPush();
+            } else if (!nowOpen && lastOpen) {
+                window.__drawerHistoryClear();
+            }
+            lastOpen = nowOpen;
+        }
+
+        function scheduleSync() {
+            if (syncScheduled) return;
+            syncScheduled = true;
+            setTimeout(sync, 0);
+        }
+
+        if (typeof MutationObserver !== 'undefined') {
+            try {
+                var obs = new MutationObserver(scheduleSync);
+                obs.observe(document.documentElement, { subtree: true, attributes: true, attributeFilter: ['class'] });
+            } catch (e) {}
+        }
+
+        scheduleSync();
+    })();
+
     window.__drawerHistoryPush = function() {
         var st = window.__drawerHistoryState;
         if (!st || st.hasPlaceholder) return;
