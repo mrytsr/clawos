@@ -73,6 +73,66 @@ function dispatchDrawerEvent(modalId, eventName, detail) {
     if (ev) el.dispatchEvent(ev);
 }
 
+(function() {
+    if (window.__drawerHistoryInited) return;
+    window.__drawerHistoryInited = true;
+
+    window.__drawerHistoryState = {
+        hasPlaceholder: false,
+        ignoreNextPop: false
+    };
+
+    function anyDrawerOpen() {
+        return !!document.querySelector('.drawer.open, .right-drawer.open');
+    }
+
+    window.__drawerHistoryPush = function() {
+        var st = window.__drawerHistoryState;
+        if (!st || st.hasPlaceholder) return;
+        if (!window.history || typeof window.history.pushState !== 'function') return;
+        try {
+            window.history.pushState({ __drawer_placeholder: true }, '', document.location.href);
+            st.hasPlaceholder = true;
+            if (typeof window.showToast === 'function') window.showToast('已添加后退占位', 'info');
+        } catch (e) {}
+    };
+
+    window.__drawerHistoryClear = function() {
+        var st = window.__drawerHistoryState;
+        if (!st || !st.hasPlaceholder) return;
+        if (!window.history || typeof window.history.back !== 'function') return;
+        st.ignoreNextPop = true;
+        st.hasPlaceholder = false;
+        if (typeof window.showToast === 'function') window.showToast('已清除后退占位', 'info');
+        try {
+            window.history.back();
+        } catch (e) {}
+    };
+
+    window.addEventListener('popstate', function() {
+        var st = window.__drawerHistoryState;
+        if (!st) return;
+        if (st.ignoreNextPop) {
+            st.ignoreNextPop = false;
+            return;
+        }
+
+        if (!anyDrawerOpen()) return;
+
+        if (st.hasPlaceholder) st.hasPlaceholder = false;
+
+        if (typeof closeTopmostDrawer === 'function') {
+            closeTopmostDrawer();
+        } else if (typeof Drawer !== 'undefined' && Drawer && typeof Drawer.closeAll === 'function') {
+            Drawer.closeAll();
+        }
+
+        setTimeout(function() {
+            if (anyDrawerOpen()) window.__drawerHistoryPush();
+        }, 0);
+    });
+})();
+
 const Drawer = {
     open: function(modalId, opts) {
         var m = document.getElementById(modalId);
@@ -82,6 +142,7 @@ const Drawer = {
         if (opts && typeof opts.onOpen === 'function') opts.onOpen();
         dispatchDrawerEvent(modalId, 'drawer:open');
         if (typeof window.__updateScrollLock === 'function') window.__updateScrollLock();
+        if (typeof window.__drawerHistoryPush === 'function') window.__drawerHistoryPush();
     },
     close: function(modalId, opts) {
         var m = document.getElementById(modalId);
@@ -90,6 +151,11 @@ const Drawer = {
         if (b) b.classList.remove('open');
         if (opts && typeof opts.onClose === 'function') opts.onClose();
         dispatchDrawerEvent(modalId, 'drawer:close');
+        setTimeout(function() {
+            if (!document.querySelector('.drawer.open, .right-drawer.open')) {
+                if (typeof window.__drawerHistoryClear === 'function') window.__drawerHistoryClear();
+            }
+        }, 0);
         var afterClose = opts && typeof opts.afterClose === 'function' ? opts.afterClose : null;
         if (afterClose) {
             setTimeout(function() {
