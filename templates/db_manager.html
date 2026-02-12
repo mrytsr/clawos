@@ -301,6 +301,8 @@
                     <button onclick="executeQuery()">▶ 执行</button>
                     <button class="secondary" onclick="clearEditor()">清空</button>
                     <button class="secondary" onclick="openSqlHistory()">历史</button>
+                    <button class="secondary" onclick="sqlHistoryPrev()">上一条</button>
+                    <button class="secondary" onclick="sqlHistoryNext()">下一条</button>
                 </div>
             </div>
             
@@ -600,6 +602,72 @@
             closeSqlHistory();
             toggleSqlEditor();
             executeQuery();
+        }
+
+        let __sqlHistoryNavIndex = -1;
+
+        function __getSqlHistoryNavList() {
+            const rawHistory = localStorage.getItem('db_sql_history') || '[]';
+            let history = [];
+            try {
+                history = JSON.parse(rawHistory);
+            } catch (e) {
+                history = [];
+            }
+            return (Array.isArray(history) ? history : [])
+                .map(h => (h && h.sql) || '')
+                .filter(s => typeof s === 'string' && s.trim());
+        }
+
+        function __ensureSqlEditorOpen() {
+            const panel = $('sqlEditorPanel');
+            if (panel && !panel.classList.contains('open')) toggleSqlEditor();
+        }
+
+        function __setSqlEditorValue(sql) {
+            __ensureSqlEditorOpen();
+            const ta = $('sqlEditor');
+            if (!ta) return;
+            ta.value = sql || '';
+            try {
+                ta.selectionStart = ta.selectionEnd = ta.value.length;
+            } catch (e) {}
+            if (typeof closeAutocomplete === 'function') closeAutocomplete();
+            ta.focus();
+        }
+
+        function sqlHistoryPrev() {
+            const list = __getSqlHistoryNavList();
+            if (!list.length) {
+                showStatus('暂无历史记录', true);
+                return;
+            }
+
+            const current = String($('sqlEditor')?.value || '').trim();
+            const found = current ? list.indexOf(current) : -1;
+            if (found >= 0) __sqlHistoryNavIndex = found;
+
+            if (__sqlHistoryNavIndex < 0) __sqlHistoryNavIndex = 0;
+            else if (__sqlHistoryNavIndex < list.length - 1) __sqlHistoryNavIndex += 1;
+
+            __setSqlEditorValue(list[__sqlHistoryNavIndex] || '');
+        }
+
+        function sqlHistoryNext() {
+            const list = __getSqlHistoryNavList();
+            if (!list.length) {
+                showStatus('暂无历史记录', true);
+                return;
+            }
+
+            const current = String($('sqlEditor')?.value || '').trim();
+            const found = current ? list.indexOf(current) : -1;
+            if (found >= 0) __sqlHistoryNavIndex = found;
+
+            if (__sqlHistoryNavIndex < 0) __sqlHistoryNavIndex = 0;
+            else if (__sqlHistoryNavIndex > 0) __sqlHistoryNavIndex -= 1;
+
+            __setSqlEditorValue(list[__sqlHistoryNavIndex] || '');
         }
         
         function toggleSqlEditor() { $('sqlEditorPanel').classList.toggle('open'); $('sqlToggle').classList.toggle('open'); }
