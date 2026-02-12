@@ -14,9 +14,17 @@ from ctrl import api_error, api_ok
 db_bp = Blueprint('db', __name__)
 
 # 数据库连接配置存储路径
-DB_CONFIG_DIR = os.path.expanduser('~/.local/share/clawos')
+DB_CONFIG_DIR = os.path.expanduser('~/.local/clawos')
 os.makedirs(DB_CONFIG_DIR, exist_ok=True)
 DB_CONFIG_FILE = os.path.join(DB_CONFIG_DIR, 'db_connections.json')
+
+# 迁移旧数据
+OLD_CONFIG_DIR = os.path.expanduser('~/.local/share/clawos')
+if os.path.exists(OLD_CONFIG_DIR) and not os.path.exists(DB_CONFIG_FILE):
+    OLD_FILE = os.path.join(OLD_CONFIG_DIR, 'db_connections.json')
+    if os.path.exists(OLD_FILE):
+        import shutil
+        shutil.copy(OLD_FILE, DB_CONFIG_FILE)
 
 # 加密密钥
 ENCRYPTION_KEY = os.environ.get('DB_ENCRYPTION_KEY', 'clawos-db-secret-key-32chars!')[:32]

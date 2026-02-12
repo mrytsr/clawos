@@ -605,9 +605,7 @@ window.openMainMenuModal = function() {
             { action: 'clash', icon: '🌐', text: 'Clash代理' },
             { action: 'frp', icon: '🔗', text: 'FRP内网穿透' },
             { action: 'disk', icon: '💾', text: '磁盘管理' },
-            { action: 'cron', icon: '⏰', text: 'Cron管理' },
-            { action: 'cockpit', icon: '🖥️', text: 'Cockpit' },
-            { action: 'aiqiu', icon: '⚽', text: '爱球网' }
+            { action: 'cron', icon: '⏰', text: 'Cron管理' }
         ];
         c.innerHTML = items.map(function(item) {
             return '<div class="modal-item menu-item" data-action="' + item.action + '"><span style="margin-right:12px;">' + item.icon + '</span>' + item.text + '</div>';
@@ -663,8 +661,7 @@ window.actionToModalMap = {
     'gpu': { modal: 'gpuModal', load: 'loadGpuInfo', open: 'openGpuModal' },
     'ollama': { modal: 'ollamaModal', load: 'loadOllamaModels', open: 'openOllamaModal' },
     'openclaw': { modal: 'openclawModal', load: 'loadOpenclawConfig', open: 'openOpenclawModal' },
-    'cockpit': { url: 'http://' + window.location.hostname + ':9090', target: '_blank' },
-    'aiqiu': { url: 'https://w.utjx.cn/aiqiu/list', target: '_blank' }
+    'cockpit': { path: '/home/tjx/cockpit.url', type: 'url' }
 };
 
 // 主菜单处理函数（需要在 globals.js 中定义，因为菜单项 onclick 使用）
@@ -684,9 +681,22 @@ window.handleMainMenu = function(action) {
         if (config.func && window[config.func]) {
             window[config.func]();
         } else if (config.url) {
-            // 新窗口打开
+            // 新窗口打开 URL
             var target = config.target || '_blank';
             window.open(config.url, target);
+        } else if (config.type === 'url') {
+            // 读取 URL 文件并新窗口打开
+            fetch('/api/file/read?path=' + encodeURIComponent(config.path))
+                .then(function(r) { return r.json(); })
+                .then(function(d) {
+                    if (d?.success && d?.data?.content) {
+                        var match = d.data.content.match(/URL=(.+)/);
+                        if (match && match[1]) {
+                            window.open(match[1].trim(), '_blank');
+                        }
+                    }
+                })
+                .catch(function() {});
         } else if (config.open && window[config.open]) {
             window[config.open]();
         } else {

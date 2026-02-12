@@ -921,6 +921,21 @@ function attachFileItemDefaultHandlers() {
                 window.open('/yaml/editor?path=' + encodeURIComponent(path), '_blank', 'noopener');
                 return;
             }
+            // URL 文件：读取内容中的 URL 并新窗口打开
+            if (ext === '.url') {
+                fetch('/api/file/read?path=' + encodeURIComponent(path))
+                    .then(function(r) { return r.json(); })
+                    .then(function(d) {
+                        if (d?.success && d?.data?.content) {
+                            var match = d.data.content.match(/URL=(.+)/);
+                            if (match && match[1]) {
+                                window.open(match[1].trim(), '_blank');
+                            }
+                        }
+                    })
+                    .catch(function() {});
+                return;
+            }
             // 所有其他文件都用 /serve/ 让浏览器原生预览
             window.open('/serve/' + encodePathForUrl(path), '_blank', 'noopener');
         });

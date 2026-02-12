@@ -206,3 +206,29 @@ def yaml_editor():
 def thumbnail(path):
     return serve_file(path)
 
+
+@file_bp.route('/api/file/read')
+def api_file_read():
+    """读取文件内容（用于 URL 文件等）"""
+    path = request.args.get('path', '')
+    if not path:
+        return {'success': False, 'error': {'message': '缺少 path 参数'}}
+    
+    root_dir = _get_root_dir()
+    full_path = os.path.normpath(os.path.join(root_dir, path))
+    if not full_path.startswith(root_dir):
+        return {'success': False, 'error': {'message': '非法路径'}}
+    
+    if not os.path.exists(full_path):
+        return {'success': False, 'error': {'message': '文件不存在'}}
+    
+    if os.path.isdir(full_path):
+        return {'success': False, 'error': {'message': '不能读取目录'}}
+    
+    try:
+        with open(full_path, 'r', encoding='utf-8', errors='ignore') as f:
+            content = f.read()
+        return {'success': True, 'data': {'content': content}}
+    except Exception as e:
+        return {'success': False, 'error': {'message': str(e)}}
+
