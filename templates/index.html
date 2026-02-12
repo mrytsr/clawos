@@ -862,6 +862,42 @@
         <div id="taskListenerText" class="task-listener-text">正在监听任务状态…</div>
     </div>
     <div class="container" id="browseApp">
+        <!-- 文件浏览器顶部状态栏 -->
+        <div class="file-status-bar" id="fileStatusBar">
+            <div class="file-status-item">
+                <span class="value" id="statusUser">-</span>
+            </div>
+            <div class="file-status-item">
+                <span class="icon">🖥️</span>
+                <span class="value" id="statusCpu">-</span>
+            </div>
+            <div class="file-status-item">
+                <span class="icon">💾</span>
+                <span class="value" id="statusMemory">-</span>
+            </div>
+            <div class="file-status-item">
+                <span class="icon">💿</span>
+                <span class="value" id="statusDisk">-</span>
+            </div>
+            <div class="file-status-item">
+                <span class="icon">🎮</span>
+                <span class="value" id="statusGpu">-</span>
+            </div>
+            <div class="file-status-item">
+                <span class="icon">📦</span>
+                <span class="value" id="statusVram">-</span>
+            </div>
+            <div class="file-status-item">
+                <span class="icon">⚡</span>
+                <span class="value" id="statusPower">-</span>
+            </div>
+            <div class="file-status-item">
+                <span class="icon">🌐</span>
+                <span class="value" id="statusNetworkUp">-</span>
+                <span class="unit">↓</span>
+                <span class="value" id="statusNetworkDown">-</span>
+            </div>
+        </div>
         <div class="breadcrumb">
             <!-- 嵌入式上传按钮 -->
             <form method="post" action="#" enctype="multipart/form-data" id="uploadForm">
@@ -911,44 +947,6 @@
 
         <div v-if="message" class="message" :class="messageTypeClass">
             {{ message }}
-        </div>
-
-        <!-- 文件浏览器顶部状态栏 -->
-        <div class="file-status-bar" id="fileStatusBar">
-            <div class="file-status-item">
-                <span class="icon">👤</span>
-                <span class="value" id="statusUser">-</span>
-            </div>
-            <div class="file-status-item">
-                <span class="icon">🖥️</span>
-                <span class="value" id="statusCpu">-</span>
-            </div>
-            <div class="file-status-item">
-                <span class="icon">💾</span>
-                <span class="value" id="statusMemory">-</span>
-            </div>
-            <div class="file-status-item">
-                <span class="icon">💿</span>
-                <span class="value" id="statusDisk">-</span>
-            </div>
-            <div class="file-status-item">
-                <span class="icon">🎮</span>
-                <span class="value" id="statusGpu">-</span>
-            </div>
-            <div class="file-status-item">
-                <span class="icon">📦</span>
-                <span class="value" id="statusVram">-</span>
-            </div>
-            <div class="file-status-item">
-                <span class="icon">⚡</span>
-                <span class="value" id="statusPower">-</span>
-            </div>
-            <div class="file-status-item">
-                <span class="icon">🌐</span>
-                <span class="value" id="statusNetworkUp">-</span>
-                <span class="unit">↓</span>
-                <span class="value" id="statusNetworkDown">-</span>
-            </div>
         </div>
 
         <div class="files-section">

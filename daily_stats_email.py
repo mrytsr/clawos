@@ -30,24 +30,24 @@ def get_git_stats():
     
     result = subprocess.run(
         ['git', 'log', f'--since={date} 00:00:00', f'--until={date} 23:59:59', 
-         '--pretty=format:%h %s', '--numstat'],
+         '--pretty=format:%h', '--numstat', '--'],
         capture_output=True, text=True
     )
     
-    stats = {}
     total_added = 0
     total_deleted = 0
     
     for line in result.stdout.split('\n'):
+        # numstat 输出格式: "added\tdeleted\tfilename"
+        # 如果是 "-\t-\tfilename" 表示是二进制文件或重命名
         parts = line.split('\t')
-        if len(parts) == 2 and parts[0].isdigit() and parts[1].isdigit():
-            added = int(parts[0])
-            deleted = int(parts[1])
-            total_added += added
-            total_deleted += deleted
-        elif len(parts) == 2 and parts[0].startswith('http'):
-            # commit line, ignore
-            pass
+        if len(parts) >= 2:
+            # 检查前两个字段是否是数字
+            added_str = parts[0].strip()
+            deleted_str = parts[1].strip()
+            if added_str.isdigit() and deleted_str.isdigit():
+                total_added += int(added_str)
+                total_deleted += int(deleted_str)
     
     return total_added, total_deleted
 
