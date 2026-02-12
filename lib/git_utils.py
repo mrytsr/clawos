@@ -760,12 +760,63 @@ def git_checkout_all(repo_path):
         return None
 
 
-def git_push_origin_master(repo_path):
+def list_git_remotes(repo_path):
     try:
         if not _is_git_repo(repo_path):
             return None
-        result = _run_git(repo_path, ['push', 'origin', 'master'], timeout=120)
-        return result
+        result = _run_git(repo_path, ['remote'], timeout=5)
+        if result.returncode != 0:
+            return []
+        remotes = []
+        for line in (result.stdout or '').splitlines():
+            name = (line or '').strip()
+            if name:
+                remotes.append(name)
+        return remotes
     except Exception as e:
-        print(f"Error pushing origin master in {repo_path}: {e}")
+        print(f"Error listing remotes in {repo_path}: {e}")
+        return None
+
+
+def get_current_branch(repo_path):
+    try:
+        if not _is_git_repo(repo_path):
+            return None
+        result = _run_git(repo_path, ['rev-parse', '--abbrev-ref', 'HEAD'], timeout=5)
+        if result.returncode != 0:
+            return None
+        name = (result.stdout or '').strip()
+        return name or None
+    except Exception as e:
+        print(f"Error getting current branch in {repo_path}: {e}")
+        return None
+
+
+def git_push(repo_path, remote=None, branch=None):
+    try:
+        if not _is_git_repo(repo_path):
+            return None
+
+        remote = str(remote or '').strip()
+        if not remote:
+            remotes = list_git_remotes(repo_path) or []
+            if len(remotes) == 1:
+                remote = remotes[0]
+            elif 'origin' in remotes:
+                remote = 'origin'
+            elif remotes:
+                remote = remotes[0]
+            else:
+                remote = 'origin'
+
+        branch = str(branch or '').strip()
+        if not branch:
+            branch = get_current_branch(repo_path) or ''
+
+        if not branch or branch.lower() == 'unknown' or branch == 'HEAD':
+            return _run_git(repo_path, ['push', remote, 'HEAD'], timeout=120)
+
+        return _run_git(repo_path, ['push', remote, branch], timeout=120)
+    except Exception as e:
+        print(f"Error pushing in {repo_path}: {e}")
         return None

@@ -189,51 +189,7 @@ function __gitBindPushButton(repoPath) {
     if (!btn) return;
     const hint = document.getElementById('gitPushHint');
     btn.addEventListener('click', function() {
-        if (btn.disabled) return;
-        btn.disabled = true;
-        const prevText = btn.textContent;
-        let didReload = false;
-        btn.textContent = '推送中…';
-        if (hint) hint.textContent = '处理中…';
-        const headers = authHeaders ? (authHeaders() || {}) : {};
-        headers['Content-Type'] = 'application/json';
-        fetch('/api/git/push-changes', {
-            method: 'POST',
-            headers: headers,
-            body: JSON.stringify({ path: String(repoPath || '') })
-        })
-            .then(function(r) { return r.json(); })
-            .then(function(resp) {
-                const payload = apiData(resp);
-                if (!payload) {
-                    const msg = resp?.error?.message || '推送失败';
-                    throw new Error(msg);
-                }
-                if (payload.status === 'clean') {
-                    if (typeof showToast === 'function') showToast('当前没有可提交的变更', 'warning');
-                    if (hint) hint.textContent = '没有可提交的变更';
-                    return;
-                }
-                if (payload.pushed) {
-                    if (typeof showToast === 'function') showToast('推送成功', 'success');
-                    didReload = true;
-                    window.loadGitList(repoPath);
-                    return;
-                }
-                const msg = payload.message || '推送失败';
-                throw new Error(msg);
-            })
-            .catch(function(e) {
-                const msg = e?.message || '推送失败';
-                if (typeof showToast === 'function') showToast(msg, 'error');
-                if (hint) hint.textContent = msg;
-            })
-            .finally(function() {
-                if (!didReload) {
-                    btn.disabled = false;
-                    btn.textContent = prevText;
-                }
-            });
+        __gitPushChangesWithRemoteFlow(repoPath, { btn: btn, hint: hint });
     });
 }
 
@@ -347,20 +303,44 @@ function __gitDoPull(repoPath) {
         });
 }
 
-// 直接执行 Push
-function __gitDoPush(repoPath) {
+function __gitFetchRemotes(repoPath) {
+    const headers = authHeaders ? (authHeaders() || {}) : {};
+    return fetch('/api/git/remotes?path=' + encodeURIComponent(String(repoPath || '')), { headers: headers })
+        .then(function(r) { return r.json(); })
+        .then(function(resp) {
+            const payload = apiData(resp);
+            if (!payload) {
+                const msg = resp?.error?.message || '获取 remote 失败';
+                throw new Error(msg);
+            }
+            const remotes = payload.remotes;
+            if (!Array.isArray(remotes)) return [];
+            return remotes.filter(function(r) { return typeof r === 'string' && r.trim(); });
+        });
+}
+
+function __gitRunPushChanges(repoPath, remote, ui) {
     const headers = authHeaders ? (authHeaders() || {}) : {};
     headers['Content-Type'] = 'application/json';
+    const btn = ui && ui.btn ? ui.btn : null;
+    const hint = ui && ui.hint ? ui.hint : null;
+    const prevText = ui && typeof ui.prevText === 'string' ? ui.prevText : (btn ? btn.textContent : '');
+    let didReload = false;
 
-    // 显示 loading
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = '推送中…';
+    }
+    if (hint) hint.textContent = '处理中…';
+
     if (typeof window.showTaskListener === 'function') {
         window.showTaskListener('正在推送…');
     }
 
-    fetch('/api/git/push-changes', {
+    return fetch('/api/git/push-changes', {
         method: 'POST',
         headers: headers,
-        body: JSON.stringify({ path: String(repoPath || '') })
+        body: JSON.stringify({ path: String(repoPath || ''), remote: String(remote || '') })
     })
         .then(function(r) { return r.json(); })
         .then(function(resp) {
@@ -375,10 +355,12 @@ function __gitDoPush(repoPath) {
             }
             if (payload.status === 'clean') {
                 if (typeof showToast === 'function') showToast('当前没有可提交的变更', 'warning');
+                if (hint) hint.textContent = '没有可提交的变更';
                 return;
             }
             if (payload.pushed) {
                 if (typeof showToast === 'function') showToast('推送成功', 'success');
+                didReload = true;
                 window.loadGitList(repoPath);
                 return;
             }
@@ -391,7 +373,114 @@ function __gitDoPush(repoPath) {
             }
             const msg = e?.message || '推送失败';
             if (typeof showToast === 'function') showToast(msg, 'error');
+            if (hint) hint.textContent = msg;
+            throw e;
+        })
+        .finally(function() {
+            if (btn && !didReload) {
+                btn.disabled = false;
+                btn.textContent = prevText || '推送变更';
+            }
         });
+}
+
+function __gitPromptPushRemote(repoPath, remotes, onConfirm) {
+    const list = Array.isArray(remotes) ? remotes : [];
+    if (!list.length) return false;
+    const defaultRemote = list.indexOf('origin') >= 0 ? 'origin' : list[0];
+    if (typeof window.openDialogDrawer !== 'function') return false;
+
+    window.openDialogDrawer({
+        title: '选择推送 remote',
+        message: '请选择要推送到哪个 remote',
+        confirmText: '推送',
+        select: {
+            options: list.map(function(r) { return { value: r, label: r }; }),
+            defaultValue: defaultRemote
+        },
+        onConfirm: function(result) {
+            const selected = result && typeof result.select === 'string' ? result.select : defaultRemote;
+            if (typeof onConfirm === 'function') onConfirm(selected);
+        }
+    });
+    return true;
+}
+
+function __gitPushChangesWithRemoteFlow(repoPath, ui) {
+    const btn = ui && ui.btn ? ui.btn : null;
+    const hint = ui && ui.hint ? ui.hint : null;
+    const prevText = btn ? btn.textContent : '';
+    if (ui && typeof ui === 'object') ui.prevText = prevText;
+
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = '检查 remote…';
+    }
+    if (hint) hint.textContent = '处理中…';
+
+    __gitFetchRemotes(repoPath)
+        .then(function(remotes) {
+            if (!remotes.length) {
+                const msg = '未找到 remote';
+                if (typeof showToast === 'function') showToast(msg, 'error');
+                if (hint) hint.textContent = msg;
+                return;
+            }
+            if (remotes.length === 1) {
+                return __gitRunPushChanges(repoPath, remotes[0], ui);
+            }
+
+            if (btn) {
+                btn.disabled = false;
+                btn.textContent = prevText;
+            }
+            if (hint) hint.textContent = '';
+
+            const opened = __gitPromptPushRemote(repoPath, remotes, function(selected) {
+                __gitRunPushChanges(repoPath, selected, ui);
+            });
+            if (!opened) {
+                const msg = '无法打开选择窗口';
+                if (typeof showToast === 'function') showToast(msg, 'error');
+                if (hint) hint.textContent = msg;
+            }
+        })
+        .catch(function(e) {
+            const msg = e?.message || '推送失败';
+            if (typeof showToast === 'function') showToast(msg, 'error');
+            if (hint) hint.textContent = msg;
+        })
+        .finally(function() {
+            if (btn && btn.disabled && btn.textContent === '检查 remote…') {
+                btn.disabled = false;
+                btn.textContent = prevText || '推送变更';
+            }
+        });
+}
+
+// 直接执行 Push
+function __gitDoPush(repoPath) {
+    __gitFetchRemotes(repoPath)
+        .then(function(remotes) {
+            if (!remotes.length) {
+                const msg = '未找到 remote';
+                if (typeof showToast === 'function') showToast(msg, 'error');
+                throw new Error(msg);
+            }
+            if (remotes.length === 1) {
+                return __gitRunPushChanges(repoPath, remotes[0], null);
+            }
+            const opened = __gitPromptPushRemote(repoPath, remotes, function(selected) {
+                __gitRunPushChanges(repoPath, selected, null);
+            });
+            if (!opened) {
+                const msg = '无法打开选择窗口';
+                if (typeof showToast === 'function') showToast(msg, 'error');
+                throw new Error(msg);
+            }
+            return;
+        })
+        .catch(function() {});
 }
 
 function __gitRenderDiffFileTable(container, rows, repoPath, meta) {

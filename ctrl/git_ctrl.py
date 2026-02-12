@@ -63,6 +63,29 @@ def api_git_repo_status():
     return api_ok({'is_repo': False})
 
 
+@git_bp.route('/api/git/remotes')
+def api_git_remotes():
+    path = request.args.get('path', '')
+
+    if path:
+        root_dir = os.path.normpath(config.ROOT_DIR)
+        candidate = os.path.normpath(path)
+        if candidate.startswith(root_dir):
+            full_path = candidate
+        else:
+            full_path = os.path.normpath(os.path.join(config.ROOT_DIR, path))
+    else:
+        full_path = config.ROOT_DIR
+
+    if not full_path.startswith(os.path.normpath(config.ROOT_DIR)):
+        return api_error('Invalid path', status=403)
+
+    remotes = git_utils.list_git_remotes(full_path)
+    if remotes is None:
+        return api_error('Not a git repository', status=400)
+    return api_ok({'remotes': remotes or []})
+
+
 @git_bp.route('/api/git/log')
 def api_git_log():
     path = request.args.get('path', '')
@@ -146,6 +169,7 @@ def api_git_commit_list():
 def api_git_push_changes():
     payload = request.get_json(silent=True) or {}
     path = payload.get('path') or request.args.get('path', '')
+    remote = payload.get('remote') or request.args.get('remote', '')
 
     if path:
         root_dir = os.path.normpath(config.ROOT_DIR)
@@ -215,7 +239,7 @@ def api_git_push_changes():
     except Exception:
         head_hash = ''
 
-    push_result = git_utils.git_push_origin_master(full_path)
+    push_result = git_utils.git_push(full_path, remote=remote)
     if not push_result:
         return api_error('git push failed', status=500)
     if push_result.returncode != 0:
