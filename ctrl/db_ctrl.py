@@ -450,11 +450,11 @@ def api_db_execute():
     if not query:
         return api_error('Missing query')
     
-    # 允许 SELECT, SHOW, DESCRIBE, EXPLAIN 查询
+    # 允许 SELECT, SHOW, DESCRIBE, EXPLAIN, INSERT, UPDATE, DELETE 查询
     query_lower = query.strip().lower()
-    allowed_prefixes = ('select', 'show', 'describe', 'explain')
+    allowed_prefixes = ('select', 'show', 'describe', 'explain', 'insert', 'update', 'delete')
     if not any(query_lower.startswith(p) for p in allowed_prefixes):
-        return api_error('Only SELECT/SHOW/DESCRIBE queries are allowed')
+        return api_error('Only SELECT/SHOW/DESCRIBE/INSERT/UPDATE/DELETE queries are allowed')
     
     conns = _load_connections()
     if conn_id not in conns:
