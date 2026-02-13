@@ -148,6 +148,42 @@
             color: #721c24;
             border: 1px solid #f5c6cb;
         }
+        .ai-panel {
+            position: fixed; inset: 0; z-index: 1000;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .ai-panel-backdrop {
+            position: absolute; inset: 0; background: rgba(0,0,0,0.6);
+        }
+        .ai-panel-content {
+            position: relative; width: 80%; max-width: 600px;
+            background: #1a1a2e; border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            overflow: hidden;
+        }
+        .ai-panel-header {
+            padding: 14px 16px; background: linear-gradient(135deg, #667eea, #764ba2);
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .ai-panel-header span { color: #fff; font-weight: 500; }
+        .ai-panel-close {
+            width: 28px; height: 28px; border-radius: 6px;
+            background: rgba(255,255,255,0.2); border: none;
+            color: #fff; cursor: pointer; font-size: 18px;
+        }
+        .ai-panel-close:hover { background: rgba(255,255,255,0.3); }
+        .ai-panel-body { padding: 16px; }
+        .ai-prompt-input {
+            width: 100%; height: 120px; background: #16213e; border: 1px solid #0f3460;
+            border-radius: 8px; padding: 12px; color: #fff; font-size: 14px;
+            resize: none; outline: none;
+        }
+        .ai-prompt-input:focus { border-color: #667eea; }
+        .ai-panel-footer {
+            padding: 12px 16px; background: #16213e;
+            display: flex; align-items: center; justify-content: flex-end; gap: 12px;
+        }
+        .ai-loading-text { color: #888; font-size: 13px; }
     </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/default.min.css">
     <link rel="stylesheet" href="/static/css/style.css">
@@ -163,11 +199,32 @@
             <button id="editorRefBtn" class="editor-btn" type="button" title="复制引用" onmousedown="event.preventDefault()">引用</button>
         </div>
         <div class="header-buttons">
+            <button class="editor-btn" onclick="openAiPanel()" title="AI 生成代码">✨</button>
             <button class="editor-btn" onclick="undo()">↩</button>
             <button class="editor-btn" onclick="redo()">↪</button>
             <button class="editor-btn" onclick="saveFile()">💾</button>
         </div>
     </div>
+
+    <!-- AI 弹窗 -->
+    <div id="aiPanel" class="ai-panel" style="display:none;">
+        <div class="ai-panel-backdrop" onclick="closeAiPanel()"></div>
+        <div class="ai-panel-content">
+            <div class="ai-panel-header">
+                <span>✨ AI 代码助手</span>
+                <button class="ai-panel-close" onclick="closeAiPanel()">×</button>
+            </div>
+            <div class="ai-panel-body">
+                <textarea id="aiPromptInput" class="ai-prompt-input"
+                          placeholder="输入自然语言，让 AI 生成或修改代码..."></textarea>
+            </div>
+            <div class="ai-panel-footer">
+                <span class="ai-loading-text" id="aiLoadingText" style="display:none;">AI 生成中...</span>
+                <button class="editor-btn" onclick="generateCodeFromAi()" id="aiGenerateBtn">生成代码</button>
+            </div>
+        </div>
+    </div>
+
     <div class="editor-container">
         <textarea id="editor">{{ content }}</textarea>
         <div id="saveStatus" class="save-status"></div>
@@ -447,6 +504,72 @@
         }
 
         __initReferenceCopy();
+    </script>
+
+    <script>
+        // AI 代码助手
+        function openAiPanel() {
+            document.getElementById('aiPanel').style.display = 'flex';
+            document.getElementById('aiPromptInput').focus();
+        }
+
+        function closeAiPanel() {
+            document.getElementById('aiPanel').style.display = 'none';
+        }
+
+        async function generateCodeFromAi() {
+            const prompt = document.getElementById('aiPromptInput').value.trim();
+            const currentCode = editor.getValue();
+            const filename = '{{ filename }}';
+
+            if (!prompt) {
+                alert('请输入 prompt');
+                return;
+            }
+
+            const btn = document.getElementById('aiGenerateBtn');
+            const loadingText = document.getElementById('aiLoadingText');
+            btn.disabled = true;
+            btn.textContent = '生成中...';
+            loadingText.style.display = 'inline';
+
+            try {
+                const response = await fetch('/code_editor/ai-generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        prompt: prompt,
+                        code: currentCode,
+                        filename: filename
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success && data.code) {
+                    editor.setValue(data.code);
+                    closeAiPanel();
+                    __dirty = true;
+                    __updateRefBtnState();
+                } else {
+                    alert('生成失败: ' + (data.message || data.error || '未知错误'));
+                }
+            } catch (e) {
+                alert('生成失败: ' + e.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '生成代码';
+                loadingText.style.display = 'none';
+            }
+        }
+
+        // Ctrl+Enter 提交 AI Prompt
+        document.getElementById('aiPromptInput').addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.key === 'Enter') {
+                e.preventDefault();
+                generateCodeFromAi();
+            }
+        });
     </script>
 </body>
 </html>

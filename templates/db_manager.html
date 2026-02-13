@@ -557,9 +557,11 @@
             const db = typeof st.db === 'string' ? st.db : '';
             const table = typeof st.table === 'string' ? st.table : '';
             const sql = typeof st.sql === 'string' ? st.sql : '';
+            const aiPrompt = typeof st.ai_prompt === 'string' ? st.ai_prompt : '';
             const tab = typeof st.tab === 'string' ? st.tab : '';
 
             if (sql && $('sqlEditor')) $('sqlEditor').value = sql;
+            if (aiPrompt && $('aiPromptInput')) $('aiPromptInput').value = aiPrompt;
             if (typeof st.sql_open === 'boolean') __setSqlEditorOpen(st.sql_open);
             if (tab === 'results' || tab === 'schema') switchResultsTab(tab);
 
@@ -1342,6 +1344,11 @@
                 e.preventDefault();
                 generateSqlFromPrompt();
             }
+        });
+        
+        // AI Prompt 输入时保存
+        $('aiPromptInput').addEventListener('input', function(e) {
+            saveDbUiState({ ai_prompt: e.target.value || '' }, false);
         });
         
         function getPageData() {

@@ -550,6 +550,7 @@ def api_db_ui_state():
             'sql': str,
             'sql_open': bool,
             'tab': str,
+            'ai_prompt': str,
         }
         for k, t in allow.items():
             if k not in data:

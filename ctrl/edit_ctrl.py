@@ -82,3 +82,60 @@ def save_file(path):
         return jsonify({'success': True, 'message': '保存成功', 'path': rel})
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@edit_bp.route('/code_editor/ai-generate', methods=['POST'])
+def ai_generate_code():
+    """AI 生成/修改代码."""
+    import re
+    import json
+
+    data = request.json or {}
+    prompt = data.get('prompt', '').strip()
+    current_code = data.get('code', '').strip()
+    filename = data.get('filename', '').strip()
+
+    if not prompt:
+        return jsonify({'success': False, 'message': '请输入 prompt'})
+
+    # 获取文件扩展名用于确定语言
+    ext = ''
+    if filename:
+        _, ext = os.path.splitext(filename)
+        ext = ext.lower().lstrip('.')
+
+    system_prompt = f"""你是一个专业程序员。根据用户需求生成或修改代码。
+
+当前文件: {filename}
+文件类型: {ext or 'text'}
+
+当前代码:
+```
+{current_code}
+```
+
+要求:
+1. 只返回代码本身，不要解释
+2. 代码要语法正确，可直接使用
+3. 如果是修改，保持代码风格一致
+"""
+
+    try:
+        from lib.ai_client import AiClient
+        client = AiClient('deepseek:deepseek-chat')
+        response = client.chat([
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": prompt}
+        ])
+
+        generated_code = response.get('choices', [{}])[0].get('message', {}).get('content', '').strip()
+
+        # 清理 markdown 代码块
+        generated_code = re.sub(r'^```[a-zA-Z]*\n', '', generated_code)
+        generated_code = re.sub(r'\n```$', '', generated_code)
+        generated_code = generated_code.strip()
+
+        return jsonify({'success': True, 'code': generated_code})
+
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'AI 生成失败: {str(e)}'})
