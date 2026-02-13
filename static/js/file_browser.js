@@ -168,6 +168,7 @@ function endDrag() {
 
 // 文件操作
 function handleMenuAction(action) {
+    closeMenuModal(); // 点击菜单项后关闭菜单
     setTimeout(() => {
         switch(action) {
             case 'download': downloadFile(window.currentItemPath, { name: window.currentItemName }); break;
