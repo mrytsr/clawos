@@ -2,18 +2,18 @@
  * TerminalLib.js - 可嵌入的终端组件库
  * 
  * 使用方式:
- *   1. 在页面引入此脚本和样式
- *   2. 在页面合适位置添加: <div id="terminal-lib-container"></div>
- *   3. 调用 TerminalLib.open('/path/to/dir') 打开终端
+ *   1. 在页面引入此脚本
+ *   2. 调用 TerminalLib.open('/path/to/dir') 打开终端
  * 
  * API:
  *   TerminalLib.open(path)    - 打开终端（可选指定目录）
- *   TerminalLib.close()      - 关闭终端
- *   TerminalLib.send(cmd)    - 发送命令
- *   TerminalLib.isOpen()     - 检查是否打开
+ *   TerminalLib.close()       - 关闭终端
+ *   TerminalLib.send(cmd)     - 发送命令
+ *   TerminalLib.focus()       - 聚焦终端
+ *   TerminalLib.isOpen()      - 检查是否打开
  */
 
-// 动态加载 xterm 样式（如果页面没有）
+// 动态加载 xterm 样式
 (function loadXtermStyle() {
     if (document.querySelector('link[href*="xterm"]')) return;
     var link = document.createElement('link');
@@ -23,27 +23,18 @@
 })();
 
 var TerminalLib = (function() {
-    var _instance = null;
-    var _containerId = 'terminal-lib-container';
     var _isInit = false;
-
-    function init() {
-        if (_isInit) return;
-        _isInit = true;
-
-        // 创建容器
-        var container = document.createElement('div');
-        container.id = _containerId;
-        container.innerHTML = getComponentHTML();
-        document.body.appendChild(container);
-
-        // 绑定事件
-        bindEvents();
-    }
+    var term = null;
+    var fitAddon = null;
+    var socket = null;
+    var isOpen = false;
+    var cwd = '/root/.openclaw/workspace';
+    var ctrlMode = false;
+    var altMode = false;
 
     function getComponentHTML() {
         return '\
-<div id="terminal-component" class="term-lib-component" style="display:none;">\
+<div id="term-lib-component" class="term-lib-component" style="display:none;">\
     <div class="term-lib-backdrop" onclick="TerminalLib.close()"></div>\
     <div class="term-lib-drawer">\
         <div class="term-lib-header">\
@@ -54,6 +45,26 @@ var TerminalLib = (function() {
         <div class="term-lib-toolbar">\
             <button class="term-lib-btn" onclick="TerminalLib.send(\'clear\\r\')">清屏</button>\
             <button class="term-lib-btn" onclick="TerminalLib.focus()">聚焦</button>\
+            <button class="term-lib-btn" onclick="TerminalLib.toggleKeyboard()">⌨️ 键盘</button>\
+        </div>\
+        <div class="term-lib-keyboard" id="termLibKeyboard">\
+            <div class="term-key-row">\
+                <button class="term-key" onmousedown="TerminalLib.handleKey(event, \'esc\')">ESC</button>\
+                <button class="term-key" onmousedown="TerminalLib.handleKey(event, \'tab\')">TAB</button>\
+                <button class="term-key" onmousedown="TerminalLib.handleKey(event, \'home\')">HOME</button>\
+                <button class="term-key" onmousedown="TerminalLib.handleKey(event, \'end\')">END</button>\
+                <button class="term-key" onmousedown="TerminalLib.handleKey(event, \'pgup\')">PGUP</button>\
+                <button class="term-key" onmousedown="TerminalLib.handleKey(event, \'pgdn\')">PGDN</button>\
+            </div>\
+            <div class="term-key-row">\
+                <button class="term-key" data-mod="ctrl" onmousedown="TerminalLib.handleKey(event, \'ctrl\')">CTRL</button>\
+                <button class="term-key" data-mod="alt" onmousedown="TerminalLib.handleKey(event, \'alt\')">ALT</button>\
+                <button class="term-key" onmousedown="TerminalLib.handleKey(event, \'up\')">↑</button>\
+                <button class="term-key" onmousedown="TerminalLib.handleKey(event, \'down\')">↓</button>\
+                <button class="term-key" onmousedown="TerminalLib.handleKey(event, \'left\')">←</button>\
+                <button class="term-key" onmousedown="TerminalLib.handleKey(event, \'right\')">→</button>\
+                <button class="term-key" onmousedown="TerminalLib.handleKey(event, \'enter\')">↵</button>\
+            </div>\
         </div>\
     </div>\
 </div>\
@@ -62,9 +73,7 @@ var TerminalLib = (function() {
     position: fixed; inset: 0; z-index: 2000;\
     display: flex; align-items: center; justify-content: center;\
 }\
-.term-lib-backdrop {\
-    position: absolute; inset: 0; background: rgba(0,0,0,0.6);\
-}\
+.term-lib-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.6); }\
 .term-lib-drawer {\
     position: relative; width: 90%; max-width: 900px;\
     height: 60vh; max-height: 500px;\
@@ -79,38 +88,48 @@ var TerminalLib = (function() {
 .term-lib-path { color: #888; font-size: 13px; font-family: monospace; }\
 .term-lib-close {\
     width: 28px; height: 28px; border-radius: 6px;\
-    background: #e94560; border: none; color: #fff;\
-    cursor: pointer; font-size: 18px;\
+    background: #e94560; border: none; color: #fff; cursor: pointer; font-size: 18px;\
 }\
-.term-lib-close:hover { background: #ff6b6b; }\
 .term-lib-container { flex: 1; padding: 8px; overflow: hidden; }\
 .term-lib-toolbar { padding: 8px 12px; background: #1a1a2e; display: flex; gap: 8px; }\
 .term-lib-btn {\
     padding: 6px 12px; border-radius: 6px;\
-    background: #0f3460; border: none; color: #ccc;\
-    cursor: pointer; font-size: 12px;\
+    background: #0f3460; border: none; color: #ccc; cursor: pointer; font-size: 12px;\
 }\
 .term-lib-btn:hover { background: #16213e; }\
+.term-lib-keyboard {\
+    padding: 8px 12px; background: #1a1a2e; border-top: 1px solid #333;\
+    display: none; flex-direction: column; gap: 6px;\
+}\
+.term-lib-keyboard.visible { display: flex; }\
+.term-key-row { display: flex; gap: 6px; justify-content: center; }\
+.term-key {\
+    padding: 8px 12px; min-width: 40px; border-radius: 6px;\
+    background: #0f3460; border: none; color: #ccc; cursor: pointer; font-size: 12px;\
+}\
+.term-key:hover { background: #16213e; }\
+.term-key.active { background: #0969da !important; color: #fff; }\
 </style>';
     }
 
-    function bindEvents() {
+    function init() {
+        if (_isInit) return;
+        _isInit = true;
+
+        var div = document.createElement('div');
+        div.innerHTML = getComponentHTML();
+        document.body.appendChild(div);
+
         // ESC 关闭
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') {
-                var el = document.getElementById('terminal-component');
+                var el = document.getElementById('term-lib-component');
                 if (el && el.style.display !== 'none') {
                     close();
                 }
             }
         });
     }
-
-    var term = null;
-    var fitAddon = null;
-    var socket = null;
-    var isOpen = false;
-    var cwd = '/root/.openclaw/workspace';
 
     function createSocket() {
         var s = io('/term', {
@@ -126,7 +145,6 @@ var TerminalLib = (function() {
             s.emit('create_terminal', { cwd: cwd });
             if (term) term.write('\r\n\x1b[32m*** 已连接 ***\x1b[0m\r\n');
             if (fitAddon) fitAddon.fit();
-            if (s && term) s.emit('resize', { cols: term.cols, rows: term.rows });
         });
 
         s.on('output', function(data) {
@@ -141,23 +159,11 @@ var TerminalLib = (function() {
             }
         });
 
-        s.on('connect_error', function() {
-            if (isOpen && term) {
-                term.write('\r\n\x1b[31m*** 连接失败 ***\x1b[0m\r\n');
-            }
-        });
-
         return s;
     }
 
     function initTerm() {
         if (term) return;
-
-        // 确保 xterm 已加载
-        if (typeof Terminal === 'undefined') {
-            console.error('xterm.js 未加载');
-            return;
-        }
 
         term = new Terminal({
             cursorBlink: true,
@@ -165,12 +171,6 @@ var TerminalLib = (function() {
             fontFamily: 'Menlo, Monaco, "Courier New", monospace',
             theme: { background: '#000000' }
         });
-
-        // 确保 FitAddon 已加载
-        if (typeof FitAddon === 'undefined') {
-            console.error('xterm-addon-fit 未加载');
-            return;
-        }
 
         fitAddon = new FitAddon.FitAddon();
         term.loadAddon(fitAddon);
@@ -181,7 +181,7 @@ var TerminalLib = (function() {
 
         term.onData(function(data) {
             if (socket && socket.connected) {
-                socket.emit('input', { input: data });
+                socket.emit('input', { input: applyModifiers(data) });
             }
         });
 
@@ -192,22 +192,71 @@ var TerminalLib = (function() {
         });
     }
 
+    function keySeq(key) {
+        var map = {
+            'esc': '\x1b', 'enter': '\r', 'tab': '\t',
+            'up': '\x1b[A', 'down': '\x1b[B', 'left': '\x1b[D', 'right': '\x1b[C',
+            'home': '\x1b[H', 'end': '\x1b[F', 'pgup': '\x1b[5~', 'pgdn': '\x1b[6~',
+            'backspace': '\x7f', 'slash': '/', 'dash': '-'
+        };
+        return map[key] || key;
+    }
+
+    function applyModifiers(data) {
+        if (!data) return '';
+        var first = data[0];
+
+        if (ctrlMode) {
+            var c = String(first).toLowerCase();
+            var code = c.charCodeAt(0);
+            if (code >= 97 && code <= 122) {
+                data = String.fromCharCode(code - 96);
+            }
+            ctrlMode = false;
+            altMode = false;
+            syncButtons();
+            return data;
+        }
+
+        if (altMode) {
+            altMode = false;
+            syncButtons();
+            return '\x1b' + data;
+        }
+
+        return data;
+    }
+
+    function syncButtons() {
+        var ctrlBtn = document.querySelector('.term-key[data-mod="ctrl"]');
+        var altBtn = document.querySelector('.term-key[data-mod="alt"]');
+        if (ctrlBtn) ctrlBtn.classList.toggle('active', ctrlMode);
+        if (altBtn) altBtn.classList.toggle('active', altMode);
+    }
+
     function open(path) {
         if (isOpen) return;
         init();
 
         cwd = path || cwd;
-        document.getElementById('terminal-component').style.display = 'flex';
+        document.getElementById('term-lib-component').style.display = 'flex';
         isOpen = true;
 
-        // 确保 xterm 库已加载
+        // 加载 xterm 库
         if (typeof Terminal === 'undefined' || typeof FitAddon === 'undefined') {
-            loadXtermLib(function() {
-                initTerm();
-                doOpen();
-            });
+            var loaded = { xterm: false, fit: false };
+            function check() {
+                if (loaded.xterm && loaded.fit) doOpen();
+            }
+            var s1 = document.createElement('script');
+            s1.src = 'https://unpkg.com/xterm@5.3.0/lib/xterm.js';
+            s1.onload = function() { loaded.xterm = true; check(); };
+            document.body.appendChild(s1);
+            var s2 = document.createElement('script');
+            s2.src = 'https://unpkg.com/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.js';
+            s2.onload = function() { loaded.fit = true; check(); };
+            document.body.appendChild(s2);
         } else {
-            initTerm();
             doOpen();
         }
     }
@@ -215,7 +264,9 @@ var TerminalLib = (function() {
     function doOpen() {
         document.getElementById('termLibPath').textContent = cwd || '~';
 
-        if (socket && !socket.connected) {
+        if (!term) {
+            initTerm();
+        } else if (socket && !socket.connected) {
             socket.connect();
         }
 
@@ -235,7 +286,7 @@ var TerminalLib = (function() {
 
     function close() {
         if (!isOpen) return;
-        document.getElementById('terminal-component').style.display = 'none';
+        document.getElementById('term-lib-component').style.display = 'none';
         isOpen = false;
     }
 
@@ -250,37 +301,36 @@ var TerminalLib = (function() {
         if (term) term.focus();
     }
 
-    function isOpenFn() {
-        return isOpen;
+    function toggleKeyboard() {
+        var kb = document.getElementById('termLibKeyboard');
+        kb.classList.toggle('visible');
     }
 
-    // 动态加载 xterm 库
-    function loadXtermLib(callback) {
-        if (typeof Terminal !== 'undefined' && typeof FitAddon !== 'undefined') {
-            callback();
+    function handleKey(e, key) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        if (key === 'ctrl') {
+            ctrlMode = !ctrlMode;
+            if (ctrlMode && altMode) altMode = false;
+            syncButtons();
+            focus();
             return;
         }
 
-        var loaded = { xterm: false, fit: false };
-        function checkAndCall() {
-            if (loaded.xterm && loaded.fit) callback();
+        if (key === 'alt') {
+            altMode = !altMode;
+            if (altMode && ctrlMode) ctrlMode = false;
+            syncButtons();
+            focus();
+            return;
         }
 
-        var script1 = document.createElement('script');
-        script1.src = 'https://unpkg.com/xterm@5.3.0/lib/xterm.js';
-        script1.onload = function() {
-            loaded.xterm = true;
-            checkAndCall();
-        };
-        document.body.appendChild(script1);
-
-        var script2 = document.createElement('script');
-        script2.src = 'https://unpkg.com/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.js';
-        script2.onload = function() {
-            loaded.fit = true;
-            checkAndCall();
-        };
-        document.body.appendChild(script2);
+        var seq = keySeq(key);
+        if (seq) {
+            send(seq);
+        }
+        focus();
     }
 
     return {
@@ -288,6 +338,8 @@ var TerminalLib = (function() {
         close: close,
         send: send,
         focus: focus,
-        isOpen: isOpenFn
+        toggleKeyboard: toggleKeyboard,
+        handleKey: handleKey,
+        isOpen: function() { return isOpen; }
     };
 })();
