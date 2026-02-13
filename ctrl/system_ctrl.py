@@ -621,9 +621,11 @@ def api_users_groups():
 def api_system_status():
     """获取统一系统状态（CPU/内存/磁盘/GPU/网络）"""
     import time
+    import socket
     from lib import disk_utils, network_utils
     
     status = {
+        'hostname': socket.gethostname(),
         'cpu': 0,
         'memory_percent': 0,
         'disk_percent': 0,

@@ -194,13 +194,13 @@
 
         /* 文件浏览器顶部状态栏 */
         .file-status-bar {
-            height: 32px;
+            height: 24px;
             background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
             display: flex;
             align-items: center;
-            padding: 0 12px;
-            gap: 8px;
-            font-size: 12px;
+            padding: 0 6px;
+            gap: 4px;
+            font-size: 10px;
             font-family: 'SF Mono', 'Consolas', 'Monaco', monospace;
             color: #fff;
             white-space: nowrap;
@@ -209,12 +209,12 @@
         .file-status-item {
             display: flex;
             align-items: center;
-            gap: 4px;
+            gap: 2px;
         }
-        .file-status-item .icon { font-size: 12px; }
-        .file-status-item .value { font-weight: 500; }
-        .file-status-item .unit { color: #8b949e; font-size: 11px; }
-        .file-status-item .divider { color: #484f58; margin: 0 4px; }
+        .file-status-item .icon { font-size: 10px; }
+        .file-status-item .value { font-weight: 500; font-size: 10px; }
+        .file-status-item .unit { color: #8b949e; font-size: 9px; }
+        .file-status-item .divider { color: #484f58; margin: 0 2px; }
         .file-status-item .danger { color: #f85149; }
         .file-status-item .warning { color: #d29922; }
         .file-status-item .normal { color: #3fb950; }
@@ -2163,16 +2163,20 @@
                     _statusTimer: null,
                     _initStatusBar: function() {
                         var _this = this;
-                        // 获取当前用户名
-                        fetch('/api/users/me', { headers: authHeaders() })
-                            .then(function(r) { return r.json(); })
-                            .then(function(d) {
-                                var userEl = document.getElementById('statusUser');
-                                if (userEl && d?.success && d?.data?.name) {
-                                    userEl.textContent = d.data.name;
-                                }
-                            })
-                            .catch(function() {});
+                        // 获取用户名和 hostname
+                        var hostname = '';
+                        Promise.all([
+                            fetch('/api/users/me', { headers: authHeaders() }).then(r => r.json()),
+                            fetch('/api/system/status', { headers: authHeaders() }).then(r => r.json())
+                        ]).then(function(results) {
+                            var userData = results[0];
+                            var statusData = results[1];
+                            var userEl = document.getElementById('statusUser');
+                            if (userEl && userData?.success && userData?.data?.name) {
+                                hostname = statusData?.data?.hostname || '';
+                                userEl.textContent = userData.data.name + '@' + hostname;
+                            }
+                        }).catch(function() {});
                         
                         _this._updateStatusBar();
                         _this._statusTimer = setInterval(function() {
