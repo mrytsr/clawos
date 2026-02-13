@@ -48,7 +48,7 @@ function showToast(message, type, title) {
     setTimeout(function() {
         toast.classList.add('toast-out');
         setTimeout(function() { toast.remove(); }, 200);
-    }, 4000);
+    }, 2000);
 }
 
 window.showToast = showToast;
