@@ -157,17 +157,15 @@
 </head>
 <body>
     <div class="editor-header">
-        <a href="#" class="editor-btn" onclick="history.back(); return false;">←</a>
+        <a href="#" class="editor-btn" onclick="__confirmAndGoBack(); return false;">←</a>
         <div class="editor-title-wrap">
             <h1 class="editor-title" id="editorTitleText">{{ filename }}:0</h1>
             <button id="editorRefBtn" class="editor-btn" type="button" title="复制引用" onmousedown="event.preventDefault()">引用</button>
         </div>
         <div class="header-buttons">
-            <button class="editor-btn" onclick="saveFile()">💾</button>
             <button class="editor-btn" onclick="undo()">↩</button>
             <button class="editor-btn" onclick="redo()">↪</button>
-            <button class="editor-btn" onclick="formatCode()">✨</button>
-            <a href="{{ url_for('file.download_file', path=file_path) }}" class="editor-btn">📥</a>
+            <button class="editor-btn" onclick="saveFile()">💾</button>
         </div>
     </div>
     <div class="editor-container">
@@ -431,6 +429,22 @@
         // 页面加载时应用保存的字体大小
         const savedFontSize = localStorage.getItem('pywebdeck_font_size') || '14';
         document.documentElement.style.setProperty('--global-font-size', savedFontSize + 'px');
+
+        function __confirmAndGoBack() {
+            if (__dirty) { // 检查是否有未保存的更改
+                const confirmed = confirm("文档有未保存的更改，确定要离开吗？\\n\\n点击“确定”将丢失未保存的更改。\\n点击“取消”留在当前页面以保存更改。");
+                if (confirmed) {
+                    // 用户确认离开，允许返回
+                    history.back();
+                } else {
+                    // 用户取消离开，什么都不做
+                    return;
+                }
+            } else {
+                // 没有未保存的更改，直接返回
+                history.back();
+            }
+        }
 
         __initReferenceCopy();
     </script>
