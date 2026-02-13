@@ -686,49 +686,114 @@ def api_db_databases(conn_id):
         return api_error(str(e))
 
 
+AI_HISTORY_FILE = os.path.expanduser('~/.local/clawos/ai_sql_history.json')
+
+
+def _load_ai_history(limit=10):
+    """加载 AI SQL 生成历史."""
+    try:
+        if os.path.exists(AI_HISTORY_FILE):
+            with open(AI_HISTORY_FILE, 'r', encoding='utf-8') as f:
+                history = json.load(f)
+                return history[-limit:]
+    except Exception:
+        pass
+    return []
+
+
+def _save_ai_history(prompt, sql):
+    """保存到历史."""
+    try:
+        history = []
+        if os.path.exists(AI_HISTORY_FILE):
+            with open(AI_HISTORY_FILE, 'r', encoding='utf-8') as f:
+                history = json.load(f)
+        history.append({'prompt': prompt, 'sql': sql, 'time': datetime.utcnow().isoformat()})
+        history = history[-50:]  # 只保留最近 50 条
+        with open(AI_HISTORY_FILE, 'w', encoding='utf-8') as f:
+            json.dump(history, f, ensure_ascii=False, indent=2)
+    except Exception:
+        pass
+
+
 @db_bp.route('/db/ai-generate-sql', methods=['POST'])
 def ai_generate_sql():
     """AI 生成 SQL."""
     import re
     import json
-    
+
     data = request.json
     prompt = data.get('prompt', '').strip()
     current_sql = data.get('current_sql', '').strip()
     connection = data.get('connection', {})
     table = data.get('table', '')
     schema = data.get('schema', [])
-    
+
     if not prompt:
         return api_error('请输入 prompt')
-    
+
+    # 获取数据库下所有表（用于关联查询）
+    all_tables_schema = {}
+    if connection.get('id'):
+        try:
+            conns = _load_connections()
+            conn = conns.get(connection['id'])
+            if conn:
+                from sqlalchemy import text
+                with _get_connection(conn) as c:
+                    # 获取所有表名
+                    result = c.execute(text('SHOW TABLES'))
+                    tables = [list(row)[0] for row in result.fetchall()]
+                    for t in tables[:30]:  # 限制最多 30 个表
+                        try:
+                            cols = c.execute(text(f'DESCRIBE `{t}`'))
+                            cols_data = []
+                            for row in cols.fetchall():
+                                cols_data.append({'name': row[0], 'type': str(row[1])})
+                            all_tables_schema[t] = cols_data
+                        except Exception:
+                            pass
+        except Exception:
+            pass
+
+    # 获取历史记录
+    history = _load_ai_history(limit=5)
+
     # 构建系统 prompt
     engine = connection.get('engine', 'mysql')
     database = connection.get('database', '')
-    
+
     system_prompt = f"""你是一个 SQL 专家。根据用户的自然语言需求，生成或修改 SQL 查询。
 
 数据库信息:
 - 引擎: {engine}
 - 数据库: {database}
 """
-    
-    if table:
-        system_prompt += f"- 当前表: {table}\n"
-    
-    if schema:
-        system_prompt += f"- 表结构: {json.dumps(schema, ensure_ascii=False)}\n"
-    
+
+    # 所有表结构（用于关联查询）
+    if all_tables_schema:
+        system_prompt += f"\n数据库中的表结构:\n{json.dumps(all_tables_schema, ensure_ascii=False)}\n"
+
+    # 当前表结构
+    if table and schema:
+        system_prompt += f"\n当前选中表 '{table}' 的详细结构:\n{json.dumps(schema, ensure_ascii=False)}\n"
+
+    # 当前 SQL
     if current_sql:
-        system_prompt += f"- 当前 SQL: {current_sql}\n"
-    
+        system_prompt += f"\n当前 SQL: {current_sql}\n"
+
+    # 历史记录
+    if history:
+        system_prompt += "\n最近的操作历史:\n"
+        for i, h in enumerate(history):
+            system_prompt += f"{i+1}. 用户: {h.get('prompt', '')} -> SQL: {h.get('sql', '')}\n"
+
     system_prompt += """
 要求:
 1. 只返回 SQL 语句，不要解释
-2. 如果用户需求与当前 SQL 相关，在当前 SQL 基础上修改
-3. 否则生成新的 SQL
+2. 根据需求选择合适的表，如果需要关联多个表，请使用 JOIN
+3. 如果需求与当前 SQL 相关，在当前 SQL 基础上修改
 4. SQL 要语法正确，可直接执行
-5. 如果是修改，确保只修改必要的部分
 """
 
     try:
@@ -738,16 +803,19 @@ def ai_generate_sql():
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": prompt}
         ])
-        
+
         generated_sql = response.get('choices', [{}])[0].get('message', {}).get('content', '').strip()
-        
+
         # 清理 markdown 代码块
         generated_sql = re.sub(r'^```sql?\n', '', generated_sql)
         generated_sql = re.sub(r'\n```$', '', generated_sql)
         generated_sql = generated_sql.strip()
-        
+
+        # 保存到历史
+        _save_ai_history(prompt, generated_sql)
+
         return jsonify({'success': True, 'sql': generated_sql})
-        
+
     except Exception as e:
         return api_error(f'AI 生成失败: {str(e)}')
 
