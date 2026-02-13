@@ -57,7 +57,7 @@
         
         /* 顶部栏 (面包屑) */
         .breadcrumb {
-            padding: 12px 16px;
+            padding: 8px 12px;
             background-color: #f6f8fa;
             border-bottom: 1px solid #d0d7de;
             font-size: var(--global-font-size, 14px);
@@ -71,19 +71,35 @@
         .breadcrumb-left {
             display: flex;
             align-items: center;
-            gap: 8px;
-            overflow: hidden;
+            gap: 2px;
+            overflow-x: auto;
+            overflow-y: hidden;
             flex: 1;
+            scroll-behavior: smooth;
+            white-space: nowrap;
+        }
+        /* 隐藏滚动条但保持滚动功能 */
+        .breadcrumb-left::-webkit-scrollbar {
+            height: 0;
+        }
+        .breadcrumb-left::-webkit-scrollbar-thumb {
+            background: transparent;
+        }
+        .breadcrumb-left::-webkit-scrollbar-track {
+            background: transparent;
         }
         .breadcrumb a {
             color: #0969da;
             text-decoration: none;
+            flex-shrink: 0;
         }
         .breadcrumb a:hover {
             text-decoration: underline;
         }
         .crumb-sep {
             color: #57606a;
+            flex-shrink: 0;
+            margin: 0 2px;
         }
         .breadcrumb-right {
             display: flex;
@@ -2071,6 +2087,14 @@
                         var rootEl = document.getElementById('rootDir');
                         if (rootEl && typeof data.root_dir === 'string') { rootEl.value = data.root_dir; }
 
+                        // 滚动面包屑到最右边
+                        var crumbLeft = document.querySelector('.breadcrumb-left');
+                        if (crumbLeft) {
+                            setTimeout(function() {
+                                crumbLeft.scrollLeft = crumbLeft.scrollWidth;
+                            }, 50);
+                        }
+
                         if (typeof data.server_is_windows === 'boolean') {
                             window.SERVER_IS_WINDOWS = data.server_is_windows;
                         }
@@ -2101,6 +2125,11 @@
                         .catch(function(e) { console.error('refreshItems error:', e); });
                     },
                     postRenderInit: function() {
+                        // 滚动面包屑到最右边
+                        var crumbLeft = document.querySelector('.breadcrumb-left');
+                        if (crumbLeft) {
+                            crumbLeft.scrollLeft = crumbLeft.scrollWidth;
+                        }
                         if (typeof window.attachFileItemDefaultHandlers === 'function') {
                             window.attachFileItemDefaultHandlers();
                         }
