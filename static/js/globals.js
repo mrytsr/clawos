@@ -1136,7 +1136,26 @@ window.handleFileSelect = function(event) {
 
 window.updateFontSize = function(size) { document.documentElement.style.setProperty('--global-font-size', size + 'px'); localStorage.setItem('global_font_size', size); showToast('字体大小已更新', 'success'); };
 window.handleSearchKeyup = function(e) { if (e.key === 'Enter' && typeof doSearch === 'function') { doSearch(); } };
-window.refreshFileList = function() { window.location.reload(); };
+window.refreshFileList = function() {
+    // 防止重复刷新的标志
+    if (window.__refresh_pending__) {
+        console.log('[refreshFileList] already pending, skip');
+        return;
+    }
+    window.__refresh_pending__ = true;
+    
+    // 尝试调用 Vue 组件的 refreshItems 方法
+    if (window.__browseVueApp__) {
+        console.log('[refreshFileList] calling Vue refreshItems');
+        window.__browseVueApp__.refreshItems();
+        setTimeout(function() { window.__refresh_pending__ = false; }, 500);
+        return;
+    }
+    
+    // Vue 未初始化，reload
+    console.log('[refreshFileList] Vue not ready, reload page');
+    window.location.reload();
+};
 window.toggleSelectAll = function(cb) { document.querySelectorAll('.file-checkbox').forEach(function(c) { c.checked = cb.checked; }); updateBatchBar(); };
 window.toggleItemSelection = function(path, cb) { if (!cb.checked) { document.getElementById('batchSelectAll').checked = false; } updateBatchBar(); };
 

@@ -412,7 +412,7 @@ function startArchiveProgressPoll(taskId) {
         if (res && res.ok) {
             showToast('压缩完成', 'success');
             closeArchiveProgressDrawer();
-            if (typeof refreshFileList === 'function') refreshFileList();
+            if (typeof refreshFileList === 'function') doRefreshFileList();
             return;
         }
         var payload = res && res.payload ? res.payload : null;
@@ -626,7 +626,7 @@ async function startDragUpload() {
     state.uploading = false;
     showToast('上传完成', 'success');
     closeDragUploadDrawer();
-    if (typeof refreshFileList === 'function') refreshFileList();
+    if (typeof refreshFileList === 'function') doRefreshFileList();
 }
 
 function openPasteImageDrawer(blob) {
@@ -709,7 +709,7 @@ async function savePasteImage() {
 
     showToast('保存成功', 'success');
     closePasteImageDrawer();
-    if (typeof refreshFileList === 'function') refreshFileList();
+    if (typeof refreshFileList === 'function') doRefreshFileList();
 }
 
 function initDragUploadAndPaste() {
@@ -824,7 +824,7 @@ function extractArchiveHere(path, name) {
             .then(function(data) {
                 if (data && data.success) {
                     showToast('解压完成', 'success');
-                    if (typeof refreshFileList === 'function') refreshFileList();
+                    if (typeof refreshFileList === 'function') doRefreshFileList();
                 } else {
                     showToast((data && data.error && data.error.message) || (data && data.message) || '解压失败', 'error');
                 }
@@ -981,7 +981,7 @@ function performDelete(path) {
         .then(data => {
             if (data.success) {
                 showToast('已移到回收站', 'success');
-                refreshFileList();
+                doRefreshFileList();
             } else {
                 showToast(data.message || '删除失败', 'error');
             }
@@ -1022,7 +1022,7 @@ function performRename() {
     .then(data => {
         if (data.success) {
             showToast('重命名成功', 'success');
-            refreshFileList();
+            doRefreshFileList();
         } else {
             showToast(data.message || '重命名失败', 'error');
         }
@@ -1055,7 +1055,7 @@ function performMove() {
     .then(data => {
         if (data.success) {
             showToast('移动成功', 'success');
-            refreshFileList();
+            doRefreshFileList();
         } else {
             showToast(data.message || '移动失败', 'error');
         }
@@ -1072,7 +1072,7 @@ function cloneItem() {
         .then(data => {
             if (data.success) {
                 showToast(data.message, 'success');
-                refreshFileList();
+                doRefreshFileList();
             } else {
                 showToast(data.message || '克隆失败', 'error');
             }
@@ -1328,8 +1328,13 @@ window.closeDetailsModal = function() {
 window.closeDetailsOnBackdrop = function(event) {
     if (event.target.id === 'detailsModal') { closeDetailsModal(); } };
 
-function refreshFileList() {
-    window.location.reload();
+function doRefreshFileList() {
+    // 调用全局的 refreshFileList（会尝试 Vue AJAX 刷新，回退到页面刷新）
+    if (typeof window.refreshFileList === 'function') {
+        window.refreshFileList();
+    } else {
+        window.location.reload();
+    }
 }
 
 function formatSize(size) {
@@ -1566,7 +1571,7 @@ function createMenuNewFolder() {
                 .then(function(data) {
                     if (data && data.success) {
                         if (typeof showToast === 'function') showToast('创建成功', 'success');
-                        refreshFileList();
+                        doRefreshFileList();
                     } else {
                         if (typeof showToast === 'function') showToast((data && (data.message || (data.error && data.error.message))) || '创建失败', 'error');
                     }
@@ -1602,7 +1607,7 @@ function createMenuNewFile() {
                 .then(function(data) {
                     if (data && data.success) {
                         if (typeof showToast === 'function') showToast('创建成功', 'success');
-                        refreshFileList();
+                        doRefreshFileList();
                     } else {
                         if (typeof showToast === 'function') showToast((data && (data.message || (data.error && data.error.message))) || '创建失败', 'error');
                     }
@@ -1657,7 +1662,7 @@ function confirmUrlShortcut() {
         .then(function(data) {
             if (data && data.success) {
                 if (typeof showToast === 'function') showToast('创建成功', 'success');
-                refreshFileList();
+                doRefreshFileList();
                 closeUrlShortcutDrawer();
             } else {
                 if (typeof showToast === 'function') showToast((data && (data.message || (data.error && data.error.message))) || '创建失败', 'error');
@@ -1692,7 +1697,8 @@ window.shareMenuPath = shareMenuPath;
 window.editFile = editFile;
 window.openEditor = openEditor;
 window.addToChat = addToChat;
-window.refreshFileList = refreshFileList;
+// refreshFileList 在 globals.js 中定义，这里不覆盖
+// window.refreshFileList = doRefreshFileList;
 window.openArchiveCreateDialog = openArchiveCreateDialog;
 window.closeArchiveProgressDrawer = closeArchiveProgressDrawer;
 window.batchArchive = batchArchive;

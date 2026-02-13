@@ -217,6 +217,35 @@ def api_browse_state():
     })
 
 
+@browser_bp.route('/api/browse/files')
+def api_browse_files():
+    """获取目录文件列表（用于 AJAX 刷新）"""
+    dir_rel = (request.args.get('path') or '').strip()
+    root_dir, full_dir, err = _resolve_safe_dir(dir_rel, ensure_exists=False)
+    if err:
+        return jsonify({'success': False, 'error': {'message': err}}), 400
+
+    items = file_utils.list_directory(full_dir)
+    items_rel = []
+    for it in items:
+        if not isinstance(it, dict):
+            continue
+        name = str(it.get('name') or '')
+        p = it.get('path')
+        rel_path = path_utils.get_relative_path(p, root_dir)
+        normalized = dict(it)
+        normalized['path'] = rel_path
+        items_rel.append(normalized)
+
+    return jsonify({
+        'success': True,
+        'data': {
+            'items': items_rel,
+            'current_dir': dir_rel
+        }
+    })
+
+
 @browser_bp.route('/api/pin/list')
 def api_pin_list():
     dir_rel = _normalize_pin_dir(request.args.get('dir', ''))

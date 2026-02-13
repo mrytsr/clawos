@@ -2078,6 +2078,28 @@
                         window.__INITIAL_PINS__ = Array.isArray(data.pins) ? data.pins : [];
                         window.__INITIAL_GIT_STATUS__ = data.git_status || null;
                     },
+                    refreshItems: function() {
+                        var _this = this;
+                        var path = this.currentDir || '';
+                        fetch('/api/browse/files?path=' + encodeURIComponent(path), {
+                            credentials: 'same-origin',
+                            headers: Object.assign({ 'Accept': 'application/json' }, (window.authHeaders || {})),
+                        })
+                        .then(function(r) { return r.json(); })
+                        .then(function(d) {
+                            if (d && d.success && d.data && Array.isArray(d.data.items)) {
+                                _this.items.splice(0, _this.items.length);
+                                _this.items.push.apply(_this.items, d.data.items);
+                                _this.$forceUpdate();
+                                setTimeout(function() {
+                                    if (typeof window.attachFileItemDefaultHandlers === 'function') {
+                                        window.attachFileItemDefaultHandlers();
+                                    }
+                                }, 50);
+                            }
+                        })
+                        .catch(function(e) { console.error('refreshItems error:', e); });
+                    },
                     postRenderInit: function() {
                         if (typeof window.attachFileItemDefaultHandlers === 'function') {
                             window.attachFileItemDefaultHandlers();
@@ -2198,6 +2220,9 @@
 
                 mounted: function() {
                     var app = this;
+                    // 保存 Vue 组件引用供全局 refreshFileList 使用
+                    window.__browseVueApp__ = app;
+                    
                     var nav = {
                         __abort: null,
                         __seq: 0,
