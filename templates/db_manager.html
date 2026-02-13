@@ -173,6 +173,35 @@
             font-size: 11px; color: #888; padding: 8px 0 4px; margin-bottom: 4px;
         }
         
+        /* AI SQL 生成器 */
+        .ai-prompt-row {
+            display: flex; gap: 8px; padding: 10px 0 0; align-items: center;
+        }
+        .ai-prompt-input {
+            flex: 1; padding: 10px 12px; background: #1a1a2e; border: 1px solid #0f3460;
+            border-radius: 6px; color: #fff; font-size: 13px; outline: none;
+            transition: border-color 0.2s;
+        }
+        .ai-prompt-input:focus { border-color: #667eea; }
+        .ai-prompt-input::placeholder { color: #666; }
+        .btn-ai-generate {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            padding: 10px 20px; border-radius: 6px; border: none;
+            color: #fff; cursor: pointer; font-size: 13px; font-weight: 500;
+            white-space: nowrap; transition: transform 0.2s, opacity 0.2s;
+        }
+        .btn-ai-generate:hover { transform: scale(1.02); opacity: 0.95; }
+        .btn-ai-generate:active { transform: scale(0.98); }
+        .btn-ai-generate:disabled {
+            opacity: 0.6; cursor: not-allowed; transform: none;
+        }
+        .ai-loading {
+            display: inline-block; width: 14px; height: 14px;
+            border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff;
+            border-radius: 50%; animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        
         /* 导出和分页 */
         .results-toolbar {
             display: flex; justify-content: space-between; align-items: center;
@@ -303,6 +332,13 @@
                     <button class="secondary" onclick="openSqlHistory()">历史</button>
                     <button class="secondary" onclick="sqlHistoryPrev()">上一条</button>
                     <button class="secondary" onclick="sqlHistoryNext()">下一条</button>
+                </div>
+                <div class="ai-prompt-row">
+                    <input type="text" id="aiPromptInput" class="ai-prompt-input"
+                           placeholder="✨ 输入自然语言，让 AI 生成/修改 SQL...">
+                    <button id="btnAiGenerate" class="btn-ai-generate" onclick="generateSqlFromPrompt()">
+                        生成SQL
+                    </button>
                 </div>
             </div>
             
@@ -1208,6 +1244,105 @@
                 $('resultsContent').innerHTML = `<div class="results-empty" style="color:#ef4444;">${e.message}</div>`;
             }
         }
+        
+        // AI SQL 生成
+        async function generateSqlFromPrompt() {
+            const prompt = $('aiPromptInput').value.trim();
+            const currentSql = $('sqlEditor').value.trim();
+            
+            if (!prompt) {
+                showStatus('请输入 AI Prompt', true);
+                return;
+            }
+            
+            const btn = $('btnAiGenerate');
+            const originalText = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<span class="ai-loading"></span> 生成中...';
+            
+            try {
+                // 获取当前连接的数据库信息
+                const connId = currentConn?.id;
+                if (!connId) {
+                    showStatus('请先选择数据库连接', true);
+                    return;
+                }
+                
+                // 构建请求数据
+                const requestData = {
+                    prompt: prompt,
+                    current_sql: currentSql,
+                    connection: {
+                        id: connId,
+                        engine: currentConn.engine || 'mysql',
+                        database: currentConn.database || ''
+                    },
+                    table: currentTable || '',
+                    schema: []
+                };
+                
+                // 如果有选中的表，获取表结构
+                if (currentTable) {
+                    try {
+                        const schemaResp = await fetch('/api/db/schema', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ connection: connId, table: currentTable })
+                        });
+                        const schemaData = await schemaResp.json();
+                        if (schemaData.success) {
+                            requestData.schema = schemaData.data || [];
+                        }
+                    } catch (e) {
+                        console.warn('获取表结构失败:', e);
+                    }
+                }
+                
+                const r = await fetch('/db/ai-generate-sql', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(requestData)
+                });
+                
+                const data = await r.json();
+                
+                if (data.success && data.sql) {
+                    $('sqlEditor').value = data.sql;
+                    $('aiPromptInput').value = '';
+                    showStatus('SQL 生成成功 ✓', false);
+                } else {
+                    const errMsg = data.error?.message || data.message || data.error || '未知错误';
+                    showStatus('生成失败: ' + errMsg, true);
+                }
+            } catch (e) {
+                showStatus('生成失败: ' + e.message, true);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
+        }
+        
+        // Ctrl+Enter 执行 SQL
+        $('sqlEditor').addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.key === 'Enter') {
+                e.preventDefault();
+                executeQuery();
+            }
+            // Ctrl+Up/Down 历史导航
+            if (e.ctrlKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
+                e.preventDefault();
+                if (e.key === 'ArrowUp') sqlHistoryPrev();
+                else sqlHistoryNext();
+            }
+        });
+        
+        // Enter 生成 AI SQL
+        $('aiPromptInput').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                generateSqlFromPrompt();
+            }
+        });
         
         function getPageData() {
             const start = (currentPage - 1) * pageSize;

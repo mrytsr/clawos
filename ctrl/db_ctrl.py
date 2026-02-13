@@ -684,3 +684,104 @@ def api_db_databases(conn_id):
         return api_ok({'databases': dbs})
     except Exception as e:
         return api_error(str(e))
+
+
+@db_bp.route('/db/ai-generate-sql', methods=['POST'])
+def ai_generate_sql():
+    """AI 生成 SQL."""
+    import re
+    import json
+    
+    data = request.json
+    prompt = data.get('prompt', '').strip()
+    current_sql = data.get('current_sql', '').strip()
+    connection = data.get('connection', {})
+    table = data.get('table', '')
+    schema = data.get('schema', [])
+    
+    if not prompt:
+        return api_error('请输入 prompt')
+    
+    # 构建系统 prompt
+    engine = connection.get('engine', 'mysql')
+    database = connection.get('database', '')
+    
+    system_prompt = f"""你是一个 SQL 专家。根据用户的自然语言需求，生成或修改 SQL 查询。
+
+数据库信息:
+- 引擎: {engine}
+- 数据库: {database}
+"""
+    
+    if table:
+        system_prompt += f"- 当前表: {table}\n"
+    
+    if schema:
+        system_prompt += f"- 表结构: {json.dumps(schema, ensure_ascii=False)}\n"
+    
+    if current_sql:
+        system_prompt += f"- 当前 SQL: {current_sql}\n"
+    
+    system_prompt += """
+要求:
+1. 只返回 SQL 语句，不要解释
+2. 如果用户需求与当前 SQL 相关，在当前 SQL 基础上修改
+3. 否则生成新的 SQL
+4. SQL 要语法正确，可直接执行
+5. 如果是修改，确保只修改必要的部分
+"""
+
+    try:
+        from lib.ai_client import AiClient
+        client = AiClient('deepseek:deepseek-chat')
+        response = client.chat([
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": prompt}
+        ])
+        
+        generated_sql = response.get('choices', [{}])[0].get('message', {}).get('content', '').strip()
+        
+        # 清理 markdown 代码块
+        generated_sql = re.sub(r'^```sql?\n', '', generated_sql)
+        generated_sql = re.sub(r'\n```$', '', generated_sql)
+        generated_sql = generated_sql.strip()
+        
+        return jsonify({'success': True, 'sql': generated_sql})
+        
+    except Exception as e:
+        return api_error(f'AI 生成失败: {str(e)}')
+
+
+@db_bp.route('/api/db/schema', methods=['POST'])
+def api_db_schema():
+    """获取表结构（用于 AI 生成 SQL）."""
+    data = request.json
+    conn_id = data.get('connection')
+    table = data.get('table')
+    
+    if not conn_id or not table:
+        return api_error('缺少 connection 或 table 参数')
+    
+    conns = _load_connections()
+    if conn_id not in conns:
+        return api_error('Connection not found')
+    
+    conn = conns[conn_id]
+    
+    try:
+        from sqlalchemy import text
+        with _get_connection(conn) as c:
+            result = c.execute(text(f'DESCRIBE `{table}`'))
+            columns = []
+            for row in result.fetchall():
+                columns.append({
+                    'name': row[0],
+                    'type': str(row[1]),
+                    'nullable': row[2] == 'YES',
+                    'key': row[3] == 'PRI',
+                    'default': row[4],
+                    'extra': row[5]
+                })
+        return api_ok({'schema': columns})
+    except Exception as e:
+        return api_error(str(e))
