@@ -425,12 +425,122 @@
         let connections = [], currentConn = null, currentDb = null, currentTable = null;
         let allResults = [], currentPage = 1, totalPages = 1, pageSize = 200;
         let __confirmCallback = null;
+        let currentResultsTab = 'results';
+        let __dbUiState = null;
+        let __dbUiStateSaveTimer = null;
         
         const ENGINE_CONFIG = {
             mysql: { port: 3306, icon: '🐬' }, postgresql: { port: 5432, icon: '🐘' },
             sqlite: { port: 0, icon: '📄' }, mariadb: { port: 3306, icon: '🐬' },
             oracle: { port: 1521, icon: '🔴' }, mssql: { port: 1433, icon: '🪟' }
         };
+
+        async function loadDbUiState() {
+            try {
+                const r = await fetch('/api/db/ui-state');
+                const data = await r.json();
+                if (data && data.success) __dbUiState = data.data || {};
+                else __dbUiState = {};
+            } catch (e) {
+                __dbUiState = {};
+            }
+        }
+
+        function __mergeDbUiState(partial) {
+            if (!__dbUiState || typeof __dbUiState !== 'object') __dbUiState = {};
+            if (!partial || typeof partial !== 'object') return __dbUiState;
+            Object.keys(partial).forEach(function(k) {
+                __dbUiState[k] = partial[k];
+            });
+            return __dbUiState;
+        }
+
+        function saveDbUiState(partial, immediate) {
+            const next = __mergeDbUiState(partial);
+            if (__dbUiStateSaveTimer) {
+                clearTimeout(__dbUiStateSaveTimer);
+                __dbUiStateSaveTimer = null;
+            }
+            const doSave = function() {
+                const payload = Object.assign({}, next);
+                fetch('/api/db/ui-state', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                    keepalive: true
+                }).catch(function() {});
+            };
+            if (immediate) doSave();
+            else __dbUiStateSaveTimer = setTimeout(doSave, 400);
+        }
+
+        function __setSqlEditorOpen(open) {
+            const panel = $('sqlEditorPanel');
+            const toggle = $('sqlToggle');
+            if (!panel || !toggle) return;
+            const want = !!open;
+            panel.classList.toggle('open', want);
+            toggle.classList.toggle('open', want);
+        }
+
+        function __expandTreeTo(nodeEl) {
+            let el = nodeEl;
+            while (el) {
+                if (el.classList && el.classList.contains('tree-children')) {
+                    el.classList.remove('collapsed');
+                    const parentNode = el.parentElement;
+                    const toggle = parentNode && parentNode.querySelector ? parentNode.querySelector('.tree-toggle') : null;
+                    if (toggle) toggle.classList.add('expanded');
+                }
+                el = el.parentElement;
+            }
+        }
+
+        function __activateTreeNode(type, connId, id) {
+            const nodes = Array.from(document.querySelectorAll('.tree-node'));
+            let found = null;
+            for (let i = 0; i < nodes.length; i++) {
+                const n = nodes[i];
+                if (!n || n.dataset.type !== type) continue;
+                if (typeof connId === 'string' && connId && n.dataset.connid !== connId) continue;
+                if (typeof id === 'string' && id && n.dataset.id !== id) continue;
+                found = n;
+                break;
+            }
+            if (!found) return false;
+            __expandTreeTo(found.parentElement);
+            document.querySelectorAll('.tree-node-content').forEach(n => n.classList.remove('active'));
+            const content = found.querySelector('.tree-node-content');
+            if (content) content.classList.add('active');
+            return true;
+        }
+
+        function applyDbUiState() {
+            const st = __dbUiState || {};
+            const connId = typeof st.conn_id === 'string' ? st.conn_id : '';
+            const db = typeof st.db === 'string' ? st.db : '';
+            const table = typeof st.table === 'string' ? st.table : '';
+            const sql = typeof st.sql === 'string' ? st.sql : '';
+            const tab = typeof st.tab === 'string' ? st.tab : '';
+
+            if (sql && $('sqlEditor')) $('sqlEditor').value = sql;
+            if (typeof st.sql_open === 'boolean') __setSqlEditorOpen(st.sql_open);
+            if (tab === 'results' || tab === 'schema') switchResultsTab(tab);
+
+            if (connId) {
+                const conn = connections.find(c => c.id === connId);
+                if (conn) currentConn = conn;
+                currentDb = db || null;
+                currentTable = table || null;
+                updateBreadcrumb();
+
+                if (table) __activateTreeNode('table', connId, table);
+                else if (db) __activateTreeNode('db', connId, db);
+                else __activateTreeNode('conn', connId, connId);
+
+                if (currentConn && sql) executeQuery();
+            }
+        }
         
         // 加载树数据
         async function loadTree() {
@@ -508,7 +618,6 @@
                 const toggle = nodeEl.querySelector('.tree-toggle');
                 if (toggle) {
                     toggleNode(toggle);
-                    return; // 不执行查询
                 }
             }
             
@@ -516,23 +625,35 @@
             document.querySelectorAll('.tree-node-content').forEach(n => n.classList.remove('active'));
             el.classList.add('active');
             
-            if (type === 'table') {
-                // 点击表
-                const connId = nodeEl.dataset.connid;
-                const conn = connections.find(c => c.id === connId);
-                if (!conn) { console.error('Connection not found:', connId); return; }
+            const connId = nodeEl.dataset.connid;
+            const conn = connections.find(c => c.id === connId);
+            if (!conn) { console.error('Connection not found:', connId); return; }
+
+            if (type === 'conn') {
+                currentConn = conn;
+                currentDb = null;
+                currentTable = null;
+                updateBreadcrumb();
+                saveDbUiState({ conn_id: connId, db: '', table: '' });
+            } else if (type === 'db') {
+                currentConn = conn;
+                currentDb = id;
+                currentTable = null;
+                updateBreadcrumb();
+                saveDbUiState({ conn_id: connId, db: String(id || ''), table: '' });
+            } else if (type === 'table') {
                 currentConn = conn;
                 currentDb = dbName;
                 currentTable = id;
                 updateBreadcrumb();
                 updateAutocompleteData();
-                
-                // 关闭侧边栏
+                saveDbUiState({ conn_id: connId, db: String(dbName || ''), table: String(id || '') });
+
                 closeDrawer();
-                
-                // 执行查询（不自动展开编辑器）
+
                 const sql = `SELECT * FROM \`${id}\` LIMIT 200`;
                 $('sqlEditor').value = sql;
+                saveDbUiState({ sql: sql }, false);
                 executeQuery();
             }
         }
@@ -601,6 +722,7 @@
             $('sqlEditor').value = sql;
             closeSqlHistory();
             toggleSqlEditor();
+            saveDbUiState({ sql: String(sql || ''), sql_open: $('sqlEditorPanel').classList.contains('open') });
             executeQuery();
         }
 
@@ -629,6 +751,7 @@
             const ta = $('sqlEditor');
             if (!ta) return;
             ta.value = sql || '';
+            saveDbUiState({ sql: String(ta.value || ''), sql_open: $('sqlEditorPanel').classList.contains('open') });
             try {
                 ta.selectionStart = ta.selectionEnd = ta.value.length;
             } catch (e) {}
@@ -670,8 +793,16 @@
             __setSqlEditorValue(list[__sqlHistoryNavIndex] || '');
         }
         
-        function toggleSqlEditor() { $('sqlEditorPanel').classList.toggle('open'); $('sqlToggle').classList.toggle('open'); }
-        function clearEditor() { $('sqlEditor').value = ''; closeAutocomplete(); }
+        function toggleSqlEditor() {
+            $('sqlEditorPanel').classList.toggle('open');
+            $('sqlToggle').classList.toggle('open');
+            saveDbUiState({ sql_open: $('sqlEditorPanel').classList.contains('open') });
+        }
+        function clearEditor() {
+            $('sqlEditor').value = '';
+            closeAutocomplete();
+            saveDbUiState({ sql: '' });
+        }
         
         // ========== SQL 自动补全 ==========
         const SQL_KEYWORDS = [
@@ -699,6 +830,7 @@
         let _acTableNames = [], _acColumns = {};
         let _acHistory = JSON.parse(localStorage.getItem('db_sql_history') || '[]').map(h => (h && h.sql) || h).filter(h => h && typeof h === 'string').filter((v, i, a) => a.indexOf(v) === i);
         let _acSelected = -1, _acItems = [];
+        let _acReplaceStart = 0, _acReplaceEnd = 0, _acReqSeq = 0;
         
         function updateAutocompleteData() {
             // 更新表名列表
@@ -763,77 +895,209 @@
             if (!refs.length) return '';
             return refs[refs.length - 1].table || '';
         }
+
+        function __isWordChar(ch) {
+            return !!ch && /[A-Za-z0-9_`]/.test(ch);
+        }
+
+        function __makeItem(label, type, insertText) {
+            return { label: label, type: type, insertText: (typeof insertText === 'string' ? insertText : label) };
+        }
+
+        function __contextWantsTables(beforeNoToken) {
+            return /\b(from|join)\s*$/i.test(String(beforeNoToken || ''));
+        }
+
+        function __contextWantsColumns(beforeNoToken) {
+            const s = String(beforeNoToken || '');
+            if (/\b(select|where|on|and|or|having)\s*$/i.test(s)) return true;
+            if (/\b(order\s+by|group\s+by)\s*$/i.test(s)) return true;
+            if (/[,(]\s*$/.test(s)) return true;
+            return false;
+        }
+
+        function __dedupeItems(items) {
+            const seen = new Set();
+            const out = [];
+            for (let i = 0; i < items.length; i++) {
+                const it = items[i];
+                const key = (it && (it.insertText || it.label)) || '';
+                if (!key || seen.has(key)) continue;
+                seen.add(key);
+                out.push(it);
+            }
+            return out;
+        }
         
         function showAutocomplete(text, cursorPos) {
-            // 获取光标前最后一个单词
+            const reqId = ++_acReqSeq;
             const before = text.substring(0, cursorPos);
             const match = before.match(/[\w`*.]+$/);
-            if (!match || match[0].length < 1) { closeAutocomplete(); return; }
-            const rawToken = match[0].replace(/`/g, '');
+            const rawToken = match ? String(match[0] || '').replace(/`/g, '') : '';
             const tokenUpper = rawToken.toUpperCase();
-            const isQualified = rawToken.indexOf('.') >= 0;
+            const tokenStart = match ? (cursorPos - match[0].length) : cursorPos;
+            const beforeNoToken = before.substring(0, tokenStart);
             const aliasMap = getAliasMap(before);
+            const endsWithDot = rawToken.endsWith('.');
+            const isQualified = rawToken.indexOf('.') >= 0;
+            const wantsTables = __contextWantsTables(beforeNoToken);
+            const wantsColumns = __contextWantsColumns(beforeNoToken);
             
-            // 生成候选列表
+            _acReplaceStart = tokenStart;
+            _acReplaceEnd = cursorPos;
+
             const items = [];
+
             if (isQualified) {
-                var lastDot = rawToken.lastIndexOf('.');
-                var qualifier = rawToken.slice(0, lastDot);
-                var prefix = rawToken.slice(lastDot + 1);
-                var qualifierUpper = qualifier.toUpperCase();
-                var prefixUpper = prefix.toUpperCase();
-                var tableForCols = aliasMap[qualifier] || getLastPartTableName(qualifier);
+                const lastDot = rawToken.lastIndexOf('.');
+                const qualifier = rawToken.slice(0, lastDot);
+                const prefix = endsWithDot ? '' : rawToken.slice(lastDot + 1);
+                const prefixUpper = prefix.toUpperCase();
+                const tableForCols = aliasMap[qualifier] || getLastPartTableName(qualifier);
                 if (!tableForCols) { closeAutocomplete(); return; }
-                var cols = _acColumns[tableForCols] || [];
-                if (!cols.length) {
-                    loadTableColumns(tableForCols).then(function() {
-                        var newCols = (_acColumns[tableForCols] || []).filter(function(c) { return c && c.toUpperCase().startsWith(prefixUpper); });
-                        newCols.forEach(function(c) { items.push({ text: qualifier + '.' + c, type: 'col' }); });
-                        if (!items.length) { closeAutocomplete(); return; }
-                        _acItems = items.slice(0, 10);
-                        _acSelected = 0;
-                        renderAutocomplete();
+
+                _acReplaceStart = cursorPos - prefix.length;
+                _acReplaceEnd = cursorPos;
+
+                const cols = _acColumns[tableForCols] || [];
+                const renderCols = function(colList) {
+                    if (reqId !== _acReqSeq) return;
+                    const list = (colList || []).filter(function(c) {
+                        const u = (c || '').toUpperCase();
+                        return prefixUpper ? u.startsWith(prefixUpper) : true;
                     });
+                    list.slice(0, 20).forEach(function(c) { items.push(__makeItem(c, 'col', c)); });
+                    if (!items.length) { closeAutocomplete(); return; }
+                    _acItems = __dedupeItems(items);
+                    _acSelected = 0;
+                    renderAutocomplete();
+                };
+
+                if (!cols.length) {
+                    loadTableColumns(tableForCols).then(function(loaded) { renderCols(loaded); });
                     return;
                 }
-                cols.filter(function(c) { return c && c.toUpperCase().startsWith(prefixUpper); })
-                    .forEach(function(c) { items.push({ text: qualifier + '.' + c, type: 'col' }); });
-                if (!items.length) { closeAutocomplete(); return; }
-                _acItems = items.slice(0, 10);
-                _acSelected = 0;
-                renderAutocomplete();
+                renderCols(cols);
                 return;
             }
 
-            // 关键字
-            SQL_KEYWORDS.filter(k => k && k.startsWith(tokenUpper) && k !== tokenUpper).forEach(k => items.push({text: k, type: 'key'}));
-            // 函数
-            SQL_FUNCTIONS.filter(f => f && f.startsWith(tokenUpper) && f !== tokenUpper).forEach(f => items.push({text: f, type: 'func'}));
-            // 表名
-            _acTableNames.filter(t => t && t.toUpperCase().startsWith(tokenUpper) && t.toUpperCase() !== tokenUpper).forEach(t => items.push({text: t, type: 'tbl'}));
-            // 字段：优先使用最后一个 FROM/JOIN 表（支持别名后续通过 t. 触发）
-            var preferredTbl = getPreferredTable(before);
-            if (preferredTbl) {
-                var cols2 = _acColumns[preferredTbl] || [];
-                if (!cols2.length) {
-                    loadTableColumns(preferredTbl).then(function() {
-                        var newCols = (_acColumns[preferredTbl] || []).filter(function(c) { return c && c.toUpperCase().startsWith(tokenUpper); });
-                        newCols.forEach(function(c) { items.push({ text: c, type: 'col' }); });
-                        if (!items.length) { closeAutocomplete(); return; }
-                        _acItems = items.slice(0, 10);
+            if (wantsTables) {
+                const prefixUpper = tokenUpper;
+                _acTableNames
+                    .filter(function(t) {
+                        const u = (t || '').toUpperCase();
+                        return prefixUpper ? u.startsWith(prefixUpper) : true;
+                    })
+                    .slice(0, 30)
+                    .forEach(function(t) { items.push(__makeItem(t, 'tbl', t + ' ')); });
+            }
+
+            if (wantsColumns) {
+                const refs = extractTableRefs(beforeNoToken);
+                const preferredTbl = getPreferredTable(beforeNoToken);
+                const prefixUpper = tokenUpper;
+                const addColsFor = function(tableName, qualifierText, maxCount) {
+                    const cols = _acColumns[tableName] || [];
+                    const renderCols = function(colList) {
+                        if (reqId !== _acReqSeq) return;
+                        (colList || []).filter(function(c) {
+                            const u = (c || '').toUpperCase();
+                            return prefixUpper ? u.startsWith(prefixUpper) : true;
+                        }).slice(0, maxCount).forEach(function(c) {
+                            const label = qualifierText ? (qualifierText + '.' + c) : c;
+                            const insertText = qualifierText ? (qualifierText + '.' + c) : c;
+                            items.push(__makeItem(label, 'col', insertText));
+                        });
+                        _acItems = __dedupeItems(items).slice(0, 30);
+                        if (!_acItems.length) { closeAutocomplete(); return; }
                         _acSelected = 0;
                         renderAutocomplete();
-                    });
+                    };
+                    if (!cols.length) {
+                        loadTableColumns(tableName).then(function(loaded) { renderCols(loaded); });
+                        return false;
+                    }
+                    renderCols(cols);
+                    return true;
+                };
+
+                if (!prefixUpper) items.push(__makeItem('*', 'col', '*'));
+
+                if (preferredTbl) addColsFor(preferredTbl, '', 20);
+
+                const extras = refs.filter(function(r) { return r && r.table && r.table !== preferredTbl; });
+                extras.slice(0, 3).forEach(function(r) {
+                    const q = r.alias || r.table;
+                    if (q) items.push(__makeItem(q + '.', 'tbl', q + '.'));
+                });
+
+                extras.slice(0, 2).forEach(function(r) {
+                    const q = r.alias || r.table;
+                    if (r.table) addColsFor(r.table, q || '', 8);
+                });
+            }
+
+            if (!wantsTables && !wantsColumns) {
+                if (!rawToken || rawToken.length < 1) { closeAutocomplete(); return; }
+            }
+
+            SQL_KEYWORDS
+                .filter(function(k) {
+                    const u = (k || '').toUpperCase();
+                    return tokenUpper ? (u.startsWith(tokenUpper) && u !== tokenUpper) : false;
+                })
+                .slice(0, 20)
+                .forEach(function(k) { items.push(__makeItem(k, 'key', k + ' ')); });
+
+            SQL_FUNCTIONS
+                .filter(function(f) {
+                    const u = (f || '').toUpperCase();
+                    return tokenUpper ? (u.startsWith(tokenUpper) && u !== tokenUpper) : false;
+                })
+                .slice(0, 20)
+                .forEach(function(f) { items.push(__makeItem(f, 'func', f)); });
+
+            if (!wantsTables) {
+                _acTableNames
+                    .filter(function(t) {
+                        const u = (t || '').toUpperCase();
+                        return tokenUpper ? (u.startsWith(tokenUpper) && u !== tokenUpper) : false;
+                    })
+                    .slice(0, 20)
+                    .forEach(function(t) { items.push(__makeItem(t, 'tbl', t)); });
+            }
+
+            if (!wantsColumns) {
+                const preferredTbl = getPreferredTable(beforeNoToken);
+                if (preferredTbl && rawToken) {
+                    const cols2 = _acColumns[preferredTbl] || [];
+                    const renderCols = function(colList) {
+                        if (reqId !== _acReqSeq) return;
+                        (colList || []).filter(function(c) { return c && c.toUpperCase().startsWith(tokenUpper); })
+                            .slice(0, 12)
+                            .forEach(function(c) { items.push(__makeItem(c, 'col', c)); });
+                        _acItems = __dedupeItems(items).slice(0, 30);
+                        if (!_acItems.length) { closeAutocomplete(); return; }
+                        _acSelected = 0;
+                        renderAutocomplete();
+                    };
+                    if (!cols2.length) {
+                        loadTableColumns(preferredTbl).then(function(loaded) { renderCols(loaded); });
+                        return;
+                    }
+                    renderCols(cols2);
                     return;
                 }
-                cols2.filter(function(c) { return c && c.toUpperCase().startsWith(tokenUpper); }).forEach(function(c) { items.push({ text: c, type: 'col' }); });
             }
-            // 历史
-            _acHistory.filter(h => h && h.toUpperCase().startsWith(tokenUpper)).slice(0, 5).forEach(h => items.push({text: h, type: 'his'}));
-            
-            if (items.length === 0) { closeAutocomplete(); return; }
-            
-            _acItems = items.slice(0, 10);
+
+            if (rawToken) {
+                _acHistory.filter(function(h) { return h && h.toUpperCase().startsWith(tokenUpper); }).slice(0, 5)
+                    .forEach(function(h) { items.push(__makeItem(h, 'his', h)); });
+            }
+
+            const finalItems = __dedupeItems(items).slice(0, 30);
+            if (!finalItems.length) { closeAutocomplete(); return; }
+            _acItems = finalItems;
             _acSelected = 0;
             renderAutocomplete();
         }
@@ -844,7 +1108,7 @@
             el.innerHTML = _acItems.map((item, i) => 
                 `<div class="sql-autocomplete-item ${i === _acSelected ? 'selected' : ''}" data-index="${i}">
                     <span class="type-tag ${item.type}">${item.type.toUpperCase()}</span>
-                    <span>${item.text}</span>
+                    <span>${item.label}</span>
                 </div>`
             ).join('');
             el.style.display = 'block';
@@ -860,14 +1124,12 @@
             if (!item) return;
             const textarea = $('sqlEditor');
             const text = textarea.value;
-            const pos = textarea.selectionStart;
-            const before = text.substring(0, pos);
-            const wordMatch = before.match(/[\w`*.]+$/);
-            if (wordMatch) {
-                const start = pos - wordMatch[0].length;
-                textarea.value = text.substring(0, start) + item.text + text.substring(pos);
-                textarea.selectionStart = textarea.selectionEnd = start + item.text.length;
-            }
+            const start = Math.max(0, Math.min(text.length, _acReplaceStart || 0));
+            const end = Math.max(0, Math.min(text.length, _acReplaceEnd || start));
+            const insert = String(item.insertText || item.label || '');
+            textarea.value = text.substring(0, start) + insert + text.substring(end);
+            const newPos = start + insert.length;
+            textarea.selectionStart = textarea.selectionEnd = newPos;
             closeAutocomplete();
             textarea.focus();
         }
@@ -1018,6 +1280,7 @@
             $('sqlEditor').value = sql;
             $('sqlEditorPanel').classList.add('open');
             $('sqlToggle').classList.add('open');
+            saveDbUiState({ sql_open: true, sql: String(sql || '') });
             executeQuery();
         }
         
@@ -1058,6 +1321,8 @@
             $('resultsContent').style.display = tab === 'results' ? 'block' : 'none';
             $('schemaPanel').style.display = tab === 'schema' ? 'block' : 'none';
             if (tab === 'schema' && currentTable) loadTableSchema();
+            currentResultsTab = tab;
+            saveDbUiState({ tab: tab });
         }
         
         async function loadTableSchema() {
@@ -1243,7 +1508,18 @@
         }
         
         document.addEventListener('keydown', e => { if ((e.ctrlKey||e.metaKey) && e.key==='Enter') executeQuery(); });
-        loadConnections().then(loadTree).then(() => { updateAutocompleteData(); initAutocomplete(); });
+        if ($('sqlEditor')) {
+            $('sqlEditor').addEventListener('input', function() {
+                saveDbUiState({ sql: String($('sqlEditor').value || '') }, false);
+            });
+            $('sqlEditor').addEventListener('blur', function() {
+                saveDbUiState({ sql: String($('sqlEditor').value || '') }, true);
+            });
+        }
+        Promise.all([loadDbUiState(), loadConnections()])
+            .then(loadTree)
+            .then(() => { updateAutocompleteData(); initAutocomplete(); })
+            .then(() => { applyDbUiState(); });
     </script>
 </body>
 </html>

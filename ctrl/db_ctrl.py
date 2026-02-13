@@ -17,6 +17,7 @@ db_bp = Blueprint('db', __name__)
 DB_CONFIG_DIR = os.path.expanduser('~/.local/clawos')
 os.makedirs(DB_CONFIG_DIR, exist_ok=True)
 DB_CONFIG_FILE = os.path.join(DB_CONFIG_DIR, 'db_connections.json')
+UI_STATE_KEY = '__ui_state__'
 
 # 迁移旧数据
 OLD_CONFIG_DIR = os.path.expanduser('~/.local/share/clawos')
@@ -66,6 +67,9 @@ def _save_connections(conns):
     """保存数据库连接."""
     with open(DB_CONFIG_FILE, 'w') as f:
         json.dump(conns, f, indent=2)
+
+def _is_meta_key(k):
+    return isinstance(k, str) and k.startswith('__')
 
 
 def _get_engine(conn):
@@ -125,6 +129,8 @@ def api_db_connections():
     conns = _load_connections()
     result = []
     for k, v in conns.items():
+        if _is_meta_key(k):
+            continue
         v_copy = v.copy()
         v_copy['id'] = k
         if 'password' in v_copy:
@@ -505,7 +511,7 @@ def api_db_state():
     if request.method == 'POST':
         data = request.get_json(silent=True) or {}
         for conn_id, state in data.items():
-            if conn_id in conns:
+            if conn_id in conns and not _is_meta_key(conn_id):
                 # 更新连接配置中的状态
                 conns[conn_id]['state'] = state
         _save_connections(conns)
@@ -514,8 +520,57 @@ def api_db_state():
     # GET
     state = {}
     for conn_id, conn in conns.items():
+        if _is_meta_key(conn_id):
+            continue
         if 'state' in conn:
             state[conn_id] = conn['state']
+    return api_ok(state)
+
+@db_bp.route('/api/db/ui-state', methods=['GET', 'POST', 'DELETE'])
+def api_db_ui_state():
+    if request.method == 'DELETE':
+        conns = _load_connections()
+        if UI_STATE_KEY in conns:
+            del conns[UI_STATE_KEY]
+            _save_connections(conns)
+        return api_ok({'deleted': True})
+
+    conns = _load_connections()
+    if request.method == 'POST':
+        data = request.get_json(silent=True) or {}
+        if not isinstance(data, dict):
+            return api_error('Invalid payload')
+
+        prev = conns.get(UI_STATE_KEY) if isinstance(conns.get(UI_STATE_KEY), dict) else {}
+        merged = dict(prev)
+        allow = {
+            'conn_id': str,
+            'db': str,
+            'table': str,
+            'sql': str,
+            'sql_open': bool,
+            'tab': str,
+        }
+        for k, t in allow.items():
+            if k not in data:
+                continue
+            v = data.get(k)
+            if t is bool:
+                merged[k] = bool(v)
+            elif isinstance(v, str):
+                merged[k] = v
+            else:
+                merged[k] = ''
+
+        if isinstance(merged.get('sql'), str) and len(merged['sql']) > 20000:
+            merged['sql'] = merged['sql'][:20000]
+        merged['updated_at'] = datetime.utcnow().isoformat(timespec='seconds') + 'Z'
+
+        conns[UI_STATE_KEY] = merged
+        _save_connections(conns)
+        return api_ok({'saved': True, 'state': merged})
+
+    state = conns.get(UI_STATE_KEY) if isinstance(conns.get(UI_STATE_KEY), dict) else {}
     return api_ok(state)
 
 
@@ -526,6 +581,8 @@ def api_db_tree():
     result = []
     
     for conn_id, conn in conns.items():
+        if _is_meta_key(conn_id):
+            continue
         try:
             from sqlalchemy import create_engine, text, inspect
             from sqlalchemy.engine.url import make_url
