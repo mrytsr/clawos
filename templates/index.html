@@ -67,6 +67,50 @@
             position: sticky;
             top: 0;
             z-index: 100;
+            gap: 8px;
+        }
+        .breadcrumb-btn-group {
+            display: flex;
+            align-items: center;
+            gap: 2px;
+            flex-shrink: 0;
+        }
+        .crumb-btn {
+            width: 22px;
+            height: 22px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+        .crumb-btn:hover {
+            background: #e8ebee;
+        }
+        .crumb-btn[title="创建"] {
+            background: #2da44e;
+            color: white;
+            font-weight: bold;
+            font-size: 16px;
+        }
+        .crumb-btn[title="创建"]:hover {
+            background: #2c974b;
+        }
+        .crumb-btn[title="回收站"] {
+            color: #dc3545;
+        }
+        .breadcrumb-fixed a {
+            color: #0969da;
+            text-decoration: none;
+        }
+        .breadcrumb-fixed a:hover {
+            text-decoration: underline;
+        }
+        .breadcrumb-fixed a[title="回收站"] {
+            color: #dc3545;
         }
         .breadcrumb-left {
             display: flex;
@@ -77,6 +121,7 @@
             flex: 1;
             scroll-behavior: smooth;
             white-space: nowrap;
+            min-width: 0;
         }
         /* 隐藏滚动条但保持滚动功能 */
         .breadcrumb-left::-webkit-scrollbar {
@@ -88,12 +133,22 @@
         .breadcrumb-left::-webkit-scrollbar-track {
             background: transparent;
         }
-        .breadcrumb a {
+        .crumb-name {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            color: #24292f;
+        }
+        .crumb-count {
+            color: #57606a;
+            font-size: 12px;
+        }
+        .breadcrumb-left a {
             color: #0969da;
             text-decoration: none;
             flex-shrink: 0;
         }
-        .breadcrumb a:hover {
+        .breadcrumb-left a:hover {
             text-decoration: underline;
         }
         .crumb-sep {
@@ -915,24 +970,26 @@
             </div>
         </div>
         <div class="breadcrumb">
-            <!-- 嵌入式上传按钮 -->
-            <form method="post" action="#" enctype="multipart/form-data" id="uploadForm">
-                <input type="file" name="file" id="fileInputInline" onchange="handleFileSelect(event)" style="display: none;">
-                <div class="upload-btn-inline" onclick="openCreateMenuDrawer()" title="创建">+</div>
-            </form>
-
+            <!-- 按钮组：新建、回收站、主页 -->
+            <div class="breadcrumb-btn-group">
+                <form method="post" action="#" enctype="multipart/form-data" id="uploadForm" style="margin:0;">
+                    <input type="file" name="file" id="fileInputInline" onchange="handleFileSelect(event)" style="display:none;">
+                    <div class="crumb-btn" onclick="openCreateMenuDrawer()" title="创建">+</div>
+                </form>
+                <a href="#" onclick="openTrashDrawer(); return false;" title="回收站" class="crumb-btn">🗑️</a>
+                <a :href="browseHref('')" @click="onBreadcrumbClick('', $event)" title="根目录" class="crumb-btn">🏠</a>
+            </div>
+            
+            <!-- 滚动区域 -->
             <div class="breadcrumb-left">
-                <a href="#" onclick="openTrashDrawer(); return false;" style="color: #dc3545; text-decoration: none;" title="回收站">🗑️</a>
-                <a :href="browseHref('')" @click="onBreadcrumbClick('', $event)" style="color: #ffc107; text-decoration: none;" title="根目录">🏠</a>
-                <span v-if="breadcrumbs.length" class="crumb-sep">/</span>
                 <template v-if="breadcrumbs.length">
                     <template v-for="(crumb, idx) in breadcrumbs" :key="crumb.path">
                         <template v-if="idx === breadcrumbs.length - 1">
-                            <strong>
+                            <span class="crumb-name">
                                 {{ crumb.name }}
+                                <span class="crumb-count">({{ items.length }})</span>
                                 <button type="button" class="menu-btn breadcrumb-folder-menu-btn" onclick="openCurrentFolderMenu(event)" aria-label="打开当前文件夹菜单" title="菜单"><span>⋮</span></button>
-                                ({{ items.length }})
-                            </strong>
+                            </span>
                         </template>
                         <template v-else>
                             <a :href="browseHref(crumb.path)" @click="onBreadcrumbClick(crumb.path, $event)">{{ crumb.name }}</a>
@@ -941,8 +998,10 @@
                     </template>
                 </template>
                 <template v-else>
-                    <button type="button" class="menu-btn breadcrumb-folder-menu-btn" onclick="openCurrentFolderMenu(event)" aria-label="打开当前文件夹菜单" title="菜单"><span>⋮</span></button>
-                    <strong>({{ items.length }})</strong>
+                    <span class="crumb-name">
+                        <span class="crumb-count">({{ items.length }})</span>
+                        <button type="button" class="menu-btn breadcrumb-folder-menu-btn" onclick="openCurrentFolderMenu(event)" aria-label="打开当前文件夹菜单" title="菜单"><span>⋮</span></button>
+                    </span>
                 </template>
             </div>
             <div class="breadcrumb-right">
