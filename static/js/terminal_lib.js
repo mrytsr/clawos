@@ -3,14 +3,14 @@
  * 
  * 使用方式:
  *   1. 在页面引入此脚本
- *   2. 调用 TerminalLib.open('/path/to/dir') 打开终端
+ *   2. 调用 TerminalLib.open('/path/to/dir', 'filename.ext') 打开终端
  * 
  * API:
- *   TerminalLib.open(path)    - 打开终端（可选指定目录）
- *   TerminalLib.close()       - 关闭终端
- *   TerminalLib.send(cmd)     - 发送命令
- *   TerminalLib.focus()       - 聚焦终端
- *   TerminalLib.isOpen()      - 检查是否打开
+ *   TerminalLib.open(path, file)  // 打开终端，可选自动执行文件
+ *   TerminalLib.close()           // 关闭终端
+ *   TerminalLib.send(cmd)         // 发送命令
+ *   TerminalLib.focus()           // 聚焦终端
+ *   TerminalLib.isOpen()          // 检查是否打开
  */
 
 // 动态加载 xterm 样式
@@ -31,6 +31,17 @@ var TerminalLib = (function() {
     var cwd = '/root/.openclaw/workspace';
     var ctrlMode = false;
     var altMode = false;
+    var inputBuffer = '';
+    var isReady = false;
+    var autoRunFile = null;
+
+    var EXECUTORS = {
+        '.py': 'python3 ',
+        '.js': 'node ',
+        '.sh': 'bash ',
+        '.bash': 'bash ',
+        '.zsh': 'zsh '
+    };
 
     function getComponentHTML() {
         return '\
@@ -45,7 +56,7 @@ var TerminalLib = (function() {
         <div class="term-lib-toolbar">\
             <button class="term-lib-btn" onclick="TerminalLib.send(\'clear\\r\')">清屏</button>\
             <button class="term-lib-btn" onclick="TerminalLib.focus()">聚焦</button>\
-            <button class="term-lib-btn" onclick="TerminalLib.toggleKeyboard()">⌨️ 键盘</button>\
+            <button class="term-lib-btn" onclick="TerminalLib.toggleKeyboard()">⌨️</button>\
         </div>\
         <div class="term-lib-keyboard" id="termLibKeyboard">\
             <div class="term-key-row">\
@@ -69,44 +80,21 @@ var TerminalLib = (function() {
     </div>\
 </div>\
 <style>\
-.term-lib-component {\
-    position: fixed; inset: 0; z-index: 2000;\
-    display: flex; align-items: center; justify-content: center;\
-}\
+.term-lib-component { position: fixed; inset: 0; z-index: 2000; display: flex; align-items: center; justify-content: center; }\
 .term-lib-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.6); }\
-.term-lib-drawer {\
-    position: relative; width: 90%; max-width: 900px;\
-    height: 60vh; max-height: 500px;\
-    background: #000; border-radius: 12px;\
-    display: flex; flex-direction: column;\
-    overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.6);\
-}\
-.term-lib-header {\
-    padding: 10px 14px; background: #1a1a2e;\
-    display: flex; align-items: center; justify-content: space-between;\
-}\
+.term-lib-drawer { position: relative; width: 90%; max-width: 900px; height: 60vh; max-height: 500px; background: #000; border-radius: 12px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.6); }\
+.term-lib-header { padding: 10px 14px; background: #1a1a2e; display: flex; align-items: center; justify-content: space-between; }\
 .term-lib-path { color: #888; font-size: 13px; font-family: monospace; }\
-.term-lib-close {\
-    width: 28px; height: 28px; border-radius: 6px;\
-    background: #e94560; border: none; color: #fff; cursor: pointer; font-size: 18px;\
-}\
+.term-lib-close { width: 28px; height: 28px; border-radius: 6px; background: #e94560; border: none; color: #fff; cursor: pointer; font-size: 18px; }\
+.term-lib-close:hover { background: #ff6b6b; }\
 .term-lib-container { flex: 1; padding: 8px; overflow: hidden; }\
 .term-lib-toolbar { padding: 8px 12px; background: #1a1a2e; display: flex; gap: 8px; }\
-.term-lib-btn {\
-    padding: 6px 12px; border-radius: 6px;\
-    background: #0f3460; border: none; color: #ccc; cursor: pointer; font-size: 12px;\
-}\
+.term-lib-btn { padding: 6px 12px; border-radius: 6px; background: #0f3460; border: none; color: #ccc; cursor: pointer; font-size: 12px; }\
 .term-lib-btn:hover { background: #16213e; }\
-.term-lib-keyboard {\
-    padding: 8px 12px; background: #1a1a2e; border-top: 1px solid #333;\
-    display: none; flex-direction: column; gap: 6px;\
-}\
+.term-lib-keyboard { padding: 8px 12px; background: #1a1a2e; border-top: 1px solid #333; display: none; flex-direction: column; gap: 6px; }\
 .term-lib-keyboard.visible { display: flex; }\
 .term-key-row { display: flex; gap: 6px; justify-content: center; }\
-.term-key {\
-    padding: 8px 12px; min-width: 40px; border-radius: 6px;\
-    background: #0f3460; border: none; color: #ccc; cursor: pointer; font-size: 12px;\
-}\
+.term-key { padding: 8px 12px; min-width: 40px; border-radius: 6px; background: #0f3460; border: none; color: #ccc; cursor: pointer; font-size: 12px; }\
 .term-key:hover { background: #16213e; }\
 .term-key.active { background: #0969da !important; color: #fff; }\
 </style>';
@@ -120,7 +108,6 @@ var TerminalLib = (function() {
         div.innerHTML = getComponentHTML();
         document.body.appendChild(div);
 
-        // ESC 关闭
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') {
                 var el = document.getElementById('term-lib-component');
@@ -142,9 +129,31 @@ var TerminalLib = (function() {
         });
 
         s.on('connect', function() {
+            isReady = false;
             s.emit('create_terminal', { cwd: cwd });
             if (term) term.write('\r\n\x1b[32m*** 已连接 ***\x1b[0m\r\n');
             if (fitAddon) fitAddon.fit();
+
+            setTimeout(function() {
+                if (socket && socket.connected && cwd) {
+                    socket.emit('input', { input: 'cd ' + cwd + '\r' });
+
+                    setTimeout(function() {
+                        // 执行自动运行的文件
+                        if (autoRunFile) {
+                            var executor = getExecutor(autoRunFile);
+                            var cmd = executor ? executor + autoRunFile : autoRunFile;
+                            if (term) term.write('\r\n\x1b[33m> 执行: ' + cmd + '\x1b[0m\r\n');
+                            socket.emit('input', { input: cmd + '\r' });
+                            autoRunFile = null;
+                        }
+                        isReady = true;
+                        if (term) term.focus();
+                    }, 300);
+                } else {
+                    isReady = true;
+                }
+            }, 500);
         });
 
         s.on('output', function(data) {
@@ -180,7 +189,29 @@ var TerminalLib = (function() {
         socket = createSocket();
 
         term.onData(function(data) {
+            if (!isReady) return;
             if (socket && socket.connected) {
+                // 检测回车时自动添加执行器
+                if (data === '\r' || data === '\n') {
+                    var executor = getExecutor(inputBuffer);
+                    if (executor) {
+                        var backspaces = '';
+                        for (var i = 0; i < inputBuffer.length; i++) {
+                            backspaces += '\x7f';
+                        }
+                        socket.emit('input', { input: backspaces + executor + inputBuffer + '\r' });
+                        inputBuffer = '';
+                        return;
+                    }
+                    inputBuffer = '';
+                } else if (data === '\x7f' || data === '\x08') {
+                    inputBuffer = inputBuffer.slice(0, -1);
+                } else if (data === '\x15') {
+                    inputBuffer = '';
+                } else if (data.length === 1 && data >= ' ') {
+                    inputBuffer += data;
+                }
+
                 socket.emit('input', { input: applyModifiers(data) });
             }
         });
@@ -190,6 +221,22 @@ var TerminalLib = (function() {
                 socket.emit('resize', { cols: size.cols, rows: size.rows });
             }
         });
+    }
+
+    function getExecutor(filename) {
+        if (!filename) return null;
+        var basename = filename;
+        var lastSlash = filename.lastIndexOf('/');
+        if (lastSlash >= 0) {
+            basename = filename.substring(lastSlash + 1);
+        }
+        var lastDot = basename.lastIndexOf('.');
+        var ext = '';
+        if (lastDot > 0) {
+            ext = basename.substring(lastDot).toLowerCase();
+        }
+        if (!ext) return null;
+        return EXECUTORS[ext] || null;
     }
 
     function keySeq(key) {
@@ -234,112 +281,93 @@ var TerminalLib = (function() {
         if (altBtn) altBtn.classList.toggle('active', altMode);
     }
 
-    function open(path) {
-        if (isOpen) return;
-        init();
-
-        cwd = path || cwd;
-        document.getElementById('term-lib-component').style.display = 'flex';
-        isOpen = true;
-
-        // 加载 xterm 库
-        if (typeof Terminal === 'undefined' || typeof FitAddon === 'undefined') {
-            var loaded = { xterm: false, fit: false };
-            function check() {
-                if (loaded.xterm && loaded.fit) doOpen();
-            }
-            var s1 = document.createElement('script');
-            s1.src = 'https://unpkg.com/xterm@5.3.0/lib/xterm.js';
-            s1.onload = function() { loaded.xterm = true; check(); };
-            document.body.appendChild(s1);
-            var s2 = document.createElement('script');
-            s2.src = 'https://unpkg.com/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.js';
-            s2.onload = function() { loaded.fit = true; check(); };
-            document.body.appendChild(s2);
-        } else {
-            doOpen();
-        }
-    }
-
-    function doOpen() {
-        document.getElementById('termLibPath').textContent = cwd || '~';
-
-        if (!term) {
-            initTerm();
-        } else if (socket && !socket.connected) {
-            socket.connect();
-        }
-
-        setTimeout(function() {
-            if (socket && socket.connected && cwd) {
-                socket.emit('input', { input: 'cd ' + cwd + '\r' });
-            }
-        }, 300);
-
-        setTimeout(function() {
-            if (term) {
-                term.focus();
-                if (fitAddon) fitAddon.fit();
-            }
-        }, 200);
-    }
-
-    function close() {
-        if (!isOpen) return;
-        document.getElementById('term-lib-component').style.display = 'none';
-        isOpen = false;
-    }
-
-    function send(cmd) {
-        if (term && socket && socket.connected) {
-            socket.emit('input', { input: cmd });
-            term.focus();
-        }
-    }
-
-    function focus() {
-        if (term) term.focus();
-    }
-
-    function toggleKeyboard() {
-        var kb = document.getElementById('termLibKeyboard');
-        kb.classList.toggle('visible');
-    }
-
-    function handleKey(e, key) {
-        e.preventDefault();
-        e.stopPropagation();
-
-        if (key === 'ctrl') {
-            ctrlMode = !ctrlMode;
-            if (ctrlMode && altMode) altMode = false;
-            syncButtons();
-            focus();
-            return;
-        }
-
-        if (key === 'alt') {
-            altMode = !altMode;
-            if (altMode && ctrlMode) ctrlMode = false;
-            syncButtons();
-            focus();
-            return;
-        }
-
-        var seq = keySeq(key);
-        if (seq) {
-            send(seq);
-        }
-        focus();
-    }
-
     return {
-        open: open,
-        close: close,
-        send: send,
-        focus: focus,
-        toggleKeyboard: toggleKeyboard,
-        handleKey: handleKey,
-        isOpen: function() { return isOpen; }
+        open: function(path, file) {
+            if (isOpen) return;
+            init();
+
+            cwd = path || cwd;
+            autoRunFile = file || null;
+            inputBuffer = '';
+            isReady = false;
+
+            document.getElementById('term-lib-component').style.display = 'flex';
+            isOpen = true;
+
+            if (typeof Terminal === 'undefined' || typeof FitAddon === 'undefined') {
+                var loaded = { xterm: false, fit: false };
+                function check() {
+                    if (loaded.xterm && loaded.fit) {
+                        initTerm();
+                    }
+                }
+                var s1 = document.createElement('script');
+                s1.src = 'https://unpkg.com/xterm@5.3.0/lib/xterm.js';
+                s1.onload = function() { loaded.xterm = true; check(); };
+                document.body.appendChild(s1);
+                var s2 = document.createElement('script');
+                s2.src = 'https://unpkg.com/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.js';
+                s2.onload = function() { loaded.fit = true; check(); };
+                document.body.appendChild(s2);
+            } else {
+                initTerm();
+            }
+        },
+
+        close: function() {
+            if (!isOpen) return;
+            document.getElementById('term-lib-component').style.display = 'none';
+            isOpen = false;
+            isReady = false;
+            inputBuffer = '';
+            autoRunFile = null;
+        },
+
+        send: function(cmd) {
+            if (term && socket && socket.connected) {
+                socket.emit('input', { input: cmd });
+                term.focus();
+            }
+        },
+
+        focus: function() {
+            if (term) term.focus();
+        },
+
+        toggleKeyboard: function() {
+            var kb = document.getElementById('termLibKeyboard');
+            kb.classList.toggle('visible');
+        },
+
+        handleKey: function(e, key) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            if (key === 'ctrl') {
+                ctrlMode = !ctrlMode;
+                if (ctrlMode && altMode) altMode = false;
+                syncButtons();
+                focus();
+                return;
+            }
+
+            if (key === 'alt') {
+                altMode = !altMode;
+                if (altMode && ctrlMode) ctrlMode = false;
+                syncButtons();
+                focus();
+                return;
+            }
+
+            var seq = keySeq(key);
+            if (seq) {
+                send(seq);
+            }
+            focus();
+        },
+
+        isOpen: function() {
+            return isOpen;
+        }
     };
 })();

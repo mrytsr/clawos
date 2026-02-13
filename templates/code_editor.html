@@ -204,7 +204,7 @@
         </div>
         <div class="header-buttons">
             <button class="editor-btn" onclick="openAiPanel()" title="AI 生成代码">✨</button>
-            <button class="editor-btn" onclick="TerminalLib.open('{{ current_dir }}')" title="终端">📺</button>
+            <button class="editor-btn" onclick="TerminalLib.open('{{ current_dir }}', '{{ file_path }}')" title="终端">📺</button>
             <button class="editor-btn" onclick="undo()">↩</button>
             <button class="editor-btn" onclick="redo()">↪</button>
             <button class="editor-btn" onclick="saveFile()">💾</button>
