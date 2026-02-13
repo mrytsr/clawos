@@ -8,8 +8,8 @@ import sys
 import os
 
 # 添加 clawos 路径
-sys.path.insert(0, '/home/tjx/clawos')
-os.chdir('/home/tjx/clawos')
+sys.path.insert(0, os.path.expanduser('~/clawos'))
+os.chdir(os.path.expanduser('~/clawos'))
 
 import subprocess
 from datetime import datetime, timedelta
