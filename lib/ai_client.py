@@ -45,6 +45,11 @@ PROVIDOR_MODELS = {
         "api_key": "sk-api-HsNP7dcbx-HByBD3NlEnDNS8KXfBZ8em3V0Fz4YRFWqzXrEiQISitCK8cNkrHkvsFE8mCq5iPfjcsRDM20AWpZ0PbdogIvthaRVwh-syzz0AhNmhFlbNQ6k",
         "models": ["MiniMax-M2.1", "MiniMax-M2"],
     },
+    "mydamoxing": {
+        "base_url": "https://mydamoxing.cn/v1",
+        "api_key": "sk-CxuRNVXijhvTniMyzwA74wxB4VuZ9Auoq6QWnxgMqJ6KKiTm",
+        "models": ["MiniMax-M2.5"],
+    },
 }
 
 
@@ -120,6 +125,15 @@ class AiClient:
                 api_key=self.api_key,
                 base_url=self.base_url,
             )
+        elif provider == 'mydamoxing':
+            if not self.api_key:
+                raise ValueError("MYDAMOXING_API_KEY 未配置")
+            if not self.base_url:
+                raise ValueError("MYDAMOXING_BASE_URL 未配置")
+            self.client = OpenAI(
+                api_key=self.api_key,
+                base_url=self.base_url,
+            )
     
     def _check_feature_support(self, feature_name):
         """检查当前提供商是否支持特定功能"""
@@ -155,6 +169,8 @@ class AiClient:
             return self._chat_realmrouter(messages, **kwargs)
         elif self.provider == 'minimax':
             return self._chat_minimax(messages, **kwargs)
+        elif self.provider == 'mydamoxing':
+            return self._chat_mydamoxing(messages, **kwargs)
     
     def _chat_deepseek(self, messages, **kwargs):
         """DeepSeek API 调用"""
@@ -316,6 +332,22 @@ class AiClient:
             print(f"MiniMax API Error: {e}")
             raise e
     
+    def _chat_mydamoxing(self, messages, **kwargs):
+        stream = kwargs.pop('stream', False)
+        temperature = kwargs.pop('temperature', 0.7)
+        try:
+            response = self.client.chat.completions.create(
+                model=self.model or 'MiniMax-M2.5',
+                messages=messages,
+                stream=stream,
+                temperature=temperature,
+                **kwargs
+            )
+            return response
+        except Exception as e:
+            print(f"MyDamoxing API Error: {e}")
+            raise e
+    
     def ask(self, question, system_prompt="You are a helpful assistant."):
         """
         简单的问答接口
@@ -346,6 +378,8 @@ class AiClient:
             elif self.provider == 'realmrouter':
                 return response['choices'][0]['message']['content']
             elif self.provider == 'minimax':
+                return response.choices[0].message.content
+            elif self.provider == 'mydamoxing':
                 return response.choices[0].message.content
                 
         except Exception as e:
