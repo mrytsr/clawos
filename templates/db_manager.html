@@ -327,11 +327,11 @@
                     <div class="sql-autocomplete" id="sqlAutocomplete" style="display:none;"></div>
                 </div>
                 <div class="sql-toolbar">
-                    <button onclick="executeQuery()">▶ 执行</button>
-                    <button class="secondary" onclick="clearEditor()">清空</button>
-                    <button class="secondary" onclick="openSqlHistory()">历史</button>
-                    <button class="secondary" onclick="sqlHistoryPrev()">上一条</button>
-                    <button class="secondary" onclick="sqlHistoryNext()">下一条</button>
+                    <button onclick="executeQuery()" title="执行 (Ctrl+Enter)">▶</button>
+                    <button class="secondary" onclick="clearEditor()" title="清空">🗑️</button>
+                    <button class="secondary" onclick="openSqlHistory()" title="历史">📜</button>
+                    <button class="secondary" onclick="sqlHistoryPrev()" title="上一条">⏮</button>
+                    <button class="secondary" onclick="sqlHistoryNext()" title="下一条">⏭</button>
                 </div>
                 <div class="ai-prompt-row">
                     <input type="text" id="aiPromptInput" class="ai-prompt-input"

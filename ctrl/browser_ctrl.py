@@ -152,6 +152,35 @@ def api_browse_state():
         return jsonify({'success': False, 'error': {'message': err}}), status
 
     items = file_utils.list_directory(full_dir)
+    
+    # 加载文件打开方式配置
+    open_config = _load_file_open_config()
+    ext_to_group = {
+        '.jpg': 'image', '.jpeg': 'image', '.png': 'image', '.gif': 'image',
+        '.bmp': 'image', '.webp': 'image', '.avif': 'image',
+        '.xlsx': 'excel', '.xls': 'excel', '.xlsm': 'excel', '.xlsb': 'excel',
+        '.docx': 'word', '.doc': 'word',
+        '.pptx': 'ppt', '.ppt': 'ppt',
+        '.pdf': 'pdf',
+        '.zip': 'archive', '.rar': 'archive', '.7z': 'archive',
+        '.tar': 'archive', '.gz': 'archive', '.bz2': 'archive',
+        '.tar.gz': 'archive', '.tar.bz2': 'archive', '.tar.xz': 'archive',
+        '.py': 'code', '.js': 'code', '.ts': 'code', '.jsx': 'code', '.tsx': 'code',
+        '.vue': 'code', '.go': 'code', '.rs': 'code', '.java': 'code',
+        '.c': 'code', '.cpp': 'code', '.h': 'code', '.css': 'code',
+        '.scss': 'code', '.less': 'code', '.xml': 'code',
+        '.json': 'json', '.jsonc': 'json',
+        '.yaml': 'yaml', '.yml': 'yaml', '.toml': 'yaml', '.ini': 'yaml',
+        '.conf': 'yaml', '.env': 'yaml',
+        '.md': 'markdown', '.markdown': 'markdown',
+        '.mp4': 'video', '.webm': 'video', '.mov': 'video', '.avi': 'video',
+        '.mkv': 'video', '.wmv': 'video', '.flv': 'video',
+        '.mp3': 'audio', '.wav': 'audio', '.flac': 'audio', '.aac': 'audio',
+        '.ogg': 'audio', '.m4a': 'audio', '.wma': 'audio',
+        '.txt': 'text', '.log': 'text', '.sh': 'text', '.bat': 'text', '.ps1': 'text',
+        '.html': 'web', '.htm': 'web', '.css': 'web', '.svg': 'web',
+    }
+    
     items_rel = []
     item_names = set()
     for it in items:
@@ -163,6 +192,13 @@ def api_browse_state():
         rel_path = path_utils.get_relative_path(p, root_dir)
         normalized = dict(it)
         normalized['path'] = rel_path
+        
+        # 添加打开方式
+        if not it.get('is_dir'):
+            ext = os.path.splitext(name)[1].lower() if name else ''
+            group = ext_to_group.get(ext, 'text')
+            normalized['open_method'] = open_config.get(group, 'browser')
+        
         items_rel.append(normalized)
 
     current_dir_rel = path_utils.get_relative_path(full_dir, root_dir)
@@ -226,6 +262,37 @@ def api_browse_files():
         return jsonify({'success': False, 'error': {'message': err}}), 400
 
     items = file_utils.list_directory(full_dir)
+    
+    # 加载文件打开方式配置
+    open_config = _load_file_open_config()
+    
+    # 扩展名到分组的映射
+    ext_to_group = {
+        '.jpg': 'image', '.jpeg': 'image', '.png': 'image', '.gif': 'image',
+        '.bmp': 'image', '.webp': 'image', '.avif': 'image',
+        '.xlsx': 'excel', '.xls': 'excel', '.xlsm': 'excel', '.xlsb': 'excel',
+        '.docx': 'word', '.doc': 'word',
+        '.pptx': 'ppt', '.ppt': 'ppt',
+        '.pdf': 'pdf',
+        '.zip': 'archive', '.rar': 'archive', '.7z': 'archive',
+        '.tar': 'archive', '.gz': 'archive', '.bz2': 'archive',
+        '.tar.gz': 'archive', '.tar.bz2': 'archive', '.tar.xz': 'archive',
+        '.py': 'code', '.js': 'code', '.ts': 'code', '.jsx': 'code', '.tsx': 'code',
+        '.vue': 'code', '.go': 'code', '.rs': 'code', '.java': 'code',
+        '.c': 'code', '.cpp': 'code', '.h': 'code', '.css': 'code',
+        '.scss': 'code', '.less': 'code', '.xml': 'code',
+        '.json': 'json', '.jsonc': 'json',
+        '.yaml': 'yaml', '.yml': 'yaml', '.toml': 'yaml', '.ini': 'yaml',
+        '.conf': 'yaml', '.env': 'yaml',
+        '.md': 'markdown', '.markdown': 'markdown',
+        '.mp4': 'video', '.webm': 'video', '.mov': 'video', '.avi': 'video',
+        '.mkv': 'video', '.wmv': 'video', '.flv': 'video',
+        '.mp3': 'audio', '.wav': 'audio', '.flac': 'audio', '.aac': 'audio',
+        '.ogg': 'audio', '.m4a': 'audio', '.wma': 'audio',
+        '.txt': 'text', '.log': 'text', '.sh': 'text', '.bat': 'text', '.ps1': 'text',
+        '.html': 'web', '.htm': 'web', '.css': 'web', '.svg': 'web',
+    }
+    
     items_rel = []
     for it in items:
         if not isinstance(it, dict):
@@ -235,6 +302,13 @@ def api_browse_files():
         rel_path = path_utils.get_relative_path(p, root_dir)
         normalized = dict(it)
         normalized['path'] = rel_path
+        
+        # 添加打开方式
+        if not it.get('is_dir'):
+            ext = os.path.splitext(name)[1].lower() if name else ''
+            group = ext_to_group.get(ext, 'text')
+            normalized['open_method'] = open_config.get(group, 'browser')
+        
         items_rel.append(normalized)
 
     return jsonify({
@@ -244,6 +318,35 @@ def api_browse_files():
             'current_dir': dir_rel
         }
     })
+
+
+def _load_file_open_config():
+    """加载文件打开方式配置"""
+    config_file = config.FILE_OPEN_CONFIG_FILE
+    default_config = {
+        'image': 'preview-image',
+        'excel': 'preview-excel',
+        'word': 'browser',
+        'ppt': 'browser',
+        'pdf': 'browser',
+        'archive': 'preview-archive',
+        'code': 'edit-code',
+        'json': 'preview-json',
+        'yaml': 'edit-yaml',
+        'markdown': 'edit-md',
+        'video': 'browser',
+        'audio': 'browser',
+        'text': 'browser',
+        'web': 'browser',
+    }
+    try:
+        if os.path.exists(config_file):
+            with open(config_file, 'r', encoding='utf-8') as f:
+                import json as json_lib
+                return json_lib.load(f)
+    except:
+        pass
+    return default_config
 
 
 @browser_bp.route('/api/pin/list')

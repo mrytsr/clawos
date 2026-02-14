@@ -1027,7 +1027,7 @@
 
         <div class="files-section">
             <div v-if="items.length" class="file-list">
-                <div class="file-item" v-for="(item, idx) in items" :key="item.path || (item.name + ':' + idx)" :id="'file-item-' + (idx + 1)" :data-path="item.path" :data-name="item.name" :data-is-dir="item.is_dir ? 'true' : 'false'" :data-is-image="item.is_image ? 'true' : 'false'">
+                <div class="file-item" v-for="(item, idx) in items" :key="item.path || (item.name + ':' + idx)" :id="'file-item-' + (idx + 1)" :data-path="item.path" :data-name="item.name" :data-is-dir="item.is_dir ? 'true' : 'false'" :data-is-image="item.is_image ? 'true' : 'false'" :data-open-method="item.open_method || 'browser'">
                     <!-- 第一列：预览图或图标 + 复选框 -->
                     <div class="file-col-icon">
                         <input type="checkbox" class="file-checkbox" :data-path="item.path" @change="onToggleItemSelection(item.path, $event)" style="margin-right: 8px; cursor: pointer;">

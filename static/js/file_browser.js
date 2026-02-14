@@ -2,6 +2,85 @@
 /* global Drawer, showToast, refreshFileList, escapeHtml, performRename, performMove, performDelete, copyFilePath, copyDownloadUrl, downloadFile, addToChat, openTerminal */
 // 注意：currentItemPath, currentItemName, currentItemIsDir 由 globals.js 定义
 
+/** 文件打开方式配置缓存 */
+window.__fileOpenConfig = null;
+
+/** 获取文件打开方式配置 */
+function getFileOpenConfig(callback) {
+    if (window.__fileOpenConfig) {
+        if (callback) callback(window.__fileOpenConfig);
+        return;
+    }
+    fetch('/api/file-open-config', { credentials: 'same-origin' })
+        .then(function(r) { return r.json(); })
+        .then(function(d) {
+            if (d && d.success && d.data) {
+                window.__fileOpenConfig = d.data;
+            } else {
+                window.__fileOpenConfig = {};
+            }
+            if (callback) callback(window.__fileOpenConfig);
+        })
+        .catch(function() {
+            window.__fileOpenConfig = {};
+            if (callback) callback(window.__fileOpenConfig);
+        });
+}
+
+/** 获取文件类型的打开方式 */
+function getOpenMethod(ext, config) {
+    var extToGroup = {
+        '.jpg': 'image', '.jpeg': 'image', '.png': 'image', '.gif': 'image',
+        '.bmp': 'image', '.webp': 'image', '.avif': 'image',
+        '.xlsx': 'excel', '.xls': 'excel', '.xlsm': 'excel', '.xlsb': 'excel',
+        '.docx': 'word', '.doc': 'word',
+        '.pptx': 'ppt', '.ppt': 'ppt',
+        '.pdf': 'pdf',
+        '.zip': 'archive', '.rar': 'archive', '.7z': 'archive',
+        '.tar': 'archive', '.gz': 'archive', '.bz2': 'archive',
+        '.tar.gz': 'archive', '.tar.bz2': 'archive', '.tar.xz': 'archive',
+        '.py': 'code', '.js': 'code', '.ts': 'code', '.jsx': 'code', '.tsx': 'code',
+        '.vue': 'code', '.go': 'code', '.rs': 'code', '.java': 'code',
+        '.c': 'code', '.cpp': 'code', '.h': 'code', '.css': 'code',
+        '.scss': 'code', '.less': 'code', '.xml': 'code',
+        '.json': 'json', '.jsonc': 'json',
+        '.yaml': 'yaml', '.yml': 'yaml', '.toml': 'yaml', '.ini': 'yaml',
+        '.conf': 'yaml', '.env': 'yaml',
+        '.md': 'markdown', '.markdown': 'markdown',
+        '.mp4': 'video', '.webm': 'video', '.mov': 'video', '.avi': 'video',
+        '.mkv': 'video', '.wmv': 'video', '.flv': 'video',
+        '.mp3': 'audio', '.wav': 'audio', '.flac': 'audio', '.aac': 'audio',
+        '.ogg': 'audio', '.m4a': 'audio', '.wma': 'audio',
+        '.txt': 'text', '.log': 'text', '.sh': 'text', '.bat': 'text', '.ps1': 'text',
+        '.html': 'web', '.htm': 'web', '.css': 'web', '.svg': 'web',
+    };
+    var group = extToGroup[ext] || 'text';
+    return config[group] || 'browser';
+}
+
+/** 根据打开方式处理文件 */
+function handleFileByMethod(path, name, method) {
+    if (method === 'preview-image') {
+        if (typeof window.openPreview === 'function') window.openPreview(path, name);
+    } else if (method === 'preview-excel') {
+        if (typeof window.openPreview === 'function') window.openPreview(path, name);
+    } else if (method === 'preview-archive') {
+        if (typeof window.openPreview === 'function') window.openPreview(path, name);
+    } else if (method === 'preview-json') {
+        window.open('/json/editor?path=' + encodeURIComponent(path), '_blank', 'noopener');
+    } else if (method === 'edit-code') {
+        window.open('/edit/' + encodeURIComponent(path), '_blank', 'noopener');
+    } else if (method === 'edit-yaml') {
+        window.open('/yaml/editor?path=' + encodeURIComponent(path), '_blank', 'noopener');
+    } else if (method === 'edit-md') {
+        window.open('/view/' + encodePathForUrl(path), '_blank', 'noopener');
+    } else if (method === 'download') {
+        downloadFile(path, { name: name, openInNewTab: true });
+    } else {
+        window.open('/serve/' + encodePathForUrl(path), '_blank', 'noopener');
+    }
+}
+
 // 文件菜单
 function setSearchModalInteractive(enabled) {
     var m = document.getElementById('searchModal');
@@ -888,41 +967,24 @@ function attachFileItemDefaultHandlers() {
             }
 
             var ext = getFileExt(name);
-            var chromeNativeExts = [
-                '.pdf', '.mp4', '.webm', '.ogg', '.mov', '.avi', '.mkv',
-                '.mp3', '.wav', '.flac', '.aac', '.m4a', '.ico', '.webp', '.avif',
-                '.html', '.htm', '.txt', '.css', '.js', '.xml', '.svg'
-            ];
-            var imageExts = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.svg'];
-            var archiveExts = ['.zip', '.rar', '.tar', '.tgz', '.7z', '.tar.gz', '.tar.bz2', '.tar.xz'];
-            var mdExts = ['.md', '.markdown'];
-            var officeExts = ['.xls', '.xlsx', '.doc', '.docx', '.ppt', '.pptx'];
-            var excelExts = ['.xls', '.xlsx', '.xlsm', '.xlsb'];
-
+            
+            // 如果没有扩展名，直接下载
             if (!ext) {
                 downloadFile(path, { name: name, openInNewTab: true });
                 return;
             }
-            if (imageExts.indexOf(ext) >= 0) {
-                if (typeof window.openPreview === 'function') window.openPreview(path, name);
-                return;
-            }
-            if (archiveExts.indexOf(ext) >= 0) {
-                if (typeof window.openPreview === 'function') window.openPreview(path, name);
-                return;
-            }
-            if (excelExts.indexOf(ext) >= 0) {
-                if (typeof window.openPreview === 'function') window.openPreview(path, name);
-                return;
-            }
-            if (mdExts.indexOf(ext) >= 0) {
-                window.open('/view/' + encodePathForUrl(path), '_blank', 'noopener');
-                return;
-            }
+            
+            // 使用服务端返回的 open_method
+            var method = el.dataset.openMethod || el.dataset.openmethod || 'browser';
+            console.log('[open] method:', method, 'path:', path);
+            handleFileByMethod(path, name, method);
+            return;
+            // JSON 文件
             if (ext === '.json') {
                 window.open('/json/editor?path=' + encodeURIComponent(path), '_blank', 'noopener');
                 return;
             }
+            // 配置文件
             if (ext === '.yaml' || ext === '.yml' || ext === '.toml' || ext === '.ini' || ext === '.conf') {
                 window.open('/yaml/editor?path=' + encodeURIComponent(path), '_blank', 'noopener');
                 return;
@@ -1821,3 +1883,4 @@ document.addEventListener('visibilitychange', function() {
         loadGitStatusBar();
     }
 });
+
