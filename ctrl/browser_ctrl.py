@@ -1184,10 +1184,15 @@ def trash_clear():
             if name.startswith('.'):
                 continue
             path = os.path.join(trash_dir, name)
-            if os.path.isdir(path):
-                shutil.rmtree(path)
-            else:
-                os.remove(path)
+            try:
+                if os.path.islink(path):
+                    os.unlink(path)
+                elif os.path.isdir(path):
+                    shutil.rmtree(path, ignore_errors=True)
+                else:
+                    os.remove(path)
+            except Exception as e:
+                print(f"删除失败: {path}, {e}")
         return jsonify({'success': True, 'message': '回收站已清空'})
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)})
