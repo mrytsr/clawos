@@ -4,7 +4,6 @@ from datetime import datetime
 from lib import path_utils
 
 
-HIDDEN_FOLDERS = {'__pycache__', '.git', '_trash'}
 IMAGE_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp'}
 MARKDOWN_EXTENSIONS = {'.md', '.markdown'}
 CODE_EXTENSIONS = {
@@ -52,8 +51,6 @@ def list_directory(directory):
     items = []
     try:
         for item in os.listdir(directory):
-            if item in HIDDEN_FOLDERS:
-                continue
             item_path = os.path.join(directory, item)
             is_symlink = os.path.islink(item_path)
             
@@ -173,7 +170,7 @@ def get_file_details(path, root_dir):
         return {'success': False, 'message': str(e)}
 
 
-def search_files(root_dir, keyword, hidden_folders=HIDDEN_FOLDERS):
+def search_files(root_dir, keyword, hidden_folders=None):
     """搜索文件"""
     if not keyword.strip():
         return {'results': []}
