@@ -1042,8 +1042,8 @@
                             <a v-if="isPortDir(item)" :href="portHref(item.name)" target="_blank" style="margin-left: 8px; color: #17a2b8; text-decoration: none; font-size: 1.2em;" title="打开网站">🔗</a>
                         </div>
                         <div class="file-details-inline">
-                            <span class="file-size">{{ item.size }}</span>
-                            <span class="file-modified">{{ item.modified }}</span>
+                            <span class="file-size">{{ item.is_dir ? item.modified : item.size }}</span>
+                            <span class="file-modified" :title="JSON.stringify(item)">{{ item.is_dir ? (item.item_count || 0) + " 项" : item.modified }}</span>
                         </div>
                     </div>
                     
@@ -2136,6 +2136,7 @@
                         window.toggleItemSelection(path || '', event && event.target);
                     },
                     applyBootstrap: function(data) {
+                        console.log('[load] items:', data.items ? data.items.slice(0,3) : 'none');
                         this.items = Array.isArray(data.items) ? data.items : [];
                         this.breadcrumbs = Array.isArray(data.breadcrumbs) ? data.breadcrumbs : [];
                         this.currentDir = typeof data.current_dir === 'string' ? data.current_dir : '';

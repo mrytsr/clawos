@@ -201,6 +201,17 @@ def api_browse_state():
                 group = 'other'
             normalized['open_method'] = open_config.get(group, 'browser')
         
+        # 目录统计子项目数量
+        if it.get('is_dir'):
+            try:
+                item_full_path = os.path.join(full_dir, name)
+                sub_items = os.listdir(item_full_path)
+                normalized['item_count'] = len(sub_items)
+            except:
+                normalized['item_count'] = 0
+        else:
+            normalized['item_count'] = 0
+        
         items_rel.append(normalized)
 
     current_dir_rel = path_utils.get_relative_path(full_dir, root_dir)
@@ -295,11 +306,6 @@ def api_browse_files():
         '.html': 'web', '.htm': 'web', '.css': 'web', '.svg': 'web',
     }
     
-    # 未匹配的分到 other
-    if group not in open_config:
-        group = 'other'
-    
-    
     items_rel = []
     for it in items:
         if not isinstance(it, dict):
@@ -310,6 +316,17 @@ def api_browse_files():
         normalized = dict(it)
         normalized['path'] = rel_path
         
+        # 目录统计子项目数量
+        if it.get('is_dir'):
+            try:
+                item_full_path = os.path.join(full_dir, name)
+                sub_items = os.listdir(item_full_path)
+                normalized['item_count'] = len(sub_items)
+            except:
+                normalized['item_count'] = 0
+        else:
+            normalized['item_count'] = 0
+        
         # 添加打开方式
         if not it.get('is_dir'):
             ext = os.path.splitext(name)[1].lower() if name else ''
@@ -317,6 +334,17 @@ def api_browse_files():
             if group not in open_config:
                 group = 'other'
             normalized['open_method'] = open_config.get(group, 'browser')
+        
+        # 目录统计子项目数量
+        if it.get('is_dir'):
+            try:
+                item_full_path = os.path.join(full_dir, name)
+                sub_items = os.listdir(item_full_path)
+                normalized['item_count'] = len(sub_items)
+            except:
+                normalized['item_count'] = 0
+        else:
+            normalized['item_count'] = 0
         
         items_rel.append(normalized)
 
