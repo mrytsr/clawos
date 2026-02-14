@@ -153,3 +153,55 @@ def batch_move():
         'errors': errors,
         'message': f'已移动 {len(moved)} 个项目',
     })
+
+
+@batch_bp.route('/api/batch/symlink', methods=['POST'])
+def batch_symlink():
+    """批量创建软链接"""
+    root_dir = config.ROOT_DIR
+    
+    data = request.json
+    if not isinstance(data, dict):
+        return api_error('Invalid JSON', status=400)
+    paths = data.get('paths', [])
+    target_path = data.get('target')
+    if target_path is None:
+        target_path = ''
+    if not isinstance(target_path, str):
+        return api_error('参数不完整', status=400)
+    target_path = target_path.strip()
+    if not paths:
+        return api_error('参数不完整', status=400)
+
+    if target_path == '':
+        target_full = root_dir
+    else:
+        target_full = os.path.normpath(os.path.join(root_dir, target_path))
+    if not target_full.startswith(root_dir) or not os.path.isdir(target_full):
+        return api_error('目标位置无效', status=400)
+
+    linked, errors = [], []
+    for path in paths:
+        full_path = os.path.normpath(os.path.join(root_dir, path))
+        if not full_path.startswith(root_dir) or not os.path.exists(full_path):
+            errors.append({'path': path, 'error': '无效路径'})
+            continue
+        try:
+            item_name = os.path.basename(full_path)
+            link_path = os.path.join(target_full, item_name)
+            counter = 1
+            while os.path.exists(link_path):
+                name, ext = os.path.splitext(item_name)
+                new_name = f"{name}_link{counter}{ext}"
+                link_path = os.path.join(target_full, new_name)
+                counter += 1
+            os.symlink(full_path, link_path)
+            linked.append(path)
+        except Exception as e:
+            errors.append({'path': path, 'error': str(e)})
+
+    return api_ok({
+        'linked': linked,
+        'errors': errors,
+        'message': f'已创建链接 {len(linked)} 个项目',
+    })

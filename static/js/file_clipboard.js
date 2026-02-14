@@ -258,11 +258,26 @@
         var currentPathInput = document.getElementById('currentBrowsePath');
         var targetDir = currentPathInput ? currentPathInput.value : '';
 
-        var endpoint = state.op === 'cut' ? '/api/batch/move' : '/api/batch/copy';
-        var payload = {
-            paths: state.paths,
-            target: targetDir
-        };
+        var endpoint, payload;
+        if (state.op === 'link') {
+            endpoint = '/api/batch/symlink';
+            payload = {
+                paths: state.paths,
+                target: targetDir
+            };
+        } else if (state.op === 'cut') {
+            endpoint = '/api/batch/move';
+            payload = {
+                paths: state.paths,
+                target: targetDir
+            };
+        } else {
+            endpoint = '/api/batch/copy';
+            payload = {
+                paths: state.paths,
+                target: targetDir
+            };
+        }
 
         fetch(endpoint, {
             method: 'POST',
@@ -280,9 +295,21 @@
                     var msg = '';
                     if (state.count === 1) {
                         var name = state.paths[0].split(/[/\\]/).pop();
-                        msg = (state.op === 'cut' ? '已移动: ' : '已复制: ') + name;
+                        if (state.op === 'link') {
+                            msg = '已创建链接: ' + name;
+                        } else if (state.op === 'cut') {
+                            msg = '已移动: ' + name;
+                        } else {
+                            msg = '已复制: ' + name;
+                        }
                     } else {
-                        msg = (state.op === 'cut' ? '已移动 ' : '已复制 ') + state.count + ' 个项目';
+                        if (state.op === 'link') {
+                            msg = '已创建链接 ' + state.count + ' 个项目';
+                        } else if (state.op === 'cut') {
+                            msg = '已移动 ' + state.count + ' 个项目';
+                        } else {
+                            msg = '已复制 ' + state.count + ' 个项目';
+                        }
                     }
                     window.showToast(msg, 'success');
                 }

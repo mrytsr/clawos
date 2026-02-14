@@ -269,6 +269,12 @@ function handleMenuAction(action) {
                     showToast('已复制', 'success');
                 }
                 break;
+            case 'link':
+                if (window.Clipboard && typeof window.Clipboard.set === 'function') {
+                    window.Clipboard.set('link', { path: window.currentItemPath, name: window.currentItemName, isDir: window.currentItemIsDir });
+                    showToast('已选择创建链接: ' + window.currentItemName, 'success');
+                }
+                break;
             case 'chat': addToChat(window.currentItemPath); break;
             case 'terminal': openTerminal(window.currentItemPath, window.currentItemIsDir); break;
             case 'delete': confirmDelete(window.currentItemPath, window.currentItemName); break;
