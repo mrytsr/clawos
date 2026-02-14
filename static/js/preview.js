@@ -28,6 +28,59 @@ function openPreview(path, name) {
     var url = '/serve/' + encodePathForUrl(path);
     var imageExts = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.svg'];
     var archiveExts = ['.zip', '.rar', '.tar', '.tgz', '.7z', '.tar.gz', '.tar.bz2', '.tar.xz'];
+    var excelExts = ['.xls', '.xlsx', '.xlsm', '.xlsb'];
+
+    // Excel 预览
+    if (excelExts.indexOf(ext) >= 0) {
+        content.innerHTML = '<div style="text-align:center;padding:40px;color:#666;">🔄 加载中...</div>';
+        Drawer.open('previewModal');
+        
+        fetch(url, { headers: (typeof authHeaders === 'function' ? authHeaders() : {}) })
+            .then(function(resp) { return resp.arrayBuffer(); })
+            .then(function(data) {
+                try {
+                    var workbook = XLSX.read(data, { type: 'array' });
+                    var html = '';
+                    
+                    // 生成工作表选择器
+                    if (workbook.SheetNames.length > 1) {
+                        html += '<div style="margin-bottom:12px;display:flex;gap:6px;flex-wrap:wrap;">';
+                        workbook.SheetNames.forEach(function(sheetName, idx) {
+                            html += '<button class="xlsx-tab" data-sheet="' + idx + '" onclick="switchXlsxSheet(' + idx + ', \'' + escapeHtml(sheetName) + '\')">' + escapeHtml(sheetName) + '</button>';
+                        });
+                        html += '</div>';
+                    }
+                    
+                    // 默认显示第一个工作表
+                    var firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                    html += '<div id="xlsxContent" class="xlsx-container">' + XLSX.utils.sheet_to_html(firstSheet, { editable: false }) + '</div>';
+                    
+                    // 添加样式
+                    html = '<style>' +
+                        '.xlsx-tab { padding:6px 12px;background:#21262d;color:#c9d1d9;border:1px solid #30363d;border-radius:6px;cursor:pointer;font-size:12px; }' +
+                        '.xlsx-tab:hover { background:#30363d; }' +
+                        '.xlsx-tab.active { background:#1f6feb;border-color:#1f6feb; }' +
+                        '.xlsx-container { overflow:auto;max-height:70vh; }' +
+                        '.xlsx-container table { border-collapse:collapse;width:100%;font-size:12px; }' +
+                        '.xlsx-container th { background:#21262d;color:#c9d1d9;padding:8px;border:1px solid #30363d;font-weight:600;text-align:left;position:sticky;top:0; }' +
+                        '.xlsx-container td { padding:6px 8px;border:1px solid #30363d;color:#c9d1d9; }' +
+                        '.xlsx-container tr:nth-child(even) { background:#161b22; }' +
+                        '.xlsx-container tr:hover { background:#21262d; }' +
+                        '</style>' + html;
+                    
+                    content.innerHTML = html;
+                    
+                    // 保存 workbook 到全局变量
+                    window.__xlsxWorkbook = workbook;
+                } catch (e) {
+                    content.innerHTML = '<div style="text-align:center;padding:40px;color:#cf222e;">解析失败: ' + escapeHtml(e.message) + '</div>';
+                }
+            })
+            .catch(function() {
+                content.innerHTML = '<div style="text-align:center;padding:40px;color:#cf222e;">加载失败</div>';
+            });
+        return;
+    }
 
     if (imageExts.indexOf(ext) >= 0) {
         content.innerHTML = `
@@ -133,7 +186,6 @@ function copyLineRef(element) {
     const text = `${path}:${line}`;
     
     navigator.clipboard.writeText(text).then(() => {
-        // 简单的视觉反馈
         const originalColor = element.style.color;
         element.style.color = '#0969da';
         element.style.background = '#ddf4ff';
@@ -141,8 +193,27 @@ function copyLineRef(element) {
             element.style.color = originalColor;
             element.style.background = '';
         }, 200);
-    }).catch(() => {
-        // 复制失败也给出提示（静默失败，不影响体验）
+    }).catch(() => {});
+}
+
+// 切换 Excel 工作表
+function switchXlsxSheet(idx, sheetName) {
+    var workbook = window.__xlsxWorkbook;
+    if (!workbook) return;
+    
+    var sheet = workbook.Sheets[sheetName];
+    if (!sheet) return;
+    
+    var html = XLSX.utils.sheet_to_html(sheet, { editable: false });
+    var container = document.getElementById('xlsxContent');
+    if (container) {
+        container.innerHTML = html;
+    }
+    
+    // 更新 tab 状态
+    var tabs = document.querySelectorAll('.xlsx-tab');
+    tabs.forEach(function(t, i) {
+        t.classList.toggle('active', i === idx);
     });
 }
 
@@ -151,3 +222,4 @@ window.openPreview = openPreview;
 window.closePreviewModal = closePreviewModal;
 window.closePreviewOnBackdrop = closePreviewOnBackdrop;
 window.copyLineRef = copyLineRef;
+window.switchXlsxSheet = switchXlsxSheet;

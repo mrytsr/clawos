@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文件打开方式配置 - ClawOS</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+            background: #0d1117; color: #c9d1d9; margin: 0; padding: 20px; 
+        }
+        .container { max-width: 800px; margin: 0 auto; }
+        h1 { color: #58a6ff; font-size: 24px; margin-bottom: 8px; }
+        .subtitle { color: #8b949e; font-size: 14px; margin-bottom: 24px; }
+        
+        .card { 
+            background: #161b22; border-radius: 12px; padding: 20px; 
+            margin-bottom: 16px; border: 1px solid #30363d; 
+        }
+        
+        .section-title { 
+            color: #58a6ff; font-size: 14px; font-weight: 600; 
+            margin-bottom: 16px; display: flex; align-items: center; gap: 8px; 
+        }
+        
+        .file-group { 
+            margin-bottom: 20px; 
+        }
+        
+        .file-group-header { 
+            display: flex; align-items: center; gap: 12px; 
+            background: #21262d; padding: 12px 16px; border-radius: 8px 8px 0 0;
+            border-bottom: 1px solid #30363d;
+        }
+        
+        .file-group-header .icon { font-size: 20px; }
+        
+        .file-group-header .name { 
+            flex: 1; font-weight: 600; font-size: 15px; 
+        }
+        
+        .file-group-header select { 
+            background: #0d1117; color: #c9d1d9; border: 1px solid #30363d;
+            padding: 8px 12px; border-radius: 6px; font-size: 13px; cursor: pointer;
+        }
+        
+        .file-group-exts { 
+            display: flex; flex-wrap: wrap; gap: 6px; padding: 12px 16px;
+            background: #0d1117; border-radius: 0 0 8px 8px;
+        }
+        
+        .ext-tag { 
+            background: #21262d; padding: 4px 10px; border-radius: 12px; 
+            font-size: 12px; color: #8b949e; 
+        }
+        
+        .btn {
+            background: #238636; color: #fff; border: none; padding: 10px 20px;
+            border-radius: 8px; font-size: 14px; cursor: pointer; font-weight: 500;
+        }
+        .btn:hover { background: #2ea043; }
+        
+        .btn-group { display: flex; gap: 12px; margin-top: 20px; }
+        
+        .preset-btns { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+        .preset-btn {
+            background: #21262d; color: #c9d1d9; border: 1px solid #30363d;
+            padding: 6px 12px; border-radius: 20px; font-size: 12px; cursor: pointer;
+        }
+        .preset-btn:hover { background: #30363d; }
+        
+        .info { 
+            background: #21262d; padding: 12px 16px; border-radius: 8px; 
+            font-size: 13px; color: #8b949e; margin-bottom: 16px; 
+        }
+        
+        .toast {
+            position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+            background: #238636; color: #fff; padding: 12px 24px; border-radius: 8px;
+            font-size: 14px; z-index: 10000; display: none;
+        }
+        .toast.show { display: block; animation: fadeIn 0.3s; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateX(-50%) translateY(-10px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>⚙️ 文件打开方式配置</h1>
+        <p class="subtitle">按文件类型分组设置默认打开方式</p>
+        
+        <div class="card">
+            <div class="section-title">📋 预设方案</div>
+            <div class="preset-btns">
+                <button class="preset-btn" onclick="loadPreset('default')">默认配置</button>
+                <button class="preset-btn" onclick="loadPreset('preview')">预览优先</button>
+                <button class="preset-btn" onclick="loadPreset('download')">下载优先</button>
+                <button class="preset-btn" onclick="loadPreset('browser')">浏览器优先</button>
+            </div>
+            
+            <div class="info">
+                💡 提示：选择打开方式后点击保存。同一类型的文件会使用相同的打开方式。
+            </div>
+            
+            <div class="section-title">📁 文件类型配置</div>
+            <div id="fileGroupList"></div>
+            
+            <div class="btn-group">
+                <button class="btn" onclick="saveConfig()">保存配置</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="toast" id="toast">配置已保存</div>
+
+    <script>
+        // 文件类型分组配置
+        const fileGroups = [
+            { 
+                id: 'image', icon: '🖼️', name: '图片', 
+                exts: ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.avif'], 
+                methods: ['preview-image', 'browser', 'download']
+            },
+            { 
+                id: 'excel', icon: '📊', name: 'Excel表格', 
+                exts: ['.xlsx', '.xls', '.xlsm', '.xlsb'], 
+                methods: ['preview-excel', 'browser', 'download']
+            },
+            { 
+                id: 'word', icon: '📝', name: 'Word文档', 
+                exts: ['.docx', '.doc'], 
+                methods: ['browser', 'download']
+            },
+            { 
+                id: 'ppt', icon: '📽️', name: 'PPT幻灯片', 
+                exts: ['.pptx', '.ppt'], 
+                methods: ['browser', 'download']
+            },
+            { 
+                id: 'pdf', icon: '📄', name: 'PDF文档', 
+                exts: ['.pdf'], 
+                methods: ['browser', 'download']
+            },
+            { 
+                id: 'archive', icon: '📦', name: '压缩包', 
+                exts: ['.zip', '.rar', '.7z', '.tar', '.gz', '.bz2', '.tar.gz', '.tar.bz2', '.tar.xz'], 
+                methods: ['preview-archive', 'download']
+            },
+            { 
+                id: 'code', icon: '💻', name: '代码文件', 
+                exts: ['.py', '.js', '.ts', '.jsx', '.tsx', '.vue', '.go', '.rs', '.java', '.c', '.cpp', '.h', '.css', '.scss', '.less', '.xml'], 
+                methods: ['edit-code', 'browser', 'download']
+            },
+            { 
+                id: 'json', icon: '📋', name: 'JSON数据', 
+                exts: ['.json', '.jsonc'], 
+                methods: ['preview-json', 'edit-code', 'browser']
+            },
+            { 
+                id: 'yaml', icon: '📐', name: '配置文件', 
+                exts: ['.yaml', '.yml', '.toml', '.ini', '.conf', '.env'], 
+                methods: ['edit-yaml', 'browser', 'preview-json']
+            },
+            { 
+                id: 'markdown', icon: '📝', name: 'Markdown', 
+                exts: ['.md', '.markdown'], 
+                methods: ['edit-md', 'browser']
+            },
+            { 
+                id: 'video', icon: '🎬', name: '视频', 
+                exts: ['.mp4', '.webm', '.mov', '.avi', '.mkv', '.wmv', '.flv'], 
+                methods: ['browser', 'download']
+            },
+            { 
+                id: 'audio', icon: '🎵', name: '音频', 
+                exts: ['.mp3', '.wav', '.flac', '.aac', '.ogg', '.m4a', '.wma'], 
+                methods: ['browser', 'download']
+            },
+            { 
+                id: 'text', icon: '📃', name: '纯文本', 
+                exts: ['.txt', '.log', '.sh', '.bat', '.ps1'], 
+                methods: ['browser', 'edit-code', 'download']
+            },
+            { 
+                id: 'web', icon: '🌐', name: '网页', 
+                exts: ['.html', '.htm', '.css', '.svg'], 
+                methods: ['browser', 'download']
+            },
+        ];
+
+        // 打开方式标签
+        const methodLabels = {
+            'preview-image': '🖼️ 图片预览',
+            'preview-excel': '📊 Excel预览',
+            'preview-archive': '📦 压缩包预览',
+            'preview-json': '📋 JSON预览',
+            'edit-code': '✏️ 代码编辑',
+            'edit-yaml': '📐 配置编辑',
+            'edit-md': '📝 Markdown',
+            'browser': '🌐 浏览器',
+            'download': '📥 下载',
+        };
+
+        // 预设配置
+        const presets = {
+            default: {
+                image: 'preview-image', excel: 'preview-excel', word: 'browser',
+                ppt: 'browser', pdf: 'browser', archive: 'preview-archive',
+                code: 'edit-code', json: 'preview-json', yaml: 'edit-yaml',
+                markdown: 'edit-md', video: 'browser', audio: 'browser',
+                text: 'browser', web: 'browser',
+            },
+            preview: {
+                image: 'preview-image', excel: 'preview-excel', word: 'browser',
+                ppt: 'browser', pdf: 'browser', archive: 'preview-archive',
+                code: 'edit-code', json: 'preview-json', yaml: 'edit-yaml',
+                markdown: 'edit-md', video: 'browser', audio: 'browser',
+                text: 'browser', web: 'browser',
+            },
+            download: {
+                image: 'download', excel: 'download', word: 'download',
+                ppt: 'download', pdf: 'download', archive: 'download',
+                code: 'download', json: 'download', yaml: 'download',
+                markdown: 'download', video: 'download', audio: 'download',
+                text: 'download', web: 'download',
+            },
+            browser: {
+                image: 'browser', excel: 'browser', word: 'browser',
+                ppt: 'browser', pdf: 'browser', archive: 'browser',
+                code: 'browser', json: 'browser', yaml: 'browser',
+                markdown: 'browser', video: 'browser', audio: 'browser',
+                text: 'browser', web: 'browser',
+            },
+        };
+
+        let currentConfig = {};
+
+        function init() {
+            loadConfig();
+            renderGroups();
+        }
+
+        function renderGroups() {
+            const list = document.getElementById('fileGroupList');
+            list.innerHTML = fileGroups.map(g => {
+                const method = currentConfig[g.id] || g.methods[0];
+                return `
+                    <div class="file-group">
+                        <div class="file-group-header">
+                            <span class="icon">${g.icon}</span>
+                            <span class="name">${g.name}</span>
+                            <select onchange="changeMethod('${g.id}', this.value)">
+                                ${g.methods.map(m => 
+                                    `<option value="${m}" ${m === method ? 'selected' : ''}>${methodLabels[m] || m}</option>`
+                                ).join('')}
+                            </select>
+                        </div>
+                        <div class="file-group-exts">
+                            ${g.exts.map(e => `<span class="ext-tag">${e}</span>`).join('')}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function changeMethod(groupId, method) {
+            currentConfig[groupId] = method;
+        }
+
+        function loadPreset(name) {
+            currentConfig = { ...presets[name] };
+            renderGroups();
+            showToast('已加载 "' + name + '" 预设');
+        }
+
+        function loadConfig() {
+            fetch('/api/file-open-config', { credentials: 'same-origin' })
+                .then(r => r.json())
+                .then(d => {
+                    if (d && d.success && d.data) {
+                        currentConfig = d.data;
+                    } else {
+                        currentConfig = { ...presets.default };
+                    }
+                    renderGroups();
+                })
+                .catch(() => {
+                    currentConfig = { ...presets.default };
+                    renderGroups();
+                });
+        }
+
+        function saveConfig() {
+            fetch('/api/file-open-config', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(currentConfig),
+                credentials: 'same-origin'
+            })
+            .then(r => r.json())
+            .then(d => {
+                showToast(d.success ? '配置已保存' : '保存失败');
+            })
+            .catch(() => {
+                showToast('保存失败');
+            });
+        }
+
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.classList.add('show');
+            setTimeout(() => t.classList.remove('show'), 2000);
+        }
+
+        init();
+    </script>
+</body>
+</html>

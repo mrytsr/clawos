@@ -897,6 +897,7 @@ function attachFileItemDefaultHandlers() {
             var archiveExts = ['.zip', '.rar', '.tar', '.tgz', '.7z', '.tar.gz', '.tar.bz2', '.tar.xz'];
             var mdExts = ['.md', '.markdown'];
             var officeExts = ['.xls', '.xlsx', '.doc', '.docx', '.ppt', '.pptx'];
+            var excelExts = ['.xls', '.xlsx', '.xlsm', '.xlsb'];
 
             if (!ext) {
                 downloadFile(path, { name: name, openInNewTab: true });
@@ -907,6 +908,10 @@ function attachFileItemDefaultHandlers() {
                 return;
             }
             if (archiveExts.indexOf(ext) >= 0) {
+                if (typeof window.openPreview === 'function') window.openPreview(path, name);
+                return;
+            }
+            if (excelExts.indexOf(ext) >= 0) {
                 if (typeof window.openPreview === 'function') window.openPreview(path, name);
                 return;
             }

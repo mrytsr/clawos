@@ -19,3 +19,6 @@ SERVER_HOST = '0.0.0.0'
 SERVER_PORT = int(os.getenv('SERVER_PORT', '6002'))
 SERVER_DEBUG = os.getenv('SERVER_DEBUG', '0') in {'1', 'true', 'True'}
 SERVER_USE_RELOADER = os.getenv('SERVER_USE_RELOADER', '0') in {'1', 'true', 'True'}
+
+# 文件打开方式配置
+FILE_OPEN_CONFIG_FILE = os.path.join(DATA_DIR, 'file_open_config.json')

@@ -1083,3 +1083,111 @@ def trash_restore(name):
         return jsonify({'success': True, 'message': '还原成功'})
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
+
+
+# ========== 文件打开方式配置 API ==========
+import json as json_lib
+
+FILE_OPEN_CONFIG_FILE = config.FILE_OPEN_CONFIG_FILE
+
+
+@browser_bp.route('/api/file-open-config')
+def get_file_open_config():
+    """获取文件打开方式配置"""
+    try:
+        if os.path.exists(FILE_OPEN_CONFIG_FILE):
+            with open(FILE_OPEN_CONFIG_FILE, 'r', encoding='utf-8') as f:
+                config_data = json_lib.load(f)
+            return jsonify({'success': True, 'data': config_data})
+        else:
+            # 返回默认配置
+            default_config = {
+                'image': 'preview-image',
+                'excel': 'preview-excel',
+                'word': 'browser',
+                'ppt': 'browser',
+                'pdf': 'browser',
+                'archive': 'preview-archive',
+                'code': 'edit-code',
+                'json': 'preview-json',
+                'yaml': 'edit-yaml',
+                'markdown': 'edit-md',
+                'video': 'browser',
+                'audio': 'browser',
+                'text': 'browser',
+                'web': 'browser',
+            }
+            return jsonify({'success': True, 'data': default_config})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@browser_bp.route('/api/file-open-config', methods=['POST'])
+def save_file_open_config():
+    """保存文件打开方式配置"""
+    try:
+        config_data = request.get_json(silent=True) or {}
+        with open(FILE_OPEN_CONFIG_FILE, 'w', encoding='utf-8') as f:
+            json_lib.dump(config_data, f, ensure_ascii=False, indent=2)
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@browser_bp.route('/api/file-open-config/group/<group_id>')
+def get_file_open_method(group_id):
+    """获取指定文件类型的打开方式"""
+    try:
+        config_data = {}
+        if os.path.exists(FILE_OPEN_CONFIG_FILE):
+            with open(FILE_OPEN_CONFIG_FILE, 'r', encoding='utf-8') as f:
+                config_data = json_lib.load(f)
+        
+        # 根据扩展名获取分组
+        ext = group_id if group_id.startswith('.') else '.' + group_id
+        
+        # 扩展名到分组的映射
+        ext_to_group = {}
+        if os.path.exists(FILE_OPEN_CONFIG_FILE):
+            # 使用保存的配置
+            pass
+        else:
+            # 使用默认映射
+            default_mapping = {
+                '.jpg': 'image', '.jpeg': 'image', '.png': 'image', '.gif': 'image', 
+                '.bmp': 'image', '.webp': 'image', '.avif': 'image',
+                '.xlsx': 'excel', '.xls': 'excel', '.xlsm': 'excel', '.xlsb': 'excel',
+                '.docx': 'word', '.doc': 'word',
+                '.pptx': 'ppt', '.ppt': 'ppt',
+                '.pdf': 'pdf',
+                '.zip': 'archive', '.rar': 'archive', '.7z': 'archive', '.tar': 'archive',
+                '.gz': 'archive', '.bz2': 'archive', '.tar.gz': 'archive', '.tar.bz2': 'archive', '.tar.xz': 'archive',
+                '.py': 'code', '.js': 'code', '.ts': 'code', '.jsx': 'code', '.tsx': 'code',
+                '.vue': 'code', '.go': 'code', '.rs': 'code', '.java': 'code',
+                '.c': 'code', '.cpp': 'code', '.h': 'code', '.css': 'code',
+                '.scss': 'code', '.less': 'code', '.xml': 'code',
+                '.json': 'json', '.jsonc': 'json',
+                '.yaml': 'yaml', '.yml': 'yaml', '.toml': 'yaml', '.ini': 'yaml', '.conf': 'yaml', '.env': 'yaml',
+                '.md': 'markdown', '.markdown': 'markdown',
+                '.mp4': 'video', '.webm': 'video', '.mov': 'video', '.avi': 'video',
+                '.mkv': 'video', '.wmv': 'video', '.flv': 'video',
+                '.mp3': 'audio', '.wav': 'audio', '.flac': 'audio', '.aac': 'audio',
+                '.ogg': 'audio', '.m4a': 'audio', '.wma': 'audio',
+                '.txt': 'text', '.log': 'text', '.sh': 'text', '.bat': 'text', '.ps1': 'text',
+                '.html': 'web', '.htm': 'web', '.css': 'web', '.svg': 'web',
+            }
+            ext_to_group = default_mapping
+        
+        group = ext_to_group.get(ext, 'text')
+        method = config_data.get(group, 'browser')
+        
+        return jsonify({'success': True, 'data': {'group': group, 'method': method}})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+# ========== 页面路由 ==========
+@browser_bp.route('/file-open-config')
+def file_open_config_page():
+    """文件打开方式配置页面"""
+    return render_template('file_open_config.html')
