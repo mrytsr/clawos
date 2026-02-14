@@ -486,6 +486,18 @@ window.showPromptDrawer = function(title, message, placeholder, defaultValue, co
 };
 
 window.showConfirmDrawer = function(title, message, confirmText, onConfirm, danger) {
+    SwalGitHub.fire({
+        icon: danger ? 'warning' : 'question',
+        title: title || '确认',
+        text: message || '',
+        showCancelButton: true,
+        confirmButtonText: confirmText || '确认',
+        cancelButtonText: '取消',
+        preConfirm: function() {
+            if (onConfirm) onConfirm();
+        }
+    });
+    return;
     openDialogDrawer({
         title: title,
         message: message,
@@ -829,28 +841,21 @@ window.__confirmCancelCallback = null;
 window.__confirmDanger = false;
 
 window.showConfirm = function(title, message, onConfirm, danger, onCancel) {
-    var b = document.getElementById('confirmBackdrop');
-    var icon = document.getElementById('confirmIcon');
-    var titleEl = document.getElementById('confirmTitle');
-    var msgEl = document.getElementById('confirmMessage');
-    var btn = document.getElementById('confirmBtn');
-    
-    if (titleEl) titleEl.textContent = title || '确认操作';
-    if (msgEl) msgEl.textContent = message || '确定要执行此操作吗？';
-    
-    window.__confirmCallback = onConfirm;
-    window.__confirmCancelCallback = onCancel;
-    window.__confirmDanger = danger;
-    
-    if (icon) {
-        icon.className = 'gh-dialog-icon ' + (danger ? 'danger' : 'warning');
-    }
-    if (btn) {
-        btn.className = 'gh-btn ' + (danger ? 'gh-btn-danger' : 'gh-btn-primary');
-        btn.textContent = danger ? '删除' : '确认';
-    }
-    
-    if (b) b.style.display = 'flex';
+    SwalGitHub.fire({
+        icon: danger ? 'warning' : 'question',
+        title: title || '确认操作',
+        text: message || '确定要执行此操作吗？',
+        showCancelButton: true,
+        confirmButtonText: danger ? '删除' : '确认',
+        cancelButtonText: '取消',
+        preConfirm: function() {
+            if (onConfirm) onConfirm();
+        }
+    }).then(function(result) {
+        if (result.dismiss === 'cancel' && onCancel) {
+            onCancel();
+        }
+    });
 };
 
 window.performConfirm = function() {
@@ -1593,6 +1598,7 @@ const SwalGitHub = Swal.mixin({
 // GitHub 风格样式
 const style = document.createElement('style');
 style.textContent = `
+    .swal2-container { z-index: 10000 !important; }
     .swal-popup-github { border: 1px solid #30363d; border-radius: 6px; box-shadow: 0 16px 32px rgba(0,0,0,0.5); }
     .swal-confirm-github { background: #238636 !important; color: #fff !important; border: 1px solid rgba(240,246,252,0.1) !important; border-radius: 6px !important; }
     .swal-confirm-github:hover { background: #2ea043 !important; }
