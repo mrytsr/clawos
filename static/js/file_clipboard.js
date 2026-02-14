@@ -219,7 +219,7 @@
         var filenameEl = document.getElementById('clipboardFilename');
         
         if (bar && filenameEl) {
-            var titleText = state.op === 'cut' ? '已剪切' : '已复制';
+            var titleText = state.op === 'link' ? '已选择链接' : (state.op === 'cut' ? '已剪切' : '已复制');
             if (titleEl) {
                 titleEl.textContent = titleText;
             }
@@ -308,7 +308,11 @@
                         } else if (state.op === 'cut') {
                             msg = '已移动 ' + state.count + ' 个项目';
                         } else {
-                            msg = '已复制 ' + state.count + ' 个项目';
+                            if (state.op === 'link') {
+                        msg = '已创建链接 ' + state.count + ' 个项目';
+                    } else {
+                        msg = '已复制 ' + state.count + ' 个项目';
+                    }
                         }
                     }
                     window.showToast(msg, 'success');
