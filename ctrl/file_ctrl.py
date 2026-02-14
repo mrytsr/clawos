@@ -1,3 +1,5 @@
+import re
+import json
 import mimetypes
 import os
 from urllib.parse import quote
@@ -297,3 +299,57 @@ def send_file_email():
         return jsonify({'success': True})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
+
+
+# 邮箱历史记录
+EMAIL_HISTORY_DIR = os.path.expanduser('~/.local/clawos')
+EMAIL_HISTORY_FILE = os.path.join(EMAIL_HISTORY_DIR, 'email_history.json')
+
+def load_email_history():
+    try:
+        os.makedirs(EMAIL_HISTORY_DIR, exist_ok=True)
+        if os.path.exists(EMAIL_HISTORY_FILE):
+            with open(EMAIL_HISTORY_FILE, 'r') as f:
+                return json.load(f)
+    except Exception as e:
+        print(f"Email history error: {e}")
+        pass
+    return []
+
+def save_email_history(emails):
+    try:
+        with open(EMAIL_HISTORY_FILE, 'w') as f:
+            json.dump(emails, f, ensure_ascii=False)
+    except Exception as e:
+        print(f"Email history error: {e}")
+        pass
+
+@file_bp.route('/api/email/history', methods=['GET'])
+def get_email_history():
+    emails = load_email_history()
+    return jsonify({'success': True, 'data': emails})
+
+@file_bp.route('/api/email/history', methods=['POST'])
+def add_email_history():
+    data = request.json or {}
+    email = data.get('email', '').strip()
+    if not email or not re.match(r"^[^\s@]+@[^\s@]+\.[^\s@]+$", email):
+        return jsonify({'success': False, 'error': '邮箱不能为空'})
+    
+    emails = load_email_history()
+    if email in emails:
+        emails.remove(email)
+    emails.insert(0, email)
+    emails = emails[:10]  # 保留最近10个
+    save_email_history(emails)
+    return jsonify({'success': True})
+
+@file_bp.route('/api/email/history', methods=['DELETE'])
+def delete_email_history():
+    data = request.json or {}
+    email = data.get('email', '').strip()
+    emails = load_email_history()
+    if email in emails:
+        emails.remove(email)
+        save_email_history(emails)
+    return jsonify({'success': True})

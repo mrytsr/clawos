@@ -2488,3 +2488,30 @@
 
 </body>
 </html>
+
+<!-- Email History Modal -->
+<div id="emailBackdrop" onclick="closeEmailDrawer()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;"></div>
+<div id="emailInputDrawer" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,0.2);z-index:10000;width:300px;max-width:90vw;padding:16px;">
+    <div style="font-weight:600;margin-bottom:12px;">选择收件人</div>
+    <input type="email" id="emailInput" placeholder="输入邮箱地址" style="width:100%;padding:10px;margin-bottom:10px;border:1px solid #d0d7de;border-radius:6px;">
+    <button onclick="confirmEmail()" style="width:100%;padding:10px;background:#0969da;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:14px;">确定</button>
+    <div style="margin-top:16px;color:#57606a;font-size:12px;">历史记录</div>
+    <div id="emailHistoryList" style="margin-top:8px;"></div>
+</div>
+<script>
+function openEmailDrawer(callback){emailCallback=callback;document.getElementById('emailInput').value='';loadEmailHistory();document.getElementById('emailBackdrop').style.display='block';document.getElementById('emailInputDrawer').style.display='block';document.getElementById('emailInput').focus();}
+function closeEmailDrawer(){document.getElementById('emailBackdrop').style.display='none';document.getElementById('emailInputDrawer').style.display='none';}
+
+function loadEmailHistory(){fetch('/api/email/history').then(r=>r.json()).then(d=>{var h=d.data||[];var l=document.getElementById('emailHistoryList');l.innerHTML=h.length?h.map(e=>'<div style="display:flex;justify-content:space-between;padding:8px;border-bottom:1px solid #eee;"><span>'+e+'</span><span onclick="delEmailHist(\''+e.replace('@','@')+'\')" style="cursor:pointer;color:#cf222e;padding:4px;">×</span></div>').join(''):'<div style="color:#8b949e;">暂无历史</div>';});}
+function delEmailHist(e){fetch('/api/email/history',{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:e})}).then(r=>r.json()).then(loadEmailHistory);}
+function confirmEmail(){var e=document.getElementById('emailInput').value.trim();if(!e)return;fetch('/api/email/history',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:e})});closeEmailDrawer();if(emailCallback)emailCallback(e);}
+</script>
+<!-- Email Drawer -->
+<div id="emailDrawer" class="drawer" style="width:320px;display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,0.2);z-index:9999;padding:16px;">
+    <div style="font-weight:600;margin-bottom:12px;">选择收件人</div>
+    <input type="email" id="emailInput" placeholder="输入邮箱地址" style="width:100%;padding:10px;margin-bottom:10px;border:1px solid #d0d7de;border-radius:6px;">
+    <button onclick="confirmEmail()" style="width:100%;padding:10px;background:#0969da;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:14px;">确定</button>
+    <div style="margin-top:16px;color:#57606a;font-size:12px;">历史记录</div>
+    <div id="emailHistoryList" style="margin-top:8px;max-height:200px;overflow-y:auto;"></div>
+</div>
+<div id="emailBackdrop" onclick="closeEmailDrawer()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9998;" ></div>

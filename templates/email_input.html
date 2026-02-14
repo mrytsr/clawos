@@ -1,0 +1,57 @@
+<div id="emailInputDrawer" class="drawer" style="width:300px;max-width:90vw;">
+    <div class="drawer-header">
+        <div class="drawer-title">选择收件人</div>
+        <button class="drawer-close" onclick="closeEmailInputDrawer()">×</button>
+    </div>
+    <div class="drawer-content" style="padding:16px;">
+        <input type="email" id="emailInput" placeholder="输入邮箱地址" style="width:100%;padding:10px;margin-bottom:10px;">
+        <button onclick="confirmEmail()" style="width:100%;padding:10px;background:#0969da;color:#fff;border:none;border-radius:6px;cursor:pointer;">确定</button>
+        <div style="margin-top:16px;color:#57606a;font-size:12px;">历史记录</div>
+        <div id="emailHistoryList" style="margin-top:8px;"></div>
+    </div>
+</div>
+<div id="emailBackdrop" onclick="closeEmailInputDrawer()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;"></div>
+<style>
+#emailInputDrawer { display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,0.2);z-index:10000; }
+#emailBackdrop { display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999; }
+#emailBackdrop.show { display:block; }
+#emailInputDrawer.show { display:block; }
+</style>
+<script>
+var emailCallback = null;
+var emailHistory = [];
+
+function openEmailDrawer(callback) {
+    emailCallback = callback;
+    document.getElementById('emailInput').value = '';
+    document.getElementById('emailBackdrop').classList.add('show');
+    document.getElementById('emailInputDrawer').classList.add('show');
+    loadEmailHistory();
+    document.getElementById('emailInput').focus();
+}
+
+function closeEmailInputDrawer() {
+    document.getElementById('emailBackdrop').classList.remove('show');
+    document.getElementById('emailInputDrawer').classList.remove('show');
+}
+
+function loadEmailHistory() {
+    fetch('/api/email/history').then(r=>r.json()).then(d=>{
+        emailHistory = d.data || [];
+        var html = emailHistory.map(function(e,i){return '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px;border-bottom:1px solid #eee;"><span>'+e+'</span><span onclick="deleteEmailHistory(\''+e+'\')" style="cursor:pointer;color:#cf222e;padding:4px;">×</span></div>'}).join('');
+        document.getElementById('emailHistoryList').innerHTML = html || '<div style="color:#8b949e;">暂无历史</div>';
+    });
+}
+
+function deleteEmailHistory(email) {
+    fetch('/api/email/history',{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email})}).then(r=>r.json()).then(loadEmailHistory);
+}
+
+function confirmEmail() {
+    var email = document.getElementById('emailInput').value.trim();
+    if (!email) return;
+    fetch('/api/email/history',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email})});
+    closeEmailInputDrawer();
+    if (emailCallback) emailCallback(email);
+}
+</script>

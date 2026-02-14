@@ -1912,23 +1912,142 @@ document.addEventListener('visibilitychange', function() {
 
 
 function sendFileByEmail(path, name) {
-    var email = prompt('请输入收件人邮箱:');
-    if (!email) return;
-    
-    fetch('/api/file/email', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ path: path, name: name, email: email })
-    })
-    .then(function(r) { return r.json(); })
-    .then(function(d) {
-        if (d.success) {
-            showToast('邮件发送成功', 'success');
-        } else {
-            showToast('发送失败: ' + (d.error || d.message), 'error');
-        }
-    })
-    .catch(function(e) { showToast('发送失败', 'error'); });
+    openEmailDrawer(function(email) {
+        fetch('/api/file/email', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ path: path, name: name, email: email })
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(d) {
+            if (d.success) {
+                showToast('邮件发送成功', 'success');
+            } else {
+                showToast('发送失败: ' + (d.error || d.message), 'error');
+            }
+        })
+        .catch(function(e) { showToast('发送失败', 'error'); });
+    });
 }
 
 window.sendFileByEmail = sendFileByEmail;
+// Email input drawer functions
+window.openEmailDrawer = function(callback) {
+    window.__emailCallback = callback;
+    var el = document.getElementById('emailDrawer');
+    if (el) el.style.display = 'block';
+    var backdrop = document.getElementById('emailBackdrop');
+    if (backdrop) backdrop.style.display = 'block';
+    var input = document.getElementById('emailInput');
+    if (input) {
+        input.value = '';
+        input.focus();
+    }
+    // Load history
+    fetch('/api/email/history', {credentials: 'same-origin'}).then(function(r) {return r.json();}).then(function(d) {
+        var list = document.getElementById('emailHistoryList');
+        if (list) {
+            var history = d.data || [];
+            if (history.length === 0) {
+                list.innerHTML = '<div style="color:#8b949e;text-align:center;padding:20px;">暂无历史</div>';
+            } else {
+                list.innerHTML = history.map(function(email) {
+                    return '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px;border-bottom:1px solid #eee;"><span>'+email+'</span><span onclick="deleteEmailHistory(\''+email+'\')" style="cursor:pointer;color:#cf222e;padding:4px;">×</span></div>';
+                }).join('');
+            }
+        }
+    });
+};
+
+window.closeEmailDrawer = function() {
+    var el = document.getElementById('emailDrawer');
+    if (el) el.style.display = 'none';
+    var backdrop = document.getElementById('emailBackdrop');
+    if (backdrop) backdrop.style.display = 'none';
+};
+
+window.deleteEmailHistory = function(email) {
+    fetch('/api/email/history', {
+        method: 'DELETE',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({email: email}),
+        credentials: 'same-origin'
+    }).then(function(r) {return r.json();}).then(function() {
+        window.openEmailDrawer(window.__emailCallback);
+    });
+};
+
+window.confirmEmail = function() {
+    var input = document.getElementById('emailInput');
+    var email = input.value.trim();
+    var re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!re.test(email)) {
+        alert('请输入正确的邮箱格式');
+        return;
+    }
+    fetch('/api/email/history', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({email: email}),
+        credentials: 'same-origin'
+    });
+    window.closeEmailDrawer();
+    if (window.__emailCallback) window.__emailCallback(email);
+};
+// Email drawer functions
+window.openEmailDrawer = function(callback) {
+    window.__emailCallback = callback;
+    document.getElementById('emailDrawer').style.display = 'block';
+    document.getElementById('emailBackdrop').style.display = 'block';
+    // Load history
+    fetch('/api/email/history', {credentials: 'same-origin'})
+    .then(function(r) {return r.json();})
+    .then(function(d) {
+        var list = document.getElementById('emailHistoryList');
+        var history = d.data || [];
+        if (history.length === 0) {
+            list.innerHTML = '<div style="color:#8b949e;text-align:center;padding:20px;">暂无历史</div>';
+        } else {
+            list.innerHTML = history.map(function(email) {
+                return '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px;border-bottom:1px solid #eee;">' +
+                    '<span>' + email + '</span>' +
+                    '<span onclick="deleteEmailHistory(\'' + email + '\')" style="cursor:pointer;color:#cf222e;padding:4px;">×</span></div>';
+            }).join('');
+        }
+    });
+};
+
+window.closeEmailDrawer = function() {
+    document.getElementById('emailDrawer').style.display = 'none';
+    document.getElementById('emailBackdrop').style.display = 'none';
+};
+
+window.deleteEmailHistory = function(email) {
+    fetch('/api/email/history', {
+        method: 'DELETE',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({email: email}),
+        credentials: 'same-origin'
+    }).then(function(r) {return r.json();}).then(function() {
+        window.openEmailDrawer(window.__emailCallback);
+    });
+};
+
+window.confirmEmail = function() {
+    var input = document.getElementById('emailInput');
+    var email = input.value.trim();
+    var re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!re.test(email)) {
+        alert('请输入正确的邮箱格式');
+        return;
+    }
+    // Save to history
+    fetch('/api/email/history', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({email: email}),
+        credentials: 'same-origin'
+    });
+    window.closeEmailDrawer();
+    if (window.__emailCallback) window.__emailCallback(email);
+};
