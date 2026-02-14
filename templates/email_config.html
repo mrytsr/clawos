@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>邮件配置</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" rel="stylesheet"/>
+    <style>
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { 
+            font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; 
+            background: #f6f8fa; 
+            margin: 0; 
+            padding: 12px;
+            min-height: 100vh;
+        }
+        .container { 
+            max-width: 100%; 
+            background: #fff; 
+            border-radius: 12px; 
+            border: 1px solid #d0d7de; 
+            padding: 16px;
+        }
+        h1 { 
+            font-size: 18px; 
+            margin: 0 0 16px 0; 
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        h1 a { 
+            color: #0969da; 
+            text-decoration: none;
+            font-size: 14px;
+        }
+        .form-group { margin-bottom: 14px; }
+        label { 
+            display: block; 
+            font-weight: 600; 
+            margin-bottom: 6px; 
+            color: #24292f; 
+            font-size: 14px;
+        }
+        input, select { 
+            width: 100%; 
+            padding: 12px; 
+            border: 1px solid #d0d7de; 
+            border-radius: 8px; 
+            font-size: 16px;
+            background: #fff;
+        }
+        input:focus, select:focus { 
+            outline: none; 
+            border-color: #0969da; 
+            box-shadow: 0 0 0 3px rgba(9,105,218,0.1); 
+        }
+        .row { display: flex; gap: 12px; }
+        .row .form-group { flex: 1; }
+        button { 
+            width: 100%;
+            background: #0969da; 
+            color: #fff; 
+            border: none; 
+            padding: 14px 20px; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            font-size: 16px; 
+            font-weight: 600;
+            touch-action: manipulation;
+        }
+        button:active { opacity: 0.8; }
+        button.secondary { 
+            background: #fff; 
+            color: #24292f; 
+            border: 1px solid #d0d7de; 
+        }
+        .test-row { 
+            margin-top: 20px; 
+            padding-top: 16px; 
+            border-top: 1px solid #d0d7de; 
+        }
+        .test-row input { margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📧 邮件配置 <a href="/">← 返回</a></h1>
+        
+        <div class="form-group">
+            <label>SMTP 服务器</label>
+            <input type="text" id="smtp_host" placeholder="smtp.example.com">
+        </div>
+        
+        <div class="row">
+            <div class="form-group">
+                <label>端口</label>
+                <input type="number" id="smtp_port" placeholder="465">
+            </div>
+            <div class="form-group">
+                <label>加密</label>
+                <select id="smtp_ssl">
+                    <option value="ssl">SSL</option>
+                    <option value="tls">TLS</option>
+                    <option value="none">无</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label>用户名</label>
+            <input type="text" id="smtp_user" placeholder="your@email.com">
+        </div>
+        
+        <div class="form-group">
+            <label>密码/授权码</label>
+            <input type="password" id="smtp_pass" placeholder="请输入密码">
+        </div>
+        
+        <div class="form-group">
+            <label>发件人昵称</label>
+            <input type="text" id="smtp_from" placeholder="ClawOS 文件助手">
+        </div>
+        
+        <button onclick="saveConfig()">保存配置</button>
+        
+        <div class="test-row">
+            <input type="email" id="test_email" placeholder="测试收件人邮箱">
+            <button class="secondary" onclick="testEmail()">发送测试邮件</button>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+    <script>
+    toastr.options = {
+        positionClass: 'toast-top-center',
+        timeOut: 2000,
+        closeButton: true,
+        debug: false,
+        newestOnTop: true,
+        progressBar: false,
+        preventDuplicates: true,
+        onclick: null
+    };
+    
+    fetch('/api/email/config')
+    .then(r => r.json())
+    .then(d => {
+        if (d.success && d.data) {
+            document.getElementById('smtp_host').value = d.data.smtp_host || '';
+            document.getElementById('smtp_port').value = d.data.smtp_port || 465;
+            document.getElementById('smtp_ssl').value = d.data.smtp_ssl || 'ssl';
+            document.getElementById('smtp_user').value = d.data.smtp_user || '';
+            document.getElementById('smtp_pass').value = d.data.smtp_pass || '';
+            document.getElementById('smtp_from').value = d.data.smtp_from || '';
+        }
+    });
+    
+    function saveConfig() {
+        const data = {
+            smtp_host: document.getElementById('smtp_host').value,
+            smtp_port: parseInt(document.getElementById('smtp_port').value) || 465,
+            smtp_ssl: document.getElementById('smtp_ssl').value,
+            smtp_user: document.getElementById('smtp_user').value,
+            smtp_pass: document.getElementById('smtp_pass').value,
+            smtp_from: document.getElementById('smtp_from').value
+        };
+        
+        fetch('/api/email/config', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(data)
+        })
+        .then(r => r.json())
+        .then(d => {
+            if (d.success) toastr.success('保存成功');
+            else toastr.error('保存失败');
+        });
+    }
+    
+    function testEmail() {
+        const email = document.getElementById('test_email').value;
+        if (!email) return toastr.warning('请输入邮箱');
+        
+        fetch('/api/email/test', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({email: email})
+        })
+        .then(r => r.json())
+        .then(d => {
+            if (d.success) toastr.success('已发送');
+            else toastr.error(d.error || '发送失败');
+        });
+    }
+    </script>
+</body>
+</html>

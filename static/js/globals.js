@@ -703,7 +703,8 @@ window.openMainMenuModal = function() {
             { action: 'frp', icon: '🔗', text: 'FRP内网穿透' },
             { action: 'disk', icon: '💾', text: '磁盘管理' },
             { action: 'cron', icon: '⏰', text: 'Cron管理' },
-            { action: 'fileopen', icon: '📂', text: '文件打开方式' }
+            { action: 'fileopen', icon: '📂', text: '文件打开方式' },
+            { action: 'email', icon: '📧', text: '邮件配置' }
         ];
         c.innerHTML = items.map(function(item) {
             return '<div class="modal-item menu-item" data-action="' + item.action + '"><span style="margin-right:12px;">' + item.icon + '</span>' + item.text + '</div>';
@@ -771,6 +772,10 @@ window.handleMainMenu = function(action) {
         var currentPath = document.getElementById('currentBrowsePath') ? document.getElementById('currentBrowsePath').value : '';
         openTerminal(currentPath, true);
     } else if (action === 'fileopen') {
+        window.open('/file-open-config', '_blank');
+    } else if (action === 'email') {
+        window.open('/email-config', '_blank');
+    } else if (action === 'fileopen2') {
         window.open('/file-open-config', '_blank');
     } else if (action === 'config') {
         openConfigModal();

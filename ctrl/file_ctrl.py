@@ -353,3 +353,75 @@ def delete_email_history():
         emails.remove(email)
         save_email_history(emails)
     return jsonify({'success': True})
+
+
+# Email config
+EMAIL_CONFIG_FILE = os.path.join(os.path.expanduser('~/.local/clawos'), 'email_config.json')
+
+def load_email_config():
+    try:
+        if os.path.exists(EMAIL_CONFIG_FILE):
+            with open(EMAIL_CONFIG_FILE, 'r') as f:
+                return json.load(f)
+    except:
+        pass
+    return {'smtp_host': '', 'smtp_port': 465, 'smtp_ssl': 'ssl', 'smtp_user': '', 'smtp_pass': '', 'smtp_from': ''}
+
+def save_email_config(config_data):
+    try:
+        os.makedirs(os.path.dirname(EMAIL_CONFIG_FILE), exist_ok=True)
+        with open(EMAIL_CONFIG_FILE, 'w') as f:
+            json.dump(config_data, f)
+    except:
+        pass
+
+@file_bp.route('/email-config')
+def email_config_page():
+    return render_template('email_config.html')
+
+@file_bp.route('/api/email/config', methods=['GET'])
+def get_email_config():
+    config = load_email_config()
+    config['smtp_pass'] = ''  # Don't return password
+    return jsonify({'success': True, 'data': config})
+
+@file_bp.route('/api/email/config', methods=['POST'])
+def set_email_config():
+    data = request.json or {}
+    save_email_config(data)
+    return jsonify({'success': True})
+
+@file_bp.route('/api/email/test', methods=['POST'])
+def test_email():
+    data = request.json or {}
+    email = data.get('email', '').strip()
+    if not email:
+        return jsonify({'success': False, 'error': '请输入邮箱'})
+    
+    config = load_email_config()
+    if not config.get('smtp_host') or not config.get('smtp_user'):
+        return jsonify({'success': False, 'error': '请先配置SMTP'})
+    
+    try:
+        import smtplib
+        from email.mime.text import MIMEText
+        
+        msg = MIMEText('这是一封来自 ClawOS 的测试邮件。', 'plain', 'utf-8')
+        msg['Subject'] = 'ClawOS 测试邮件'
+        msg['From'] = config.get('smtp_user')
+        msg['To'] = email
+        
+        port = int(config.get('smtp_port', 465))
+        if config.get('smtp_ssl') == 'ssl' or port == 465:
+            server = smtplib.SMTP_SSL(config['smtp_host'], port, timeout=30)
+        else:
+            server = smtplib.SMTP(config['smtp_host'], port, timeout=30)
+            if config.get('smtp_ssl') == 'tls':
+                server.starttls()
+        
+        server.login(config['smtp_user'], config['smtp_pass'])
+        server.sendmail(config['smtp_user'], [email], msg.as_string())
+        server.quit()
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})

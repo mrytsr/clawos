@@ -1,3 +1,4 @@
+import json
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -10,40 +11,33 @@ import os
 # 硬编码配置
 SMTP_SERVER = "smtp.qq.com"
 SMTP_PORT = 465
-SMTP_USER = "mrytsr@qq.com"
-SMTP_PASS = "rykouxobfexacaff"
+SMTP_USER = ""
+SMTP_PASS = ""
 ENABLE_EMAIL = True
 
 def send_text_email(to_email, subject, content):
-    """
-    Send a plain text email.
+    """Send a plain text email."""
+    smtp = get_smtp_config()
+    if not smtp['user'] or not smtp['pass']:
+        print("Email not configured")
+        return False
     
-    Args:
-        to_email: Recipient email address
-        subject: Email subject
-        content: Email body content
-        
-    Returns:
-        True if sent successfully, False otherwise
-    """
-    if not ENABLE_EMAIL:
-        print(f"DEBUG (Mock Email): {subject} -> {to_email}\n{content}")
-        return True
-        
     try:
         message = MIMEText(content, 'plain', 'utf-8')
-        message['From'] = f"Admin System <{SMTP_USER}>"
+        message['From'] = smtp['user']
         message['To'] = to_email
         message['Subject'] = Header(subject, 'utf-8')
 
-        if SMTP_PORT == 465:
-            server = smtplib.SMTP_SSL(SMTP_SERVER, SMTP_PORT)
+        port = smtp['port']
+        if smtp.get('ssl') == 'ssl' or port == 465:
+            server = smtplib.SMTP_SSL(smtp['host'], port, timeout=30)
         else:
-            server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
-            server.starttls()
+            server = smtplib.SMTP(smtp['host'], port, timeout=30)
+            if smtp.get('ssl') == 'tls':
+                server.starttls()
 
-        server.login(SMTP_USER, SMTP_PASS)
-        server.sendmail(SMTP_USER, [to_email], message.as_string())
+        server.login(smtp['user'], smtp['pass'])
+        server.sendmail(smtp['user'], [to_email], message.as_string())
         server.quit()
         print(f"Email sent to {to_email}")
         return True
@@ -117,14 +111,16 @@ def send_html_email(to_email, subject, html_content):
         html_part = MIMEText(html_content, 'html', 'utf-8')
         message.attach(html_part)
 
-        if SMTP_PORT == 465:
-            server = smtplib.SMTP_SSL(SMTP_SERVER, SMTP_PORT)
+        port = smtp['port']
+        if smtp.get('ssl') == 'ssl' or port == 465:
+            server = smtplib.SMTP_SSL(smtp['host'], port, timeout=30)
         else:
-            server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
-            server.starttls()
+            server = smtplib.SMTP(smtp['host'], port, timeout=30)
+            if smtp.get('ssl') == 'tls':
+                server.starttls()
 
-        server.login(SMTP_USER, SMTP_PASS)
-        server.sendmail(SMTP_USER, [to_email], message.as_string())
+        server.login(smtp['user'], smtp['pass'])
+        server.sendmail(smtp['user'], [to_email], message.as_string())
         server.quit()
         print(f"HTML email sent to {to_email}")
         return True
@@ -151,9 +147,14 @@ def send_email_with_attachment(to_email, subject, body, attachment_paths=None):
         print(f"Body: {body}")
         return True
     
+    smtp = get_smtp_config()
+    if not smtp['user'] or not smtp['pass']:
+        print("Email not configured")
+        return False
+    
     try:
         message = MIMEMultipart('mixed')
-        message['From'] = f"Admin System <{SMTP_USER}>"
+        message['From'] = smtp['user']
         message['To'] = to_email
         message['Subject'] = Header(subject, 'utf-8')
         
@@ -185,14 +186,16 @@ def send_email_with_attachment(to_email, subject, body, attachment_paths=None):
                 else:
                     print(f"Warning: File not found: {file_path}")
         
-        if SMTP_PORT == 465:
-            server = smtplib.SMTP_SSL(SMTP_SERVER, SMTP_PORT)
+        port = smtp['port']
+        if smtp.get('ssl') == 'ssl' or port == 465:
+            server = smtplib.SMTP_SSL(smtp['host'], port, timeout=30)
         else:
-            server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
-            server.starttls()
+            server = smtplib.SMTP(smtp['host'], port, timeout=30)
+            if smtp.get('ssl') == 'tls':
+                server.starttls()
 
-        server.login(SMTP_USER, SMTP_PASS)
-        server.sendmail(SMTP_USER, [to_email], message.as_string())
+        server.login(smtp['user'], smtp['pass'])
+        server.sendmail(smtp['user'], [to_email], message.as_string())
         server.quit()
         print(f"Email with attachments sent to {to_email}")
         return True
@@ -220,3 +223,27 @@ if __name__ == "__main__":
     
     print("\n--- Testing send_html_email ---")
     send_html_email("test@example.com", "HTML Test", "<h1>Hello</h1><p>This is a test.</p>")
+
+
+# Load config from file
+EMAIL_CONFIG_FILE = os.path.expanduser('~/.local/clawos/email_config.json')
+
+def get_email_config():
+    try:
+        if os.path.exists(EMAIL_CONFIG_FILE):
+            with open(EMAIL_CONFIG_FILE, 'r') as f:
+                return json.load(f)
+    except:
+        pass
+    return {}
+
+def get_smtp_config():
+    cfg = get_email_config()
+    return {
+        'host': cfg.get('smtp_host', 'smtp.qq.com'),
+        'port': int(cfg.get('smtp_port', 465)),
+        'user': cfg.get('smtp_user', ''),
+        'pass': cfg.get('smtp_pass', ''),
+        'ssl': cfg.get('smtp_ssl', 'ssl'),
+        'from_name': cfg.get('smtp_from', 'ClawOS')
+    }
