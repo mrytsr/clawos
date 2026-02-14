@@ -197,6 +197,8 @@ def api_browse_state():
         if not it.get('is_dir'):
             ext = os.path.splitext(name)[1].lower() if name else ''
             group = ext_to_group.get(ext, 'text')
+            if group not in open_config:
+                group = 'other'
             normalized['open_method'] = open_config.get(group, 'browser')
         
         items_rel.append(normalized)
@@ -293,6 +295,11 @@ def api_browse_files():
         '.html': 'web', '.htm': 'web', '.css': 'web', '.svg': 'web',
     }
     
+    # 未匹配的分到 other
+    if group not in open_config:
+        group = 'other'
+    
+    
     items_rel = []
     for it in items:
         if not isinstance(it, dict):
@@ -307,6 +314,8 @@ def api_browse_files():
         if not it.get('is_dir'):
             ext = os.path.splitext(name)[1].lower() if name else ''
             group = ext_to_group.get(ext, 'text')
+            if group not in open_config:
+                group = 'other'
             normalized['open_method'] = open_config.get(group, 'browser')
         
         items_rel.append(normalized)

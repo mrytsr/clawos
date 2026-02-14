@@ -186,6 +186,11 @@
                 exts: ['.html', '.htm', '.css', '.svg'], 
                 methods: ['browser', 'download']
             },
+            { 
+                id: 'other', icon: '📄', name: '其他', 
+                exts: [],  // 未匹配的所有文件
+                methods: ['browser', 'download', 'preview-image', 'preview-excel', 'preview-archive']
+            },
         ];
 
         // 打开方式标签
@@ -208,28 +213,28 @@
                 ppt: 'browser', pdf: 'browser', archive: 'preview-archive',
                 code: 'edit-code', json: 'preview-json', yaml: 'edit-yaml',
                 markdown: 'edit-md', video: 'browser', audio: 'browser',
-                text: 'browser', web: 'browser',
+                text: 'browser', web: 'browser', other: 'browser',
             },
             preview: {
                 image: 'preview-image', excel: 'preview-excel', word: 'browser',
                 ppt: 'browser', pdf: 'browser', archive: 'preview-archive',
                 code: 'edit-code', json: 'preview-json', yaml: 'edit-yaml',
                 markdown: 'edit-md', video: 'browser', audio: 'browser',
-                text: 'browser', web: 'browser',
+                text: 'browser', web: 'browser', other: 'browser',
             },
             download: {
                 image: 'download', excel: 'download', word: 'download',
                 ppt: 'download', pdf: 'download', archive: 'download',
                 code: 'download', json: 'download', yaml: 'download',
                 markdown: 'download', video: 'download', audio: 'download',
-                text: 'download', web: 'download',
+                text: 'download', web: 'download', other: 'download',
             },
             browser: {
                 image: 'browser', excel: 'browser', word: 'browser',
                 ppt: 'browser', pdf: 'browser', archive: 'browser',
                 code: 'browser', json: 'browser', yaml: 'browser',
                 markdown: 'browser', video: 'browser', audio: 'browser',
-                text: 'browser', web: 'browser',
+                text: 'browser', web: 'browser', other: 'browser',
             },
         };
 
