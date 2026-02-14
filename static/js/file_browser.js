@@ -291,6 +291,9 @@ function handleMenuAction(action) {
                     showToast('已选择创建链接: ' + window.currentItemName, 'success');
                 }
                 break;
+            case 'email':
+                sendFileByEmail(window.currentItemPath, window.currentItemName);
+                break;
             case 'chat': addToChat(window.currentItemPath); break;
             case 'terminal': openTerminal(window.currentItemPath, window.currentItemIsDir); break;
             case 'delete': confirmDelete(window.currentItemPath, window.currentItemName); break;
@@ -1906,3 +1909,26 @@ document.addEventListener('visibilitychange', function() {
     }
 });
 
+
+
+function sendFileByEmail(path, name) {
+    var email = prompt('请输入收件人邮箱:');
+    if (!email) return;
+    
+    fetch('/api/file/email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: path, name: name, email: email })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+        if (d.success) {
+            showToast('邮件发送成功', 'success');
+        } else {
+            showToast('发送失败: ' + (d.error || d.message), 'error');
+        }
+    })
+    .catch(function(e) { showToast('发送失败', 'error'); });
+}
+
+window.sendFileByEmail = sendFileByEmail;

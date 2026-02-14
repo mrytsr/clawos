@@ -3,7 +3,7 @@ import os
 from urllib.parse import quote
 
 import markdown
-from flask import Blueprint, redirect, render_template, request, send_from_directory, url_for
+from flask import Blueprint, redirect, render_template, request, send_from_directory, url_for, jsonify
 
 import config
 from lib import file_utils
@@ -261,3 +261,39 @@ def api_file_write():
     except Exception as e:
         return {'success': False, 'error': {'message': str(e)}}
 
+
+
+@file_bp.route('/api/file/email', methods=['POST'])
+def send_file_email():
+    """通过邮件发送文件"""
+    from lib.email_utils import send_email_with_attachment
+    from email.mime.text import MIMEText
+    import os
+    
+    data = request.get_json(silent=True) or {}
+    file_path = data.get('path', '')
+    name = data.get('name', '')
+    email = data.get('email', '')
+    
+    if not file_path or not email:
+        return jsonify({'success': False, 'error': '参数不完整'})
+    
+    # 获取完整路径
+    root_dir = config.ROOT_DIR
+    full_path = os.path.join(root_dir, file_path)
+    
+    if not os.path.exists(full_path):
+        return jsonify({'success': False, 'error': '文件不存在'})
+    
+    if os.path.isdir(full_path):
+        return jsonify({'success': False, 'error': '不支持文件夹'})
+    
+    # 发送邮件
+    subject = f'文件: {name}'
+    body = f'文件: {name}\n路径: {file_path}'
+    
+    try:
+        send_email_with_attachment(email, subject, body, [full_path])
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})

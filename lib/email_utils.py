@@ -7,11 +7,12 @@ from email import encoders
 import mimetypes
 import os
 
-# Use local config or environment variables
-try:
-    from config.config import SMTP_SERVER, SMTP_PORT, SMTP_USER, SMTP_PASS, ENABLE_EMAIL
-except ImportError:
-    from config import SMTP_SERVER, SMTP_PORT, SMTP_USER, SMTP_PASS, ENABLE_EMAIL
+# 硬编码配置
+SMTP_SERVER = "smtp.qq.com"
+SMTP_PORT = 465
+SMTP_USER = "mrytsr@qq.com"
+SMTP_PASS = "rykouxobfexacaff"
+ENABLE_EMAIL = True
 
 def send_text_email(to_email, subject, content):
     """
