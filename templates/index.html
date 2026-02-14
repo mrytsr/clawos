@@ -17,6 +17,7 @@
     <link rel="stylesheet" href="/static/css/style.css">
     <link rel="stylesheet" href="/static/lib/sweetalert2.min.css">
     <script src="/static/lib/sweetalert2.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js"></script>
     <!-- 全局函数预加载（必须在最前） -->
     <script src="/static/js/globals.js"></script>
     <script src="/static/js/file_clipboard.js"></script>
@@ -1154,6 +1155,9 @@
             </div>
             <!-- 监控项 -->
             <div style="padding: 12px; overflow-y: auto; max-height: calc(100vh - 120px);">
+                <!-- ECharts 实时图表 -->
+                <div id="perfChart" style="height: 180px; margin-bottom: 16px;"></div>
+                
                 <!-- CPU -->
                 <div style="margin-bottom: 16px;">
                     <div style="font-size: 13px; color: #57606a; margin-bottom: 6px;">CPU 使用率</div>

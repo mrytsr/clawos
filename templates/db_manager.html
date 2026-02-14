@@ -4,6 +4,74 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>数据库管理</title>
+    <!-- Tabulator 样式 - 匹配数据库页面 -->
+    <link href="https://unpkg.com/tabulator-tables@5.5.0/dist/css/tabulator.min.css" rel="stylesheet">
+    <style>
+        #resultsTable {
+            width: 100%;
+            min-width: 0;
+        }
+        .tabulator {
+            background: #16213e !important;
+            border: 1px solid #0f3460 !important;
+            color: #e0e0e0 !important;
+            font-size: 13px !important;
+        }
+        .tabulator-tableholder {
+            background: #16213e;
+        }
+        .tabulator-header {
+            background: #1a1a2e !important;
+            border-bottom: 1px solid #0f3460 !important;
+            color: #e0e0e0 !important;
+        }
+        .tabulator-header .tabulator-col {
+            background: #1a1a2e !important;
+            border-right: 1px solid #0f3460 !important;
+        }
+        .tabulator-header .tabulator-col:hover {
+            background: #0f3460 !important;
+        }
+        .tabulator-row {
+            background: #16213e !important;
+            border-bottom: 1px solid #0f3460 !important;
+            color: #e0e0e0 !important;
+        }
+        .tabulator-row:hover {
+            background: #0f3460 !important;
+        }
+        .tabulator-row.tabulator-selected {
+            background: #e94560 !important;
+        }
+        .tabulator-cell {
+            border-right: 1px solid #0f3460 !important;
+            padding: 6px 8px !important;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 200px;
+        }
+        .tabulator-footer {
+            background: #1a1a2e !important;
+            border-top: 1px solid #0f3460 !important;
+            color: #e0e0e0 !important;
+        }
+        .tabulator-paginator {
+            color: #e0e0e0 !important;
+        }
+        .tabulator-page {
+            color: #e0e0e0 !important;
+            background: #0f3460 !important;
+            border: 1px solid #16213e !important;
+        }
+        .tabulator-page.active {
+            background: #e94560 !important;
+        }
+        .tabulator-page:hover {
+            background: #16213e !important;
+        }
+    </style>
+    <script src="https://unpkg.com/tabulator-tables@5.5.0/dist/js/tabulator.min.js"></script>
     <script src="/static/js/clipboard.min.js"></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -457,7 +525,7 @@
     </div>
     
     <script>
-        const $ = id => document.getElementById(id);
+        const $$ = id => document.getElementById(id);
         let connections = [], currentConn = null, currentDb = null, currentTable = null;
         let allResults = [], currentPage = 1, totalPages = 1, pageSize = 200;
         let __confirmCallback = null;
@@ -511,8 +579,8 @@
         }
 
         function __setSqlEditorOpen(open) {
-            const panel = $('sqlEditorPanel');
-            const toggle = $('sqlToggle');
+            const panel = $$('sqlEditorPanel');
+            const toggle = $$('sqlToggle');
             if (!panel || !toggle) return;
             const want = !!open;
             panel.classList.toggle('open', want);
@@ -560,8 +628,8 @@
             const aiPrompt = typeof st.ai_prompt === 'string' ? st.ai_prompt : '';
             const tab = typeof st.tab === 'string' ? st.tab : '';
 
-            if (sql && $('sqlEditor')) $('sqlEditor').value = sql;
-            if (aiPrompt && $('aiPromptInput')) $('aiPromptInput').value = aiPrompt;
+            if (sql && $$('sqlEditor')) $$('sqlEditor').value = sql;
+            if (aiPrompt && $$('aiPromptInput')) $$('aiPromptInput').value = aiPrompt;
             if (typeof st.sql_open === 'boolean') __setSqlEditorOpen(st.sql_open);
             if (tab === 'results' || tab === 'schema') switchResultsTab(tab);
 
@@ -582,17 +650,17 @@
         
         // 加载树数据
         async function loadTree() {
-            $('dbTree').innerHTML = '<div class="tree-loading"><div class="spinner"></div>加载中...</div>';
+            $$('dbTree').innerHTML = '<div class="tree-loading"><div class="spinner"></div>加载中...</div>';
             try {
                 const r = await fetch('/api/db/tree');
                 const data = await r.json();
                 if (data.success) {
                     renderTree(data.data || []);
                 } else {
-                    $('dbTree').innerHTML = '<div class="results-empty">加载失败</div>';
+                    $$('dbTree').innerHTML = '<div class="results-empty">加载失败</div>';
                 }
             } catch (e) {
-                $('dbTree').innerHTML = '<div class="results-empty">加载失败</div>';
+                $$('dbTree').innerHTML = '<div class="results-empty">加载失败</div>';
             }
         }
         
@@ -605,7 +673,7 @@
                 html += renderTreeNode(conn, 'conn', null);
             });
             html += '</div>';
-            $('dbTree').innerHTML = html || '<div class="results-empty">暂无连接</div>';
+            $$('dbTree').innerHTML = html || '<div class="results-empty">暂无连接</div>';
         }
         
         function renderTreeNode(node, type, parentConnId) {
@@ -690,7 +758,7 @@
                 closeDrawer();
 
                 const sql = `SELECT * FROM \`${id}\` LIMIT 200`;
-                $('sqlEditor').value = sql;
+                $$('sqlEditor').value = sql;
                 saveDbUiState({ sql: sql }, false);
                 executeQuery();
             }
@@ -701,11 +769,11 @@
             if (currentConn) html += `<span>${currentConn.name}</span>`;
             if (currentDb) html += ` / <span>${currentDb}</span>`;
             if (currentTable) html += ` / <span>${currentTable}</span>`;
-            $('breadcrumb').innerHTML = html || '<span>未选择</span>';
+            $$('breadcrumb').innerHTML = html || '<span>未选择</span>';
         }
         
-        window.toggleDrawer = function() { $('drawer').classList.toggle('open'); $('drawerBackdrop').classList.toggle('show'); };
-        window.closeDrawer = function() { $('drawer').classList.remove('open'); $('drawerBackdrop').classList.remove('show'); };
+        window.toggleDrawer = function() { $$('drawer').classList.toggle('open'); $$('drawerBackdrop').classList.toggle('show'); };
+        window.closeDrawer = function() { $$('drawer').classList.remove('open'); $$('drawerBackdrop').classList.remove('show'); };
         
         // SQL历史
         const FIXED_SQLS = [
@@ -718,13 +786,13 @@
         
         function openSqlHistory() {
             renderSqlHistory();
-            $('historyDrawer').classList.add('open');
-            $('historyBackdrop').classList.add('show');
+            $$('historyDrawer').classList.add('open');
+            $$('historyBackdrop').classList.add('show');
         }
         
         function closeSqlHistory() {
-            $('historyDrawer').classList.remove('open');
-            $('historyBackdrop').classList.remove('show');
+            $$('historyDrawer').classList.remove('open');
+            $$('historyBackdrop').classList.remove('show');
         }
         
         function renderSqlHistory() {
@@ -748,7 +816,7 @@
                 </div>`;
             }).join('') : '<div style="padding:20px;text-align:center;color:#666;font-size:12px;">暂无历史记录</div>';
             
-            $('sqlHistoryList').innerHTML = `
+            $$('sqlHistoryList').innerHTML = `
                 <div class="history-section-title">常用 SQL</div>
                 ${fixedHtml}
                 ${history.length ? '<div class="history-divider"></div><div class="history-section-title">历史记录</div>' : ''}
@@ -757,10 +825,10 @@
         }
         
         function useHistorySql(sql) {
-            $('sqlEditor').value = sql;
+            $$('sqlEditor').value = sql;
             closeSqlHistory();
             toggleSqlEditor();
-            saveDbUiState({ sql: String(sql || ''), sql_open: $('sqlEditorPanel').classList.contains('open') });
+            saveDbUiState({ sql: String(sql || ''), sql_open: $$('sqlEditorPanel').classList.contains('open') });
             executeQuery();
         }
 
@@ -780,16 +848,16 @@
         }
 
         function __ensureSqlEditorOpen() {
-            const panel = $('sqlEditorPanel');
+            const panel = $$('sqlEditorPanel');
             if (panel && !panel.classList.contains('open')) toggleSqlEditor();
         }
 
         function __setSqlEditorValue(sql) {
             __ensureSqlEditorOpen();
-            const ta = $('sqlEditor');
+            const ta = $$('sqlEditor');
             if (!ta) return;
             ta.value = sql || '';
-            saveDbUiState({ sql: String(ta.value || ''), sql_open: $('sqlEditorPanel').classList.contains('open') });
+            saveDbUiState({ sql: String(ta.value || ''), sql_open: $$('sqlEditorPanel').classList.contains('open') });
             try {
                 ta.selectionStart = ta.selectionEnd = ta.value.length;
             } catch (e) {}
@@ -804,7 +872,7 @@
                 return;
             }
 
-            const current = String($('sqlEditor')?.value || '').trim();
+            const current = String($$('sqlEditor')?.value || '').trim();
             const found = current ? list.indexOf(current) : -1;
             if (found >= 0) __sqlHistoryNavIndex = found;
 
@@ -821,7 +889,7 @@
                 return;
             }
 
-            const current = String($('sqlEditor')?.value || '').trim();
+            const current = String($$('sqlEditor')?.value || '').trim();
             const found = current ? list.indexOf(current) : -1;
             if (found >= 0) __sqlHistoryNavIndex = found;
 
@@ -832,12 +900,12 @@
         }
         
         function toggleSqlEditor() {
-            $('sqlEditorPanel').classList.toggle('open');
-            $('sqlToggle').classList.toggle('open');
-            saveDbUiState({ sql_open: $('sqlEditorPanel').classList.contains('open') });
+            $$('sqlEditorPanel').classList.toggle('open');
+            $$('sqlToggle').classList.toggle('open');
+            saveDbUiState({ sql_open: $$('sqlEditorPanel').classList.contains('open') });
         }
         function clearEditor() {
-            $('sqlEditor').value = '';
+            $$('sqlEditor').value = '';
             closeAutocomplete();
             saveDbUiState({ sql: '' });
         }
@@ -1141,7 +1209,7 @@
         }
         
         function renderAutocomplete() {
-            const el = $('sqlAutocomplete');
+            const el = $$('sqlAutocomplete');
             if (!_acItems.length) { el.style.display = 'none'; return; }
             el.innerHTML = _acItems.map((item, i) => 
                 `<div class="sql-autocomplete-item ${i === _acSelected ? 'selected' : ''}" data-index="${i}">
@@ -1160,7 +1228,7 @@
         function selectAutocomplete(index) {
             const item = _acItems[index];
             if (!item) return;
-            const textarea = $('sqlEditor');
+            const textarea = $$('sqlEditor');
             const text = textarea.value;
             const start = Math.max(0, Math.min(text.length, _acReplaceStart || 0));
             const end = Math.max(0, Math.min(text.length, _acReplaceEnd || start));
@@ -1173,13 +1241,13 @@
         }
         
         function closeAutocomplete() {
-            $('sqlAutocomplete').style.display = 'none';
+            $$('sqlAutocomplete').style.display = 'none';
             _acItems = [];
             _acSelected = -1;
         }
         
         function initAutocomplete() {
-            const textarea = $('sqlEditor');
+            const textarea = $$('sqlEditor');
             textarea.addEventListener('input', e => {
                 showAutocomplete(e.target.value, e.target.selectionStart);
             });
@@ -1197,7 +1265,7 @@
                         renderAutocomplete();
                     }
                 } else if (e.key === 'Enter' || e.key === 'Tab') {
-                    if (_acItems.length && $('sqlAutocomplete').style.display !== 'none') {
+                    if (_acItems.length && $$('sqlAutocomplete').style.display !== 'none') {
                         e.preventDefault();
                         selectAutocomplete(_acSelected);
                     }
@@ -1211,9 +1279,9 @@
         }
         
         async function executeQuery() {
-            const sql = $('sqlEditor').value.trim();
+            const sql = $$('sqlEditor').value.trim();
             if (!sql) return;
-            $('resultsContent').innerHTML = '<div class="loading"><div class="spinner"></div>执行中...</div>';
+            $$('resultsContent').innerHTML = '<div class="loading"><div class="spinner"></div>执行中...</div>';
             
             try {
                 const r = await fetch('/api/db/execute', {
@@ -1227,7 +1295,7 @@
                     totalPages = Math.ceil(allResults.length / pageSize);
                     renderResults(data.data.headers || [], getPageData());
                     showStatus(`成功 ${allResults.length} 行`, false);
-                    $('resultsToolbar').style.display = allResults.length > pageSize ? 'flex' : 'none';
+                    $$('resultsToolbar').style.display = allResults.length > pageSize ? 'flex' : 'none';
                     
                     // 保存到历史
                     if (sql.toLowerCase().startsWith('select') || sql.toLowerCase().startsWith('show') || sql.toLowerCase().startsWith('describe')) {
@@ -1238,26 +1306,26 @@
                     }
                 } else {
                     showStatus('失败: ' + data.message, true);
-                    $('resultsContent').innerHTML = `<div class="results-empty" style="color:#ef4444;">${data.message}</div>`;
-                    $('resultsToolbar').style.display = 'none';
+                    $$('resultsContent').innerHTML = `<div class="results-empty" style="color:#ef4444;">${data.message}</div>`;
+                    $$('resultsToolbar').style.display = 'none';
                 }
             } catch (e) {
                 showStatus('失败: ' + e.message, true);
-                $('resultsContent').innerHTML = `<div class="results-empty" style="color:#ef4444;">${e.message}</div>`;
+                $$('resultsContent').innerHTML = `<div class="results-empty" style="color:#ef4444;">${e.message}</div>`;
             }
         }
         
         // AI SQL 生成
         async function generateSqlFromPrompt() {
-            const prompt = $('aiPromptInput').value.trim();
-            const currentSql = $('sqlEditor').value.trim();
+            const prompt = $$('aiPromptInput').value.trim();
+            const currentSql = $$('sqlEditor').value.trim();
             
             if (!prompt) {
                 showStatus('请输入 AI Prompt', true);
                 return;
             }
             
-            const btn = $('btnAiGenerate');
+            const btn = $$('btnAiGenerate');
             const originalText = btn.innerHTML;
             btn.disabled = true;
             btn.innerHTML = '<span class="ai-loading"></span> 生成中...';
@@ -1309,8 +1377,8 @@
                 const data = await r.json();
                 
                 if (data.success && data.sql) {
-                    $('sqlEditor').value = data.sql;
-                    $('aiPromptInput').value = '';
+                    $$('sqlEditor').value = data.sql;
+                    $$('aiPromptInput').value = '';
                     showStatus('SQL 生成成功 ✓', false);
                 } else {
                     const errMsg = data.error?.message || data.message || data.error || '未知错误';
@@ -1325,7 +1393,7 @@
         }
         
         // Ctrl+Enter 执行 SQL
-        $('sqlEditor').addEventListener('keydown', function(e) {
+        $$('sqlEditor').addEventListener('keydown', function(e) {
             if (e.ctrlKey && e.key === 'Enter') {
                 e.preventDefault();
                 executeQuery();
@@ -1339,7 +1407,7 @@
         });
         
         // Enter 生成 AI SQL
-        $('aiPromptInput').addEventListener('keydown', function(e) {
+        $$('aiPromptInput').addEventListener('keydown', function(e) {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
                 generateSqlFromPrompt();
@@ -1347,7 +1415,7 @@
         });
         
         // AI Prompt 输入时保存
-        $('aiPromptInput').addEventListener('input', function(e) {
+        $$('aiPromptInput').addEventListener('input', function(e) {
             saveDbUiState({ ai_prompt: e.target.value || '' }, false);
         });
         
@@ -1359,16 +1427,99 @@
         function goToPage(page) {
             if (page < 1 || page > totalPages) return;
             currentPage = page;
-            const headers = $('resultsContent').querySelectorAll('thead th');
+            const headers = $$('resultsContent').querySelectorAll('thead th');
             const headerArr = Array.from(headers).map(th => th.textContent);
             renderResults(headerArr, getPageData());
         }
         
         function renderResults(headers, rows) {
-            $('resultsContent').innerHTML = rows.length === 0 
-                ? '<div class="results-empty">无数据</div>' 
-                : `<div class="data-table-wrapper"><table class="data-table"><thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>${rows.map((row, ri) => `<tr>${row.map((cell, ci) => `<td onclick="editCell(this, ${ri}, ${ci})" data-row="${ri}" data-col="${ci}">${cell||''}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
-            $('pageInfo').textContent = `${currentPage} / ${totalPages}`;
+            if (rows.length === 0) {
+                $$('resultsContent').innerHTML = '<div class="results-empty">无数据</div>';
+                $$('pageInfo').textContent = '0 / 0';
+                return;
+            }
+            
+            // 保存原始数据用于编辑
+            window._tableHeaders = headers;
+            window._tableRows = rows;
+            
+            // 检查 Tabulator 是否加载
+            if (typeof Tabulator === 'undefined') {
+                // 回退到原生表格
+                renderResultsNative(headers, rows);
+                return;
+            }
+            
+            // 销毁旧的 Tabulator 实例
+            if (window._resultsTable) {
+                window._resultsTable.destroy();
+            }
+            
+            // 准备 Tabulator 数据（将数组转换为对象数组）
+            const tableData = rows.map((row, ri) => {
+                const obj = { _rowIndex: ri };
+                headers.forEach((h, ci) => {
+                    obj[h] = row[ci];
+                });
+                return obj;
+            });
+            
+            // 构建列定义
+            const columns = headers.map(h => ({
+                title: h,
+                field: h,
+                editor: "input",
+                headerFilter: "input",
+                headerFilterPlaceholder: "筛选...",
+                minWidth: 100
+            }));
+            
+            $$('resultsContent').innerHTML = '<div id="resultsTable" style="width:100%;"></div>';
+            
+            // 初始化 Tabulator
+            window._resultsTable = new Tabulator("#resultsTable", {
+                data: tableData,
+                columns: columns,
+                height: "auto",
+                layout: "fitColumns",
+                pagination: "local",
+                paginationSize: 50,
+                movableColumns: false,
+                langs: {
+                    "zh-cn": {
+                        "pagination": {
+                            "first": "首页",
+                            "prev": "上一页",
+                            "next": "下一页",
+                            "last": "末页",
+                            "page_size": "每页条数"
+                        },
+                        "headerfilters": {
+                            "default": "筛选..."
+                        }
+                    }
+                },
+                locale: "zh-cn",
+                cellEdited: function(cell) {
+                    // 单元格编辑完成
+                    const rowIndex = cell.getData()._rowIndex;
+                    const colName = cell.getColumn().getField();
+                    const colIndex = headers.indexOf(colName);
+                    const newValue = cell.getValue();
+                    if (colIndex >= 0) {
+                        window._tableRows[rowIndex][colIndex] = newValue;
+                        submitCellEdit(null, rowIndex, colIndex, newValue);
+                    }
+                }
+            });
+            
+            $$('pageInfo').textContent = `共 ${rows.length} 条`;
+        }
+        
+        // 回退到原生表格实现
+        function renderResultsNative(headers, rows) {
+            $$('resultsContent').innerHTML = `<table class="data-table" style="width:100%"><thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>${rows.map((row, ri) => `<tr>${row.map((cell, ci) => `<td onclick="editCell(this, ${ri}, ${ci})">${cell||''}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+            $$('pageInfo').textContent = `共 ${rows.length} 条 (Tabulator 未加载)`;
         }
         
         // 单元格编辑
@@ -1394,7 +1545,7 @@
             if (!currentTable) { showStatus('无法更新：未选择表', true); return; }
             
             // 构建 UPDATE 语句
-            const headers = $('resultsContent').querySelectorAll('thead th');
+            const headers = $$('resultsContent').querySelectorAll('thead th');
             const colName = headers[colIdx].textContent;
             const sql = `UPDATE \`${currentTable}\` SET \`${colName}\` = ${newValue === '' ? 'NULL' : typeof newValue === 'number' ? newValue : `'${newValue.replace(/'/g, "''")}'`} WHERE `;
             
@@ -1419,16 +1570,16 @@
         
         function quickQuery(sql) {
             if (!currentConn) { showStatus('请先选择表', true); return; }
-            $('sqlEditor').value = sql;
-            $('sqlEditorPanel').classList.add('open');
-            $('sqlToggle').classList.add('open');
+            $$('sqlEditor').value = sql;
+            $$('sqlEditorPanel').classList.add('open');
+            $$('sqlToggle').classList.add('open');
             saveDbUiState({ sql_open: true, sql: String(sql || '') });
             executeQuery();
         }
         
         function exportData(format) {
             if (allResults.length === 0) { showStatus('无可导出数据', true); return; }
-            const headers = $('resultsContent').querySelectorAll('thead th');
+            const headers = $$('resultsContent').querySelectorAll('thead th');
             const headerArr = Array.from(headers).map(th => th.textContent);
             let content = '', filename = `export_${Date.now()}`;
             
@@ -1459,9 +1610,9 @@
         
         function switchResultsTab(tab) {
             document.querySelectorAll('.results-tab').forEach(t => t.classList.remove('active'));
-            $('tab' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('active');
-            $('resultsContent').style.display = tab === 'results' ? 'block' : 'none';
-            $('schemaPanel').style.display = tab === 'schema' ? 'block' : 'none';
+            $$('tab' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('active');
+            $$('resultsContent').style.display = tab === 'results' ? 'block' : 'none';
+            $$('schemaPanel').style.display = tab === 'schema' ? 'block' : 'none';
             if (tab === 'schema' && currentTable) loadTableSchema();
             currentResultsTab = tab;
             saveDbUiState({ tab: tab });
@@ -1469,30 +1620,30 @@
         
         async function loadTableSchema() {
             if (!currentConn || !currentTable) return;
-            $('schemaPanel').innerHTML = '<div class="loading"><div class="spinner"></div>加载中...</div>';
+            $$('schemaPanel').innerHTML = '<div class="loading"><div class="spinner"></div>加载中...</div>';
             try {
                 const r = await fetch(`/api/db/${currentConn.id}/table/${currentTable}/schema`);
                 const data = await r.json();
                 if (data.success) {
                     const cols = data.data?.columns || [];
-                    $('schemaPanel').innerHTML = cols.length ? `<table class="data-table"><thead><tr><th>列名</th><th>类型</th><th>可空</th><th>键</th></tr></thead><tbody>` + 
+                    $$('schemaPanel').innerHTML = cols.length ? `<table class="data-table"><thead><tr><th>列名</th><th>类型</th><th>可空</th><th>键</th></tr></thead><tbody>` + 
                         cols.map(c => `<tr><td>${c.field}</td><td>${c.type}</td><td>${c.null === 'YES' ? '✓' : '✗'}</td><td>${c.key || ''}</td></tr>`).join('') + '</tbody></table>' : '<div class="results-empty">无结构</div>';
                 }
-            } catch (e) { $('schemaPanel').innerHTML = '<div class="results-empty">加载失败</div>'; }
+            } catch (e) { $$('schemaPanel').innerHTML = '<div class="results-empty">加载失败</div>'; }
         }
         
-        function showStatus(msg, error) { $('statusBar').innerHTML = `<span class="${error ? 'error' : 'success'}">${msg}</span>`; }
+        function showStatus(msg, error) { $$('statusBar').innerHTML = `<span class="${error ? 'error' : 'success'}">${msg}</span>`; }
         
         function showConfirm(title, msg, onConfirm, danger) {
-            $('confirmTitle').textContent = title;
-            $('confirmMessage').textContent = msg;
+            $$('confirmTitle').textContent = title;
+            $$('confirmMessage').textContent = msg;
             __confirmCallback = onConfirm;
-            $('confirmBtn').className = danger ? 'confirm' : '';
-            $('confirmBtn').textContent = danger ? '删除' : '确认';
-            $('confirmBackdrop').style.display = 'flex';
+            $$('confirmBtn').className = danger ? 'confirm' : '';
+            $$('confirmBtn').textContent = danger ? '删除' : '确认';
+            $$('confirmBackdrop').style.display = 'flex';
         }
         function performConfirm() { if (__confirmCallback) __confirmCallback(); closeConfirmModal(); }
-        function closeConfirmModal() { $('confirmBackdrop').style.display = 'none'; }
+        function closeConfirmModal() { $$('confirmBackdrop').style.display = 'none'; }
         
         function copyToClipboard(text) {
             if (typeof clipboard !== 'undefined' && clipboard.copy) clipboard.copy(text).then(() => showStatus('已复制', false)).catch(() => fallbackCopy(text));
@@ -1509,15 +1660,15 @@
         
         // 添加连接
         function openAddModal() {
-            $('dbEngine').value = 'mysql'; $('dbName').value = ''; $('dbHost').value = ''; $('dbPort').value = '3306';
-            $('dbUser').value = ''; $('dbPass').value = ''; $('dbDatabase').value = ''; $('dbSqlitePath').value = '';
-            $('dbUrl').value = '';
+            $$('dbEngine').value = 'mysql'; $$('dbName').value = ''; $$('dbHost').value = ''; $$('dbPort').value = '3306';
+            $$('dbUser').value = ''; $$('dbPass').value = ''; $$('dbDatabase').value = ''; $$('dbSqlitePath').value = '';
+            $$('dbUrl').value = '';
             updateEngineFields();
-            $('addModal').classList.add('show');
+            $$('addModal').classList.add('show');
         }
-        function closeAddModal() { $('addModal').classList.remove('show'); }
+        function closeAddModal() { $$('addModal').classList.remove('show'); }
         function updateEngineFields() {
-            const eng = $('dbEngine').value;
+            const eng = $$('dbEngine').value;
             document.querySelectorAll('.host-field').forEach(el => el.style.display = eng === 'sqlite' ? 'none' : 'block');
             document.querySelectorAll('.sqlite-field').forEach(el => el.style.display = eng === 'sqlite' ? 'block' : 'none');
         }
@@ -1567,7 +1718,7 @@
         }
 
         function applyDbUrl(showErr) {
-            var url = $('dbUrl') ? $('dbUrl').value : '';
+            var url = $$('dbUrl') ? $$('dbUrl').value : '';
             var parsed = parseDbUrl(url);
             if (!parsed) {
                 if (showErr) showStatus('URL 解析失败', true);
@@ -1575,25 +1726,25 @@
             }
 
             var eng = parsed.engine || '';
-            if (eng && $('dbEngine')) $('dbEngine').value = eng;
+            if (eng && $$('dbEngine')) $$('dbEngine').value = eng;
             updateEngineFields();
 
             if (eng === 'sqlite') {
-                if ($('dbSqlitePath')) $('dbSqlitePath').value = parsed.sqlitePath || '';
-                if ($('dbPort')) $('dbPort').value = '0';
+                if ($$('dbSqlitePath')) $$('dbSqlitePath').value = parsed.sqlitePath || '';
+                if ($$('dbPort')) $$('dbPort').value = '0';
                 return;
             }
 
-            if ($('dbHost')) $('dbHost').value = parsed.host || $('dbHost').value;
-            if ($('dbUser')) $('dbUser').value = parsed.user || $('dbUser').value;
-            if ($('dbPass')) $('dbPass').value = parsed.password || $('dbPass').value;
-            if ($('dbDatabase')) $('dbDatabase').value = parsed.database || $('dbDatabase').value;
-            if ($('dbPort')) $('dbPort').value = parsed.port || String(ENGINE_CONFIG[eng]?.port || $('dbPort').value || '');
+            if ($$('dbHost')) $$('dbHost').value = parsed.host || $$('dbHost').value;
+            if ($$('dbUser')) $$('dbUser').value = parsed.user || $$('dbUser').value;
+            if ($$('dbPass')) $$('dbPass').value = parsed.password || $$('dbPass').value;
+            if ($$('dbDatabase')) $$('dbDatabase').value = parsed.database || $$('dbDatabase').value;
+            if ($$('dbPort')) $$('dbPort').value = parsed.port || String(ENGINE_CONFIG[eng]?.port || $$('dbPort').value || '');
         }
         async function testAndSave() {
-            const eng = $('dbEngine').value;
-            const data = {name:$('dbName').value, engine:eng, host:eng==='sqlite'?'':$('dbHost').value, port:String($('dbPort').value||ENGINE_CONFIG[eng]?.port||3306), 
-                user:eng==='sqlite'?'':$('dbUser').value, password:eng==='sqlite'?'':$('dbPass').value, database:eng==='sqlite'?$('dbSqlitePath').value:$('dbDatabase').value};
+            const eng = $$('dbEngine').value;
+            const data = {name:$$('dbName').value, engine:eng, host:eng==='sqlite'?'':$$('dbHost').value, port:String($$('dbPort').value||ENGINE_CONFIG[eng]?.port||3306), 
+                user:eng==='sqlite'?'':$$('dbUser').value, password:eng==='sqlite'?'':$$('dbPass').value, database:eng==='sqlite'?$$('dbSqlitePath').value:$$('dbDatabase').value};
             if (!data.name) { showStatus('请填写名称', true); return; }
             if (eng !== 'sqlite' && (!data.host || !data.user)) { showStatus('请填写必要信息', true); return; }
             try {
@@ -1606,20 +1757,20 @@
         async function openEditModal(id) {
             const conn = connections.find(c => c.id === id);
             if (!conn) return;
-            $('editConnId').value = id; $('editDbName').value = conn.name || '';
-            $('editDbHost').value = conn.host || ''; $('editDbPort').value = conn.port || '';
-            $('editDbUser').value = conn.user || ''; $('editDbPass').value = '';
-            $('editDbDatabase').value = conn.database || ''; $('editDbSqlitePath').value = conn.engine === 'sqlite' ? conn.database : '';
+            $$('editConnId').value = id; $$('editDbName').value = conn.name || '';
+            $$('editDbHost').value = conn.host || ''; $$('editDbPort').value = conn.port || '';
+            $$('editDbUser').value = conn.user || ''; $$('editDbPass').value = '';
+            $$('editDbDatabase').value = conn.database || ''; $$('editDbSqlitePath').value = conn.engine === 'sqlite' ? conn.database : '';
             const url = `${conn.engine || 'mysql'}://${conn.user||''}:***@${conn.host||''}:${conn.port||3306}/${conn.database||''}`;
-            $('editDbUrl').value = url;
-            $('editModal').classList.add('show');
+            $$('editDbUrl').value = url;
+            $$('editModal').classList.add('show');
         }
-        function closeEditModal() { $('editModal').classList.remove('show'); }
-        function copyDbUrl() { copyToClipboard($('editDbUrl').value); }
+        function closeEditModal() { $$('editModal').classList.remove('show'); }
+        function copyDbUrl() { copyToClipboard($$('editDbUrl').value); }
         async function saveEditConnection() {
-            const id = $('editConnId').value;
+            const id = $$('editConnId').value;
             const eng = connections.find(c => c.id === id)?.engine || 'mysql';
-            const data = {name:$('editDbName').value, engine:eng, host:$('editDbHost').value, port:String($('editDbPort').value), user:$('editDbUser').value, password:$('editDbPass').value, database:$('editDbDatabase').value};
+            const data = {name:$$('editDbName').value, engine:eng, host:$$('editDbHost').value, port:String($$('editDbPort').value), user:$$('editDbUser').value, password:$$('editDbPass').value, database:$$('editDbDatabase').value};
             try {
                 await fetch(`/api/db/connection/${id}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)});
                 closeEditModal(); loadTree(); loadConnections(); showStatus('已更新', false);
@@ -1642,20 +1793,20 @@
             if (data.success) connections = data.data?.connections || [];
         }
 
-        if ($('dbEngine')) $('dbEngine').addEventListener('change', function() { updateEngineFields(); });
-        if ($('dbUrl')) {
-            $('dbUrl').addEventListener('change', function() { applyDbUrl(false); });
-            $('dbUrl').addEventListener('keydown', function(e) { if (e && e.key === 'Enter') { e.preventDefault(); applyDbUrl(false); } });
-            $('dbUrl').addEventListener('paste', function() { setTimeout(function() { applyDbUrl(false); }, 0); });
+        if ($$('dbEngine')) $$('dbEngine').addEventListener('change', function() { updateEngineFields(); });
+        if ($$('dbUrl')) {
+            $$('dbUrl').addEventListener('change', function() { applyDbUrl(false); });
+            $$('dbUrl').addEventListener('keydown', function(e) { if (e && e.key === 'Enter') { e.preventDefault(); applyDbUrl(false); } });
+            $$('dbUrl').addEventListener('paste', function() { setTimeout(function() { applyDbUrl(false); }, 0); });
         }
         
         document.addEventListener('keydown', e => { if ((e.ctrlKey||e.metaKey) && e.key==='Enter') executeQuery(); });
-        if ($('sqlEditor')) {
-            $('sqlEditor').addEventListener('input', function() {
-                saveDbUiState({ sql: String($('sqlEditor').value || '') }, false);
+        if ($$('sqlEditor')) {
+            $$('sqlEditor').addEventListener('input', function() {
+                saveDbUiState({ sql: String($$('sqlEditor').value || '') }, false);
             });
-            $('sqlEditor').addEventListener('blur', function() {
-                saveDbUiState({ sql: String($('sqlEditor').value || '') }, true);
+            $$('sqlEditor').addEventListener('blur', function() {
+                saveDbUiState({ sql: String($$('sqlEditor').value || '') }, true);
             });
         }
         Promise.all([loadDbUiState(), loadConnections()])

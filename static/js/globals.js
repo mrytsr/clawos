@@ -1370,6 +1370,9 @@ window.closePerfDrawer = function() {
 
 window.startPerfMonitor = function() {
     window.stopPerfMonitor();
+    if (typeof echarts !== 'undefined') {
+        initPerfChart();
+    }
     updatePerfData();
     window.perfInterval = setInterval(updatePerfData, 2000);
 };
@@ -1380,6 +1383,92 @@ window.stopPerfMonitor = function() {
         window.perfInterval = null;
     }
 };
+
+// ECharts 实时图表
+var perfChart = null;
+var perfHistory = { cpu: [], mem: [], time: [] };
+var MAX_HISTORY = 30;
+
+function initPerfChart() {
+    if (perfChart) return;
+    var chartDom = document.getElementById('perfChart');
+    if (!chartDom) return;
+    
+    perfChart = echarts.init(chartDom, 'dark');
+    
+    var option = {
+        backgroundColor: 'transparent',
+        tooltip: { trigger: 'axis' },
+        legend: { data: ['CPU', '内存'], top: 5, textStyle: { fontSize: 11 } },
+        grid: { left: 40, right: 20, top: 30, bottom: 25 },
+        xAxis: { 
+            type: 'category', 
+            boundaryGap: false,
+            data: [],
+            axisLabel: { fontSize: 10 }
+        },
+        yAxis: { 
+            type: 'value', 
+            min: 0, max: 100,
+            axisLabel: { fontSize: 10, formatter: '{value}%' }
+        },
+        series: [
+            {
+                name: 'CPU',
+                type: 'line',
+                smooth: true,
+                showSymbol: false,
+                lineStyle: { width: 2, color: '#58a6ff' },
+                areaStyle: { color: 'rgba(88,166,255,0.2)' },
+                data: []
+            },
+            {
+                name: '内存',
+                type: 'line',
+                smooth: true,
+                showSymbol: false,
+                lineStyle: { width: 2, color: '#2ea043' },
+                areaStyle: { color: 'rgba(46,160,67,0.2)' },
+                data: []
+            }
+        ]
+    };
+    
+    perfChart.setOption(option);
+    
+    // 窗口大小变化时自适应
+    window.addEventListener('resize', function() {
+        if (perfChart) perfChart.resize();
+    });
+}
+
+function updatePerfChart(cpuPct, memPct) {
+    if (!perfChart) return;
+    
+    var now = new Date();
+    var timeStr = now.getHours().toString().padStart(2,'0') + ':' + 
+                  now.getMinutes().toString().padStart(2,'0') + ':' + 
+                  now.getSeconds().toString().padStart(2,'0');
+    
+    perfHistory.time.push(timeStr);
+    perfHistory.cpu.push(Math.round(cpuPct));
+    perfHistory.mem.push(Math.round(memPct));
+    
+    // 保持历史数据长度
+    if (perfHistory.time.length > MAX_HISTORY) {
+        perfHistory.time.shift();
+        perfHistory.cpu.shift();
+        perfHistory.mem.shift();
+    }
+    
+    perfChart.setOption({
+        xAxis: { data: perfHistory.time },
+        series: [
+            { data: perfHistory.cpu },
+            { data: perfHistory.mem }
+        ]
+    });
+}
 
 function updatePerfData() {
     fetch('/api/performance/realtime').then(function(r){return r.json();}).then(function(data){
@@ -1405,6 +1494,11 @@ function updatePerfData() {
         document.getElementById('perfMemFill').style.width = memPct + '%';
         document.getElementById('perfMemText').textContent = 
             formatSize(mem.used || 0) + ' / ' + formatSize(mem.total || 0);
+        
+        // 更新 ECharts 图表
+        if (typeof echarts !== 'undefined') {
+            updatePerfChart(cpuPct, memPct);
+        }
         
         // 磁盘
         var disk = d.disk || {};

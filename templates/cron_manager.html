@@ -63,6 +63,10 @@
     </style>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.css">
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/zh.min.js"></script>
 </head>
 <body>
     <div id="app">
@@ -115,6 +119,10 @@
                         <option value="*/5 * * * *">每 5 分钟</option>
                     </select>
                 </div>
+            </div>
+            <div class="form-group">
+                <label>快捷设置 (可视化)</label>
+                <input type="text" id="quickSchedule" placeholder="点击选择时间...">
             </div>
             <div class="form-group">
                 <label>命令</label>
@@ -295,7 +303,49 @@
         }
     }
     
-    loadJobs();
+    // Flatpickr 初始化
+    let quickPicker = null;
+    
+    function initFlatpickr() {
+        if (quickPicker) return;
+        
+        quickPicker = flatpickr("#quickSchedule", {
+            locale: "zh",
+            enableTime: true,
+            noCalendar: false,
+            dateFormat: "Y-m-d H:i",
+            minDate: "today",
+            defaultDate: new Date(),
+            onChange: function(selectedDates, dateStr) {
+                if (selectedDates.length > 0) {
+                    const date = selectedDates[0];
+                    const minute = date.getMinutes();
+                    const hour = date.getHours();
+                    const day = date.getDate();
+                    const month = date.getMonth() + 1;
+                    
+                    $('minute').value = minute;
+                    $('hour').value = hour;
+                    $('day').value = day;
+                    $('month').value = month;
+                    $('weekday').value = '*';
+                    
+                    // 显示格式化的 cron 表达式
+                    console.log(`Cron: ${minute} ${hour} ${day} ${month} *`);
+                }
+            }
+        });
+    }
+    
+    // 重新打开模态框时重新初始化 Flatpickr
+    const originalOpenAddModal = openAddModal;
+    openAddModal = function() {
+        originalOpenAddModal();
+        // 延迟初始化，确保 DOM 已渲染
+        setTimeout(initFlatpickr, 100);
+    }
+
+loadJobs();
     </script>
 </body>
 </html>
