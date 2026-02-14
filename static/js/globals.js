@@ -20,9 +20,10 @@ function showUploadStatus(message) {
 }
 
 function showToast(message, type, title) {
+    console.log('showToast called:', message, type);
     var t = type || 'info';
     var container = document.getElementById('toastContainer');
-    if (!container) return;
+    if (!container) { console.log('toastContainer not found'); return; }
 
     var toast = document.createElement('div');
     toast.className = 'toast toast-' + t;
@@ -36,7 +37,7 @@ function showToast(message, type, title) {
 
     var titleHtml = title ? '<div class="toast-title">' + escapeHtml(title) + '</div>' : '';
     
-    toast.innerHTML = icons[t] || icons.info +
+    toast.innerHTML = (icons[t] || icons.info) +
         '<div class="toast-content">' + titleHtml +
         '<div class="toast-message">' + escapeHtml(message) + '</div></div>' +
         '<button class="toast-close" onclick="this.parentElement.remove()">' +
