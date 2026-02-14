@@ -425,3 +425,14 @@ def test_email():
         return jsonify({'success': True})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
+
+# Alert Demo
+@file_bp.route('/alert-demo')
+def alert_demo_page():
+    return render_template('alert_demo.html')
+
+@file_bp.route('/swal-github')
+def swal_github_demo():
+    return render_template('swal_github.html')
+def alert_demo_page():
+    return render_template('alert_demo.html')

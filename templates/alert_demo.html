@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>对话框组件 Demo</title>
+    
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    
+    <!-- iziToast -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/izitoast/1.4.0/js/iziToast.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/izitoast/1.4.0/css/iziToast.min.css">
+    
+    <style>
+        * { box-sizing: border-box; }
+        body { 
+            font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; 
+            background: #f6f8fa; 
+            margin: 0; 
+            padding: 20px;
+        }
+        .container { max-width: 600px; margin: 0 auto; }
+        h1 { font-size: 20px; margin-bottom: 8px; }
+        h2 { font-size: 16px; margin: 24px 0 12px; color: #333; border-bottom: 1px solid #ddd; padding-bottom: 8px; }
+        .desc { color: #666; font-size: 13px; margin-bottom: 16px; }
+        
+        .btn-group { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; }
+        button { 
+            padding: 12px 20px; 
+            border: none; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        button:active { transform: scale(0.98); }
+        
+        /* SweetAlert2 按钮样式 */
+        .btn-swal { background: #0969da; color: #fff; }
+        .btn-swal-success { background: #1a7f37; color: #fff; }
+        .btn-swal-error { background: #cf222e; color: #fff; }
+        .btn-swal-warning { background: #9a6700; color: #fff; }
+        .btn-swal-question { background: #8250df; color: #fff; }
+        
+        /* iziToast 按钮样式 */
+        .btn-izi { background: #ff5722; color: #fff; }
+        .btn-izi-success { background: #4caf50; color: #fff; }
+        .btn-izi-error { background: #f44336; color: #fff; }
+        .btn-izi-warning { background: #ff9800; color: #fff; }
+        .btn-izi-info { background: #2196f3; color: #fff; }
+        
+        .section { background: #fff; border-radius: 12px; padding: 20px; margin-bottom: 20px; border: 1px solid #e1e4e8; }
+        .library-name { font-weight: 600; color: #0969da; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+        .library-name.izi { color: #ff5722; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎭 对话框组件 Demo</h1>
+        <p class="desc">对比 SweetAlert2 和 iziToast 两种组件的效果</p>
+        
+        <!-- SweetAlert2 -->
+        <div class="section">
+            <div class="library-name">✨ SweetAlert2</div>
+            
+            <h2>基础提示</h2>
+            <div class="btn-group">
+                <button class="btn-swal" onclick="swalBasic()">Basic</button>
+                <button class="btn-swal-success" onclick="swalSuccess()">Success</button>
+                <button class="btn-swal-error" onclick="swalError()">Error</button>
+                <button class="btn-swal-warning" onclick="swalWarning()">Warning</button>
+                <button class="btn-swal-question" onclick="swalQuestion()">Question</button>
+            </div>
+            
+            <h2>Confirm 确认框</h2>
+            <div class="btn-group">
+                <button class="btn-swal-warning" onclick="swalConfirm()">Confirm</button>
+            </div>
+            
+            <h2>Input 输入框</h2>
+            <div class="btn-group">
+                <button class="btn-swal" onclick="swalInput()">Prompt</button>
+            </div>
+            
+            <h2>异步/Promise</h2>
+            <div class="btn-group">
+                <button class="btn-swal" onclick="swalAsync()">Async</button>
+            </div>
+        </div>
+        
+        <!-- iziToast -->
+        <div class="section">
+            <div class="library-name izi">🔥 iziToast</div>
+            
+            <h2>基础提示</h2>
+            <div class="btn-group">
+                <button class="btn-izi" onclick="iziDefault()">Default</button>
+                <button class="btn-izi-success" onclick="iziSuccess()">Success</button>
+                <button class="btn-izi-error" onclick="iziError()">Error</button>
+                <button class="btn-izi-warning" onclick="iziWarning()">Warning</button>
+                <button class="btn-izi-info" onclick="iziInfo()">Info</button>
+            </div>
+            
+            <h2>带回调</h2>
+            <div class="btn-group">
+                <button class="btn-izi-success" onclick="iziCallback()">With Callback</button>
+            </div>
+            
+            <h2>自定义位置</h2>
+            <div class="btn-group">
+                <button class="btn-izi" onclick="iziTopLeft()">Top Left</button>
+                <button class="btn-izi" onclick="iziBottomRight()">Bottom Right</button>
+                <button class="btn-izi" onclick="iziCenter()">Center</button>
+            </div>
+            
+            <h2>Confirm 确认</h2>
+            <div class="btn-group">
+                <button class="btn-izi-warning" onclick="iziConfirm()">Confirm (插件)</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ========== SweetAlert2 ==========
+        
+        function swalBasic() {
+            Swal.fire('这是一条基本消息');
+        }
+        
+        function swalSuccess() {
+            Swal.fire({
+                icon: 'success',
+                title: '成功!',
+                text: '操作已完成',
+                timer: 2000
+            });
+        }
+        
+        function swalError() {
+            Swal.fire({
+                icon: 'error',
+                title: '错误!',
+                text: '发生了错误'
+            });
+        }
+        
+        function swalWarning() {
+            Swal.fire({
+                icon: 'warning',
+                title: '警告',
+                text: '请注意'
+            });
+        }
+        
+        function swalQuestion() {
+            Swal.fire({
+                icon: 'question',
+                title: 'question',
+                text: '你好吗?'
+            });
+        }
+        
+        function swalConfirm() {
+            Swal.fire({
+                title: '确定删除?',
+                text: "此操作不可撤销!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: '确定删除',
+                cancelButtonText: '取消'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    Swal.fire('已删除!', '文件已被删除', 'success');
+                }
+            });
+        }
+        
+        function swalInput() {
+            Swal.fire({
+                title: '输入你的名字',
+                input: 'text',
+                inputPlaceholder: '请输入...',
+                showCancelButton: true,
+                confirmButtonText: '提交',
+                cancelButtonText: '取消'
+            }).then((result) => {
+                if (result.value) {
+                    Swal.fire(`你好, ${result.value}!`);
+                }
+            });
+        }
+        
+        function swalAsync() {
+            Swal.fire({
+                title: '异步操作',
+                text: '正在处理...',
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+            
+            // 模拟异步
+            setTimeout(() => {
+                Swal.fire('完成!', '异步操作成功', 'success');
+            }, 2000);
+        }
+        
+        // ========== iziToast ==========
+        
+        iziToast.defaults({
+            position: 'topCenter',
+            timeout: 3000,
+            resetOnHover: true,
+            progressBar: true
+        });
+        
+        function iziDefault() {
+            iziToast.show({
+                title: '提示',
+                message: '这是一条默认消息'
+            });
+        }
+        
+        function iziSuccess() {
+            iziToast.success({
+                title: '成功',
+                message: '操作已完成'
+            });
+        }
+        
+        function iziError() {
+            iziToast.error({
+                title: '错误',
+                message: '发生了错误'
+            });
+        }
+        
+        function iziWarning() {
+            iziToast.warning({
+                title: '警告',
+                message: '请注意'
+            });
+        }
+        
+        function iziInfo() {
+            iziToast.info({
+                title: '信息',
+                message: '这是一条信息'
+            });
+        }
+        
+        function iziCallback() {
+            iziToast.success({
+                title: '带回调',
+                message: '3秒后自动关闭',
+                timeout: 3000,
+                onClosed: function() {
+                    console.log('回调触发');
+                }
+            });
+        }
+        
+        function iziTopLeft() {
+            iziToast.info({
+                title: '左上角',
+                message: '显示在左上角',
+                position: 'topLeft'
+            });
+        }
+        
+        function iziBottomRight() {
+            iziToast.info({
+                title: '右下角',
+                message: '显示在右下角',
+                position: 'bottomRight'
+            });
+        }
+        
+        function iziCenter() {
+            iziToast.info({
+                title: '居中',
+                message: '居中显示',
+                position: 'center',
+                timeout: false,
+                close: true,
+                overlay: true
+            });
+        }
+        
+        function iziConfirm() {
+            iziToast.warning({
+                title: 'Confirm',
+                message: '确定要继续吗?',
+                position: 'center',
+                timeout: false,
+                close: false,
+                overlay: true,
+                buttons: [
+                    ['<button>确定</button>', function (instance, toast) {
+                        instance.hide({ transitionOut: 'fadeOut' }, toast, 'button');
+                        iziToast.success({ message: '已确认!' });
+                    }],
+                    ['<button>取消</button>', function (instance, toast) {
+                        instance.hide({ transitionOut: 'fadeOut' }, toast, 'button');
+                        iziToast.info({ message: '已取消' });
+                    }, true]
+                ]
+            });
+        }
+    </script>
+</body>
+</html>
