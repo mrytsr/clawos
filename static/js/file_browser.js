@@ -584,7 +584,7 @@ function openArchiveCreateDialog(paths, outputDir) {
         return;
     }
 
-    var picked = prompt('压缩包名称（默认：新建压缩包.zip）', defaultName);
+    SwalPrompt('压缩包名称', '请输入压缩包名称', defaultName, function(value) { if (value) { startCompression(value); } }); picked = value;
     if (picked === null) return;
     fetch('/api/archive/create', {
         method: 'POST',
@@ -944,7 +944,7 @@ function extractArchiveHere(path, name) {
         return;
     }
 
-    var target = prompt(msg, defaultTarget);
+    SwalPrompt('移动到', msg, defaultTarget, function(value) { if (value) { target = value; doMoveOrCopy(target); } });
     if (target === null) return;
     runExtract(target);
 }
@@ -1227,7 +1227,7 @@ function downloadFile(path, opts) {
             if (info && (info.mtime || info.modified)) lines.push('修改：' + String(info.mtime || info.modified));
             lines.push('路径：' + p);
 
-            var ok = window.confirm(lines.join('\n'));
+            SwalConfirm('批量操作确认', lines.join('\n'), function() { performBatchOp(); }, 'warning');
             if (!ok) return;
 
             if (openInNewTab) window.open(url, '_blank', 'noopener');
@@ -1240,7 +1240,7 @@ function downloadFile(path, opts) {
             if (name) lines.push('名称：' + name);
             if (sizeText) lines.push('大小：' + sizeText);
             lines.push('路径：' + p);
-            var ok = window.confirm(lines.join('\n'));
+            SwalConfirm('批量操作确认', lines.join('\n'), function() { performBatchOp(); }, 'warning');
             if (!ok) return;
             if (openInNewTab) window.open(url, '_blank', 'noopener');
             else window.location.href = url;
@@ -1982,7 +1982,7 @@ window.confirmEmail = function() {
     var email = input.value.trim();
     var re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!re.test(email)) {
-        alert('请输入正确的邮箱格式');
+        SwalAlert('格式错误', '请输入正确的邮箱格式', 'error');
         return;
     }
     fetch('/api/email/history', {
@@ -2038,7 +2038,7 @@ window.confirmEmail = function() {
     var email = input.value.trim();
     var re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!re.test(email)) {
-        alert('请输入正确的邮箱格式');
+        SwalAlert('格式错误', '请输入正确的邮箱格式', 'error');
         return;
     }
     // Save to history

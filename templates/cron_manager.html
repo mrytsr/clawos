@@ -61,6 +61,8 @@
         .form-row .form-group { flex: 1; }
         .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
     </style>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.js"></script>
 </head>
 <body>
     <div id="app">
@@ -215,7 +217,7 @@
         const command = $('command').value.trim();
         
         if (!command) {
-            alert('请输入命令');
+            Swal.fire({ icon: 'warning', title: '提示', text: '请输入命令' });
             return;
         }
         
@@ -238,7 +240,7 @@
     }
     
     async function removeJob(i) {
-        if (!confirm('确定删除此任务？')) return;
+        const r = await Swal.fire({ icon: 'warning', title: '确认删除', text: '确定删除此任务？', showCancelButton: true }); if (!r.isConfirmed) return;
         try {
             const r = await fetch('/api/cron/remove', {
                 method: 'POST',
@@ -274,7 +276,7 @@
     
     async function runJob(i) {
         const command = jobs[i].command;
-        if (!confirm('立即执行命令：' + command + '\n\n确定继续？')) return;
+        const r = await Swal.fire({ icon: 'warning', title: '确认执行', text: '立即执行命令：' + command + '\n\n确定继续？', showCancelButton: true }); if (!r.isConfirmed) return;
         
         try {
             const r = await fetch('/api/cron/run', {
@@ -284,12 +286,12 @@
             });
             const data = await r.json();
             if (data.success) {
-                alert('执行成功！\n\n' + (data.stdout || ''));
+                Swal.fire({ icon: 'success', title: '执行成功', text: data.stdout || '' });
             } else {
-                alert('执行失败：' + (data.stderr || data.error || '未知错误'));
+                Swal.fire({ icon: 'error', title: '执行失败', text: data.stderr || data.error || '未知错误' });
             }
         } catch (e) {
-            alert('执行失败：' + e.message);
+            Swal.fire({ icon: 'error', title: '执行失败', text: e.message });
         }
     }
     

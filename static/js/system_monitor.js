@@ -117,7 +117,7 @@ window.loadProcessList = function() {
                     e.preventDefault();
                     const pid = parseInt(btn.getAttribute('data-pid') || '0', 10);
                     if (!pid) return;
-                    const ok = window.confirm('确认结束进程 PID ' + String(pid) + ' ?');
+                    SwalConfirm('结束进程', '确认结束进程 PID ' + pid + '?', function() { killProcess(pid); }, 'warning');
                     if (!ok) return;
                     fetch('/api/process/kill/' + encodeURIComponent(String(pid)), { method: 'POST', headers: authHeaders() })
                         .then(function(r) { return r.json(); })
@@ -174,7 +174,7 @@ window.openProcessDetailModal = function(pid) {
             if (refreshBtn) refreshBtn.addEventListener('click', function() { window.openProcessDetailModal(pid); });
             const killBtn = document.getElementById('procDetailKillBtn');
             if (killBtn) killBtn.addEventListener('click', function() {
-                const ok = window.confirm('确认结束进程 PID ' + String(pid) + ' ?');
+                SwalConfirm('结束进程', '确认结束进程 PID ' + pid + '?', function() { killProcess(pid); }, 'warning');
                 if (!ok) return;
                 fetch('/api/process/kill/' + encodeURIComponent(String(pid)), { method: 'POST', headers: authHeaders() })
                     .then(function(r) { return r.json(); })
@@ -225,7 +225,7 @@ window.loadSystemPackageList = function() {
                     const name = btn.getAttribute('data-name') || '';
                     const manager = btn.getAttribute('data-manager') || '';
                     if (!name) return;
-                    const ok = window.confirm('确认卸载 ' + name + ' ?');
+                    SwalConfirm('卸载确认', '确认卸载 ' + name + '?', function() { uninstallPkg(name); }, 'warning');
                     if (!ok) return;
                     __postJson('/api/system-packages/uninstall', { name: name, manager: manager })
                         .then(function(data) {
@@ -317,7 +317,7 @@ function __renderPkgList(containerId, opts) {
                     e.preventDefault();
                     const name = btn.getAttribute('data-name') || '';
                     if (!name) return;
-                    const ok = window.confirm('确认卸载 ' + name + ' ?');
+                    SwalConfirm('卸载确认', '确认卸载 ' + name + '?', function() { uninstallPkg(name); }, 'warning');
                     if (!ok) return;
                     __postJson(uninstallUrl, { package: name })
                         .then(function(data) {
@@ -403,7 +403,7 @@ window.loadDockerTabs = function(tab) {
                         e.preventDefault();
                         const id = btn.getAttribute('data-id') || '';
                         if (!id) return;
-                        const ok = window.confirm('确认删除镜像 ' + id + ' ?');
+                        SwalConfirm('删除镜像', '确认删除镜像 ' + id + '?', function() { removeImage(id); }, 'warning');
                         if (!ok) return;
                         __postJson('/api/docker/image/rm', { id: id })
                             .then(function(data) {
@@ -483,7 +483,7 @@ window.loadDockerTabs = function(tab) {
                         e.preventDefault();
                         const id = btn.getAttribute('data-id') || '';
                         if (!id) return;
-                        const ok = window.confirm('确认删除容器 ' + id + ' ?');
+                        SwalConfirm('删除容器', '确认删除容器 ' + id + '?', function() { removeContainer(id); }, 'warning');
                         if (!ok) return;
                         __postJson('/api/docker/container/rm', { id: id, force: true })
                             .then(function(data) {
@@ -1204,7 +1204,7 @@ window.clashRefreshStatus = function() {
 
 window.clashControl = function(action) {
     const actions = { 'start': '启动', 'stop': '停止', 'restart': '重启' };
-    if (!confirm('确定要' + actions[action] + ' Clash 服务吗？')) return;
+    SwalConfirm('确认操作', '确定要' + actions[action] + ' Clash 服务吗？', function() { toggleClash(action); }, 'warning'); return;
 
     __postJson('/api/clash/control', { action: action })
         .then(function(data) {
@@ -1213,7 +1213,7 @@ window.clashControl = function(action) {
                 window.clashRefreshStatus();
                 return;
             }
-            alert(actions[action] + '失败: ' + ((data && (data.message || data.error)) || '未知错误'));
+            SwalAlert('操作失败', actions[action] + '失败: ' + ((data && (data.message || data.error)) || '未知错误'), 'error');
         })
         .catch(function(err) { showToast('请求失败: ' + err.message, 'error'); });
 };
@@ -1352,16 +1352,16 @@ window.frpcRefreshStatus = function() {
 
 window.frpcControl = function(action) {
     const actions = { 'start': '启动', 'stop': '停止', 'restart': '重启' };
-    if (!confirm('确定要' + actions[action] + ' FRP 服务吗？')) return;
+    SwalConfirm('确认操作', '确定要' + actions[action] + ' FRP 服务吗？', function() { toggleFrp(action); }, 'warning'); return;
     
     __postJson('/api/frp/control', { action: action })
         .then(function(data) {
             if (data && data.success) {
-                alert('FRP 服务已' + actions[action]);
+                SwalAlert('操作成功', 'FRP 服务已' + actions[action], 'success');
                 window.frpcRefreshStatus();
                 return;
             }
-            alert(actions[action] + '失败: ' + ((data && (data.message || data.error)) || '未知错误'));
+            SwalAlert('操作失败', actions[action] + '失败: ' + ((data && (data.message || data.error)) || '未知错误'), 'error');
         })
         .catch(function(err) { showToast('请求失败: ' + err.message, 'error'); });
 };
@@ -1375,7 +1375,7 @@ window.openFrpInEditor = function() {
 
 window.openClashInEditor = function() {
     const win = window.open('', '_blank');
-    if (!win) { alert('弹窗被浏览器拦截，请允许弹窗后重试'); return; }
+    if (!win) { SwalAlert('提示', '弹窗被浏览器拦截，请允许弹窗后重试', 'warning'); return; }
 
     const html = [
         '<!DOCTYPE html>',
@@ -1436,7 +1436,7 @@ window.openClashInEditor = function() {
         '}',
         'editor.addEventListener("input",function(){dirty=true;});',
         'saveBtn.addEventListener("click",function(){save();});',
-        'reloadBtn.addEventListener("click",function(){if(dirty&&!confirm("内容未保存，仍要刷新吗？"))return;load();});',
+        'reloadBtn.addEventListener("click",function(){if(dirty&&!confirm("confirm text"))return;load();});',
         'window.addEventListener("beforeunload",function(e){if(!dirty)return; e.preventDefault(); e.returnValue="";});',
         'load();',
         '})();',
@@ -1451,14 +1451,14 @@ window.openClashInEditor = function() {
 };
 
 window.openFrpProxyDrawer = function() {
-    const name = prompt('代理名称:');
+    SwalPrompt('代理配置', '请输入代理名称', '', function(value) { name = value; });
     if (!name) return;
-    const localPort = prompt('本地端口:');
+    SwalPrompt('代理配置', '请输入本地端口', '', function(value) { localPort = value; });
     if (!localPort) return;
-    const remotePort = prompt('远程端口:');
+    SwalPrompt('代理配置', '请输入远程端口', '', function(value) { remotePort = value; });
     if (!remotePort) return;
     
-    alert('请在编辑器中手动添加代理配置:\n\n[[proxies]]\nname = "' + name + '"\ntype = "tcp"\nlocalIP = "127.0.0.1"\nlocalPort = ' + localPort + '\nremotePort = ' + remotePort);
+    SwalAlert('请在编辑器中手动添加代理配置:\n\n[[proxies]]\nname = "' + name + '"\ntype = "tcp"\nlocalIP = "127.0.0.1"\nlocalPort = ' + localPort + '\nremotePort = ' + remotePort);
     window.openFrpInEditor();
 };
 
@@ -1592,16 +1592,16 @@ window.loadClashConfigEnhanced = function() {
 window.clashUpdateSub = function() {
     const urlInput = document.getElementById('clashSubUrl');
     const url = urlInput ? urlInput.value.trim() : '';
-    if (!url) { alert('请输入订阅URL'); return; }
-    if (!confirm('更新订阅会合并新节点到现有配置，是否继续？')) return;
+    if (!url) { SwalAlert('提示', '请输入订阅URL', 'warning'); return; }
+    SwalConfirm('更新订阅', '更新订阅会合并新节点到现有配置，是否继续？', function() { updateSubscription(); }, 'warning');
     
     __postJson('/api/clash/subscribe', { url: url })
         .then(function(data) {
             if (data && data.success) {
-                alert('订阅更新成功！请重启 Clash 服务使配置生效。');
+                SwalAlert('更新成功', '订阅更新成功！请重启 Clash 服务使配置生效。', 'success');
                 window.loadClashConfigEnhanced();
             } else {
-                alert('更新失败: ' + ((data && (data.message || data.error)) || '未知错误'));
+                SwalAlert('更新失败', '更新失败: ' + ((data && (data.message || data.error)) || '未知错误'), 'error');
             }
         })
         .catch(function(err) { showToast('请求失败: ' + err.message, 'error'); });
@@ -1613,7 +1613,7 @@ window.clashOpenProxyList = function(groupName) {
         .then(function(data) {
             const payload = apiData(data);
             const proxies = payload ? (payload.proxies || []) : [];
-            if (proxies.length === 0) { alert('暂无数控节点'); return; }
+            if (proxies.length === 0) { SwalAlert('提示', '暂无数控节点', 'warning'); return; }
             
             let html = '<div style="max-height:300px;overflow-y:auto;padding:8px;">';
             proxies.forEach(function(p) {
@@ -1630,18 +1630,18 @@ window.clashOpenProxyList = function(groupName) {
             modal.innerHTML = '<div style="background:#fff;border-radius:12px;max-width:90%;max-height:80%;overflow:hidden;width:350px;"><div style="padding:16px;border-bottom:1px solid #eee;display:flex;justify-content:space-between;align-items:center;"><span style="font-weight:500;">选择节点 - ' + escapeHtml(groupName) + '</span><button onclick="this.closest(\'div[style*=fixed]\').remove()" style="border:none;background:none;font-size:20px;cursor:pointer;padding:4px;">×</button></div>' + html + '</div>';
             document.body.appendChild(modal);
         })
-        .catch(function(err) { alert('加载节点失败: ' + err.message); });
+        .catch(function(err) { SwalAlert('加载失败', '加载节点失败: ' + err.message, 'error'); });
 };
 
 window.clashSwitchProxy = function(groupName, proxyName) {
-    if (!confirm('将 ' + groupName + ' 切换到 ' + proxyName + '？')) return;
+    SwalConfirm('切换代理', '将 ' + groupName + ' 切换到 ' + proxyName + '？', function() { switchProxy(groupName, proxyName); }, 'warning'); return;
     __postJson('/api/clash/switch', { group: groupName, proxy: proxyName })
         .then(function(data) {
             if (data && data.success) {
-                alert('切换成功！请重启 Clash 服务使配置生效。');
+                SwalAlert('切换成功', '请重启 Clash 服务使配置生效', 'success');
                 window.loadClashConfigEnhanced();
             } else {
-                alert('切换失败: ' + ((data && (data.message || data.error)) || '未知错误'));
+                SwalAlert('切换失败', '切换失败: ' + ((data && (data.message || data.error)) || '未知错误'), 'error');
             }
         })
         .catch(function(err) { showToast('请求失败: ' + err.message, 'error'); });

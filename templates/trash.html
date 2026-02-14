@@ -73,6 +73,8 @@
         .dialog-btn-confirm { background: linear-gradient(135deg, #667eea, #764ba2); color: white; }
         .dialog-btn-danger { background: #dc3545; color: white; }
     </style>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.js"></script>
 </head>
 <body>
     <div class="container">
@@ -164,7 +166,7 @@
         function confirmRestore() {
             const path = document.getElementById('restorePath').value.trim();
             if (!path) {
-                alert('请输入还原路径');
+                Swal.fire({ icon: 'warning', title: '提示', text: '请输入还原路径' });
                 return;
             }
             
@@ -179,7 +181,7 @@
                 if (d.success) {
                     location.reload();
                 } else {
-                    alert('还原失败: ' + d.message);
+                    Swal.fire({ icon: 'error', title: '还原失败', text: d.message });
                 }
             });
         }

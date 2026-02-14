@@ -1571,3 +1571,77 @@ function loadUsersData() {
 }
 
 // ========== 批量操作 ==========
+
+// ============ SweetAlert2 GitHub 风格封装 ============
+const SwalGitHub = Swal.mixin({
+    background: '#161b22',
+    color: '#c9d1d9',
+    confirmButtonColor: '#238636',
+    cancelButtonColor: '#21262d',
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    showCancelButton: true,
+    focusConfirm: false,
+    buttonsStyling: true,
+    customClass: {
+        popup: 'swal-popup-github',
+        confirmButton: 'swal-confirm-github',
+        cancelButton: 'swal-cancel-github'
+    }
+});
+
+// GitHub 风格样式
+const style = document.createElement('style');
+style.textContent = `
+    .swal-popup-github { border: 1px solid #30363d; border-radius: 6px; box-shadow: 0 16px 32px rgba(0,0,0,0.5); }
+    .swal-confirm-github { background: #238636 !important; color: #fff !important; border: 1px solid rgba(240,246,252,0.1) !important; border-radius: 6px !important; }
+    .swal-confirm-github:hover { background: #2ea043 !important; }
+    .swal-cancel-github { background: #21262d !important; color: #c9d1d9 !important; border: 1px solid #30363d !important; border-radius: 6px !important; }
+    .swal-cancel-github:hover { background: #30363d !important; }
+`;
+document.head.appendChild(style);
+
+// Alert 封装
+window.SwalAlert = function(title, message, type) {
+    type = type || 'info';
+    const icons = { success: 'success', error: 'error', warning: 'warning', info: 'info' };
+    return SwalGitHub.fire({
+        icon: icons[type] || 'info',
+        title: title || '',
+        text: message || '',
+        showCancelButton: false,
+        timer: type === 'success' ? 2000 : undefined
+    });
+};
+
+// Confirm 封装
+window.SwalConfirm = function(title, message, onConfirm, type) {
+    type = type || 'warning';
+    const icons = { success: 'success', error: 'error', warning: 'warning', info: 'info' };
+    return SwalGitHub.fire({
+        icon: icons[type] || 'warning',
+        title: title || '确认',
+        text: message || '',
+        preConfirm: function() {
+            if (onConfirm) onConfirm();
+        }
+    });
+};
+
+// Prompt 封装
+window.SwalPrompt = function(title, message, defaultValue, onConfirm) {
+    return SwalGitHub.fire({
+        title: title || '输入',
+        text: message || '',
+        input: 'text',
+        inputValue: defaultValue || '',
+        showCancelButton: true,
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        preConfirm: function(value) {
+            if (onConfirm) onConfirm(value);
+        }
+    });
+};
+
+;

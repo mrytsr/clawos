@@ -57,12 +57,14 @@
             font-size: 14px;
         }
     </style>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.js"></script>
 </head>
 <body>
     <div class="filename">{{ filename }}</div>
     <div class="image-container">
         <img src="{{ url_for('file.serve_file', path=file_path) }}" 
-             onerror="alert('无法显示此图片');"
+             onerror="Swal.fire({ icon: 'error', title: '错误', text: '无法显示此图片' });"
              alt="{{ filename }}">
     </div>
     <div class="actions">
