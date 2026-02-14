@@ -473,15 +473,19 @@ window.confirmDialogDrawer = function() {
 };
 
 window.showPromptDrawer = function(title, message, placeholder, defaultValue, confirmText, onConfirm, danger) {
-    openDialogDrawer({
-        title: title,
-        message: message,
-        input: true,
-        placeholder: placeholder,
-        defaultValue: defaultValue,
-        confirmText: confirmText,
-        onConfirm: onConfirm,
-        danger: !!danger
+    SwalGitHub.fire({
+        title: title || '输入',
+        text: message || '',
+        input: 'text',
+        inputPlaceholder: placeholder || '',
+        inputValue: defaultValue || '',
+        showCancelButton: true,
+        confirmButtonText: confirmText || '确定',
+        cancelButtonText: '取消',
+        preConfirm: function() {
+            var value = document.querySelector('.swal2-input').value;
+            if (onConfirm) onConfirm(value);
+        }
     });
 };
 
@@ -496,15 +500,6 @@ window.showConfirmDrawer = function(title, message, confirmText, onConfirm, dang
         preConfirm: function() {
             if (onConfirm) onConfirm();
         }
-    });
-    return;
-    openDialogDrawer({
-        title: title,
-        message: message,
-        input: false,
-        confirmText: confirmText,
-        onConfirm: onConfirm,
-        danger: !!danger
     });
 };
 
