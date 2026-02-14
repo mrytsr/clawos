@@ -178,7 +178,7 @@ def api_browse_state():
         '.mp3': 'audio', '.wav': 'audio', '.flac': 'audio', '.aac': 'audio',
         '.ogg': 'audio', '.m4a': 'audio', '.wma': 'audio',
         '.txt': 'text', '.log': 'text', '.sh': 'text', '.bat': 'text', '.ps1': 'text',
-        '.html': 'web', '.htm': 'web', '.css': 'web', '.svg': 'web',
+        '.html': 'web', '.htm': 'web', '.css': 'web', '.svg': 'web', '.url': 'url',
     }
     
     items_rel = []
@@ -303,7 +303,7 @@ def api_browse_files():
         '.mp3': 'audio', '.wav': 'audio', '.flac': 'audio', '.aac': 'audio',
         '.ogg': 'audio', '.m4a': 'audio', '.wma': 'audio',
         '.txt': 'text', '.log': 'text', '.sh': 'text', '.bat': 'text', '.ps1': 'text',
-        '.html': 'web', '.htm': 'web', '.css': 'web', '.svg': 'web',
+        '.html': 'web', '.htm': 'web', '.css': 'web', '.svg': 'web', '.url': 'url',
     }
     
     items_rel = []
@@ -374,7 +374,7 @@ def _load_file_open_config():
         'video': 'browser',
         'audio': 'browser',
         'text': 'browser',
-        'web': 'browser',
+        'web': 'browser', 'url': 'browser',
     }
     try:
         if os.path.exists(config_file):
@@ -1260,7 +1260,7 @@ def get_file_open_config():
                 'video': 'browser',
                 'audio': 'browser',
                 'text': 'browser',
-                'web': 'browser',
+                'web': 'browser', 'url': 'browser',
             }
             return jsonify({'success': True, 'data': default_config})
     except Exception as e:
@@ -1319,7 +1319,7 @@ def get_file_open_method(group_id):
                 '.mp3': 'audio', '.wav': 'audio', '.flac': 'audio', '.aac': 'audio',
                 '.ogg': 'audio', '.m4a': 'audio', '.wma': 'audio',
                 '.txt': 'text', '.log': 'text', '.sh': 'text', '.bat': 'text', '.ps1': 'text',
-                '.html': 'web', '.htm': 'web', '.css': 'web', '.svg': 'web',
+                '.html': 'web', '.htm': 'web', '.css': 'web', '.svg': 'web', '.url': 'url',
             }
             ext_to_group = default_mapping
         

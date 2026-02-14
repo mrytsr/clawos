@@ -76,6 +76,22 @@ function handleFileByMethod(path, name, method) {
         window.open('/view/' + encodePathForUrl(path), '_blank', 'noopener');
     } else if (method === 'download') {
         downloadFile(path, { name: name, openInNewTab: true });
+    } else if (method === 'preview-url') {
+        // URL 文件：读取内容中的 URL 并新窗口打开
+        fetch('/api/file/read?path=' + encodeURIComponent(path))
+            .then(function(r) { return r.json(); })
+            .then(function(d) {
+                if (d?.success && d?.data?.content) {
+                    var match = d.data.content.match(/URL=(.+)/);
+                    if (match && match[1]) {
+                        window.open(match[1].trim(), '_blank');
+                    } else {
+                        // 直接打开文件内容作为 URL
+                        window.open(d.data.content.trim(), '_blank');
+                    }
+                }
+            })
+            .catch(function() {});
     } else {
         window.open('/serve/' + encodePathForUrl(path), '_blank', 'noopener');
     }

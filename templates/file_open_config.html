@@ -111,82 +111,88 @@
             { 
                 id: 'image', icon: '🖼️', name: '图片', 
                 exts: ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.avif'], 
-                methods: ['preview-image', 'browser', 'download']
+                methods: ['preview-image', 'preview-excel', 'preview-archive', 'preview-json', 'preview-url', 'edit-code', 'edit-yaml', 'edit-md', 'browser', 'download']
             },
             { 
                 id: 'excel', icon: '📊', name: 'Excel表格', 
                 exts: ['.xlsx', '.xls', '.xlsm', '.xlsb'], 
-                methods: ['preview-excel', 'browser', 'download']
+                methods: ['preview-image', 'preview-excel', 'preview-archive', 'preview-json', 'preview-url', 'edit-code', 'edit-yaml', 'edit-md', 'browser', 'download']
             },
             { 
                 id: 'word', icon: '📝', name: 'Word文档', 
                 exts: ['.docx', '.doc'], 
-                methods: ['browser', 'download']
+                methods: ['preview-image', 'preview-excel', 'preview-archive', 'preview-json', 'preview-url', 'edit-code', 'edit-yaml', 'edit-md', 'browser', 'download']
             },
             { 
                 id: 'ppt', icon: '📽️', name: 'PPT幻灯片', 
                 exts: ['.pptx', '.ppt'], 
-                methods: ['browser', 'download']
+                methods: ['preview-image', 'preview-excel', 'preview-archive', 'preview-json', 'preview-url', 'edit-code', 'edit-yaml', 'edit-md', 'browser', 'download']
             },
             { 
                 id: 'pdf', icon: '📄', name: 'PDF文档', 
                 exts: ['.pdf'], 
-                methods: ['browser', 'download']
+                methods: ['preview-image', 'preview-excel', 'preview-archive', 'preview-json', 'preview-url', 'edit-code', 'edit-yaml', 'edit-md', 'browser', 'download']
             },
             { 
                 id: 'archive', icon: '📦', name: '压缩包', 
                 exts: ['.zip', '.rar', '.7z', '.tar', '.gz', '.bz2', '.tar.gz', '.tar.bz2', '.tar.xz'], 
-                methods: ['preview-archive', 'download']
+                methods: ['preview-image', 'preview-excel', 'preview-archive', 'preview-json', 'preview-url', 'edit-code', 'edit-yaml', 'edit-md', 'browser', 'download']
             },
             { 
                 id: 'code', icon: '💻', name: '代码文件', 
                 exts: ['.py', '.js', '.ts', '.jsx', '.tsx', '.vue', '.go', '.rs', '.java', '.c', '.cpp', '.h', '.css', '.scss', '.less', '.xml'], 
-                methods: ['edit-code', 'browser', 'download']
+                methods: ['preview-image', 'preview-excel', 'preview-archive', 'preview-json', 'preview-url', 'edit-code', 'edit-yaml', 'edit-md', 'browser', 'download']
             },
             { 
                 id: 'json', icon: '📋', name: 'JSON数据', 
                 exts: ['.json', '.jsonc'], 
-                methods: ['preview-json', 'edit-code', 'browser']
+                methods: ['preview-image', 'preview-excel', 'preview-archive', 'preview-json', 'preview-url', 'edit-code', 'edit-yaml', 'edit-md', 'browser', 'download']
             },
             { 
                 id: 'yaml', icon: '📐', name: '配置文件', 
                 exts: ['.yaml', '.yml', '.toml', '.ini', '.conf', '.env'], 
-                methods: ['edit-yaml', 'browser', 'preview-json']
+                methods: ['preview-image', 'preview-excel', 'preview-archive', 'preview-json', 'preview-url', 'edit-code', 'edit-yaml', 'edit-md', 'browser', 'download']
             },
             { 
                 id: 'markdown', icon: '📝', name: 'Markdown', 
                 exts: ['.md', '.markdown'], 
-                methods: ['edit-md', 'browser']
+                methods: ['preview-image', 'preview-excel', 'preview-archive', 'preview-json', 'preview-url', 'edit-code', 'edit-yaml', 'edit-md', 'browser', 'download']
             },
             { 
                 id: 'video', icon: '🎬', name: '视频', 
                 exts: ['.mp4', '.webm', '.mov', '.avi', '.mkv', '.wmv', '.flv'], 
-                methods: ['browser', 'download']
+                methods: ['preview-image', 'preview-excel', 'preview-archive', 'preview-json', 'preview-url', 'edit-code', 'edit-yaml', 'edit-md', 'browser', 'download']
             },
             { 
                 id: 'audio', icon: '🎵', name: '音频', 
                 exts: ['.mp3', '.wav', '.flac', '.aac', '.ogg', '.m4a', '.wma'], 
-                methods: ['browser', 'download']
+                methods: ['preview-image', 'preview-excel', 'preview-archive', 'preview-json', 'preview-url', 'edit-code', 'edit-yaml', 'edit-md', 'browser', 'download']
             },
             { 
                 id: 'text', icon: '📃', name: '纯文本', 
                 exts: ['.txt', '.log', '.sh', '.bat', '.ps1'], 
-                methods: ['browser', 'edit-code', 'download']
+                methods: ['preview-image', 'preview-excel', 'preview-archive', 'preview-json', 'preview-url', 'edit-code', 'edit-yaml', 'edit-md', 'browser', 'download']
             },
             { 
                 id: 'web', icon: '🌐', name: '网页', 
                 exts: ['.html', '.htm', '.css', '.svg'], 
-                methods: ['browser', 'download']
+                methods: ['preview-image', 'preview-excel', 'preview-archive', 'preview-json', 'preview-url', 'edit-code', 'edit-yaml', 'edit-md', 'browser', 'download']
             },
             { 
                 id: 'other', icon: '📄', name: '其他', 
                 exts: [],  // 未匹配的所有文件
-                methods: ['browser', 'download', 'preview-image', 'preview-excel', 'preview-archive']
+                methods: ['preview-image', 'preview-excel', 'preview-archive', 'preview-json', 'preview-url', 'edit-code', 'edit-yaml', 'edit-md', 'browser', 'download']
+            },
+            { 
+                id: 'url', icon: '🔗', name: 'URL链接', 
+                exts: ['.url'], 
+                methods: ['preview-image', 'preview-excel', 'preview-archive', 'preview-json', 'preview-url', 'edit-code', 'edit-yaml', 'edit-md', 'browser', 'download']
             },
         ];
 
         // 打开方式标签
         const methodLabels = {
+            'preview-url': '🔗 打开链接',
             'preview-image': '🖼️ 图片预览',
             'preview-excel': '📊 Excel预览',
             'preview-archive': '📦 压缩包预览',
@@ -205,14 +211,14 @@
                 ppt: 'browser', pdf: 'browser', archive: 'preview-archive',
                 code: 'edit-code', json: 'preview-json', yaml: 'edit-yaml',
                 markdown: 'edit-md', video: 'browser', audio: 'browser',
-                text: 'browser', web: 'browser', other: 'browser',
+                text: 'browser', web: 'browser', other: 'browser', url: 'browser',
             },
             preview: {
                 image: 'preview-image', excel: 'preview-excel', word: 'browser',
                 ppt: 'browser', pdf: 'browser', archive: 'preview-archive',
                 code: 'edit-code', json: 'preview-json', yaml: 'edit-yaml',
                 markdown: 'edit-md', video: 'browser', audio: 'browser',
-                text: 'browser', web: 'browser', other: 'browser',
+                text: 'browser', web: 'browser', other: 'browser', url: 'browser',
             },
             download: {
                 image: 'download', excel: 'download', word: 'download',
@@ -226,7 +232,7 @@
                 ppt: 'browser', pdf: 'browser', archive: 'browser',
                 code: 'browser', json: 'browser', yaml: 'browser',
                 markdown: 'browser', video: 'browser', audio: 'browser',
-                text: 'browser', web: 'browser', other: 'browser',
+                text: 'browser', web: 'browser', other: 'browser', url: 'browser',
             },
         };
 
