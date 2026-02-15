@@ -63,6 +63,8 @@
         .btn-primary:hover { transform: translateY(-2px); }
         .btn-secondary { background: #0f3460; color: #ccc; }
         .btn-danger { background: #cf222e; color: white; }
+        .btn-info { background: #0969da; color: white; }
+        .btn-info:hover { background: #0a5cc0; }
         
         /* 模型列表 */
         .model-item {
@@ -247,7 +249,10 @@
                 ${m.source === 'user' ? `
                     <button class="btn btn-secondary" style="padding:4px 8px;font-size:11px;" onclick="editModel(${i})">编辑</button>
                     <button class="btn btn-danger" style="padding:4px 8px;font-size:11px;" onclick="deleteModel(${i})">删除</button>
-                ` : '<span class="model-tag">内置</span>'}
+                ` : `
+                    <button class="btn btn-info" style="padding:4px 8px;font-size:11px;" onclick="viewModelDetails(${i})">详情</button>
+                    <span class="model-tag">内置</span>
+                `}
             </div>
         `).join('');
     }
@@ -350,6 +355,28 @@
                       loadModels();
                   }
               });
+        });
+    }
+    
+    // 查看模型详情
+    function viewModelDetails(index) {
+        const m = models[index];
+        const details = `
+            <div style="text-align:left;line-height:1.8;">
+                <strong>模型ID:</strong> ${m.model || '-'}<br>
+                <strong>显示名称:</strong> ${m.display_name || '-'}<br>
+                <strong>API地址:</strong> ${m.base_url || '-'}<br>
+                <strong>来源:</strong> ${m.source || '内置'}<br>
+                <strong>Context Window:</strong> ${m.context_window ? m.context_window.toLocaleString() : '-'}<br>
+                <strong>Max Tokens:</strong> ${m.max_tokens ? m.max_tokens.toLocaleString() : '-'}<br>
+                <strong>支持输入:</strong> ${(m.input || []).join(', ') || '-'}
+            </div>
+        `;
+        Swal.fire({
+            title: '📋 模型详情',
+            html: details,
+            icon: 'info',
+            confirmButtonText: '关闭'
         });
     }
     
