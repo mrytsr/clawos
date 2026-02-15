@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>数据库管理</title>
     <!-- Tabulator 样式 - 匹配数据库页面 -->
-    <link href="https://unpkg.com/tabulator-tables@5.5.0/dist/css/tabulator.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tabulator/5.5.0/css/tabulator.min.css" rel="stylesheet">
     <style>
         #resultsTable {
             width: 100%;
@@ -51,6 +51,33 @@
             text-overflow: ellipsis;
             max-width: 200px;
         }
+        /* 单元格编辑样式 */
+        .tabulator-cell.tabulator-editing {
+            background: #1a1a2e !important;
+            box-shadow: inset 0 0 0 2px #e94560 !important;
+            padding: 0 !important;
+        }
+        .tabulator-cell.tabulator-editing input {
+            width: 100%;
+            height: 100%;
+            background: #1a1a2e !important;
+            color: #fff !important;
+            border: none;
+            padding: 6px 8px;
+            font-size: 13px;
+        }
+        /* 表头固定 */
+        .tabulator-header {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        /* 分页固定 */
+        .tabulator-footer {
+            position: sticky;
+            bottom: 0;
+            z-index: 10;
+        }
         .tabulator-footer {
             background: #1a1a2e !important;
             border-top: 1px solid #0f3460 !important;
@@ -71,7 +98,7 @@
             background: #16213e !important;
         }
     </style>
-    <script src="https://unpkg.com/tabulator-tables@5.5.0/dist/js/tabulator.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tabulator/5.5.0/js/tabulator.min.js"></script>
     <script src="/static/js/clipboard.min.js"></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -1469,19 +1496,26 @@
                 title: h,
                 field: h,
                 editor: "input",
+                editable: true,
                 headerFilter: "input",
                 headerFilterPlaceholder: "筛选...",
-                minWidth: 100
+                minWidth: 100,
+                cellDblClick: function(e, cell) {
+                    cell.edit();
+                }
             }));
             
-            $$('resultsContent').innerHTML = '<div id="resultsTable" style="width:100%;"></div>';
+            $$('resultsContent').innerHTML = '<div id="resultsTable" style="width:100%;height:100%;"></div>';
+            
+            console.log('Initializing Tabulator with', tableData.length, 'rows');
             
             // 初始化 Tabulator
             window._resultsTable = new Tabulator("#resultsTable", {
                 data: tableData,
                 columns: columns,
-                height: "auto",
+                height: "100%",
                 layout: "fitColumns",
+                virtualDom: true,
                 pagination: "local",
                 paginationSize: 50,
                 movableColumns: false,
@@ -1500,15 +1534,80 @@
                     }
                 },
                 locale: "zh-cn",
+                cellEditStarted: function(cell) {
+                    // 编辑时高亮边框
+                    cell.getElement().style.background = "#1a1a2e";
+                    cell.getElement().style.boxShadow = "inset 0 0 0 2px #e94560";
+                },
+                cellEditCancelled: function(cell) {
+                    cell.getElement().style.background = "";
+                    cell.getElement().style.boxShadow = "";
+                },
                 cellEdited: function(cell) {
-                    // 单元格编辑完成
-                    const rowIndex = cell.getData()._rowIndex;
-                    const colName = cell.getColumn().getField();
-                    const colIndex = headers.indexOf(colName);
-                    const newValue = cell.getValue();
-                    if (colIndex >= 0) {
-                        window._tableRows[rowIndex][colIndex] = newValue;
-                        submitCellEdit(null, rowIndex, colIndex, newValue);
+                    console.log('Tabulator cellEdited triggered!');
+                    
+                    cell.getElement().style.background = "";
+                    cell.getElement().style.boxShadow = "";
+                    
+                    // 获取行索引和列名
+                    var rowData = cell.getData();
+                    var rowIndex = rowData._rowIndex;
+                    var colName = cell.getColumn().getField();
+                    var newValue = cell.getValue();
+                    
+                    // 获取列索引
+                    var headerList = window._tableHeaders || [];
+                    var colIndex = headerList.indexOf(colName);
+                    
+                    console.log('Cell edited:', rowIndex, colName, newValue, colIndex);
+                    
+                    if (colIndex >= 0 && rowIndex !== undefined) {
+                        // 更新本地数据
+                        if (window._tableRows && window._tableRows[rowIndex]) {
+                            window._tableRows[rowIndex][colIndex] = newValue;
+                        }
+                        // 提交更新 - 使用 Tabulator 的行数据
+                        console.log('Submitting edit:', rowIndex, colIndex, colName, newValue);
+                        // 直接构建更新 SQL
+                        var sql = "UPDATE `" + currentTable + "` SET `" + colName + "` = " + (newValue === '' ? 'NULL' : typeof newValue === 'number' ? newValue : "'" + newValue.replace(/'/g, "''") + "'") + " WHERE ";
+                        
+                        // 获取原始行数据用于 WHERE 条件
+                        var originalRow = window._tableRows && window._tableRows[rowIndex];
+                        if (!originalRow) {
+                            console.error('Original row not found:', rowIndex);
+                            return;
+                        }
+                        
+                        var pkParts = [];
+                        var headerList = window._tableHeaders || [];
+                        headerList.forEach(function(h, i) {
+                            var val = originalRow[i];
+                            if (typeof val === 'number') {
+                                pkParts.push("`" + h + "` = " + val);
+                            } else {
+                                pkParts.push("`" + h + "` = '" + String(val || '').replace(/'/g, "''") + "'");
+                            }
+                        });
+                        sql += pkParts.join(' AND ');
+                        
+                        console.log('SQL:', sql);
+                        
+                        // 发送更新请求
+                        fetch('/api/db/execute', {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({ connection: currentConn.id, query: sql })
+                        }).then(function(r) { return r.json(); }).then(function(data) {
+                            console.log('Update result:', data);
+                            if (data.success) {
+                                showStatus('✅ 更新成功', false);
+                            } else {
+                                showStatus('❌ 更新失败: ' + (data.message || data.error), true);
+                            }
+                        }).catch(function(e) { 
+                            console.error('Update error:', e);
+                            showStatus('❌ 更新失败: ' + e.message, true); 
+                        });
                     }
                 }
             });
@@ -1540,18 +1639,30 @@
         
         function submitCellEdit(td, rowIdx, colIdx, newValue) {
             const oldValue = allResults[rowIdx][colIdx];
-            if (oldValue === newValue) { td.textContent = oldValue; return; }
+            if (oldValue === newValue) { 
+                if (td) td.textContent = oldValue; 
+                return; 
+            }
             
             if (!currentTable) { showStatus('无法更新：未选择表', true); return; }
             
-            // 构建 UPDATE 语句
-            const headers = $$('resultsContent').querySelectorAll('thead th');
-            const colName = headers[colIdx].textContent;
-            const sql = `UPDATE \`${currentTable}\` SET \`${colName}\` = ${newValue === '' ? 'NULL' : typeof newValue === 'number' ? newValue : `'${newValue.replace(/'/g, "''")}'`} WHERE `;
+            // 使用保存的表头
+            const headerList = window._tableHeaders || [];
+            const colName = headerList[colIdx];
+            if (!colName) { showStatus('无法更新：未知列', true); return; }
             
-            // 通过主键定位（简单处理：假设所有字段都参与定位）
+            const sql = "UPDATE `" + currentTable + "` SET `" + colName + "` = " + (newValue === '' ? 'NULL' : typeof newValue === 'number' ? newValue : "'" + newValue.replace(/'/g, "''") + "'") + " WHERE ";
+            
+            // 通过主键定位
             const pkParts = [];
-            headers.forEach((h, i) => pkParts.push(`\`${h.textContent}\` = ${typeof allResults[rowIdx][i] === 'number' ? allResults[rowIdx][i] : `'${String(allResults[rowIdx][i] || '').replace(/'/g, "''")}'`}`));
+            headerList.forEach(function(h, i) {
+                var val = allResults[rowIdx][i];
+                if (typeof val === 'number') {
+                    pkParts.push("`" + h + "` = " + val);
+                } else {
+                    pkParts.push("`" + h + "` = '" + String(val || '').replace(/'/g, "''") + "'");
+                }
+            });
             
             fetch('/api/db/execute', {
                 method: 'POST', headers: {'Content-Type': 'application/json'},
@@ -1559,14 +1670,22 @@
             }).then(r => r.json()).then(data => {
                 if (data.success) {
                     allResults[rowIdx][colIdx] = newValue;
-                    td.textContent = newValue;
+                    if (td) td.textContent = newValue;
                     showStatus('更新成功', false);
                 } else {
-                    td.textContent = oldValue;
-                    showStatus('更新失败: ' + data.message, true);
+                    // 回滚数据
+                    if (window._resultsTable) {
+                        const rowData = window._resultsTable.getData();
+                        rowData[rowIdx][colName] = oldValue;
+                        window._resultsTable.setData(rowData);
+                    }
+                    showStatus('更新失败: ' + (data.message || data.error), true);
                 }
-            }).catch(e => { td.textContent = oldValue; showStatus('更新失败: ' + e.message, true); });
+            }).catch(e => { 
+                showStatus('更新失败: ' + e.message, true); 
+            });
         }
+        
         
         function quickQuery(sql) {
             if (!currentConn) { showStatus('请先选择表', true); return; }
