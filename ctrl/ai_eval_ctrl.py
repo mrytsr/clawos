@@ -12,12 +12,14 @@ import requests
 import threading
 from flask import Blueprint, jsonify, request
 
+import config
+
 ai_eval_bp = Blueprint('ai_eval', __name__)
 
 # 模型存储文件
-MODELS_FILE = '/root/.openclaw/ai_models.json'
+MODELS_FILE = os.path.join(config.DATA_DIR, 'ai_models.json')
 # 评测状态文件
-EVAL_STATE_FILE = '/root/.openclaw/ai_eval_state.json'
+EVAL_STATE_FILE = os.path.join(config.DATA_DIR, 'ai_eval_state.json')
 
 # 评测题目
 REASONING_QUESTIONS = [
