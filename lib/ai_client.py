@@ -15,6 +15,16 @@ from PIL import Image
 import numpy as np
 
 PROVIDOR_MODELS = {
+    "hina": {
+        "base_url": "https://api.minimax.chat/v1/",
+        "api_key": "sk-cp-9QawFGoMHkn41PcgGyi7Ve5PBwyY1lmWC0m3rr-qZdvVuetmMPgYED0gucDz4iglxWORhQemfGpo1U8kf1jp_oqOn-hmZnsTClESF5OIqtP291ixgsSrnMg",
+        "models": ["MiniMax-M2.5"],
+    },
+    "mydamoxing": {
+        "base_url": "https://mydamoxing.cn/v1",
+        "api_key": "sk-CxuRNVXijhvTniMyzwA74wxB4VuZ9Auoq6QWnxgMqJ6KKiTm",
+        "models": ["MiniMax-M2.5"],
+    },
     "deepseek": {
         "base_url": "https://api.deepseek.com",
         "api_key": "sk-3fa14cdfdf33485386db796940f1d7b5",
@@ -44,11 +54,6 @@ PROVIDOR_MODELS = {
         "base_url": "https://api.minimaxi.com/v1",
         "api_key": "sk-api-HsNP7dcbx-HByBD3NlEnDNS8KXfBZ8em3V0Fz4YRFWqzXrEiQISitCK8cNkrHkvsFE8mCq5iPfjcsRDM20AWpZ0PbdogIvthaRVwh-syzz0AhNmhFlbNQ6k",
         "models": ["MiniMax-M2.1", "MiniMax-M2"],
-    },
-    "mydamoxing": {
-        "base_url": "https://mydamoxing.cn/v1",
-        "api_key": "sk-CxuRNVXijhvTniMyzwA74wxB4VuZ9Auoq6QWnxgMqJ6KKiTm",
-        "models": ["MiniMax-M2.5"],
     },
 }
 
@@ -125,6 +130,15 @@ class AiClient:
                 api_key=self.api_key,
                 base_url=self.base_url,
             )
+        elif provider == 'hina':
+            if not self.api_key:
+                raise ValueError("HINA_API_KEY 未配置")
+            if not self.base_url:
+                raise ValueError("HINA_BASE_URL 未配置")
+            self.client = OpenAI(
+                api_key=self.api_key,
+                base_url=self.base_url,
+            )
         elif provider == 'mydamoxing':
             if not self.api_key:
                 raise ValueError("MYDAMOXING_API_KEY 未配置")
@@ -169,6 +183,8 @@ class AiClient:
             return self._chat_realmrouter(messages, **kwargs)
         elif self.provider == 'minimax':
             return self._chat_minimax(messages, **kwargs)
+        elif self.provider == 'hina':
+            return self._chat_hina(messages, **kwargs)
         elif self.provider == 'mydamoxing':
             return self._chat_mydamoxing(messages, **kwargs)
     
@@ -347,6 +363,23 @@ class AiClient:
         except Exception as e:
             print(f"MyDamoxing API Error: {e}")
             raise e
+
+    def _chat_hina(self, messages, **kwargs):
+        """Hina MiniMax API 调用"""
+        stream = kwargs.pop('stream', False)
+        temperature = kwargs.pop('temperature', 0.7)
+        try:
+            response = self.client.chat.completions.create(
+                model=self.model or 'MiniMax-M2.5',
+                messages=messages,
+                stream=stream,
+                temperature=temperature,
+                **kwargs
+            )
+            return response
+        except Exception as e:
+            print(f"Hina API Error: {e}")
+            raise e
     
     def ask(self, question, system_prompt="You are a helpful assistant."):
         """
@@ -378,6 +411,8 @@ class AiClient:
             elif self.provider == 'realmrouter':
                 return response['choices'][0]['message']['content']
             elif self.provider == 'minimax':
+                return response.choices[0].message.content
+            elif self.provider == 'hina':
                 return response.choices[0].message.content
             elif self.provider == 'mydamoxing':
                 return response.choices[0].message.content
