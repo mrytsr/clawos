@@ -17,6 +17,7 @@ from ctrl.batch_ctrl import batch_bp
 from ctrl.browser_ctrl import browser_bp
 from ctrl.edit_ctrl import edit_bp
 from ctrl.file_ctrl import file_bp
+from ctrl.ai_eval_ctrl import ai_eval_bp
 from ctrl.git_ctrl import git_bp
 from ctrl.clash_ctrl import clash_bp
 from ctrl.cron_ctrl import cron_bp
@@ -91,6 +92,7 @@ app.register_blueprint(task_bp)
 app.register_blueprint(browser_bp)
 app.register_blueprint(edit_bp)
 app.register_blueprint(file_bp)
+app.register_blueprint(ai_eval_bp)
 register_term_socketio(socketio, terminal_root_dir=config.ROOT_DIR)
 
 
@@ -126,6 +128,11 @@ def cron_manager():
 @app.route('/db/manager')
 def db_manager():
     return send_from_directory(app.template_folder, 'db_manager.html')
+
+
+@app.route('/ai/evaluate')
+def ai_evaluate():
+    return send_from_directory(app.template_folder, 'ai_evaluate.html')
 
 
 if __name__ == '__main__':

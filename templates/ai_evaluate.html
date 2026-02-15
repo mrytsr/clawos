@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 模型评测</title>
+    <link rel="stylesheet" href="/static/lib/sweetalert2.min.css">
+    <script src="/static/lib/sweetalert2.min.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: #e0e0e0;
+        }
+        .container { max-width: 600px; margin: 0 auto; padding: 16px; }
+        
+        h1 { text-align: center; padding: 20px 0; font-size: 24px; }
+        
+        .card {
+            background: #16213e;
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+        .card-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        /* 表单 */
+        .form-grid { display: grid; gap: 10px; }
+        .form-group label {
+            display: block;
+            font-size: 12px;
+            color: #888;
+            margin-bottom: 4px;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #0f3460;
+            background: #1a1a2e;
+            color: #e0e0e0;
+            font-size: 14px;
+        }
+        .btn {
+            padding: 10px 16px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        .btn-primary { background: linear-gradient(135deg, #e94560, #ff6b6b); color: white; }
+        .btn-primary:hover { transform: translateY(-2px); }
+        .btn-secondary { background: #0f3460; color: #ccc; }
+        .btn-danger { background: #cf222e; color: white; }
+        
+        /* 模型列表 */
+        .model-item {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            background: #1a1a2e;
+            border-radius: 10px;
+            margin-bottom: 8px;
+            border: 1px solid #0f3460;
+        }
+        .model-checkbox { margin-right: 12px; width: 20px; height: 20px; accent-color: #e94560; }
+        .model-info { flex: 1; }
+        .model-name { font-weight: 600; margin-bottom: 2px; }
+        .model-url { font-size: 11px; color: #666; }
+        .model-tag {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            background: #0f3460;
+            color: #58a6ff;
+        }
+        
+        /* 进度 */
+        .progress-bar {
+            height: 6px;
+            background: #0f3460;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #e94560, #ff6b6b);
+            transition: width 0.3s;
+        }
+        .progress-detail { margin-top: 12px; font-size: 13px; color: #888; }
+        .progress-detail div { margin-bottom: 4px; }
+        
+        /* 结果卡片 */
+        .result-card {
+            background: #1a1a2e;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+            border-left: 4px solid #e94560;
+        }
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        .result-name { font-weight: 600; font-size: 16px; }
+        .result-score {
+            font-size: 24px;
+            font-weight: bold;
+        }
+        .result-scores {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
+        .result-score-item {
+            text-align: center;
+            padding: 8px;
+            background: #16213e;
+            border-radius: 8px;
+        }
+        .result-score-label { font-size: 11px; color: #888; }
+        .result-score-value { font-size: 18px; font-weight: bold; }
+        
+        .score-high { color: #4CAF50; }
+        .score-mid { color: #FF9800; }
+        .score-low { color: #f44336; }
+        
+        .empty { text-align: center; padding: 30px; color: #666; }
+        .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧠 AI 模型评测</h1>
+        
+        <!-- 添加模型 -->
+        <div class="card">
+            <div class="card-title">➕ 添加模型</div>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Base URL</label>
+                    <input type="text" id="baseUrl" placeholder="https://api.example.com/v1">
+                </div>
+                <div class="form-group">
+                    <label>API Key</label>
+                    <input type="password" id="apiKey" placeholder="sk-xxxxxxxx">
+                </div>
+                <div class="form-group">
+                    <label>模型名称</label>
+                    <input type="text" id="modelName" placeholder="gpt-3.5-turbo">
+                </div>
+                <div class="form-group">
+                    <label>显示名称（可选）</label>
+                    <input type="text" id="displayName" placeholder="自定义名称">
+                </div>
+            </div>
+            <button class="btn btn-primary" style="width:100%;margin-top:12px;" onclick="addModel()">添加模型</button>
+        </div>
+        
+        <!-- 模型列表 -->
+        <div class="card">
+            <div class="card-title">
+                📋 已添加的模型
+                <div style="margin-left:auto;display:flex;gap:6px;">
+                    <button class="btn btn-secondary" style="padding:4px 10px;font-size:12px;" onclick="selectAllModels()">全选</button>
+                    <button class="btn btn-secondary" style="padding:4px 10px;font-size:12px;" onclick="deselectAllModels()">清空</button>
+                </div>
+            </div>
+            <div id="modelList"></div>
+        </div>
+        
+        <!-- 评测控制 -->
+        <div class="card">
+            <div class="card-title">⚡ 评测控制</div>
+            <div class="btn-row">
+                <button class="btn btn-primary" onclick="startEvaluation()">🚀 开始评测</button>
+                <button class="btn btn-secondary" onclick="stopEvaluation()">⏹ 停止</button>
+                <button class="btn btn-danger" onclick="clearResults()">🗑 清除</button>
+            </div>
+            <div id="progressSection" style="display:none;">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill" style="width:0%"></div>
+                </div>
+                <div class="progress-detail" id="progressDetail"></div>
+            </div>
+        </div>
+        
+        <!-- 评测结果 -->
+        <div class="card">
+            <div class="card-title">📊 评测结果</div>
+            <div id="resultsContainer"></div>
+        </div>
+    </div>
+
+    <script>
+    let models = [];
+    let pollInterval = null;
+    
+    // 加载模型列表
+    function loadModels() {
+        fetch('/api/ai/models')
+            .then(r => r.json())
+            .then(data => {
+                if (data.success && data.models) {
+                    models = data.models;
+                    renderModelList();
+                }
+            });
+    }
+    
+    // 渲染模型列表
+    function renderModelList() {
+        const container = document.getElementById('modelList');
+        if (models.length === 0) {
+            container.innerHTML = '<div class="empty">暂无模型</div>';
+            return;
+        }
+        container.innerHTML = models.map((m, i) => `
+            <div class="model-item">
+                <input type="checkbox" class="model-checkbox" data-index="${i}">
+                <div class="model-info">
+                    <div class="model-name">${m.display_name || m.model}</div>
+                    <div class="model-url">${m.base_url}</div>
+                </div>
+                <span class="model-tag">${m.source === 'user' ? '' : '内置'}</span>
+            </div>
+        `).join('');
+    }
+    
+    // 全选/清空
+    function selectAllModels() {
+        document.querySelectorAll('.model-checkbox').forEach(cb => cb.checked = true);
+    }
+    function deselectAllModels() {
+        document.querySelectorAll('.model-checkbox').forEach(cb => cb.checked = false);
+    }
+    
+    // 添加模型
+    function addModel() {
+        const baseUrl = document.getElementById('baseUrl').value.trim();
+        const apiKey = document.getElementById('apiKey').value.trim();
+        const modelName = document.getElementById('modelName').value.trim();
+        const displayName = document.getElementById('displayName').value.trim();
+        
+        if (!baseUrl || !apiKey || !modelName) {
+            Swal.fire('错误', '请填写完整信息', 'error');
+            return;
+        }
+        
+        fetch('/api/ai/models/add', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                base_url: baseUrl,
+                api_key: apiKey,
+                model: modelName,
+                display_name: displayName || modelName
+            })
+        }).then(r => r.json())
+          .then(data => {
+              if (data.success) {
+                  Swal.fire('成功', '模型添加成功', 'success');
+                  loadModels();
+                  document.getElementById('baseUrl').value = '';
+                  document.getElementById('apiKey').value = '';
+                  document.getElementById('modelName').value = '';
+                  document.getElementById('displayName').value = '';
+              } else {
+                  Swal.fire('错误', data.error || '添加失败', 'error');
+              }
+          });
+    }
+    
+    // 获取选中的模型索引
+    function getSelectedIndices() {
+        const checkboxes = document.querySelectorAll('.model-checkbox:checked');
+        return Array.from(checkboxes).map(cb => parseInt(cb.dataset.index));
+    }
+    
+    // 开始评测
+    function startEvaluation() {
+        const indices = getSelectedIndices();
+        if (indices.length === 0) {
+            Swal.fire('错误', '请至少选择一个模型', 'error');
+            return;
+        }
+        
+        fetch('/api/ai/eval/start', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ models: indices })
+        }).then(r => r.json())
+          .then(data => {
+              if (data.success) {
+                  document.getElementById('progressSection').style.display = 'block';
+                  startPolling();
+              } else {
+                  Swal.fire('错误', data.error || '启动失败', 'error');
+              }
+          });
+    }
+    
+    // 停止评测
+    function stopEvaluation() {
+        fetch('/api/ai/eval/stop', { method: 'POST' })
+            .then(r => r.json())
+            .then(() => {
+                stopPolling();
+            });
+    }
+    
+    // 清除结果
+    function clearResults() {
+        fetch('/api/eval/clear', { method: 'POST' })
+            .then(r => r.json())
+            .then(() => {
+                renderResults([]);
+            });
+    }
+    
+    // 轮询状态
+    function startPolling() {
+        if (pollInterval) return;
+        pollInterval = setInterval(pollStatus, 2000);
+        pollStatus();
+    }
+    
+    function stopPolling() {
+        if (pollInterval) {
+            clearInterval(pollInterval);
+            pollInterval = null;
+        }
+    }
+    
+    function pollStatus() {
+        fetch('/api/ai/eval/status')
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    updateProgress(data.status);
+                    if (!data.status.running && pollInterval) {
+                        stopPolling();
+                    }
+                }
+            });
+    }
+    
+    // 更新进度显示
+    function updateProgress(status) {
+        const progressFill = document.getElementById('progressFill');
+        const progressDetail = document.getElementById('progressDetail');
+        
+        if (status.running && status.current) {
+            const current = status.current;
+            const totalModels = current.total_models || 1;
+            const modelIdx = current.model_idx || 0;
+            
+            // 计算进度
+            const categoryIdx = current.category_idx || 0;
+            const questionIdx = current.question_idx || 0;
+            const totalQuestions = current.total_questions || 5;
+            
+            // 模型进度 + 类别进度 + 问题进度
+            const modelProgress = (modelIdx / totalModels) * 100;
+            const categoryProgress = (categoryIdx / 3) * (1 / totalModels) * 100;
+            const questionProgress = (questionIdx / totalQuestions) * (1 / 3) * (1 / totalModels) * 100;
+            const totalProgress = Math.min(modelProgress + categoryProgress + questionProgress, 100);
+            
+            progressFill.style.width = totalProgress + '%';
+            
+            const categoryNames = { reasoning: '推理', language: '语言', code: '代码' };
+            progressDetail.innerHTML = `
+                <div>🔄 正在评测: ${current.model_name || '-'}</div>
+                <div>📝 题型: ${categoryNames[current.category] || '-'} (${questionIdx + 1}/${totalQuestions})</div>
+                <div>📊 进度: 模型 ${modelIdx + 1}/${totalModels}</div>
+            `;
+        } else {
+            progressFill.style.width = '100%';
+            progressDetail.innerHTML = '<div>✅ 评测完成</div>';
+            stopPolling();
+        }
+        
+        // 渲染结果
+        if (status.results) {
+            renderResults(status.results);
+        }
+    }
+    
+    // 渲染结果卡片
+    function renderResults(results) {
+        const container = document.getElementById('resultsContainer');
+        
+        if (!results || results.length === 0) {
+            container.innerHTML = '<div class="empty">暂无评测结果</div>';
+            return;
+        }
+        
+        // 按总分排序
+        const sorted = [...results].sort((a, b) => b.overall_score - a.overall_score);
+        
+        container.innerHTML = sorted.map((r, i) => {
+            const scoreClass = r.overall_score >= 80 ? 'score-high' : (r.overall_score >= 60 ? 'score-mid' : 'score-low');
+            return `
+                <div class="result-card">
+                    <div class="result-header">
+                        <div class="result-name">#${i + 1} ${r.model}</div>
+                        <div class="result-score ${scoreClass}">${r.overall_score.toFixed(1)}</div>
+                    </div>
+                    <div class="result-scores">
+                        <div class="result-score-item">
+                            <div class="result-score-label">推理</div>
+                            <div class="result-score-value ${getScoreClass(r.reasoning)}">${r.reasoning.toFixed(1)}</div>
+                        </div>
+                        <div class="result-score-item">
+                            <div class="result-score-label">语言</div>
+                            <div class="result-score-value ${getScoreClass(r.language)}">${r.language.toFixed(1)}</div>
+                        </div>
+                        <div class="result-score-item">
+                            <div class="result-score-label">代码</div>
+                            <div class="result-score-value ${getScoreClass(r.code)}">${r.code.toFixed(1)}</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+    
+    function getScoreClass(score) {
+        if (score >= 80) return 'score-high';
+        if (score >= 60) return 'score-mid';
+        return 'score-low';
+    }
+    
+    // 初始化
+    loadModels();
+    </script>
+</body>
+</html>
