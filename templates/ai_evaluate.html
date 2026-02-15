@@ -409,8 +409,9 @@
             return;
         }
         
-        // 按总分排序
-        const sorted = [...results].sort((a, b) => b.overall_score - a.overall_score);
+        // 按总分排序（保留原始索引）
+        const sorted = results.map((r, i) => ({...r, _originalIndex: i}))
+            .sort((a, b) => b.overall_score - a.overall_score);
         
         container.innerHTML = sorted.map((r, i) => {
             const scoreClass = r.overall_score >= 80 ? 'score-high' : (r.overall_score >= 60 ? 'score-mid' : 'score-low');
@@ -418,7 +419,10 @@
                 <div class="result-card">
                     <div class="result-header">
                         <div class="result-name">#${i + 1} ${r.model}</div>
-                        <div class="result-score ${scoreClass}">${r.overall_score.toFixed(1)}</div>
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <div class="result-score ${scoreClass}">${r.overall_score.toFixed(1)}</div>
+                            <button class="btn btn-danger" style="padding:4px 8px;font-size:12px;" onclick="deleteResult(${r._originalIndex})">删除</button>
+                        </div>
                     </div>
                     <div class="result-scores">
                         <div class="result-score-item">
@@ -445,8 +449,53 @@
         return 'score-low';
     }
     
+    // 删除单个结果
+    function deleteResult(index) {
+        if (!confirm('确定删除这条评测结果？')) return;
+        
+        fetch('/api/eval/delete', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ index: index })
+        }).then(r => r.json())
+          .then(data => {
+              if (data.success) {
+                  // 重新获取状态
+                  fetch('/api/ai/eval/status')
+                      .then(r => r.json())
+                      .then(data => {
+                          if (data.success && data.status.results) {
+                              renderResults(data.status.results);
+                          }
+                      });
+              }
+          });
+    }
+    
     // 初始化
     loadModels();
+    loadStatus();
+    
+    // 页面加载时检查评测状态
+    function loadStatus() {
+        fetch('/api/ai/eval/status')
+            .then(r => r.json())
+            .then(data => {
+                if (data.success && data.status) {
+                    const status = data.status;
+                    // 如果有进行中的任务，显示进度
+                    if (status.running || Object.keys(status.current).length > 0) {
+                        document.getElementById('progressSection').style.display = 'block';
+                        updateProgress(status);
+                        startPolling();
+                    }
+                    // 显示已有结果（包括正在评测的）
+                    if (status.results && status.results.length > 0) {
+                        renderResults(status.results);
+                    }
+                }
+            });
+    }
     </script>
 </body>
 </html>

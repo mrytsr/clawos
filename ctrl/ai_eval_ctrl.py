@@ -180,11 +180,21 @@ def start_eval():
     if not selected_models:
         return jsonify({"success": False, "error": "无效的模型选择"})
     
-    # 初始化状态
+    # 获取已有结果（不清除）
+    existing_results = []
+    if os.path.exists(EVAL_STATE_FILE):
+        try:
+            with open(EVAL_STATE_FILE, 'r', encoding='utf-8') as f:
+                old_state = json.load(f)
+                existing_results = old_state.get("results", [])
+        except:
+            pass
+    
+    # 初始化状态（保留已有结果）
     state = {
         "running": True,
         "models": selected_models,
-        "results": [],
+        "results": existing_results,  # 保留之前的结果
         "current": {"model_idx": 0, "category": "", "question_idx": 0, "total_models": len(selected_models)},
         "start_time": time.time()
     }
@@ -210,6 +220,19 @@ def clear_eval():
     """清除评测结果"""
     state = {"running": False, "results": [], "current": {}, "start_time": None}
     save_eval_state(state)
+    return jsonify({"success": True})
+
+@ai_eval_bp.route('/api/eval/delete', methods=['POST'])
+def delete_eval():
+    """删除单个评测结果"""
+    data = request.json
+    index = data.get('index', -1)
+    
+    state = load_eval_state()
+    if 0 <= index < len(state.get("results", [])):
+        state["results"].pop(index)
+        save_eval_state(state)
+    
     return jsonify({"success": True})
 
 # ========== 后台评测 ==========
