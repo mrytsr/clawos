@@ -140,7 +140,7 @@
     
     function $(id) { return document.getElementById(id); }
     
-    function showStatus(msg) { alert(msg); }
+    function showStatus(msg) { Swal.fire({ icon: 'info', title: '提示', text: msg, timer: 2000 }); }
     
     async function loadJobs() {
         try {
@@ -150,10 +150,10 @@
                 jobs = (data.data && data.data.jobs) || [];
                 render();
             } else {
-                alert(data.error || '加载失败');
+                Swal.fire('错误', data.error || '加载失败', 'error');
             }
         } catch (e) {
-            alert(e.message);
+            Swal.fire('错误', e.message, 'error');
         }
     }
     
@@ -240,10 +240,10 @@
                 closeAddModal();
                 loadJobs();
             } else {
-                alert(data.error || '添加失败');
+                Swal.fire('错误', data.error || '添加失败', 'error');
             }
         } catch (e) {
-            alert(e.message);
+            Swal.fire('错误', e.message, 'error');
         }
     }
     
@@ -259,10 +259,10 @@
             if (data.success) {
                 loadJobs();
             } else {
-                alert(data.error || '删除失败');
+                Swal.fire('错误', data.error || '删除失败', 'error');
             }
         } catch (e) {
-            alert(e.message);
+            Swal.fire('错误', e.message, 'error');
         }
     }
     
@@ -278,7 +278,7 @@
                 loadJobs();
             }
         } catch (e) {
-            alert(e.message);
+            Swal.fire('错误', e.message, 'error');
         }
     }
     

@@ -288,7 +288,7 @@
         const displayName = document.getElementById('displayName').value.trim();
         
         if (!baseUrl || !apiKey || !modelName) {
-            alert('请填写完整信息');
+            Swal.fire('提示', '请填写完整信息', 'warning');
             return;
         }
         
@@ -324,7 +324,7 @@
                   closeModelModal();
                   loadModels();
               } else {
-                  alert(data.error || '保存失败');
+                  Swal.fire('错误', data.error || '保存失败', 'error');
               }
           });
     }
@@ -332,18 +332,25 @@
     // 删除模型
     function deleteModel(index) {
         const m = models[index];
-        if (!confirm('确定删除模型: ' + (m.display_name || m.model) + '?')) return;
-        
-        fetch('/api/ai/models/delete', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ base_url: m.base_url, model: m.model })
-        }).then(r => r.json())
-          .then(data => {
-              if (data.success) {
-                  loadModels();
-              }
-          });
+        Swal.fire({
+            title: '确认删除',
+            text: '确定删除模型: ' + (m.display_name || m.model) + '?',
+            icon: 'warning',
+            showCancelButton: true
+        }).then(result => {
+            if (!result.isConfirmed) return;
+            
+            fetch('/api/ai/models/delete', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ base_url: m.base_url, model: m.model })
+            }).then(r => r.json())
+              .then(data => {
+                  if (data.success) {
+                      loadModels();
+                  }
+              });
+        });
     }
     
     // 全选/清空
@@ -520,25 +527,31 @@
     
     // 删除单个结果
     function deleteResult(index) {
-        if (!confirm('确定删除这条评测结果？')) return;
-        
-        fetch('/api/eval/delete', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ index: index })
-        }).then(r => r.json())
-          .then(data => {
-              if (data.success) {
-                  // 重新获取状态
-                  fetch('/api/ai/eval/status')
-                      .then(r => r.json())
-                      .then(data => {
-                          if (data.success && data.status.results) {
-                              renderResults(data.status.results);
-                          }
-                      });
-              }
-          });
+        Swal.fire({
+            title: '确认删除',
+            text: '确定删除这条评测结果？',
+            icon: 'warning',
+            showCancelButton: true
+        }).then(result => {
+            if (!result.isConfirmed) return;
+            
+            fetch('/api/eval/delete', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ index: index })
+            }).then(r => r.json())
+              .then(data => {
+                  if (data.success) {
+                      fetch('/api/ai/eval/status')
+                          .then(r => r.json())
+                          .then(data => {
+                              if (data.success && data.status.results) {
+                                  renderResults(data.status.results);
+                              }
+                          });
+                  }
+              });
+        });
     }
     
     // 初始化

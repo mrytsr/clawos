@@ -199,7 +199,7 @@
             .then(r => r.json())
             .then(d => {
                 closeClearDialog();
-                alert(d.message);
+                Swal.fire('错误', d.message, 'error');
                 if (d.success) location.reload();
             });
         }
