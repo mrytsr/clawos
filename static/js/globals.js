@@ -1669,6 +1669,7 @@ function loadUsersData() {
 // ========== 批量操作 ==========
 
 // ============ SweetAlert2 GitHub 风格封装 ============
+if (typeof Swal !== 'undefined') {
 const SwalGitHub = Swal.mixin({
     background: '#161b22',
     color: '#c9d1d9',
@@ -1685,6 +1686,7 @@ const SwalGitHub = Swal.mixin({
         cancelButton: 'swal-cancel-github'
     }
 });
+}
 
 // GitHub 风格样式
 const style = document.createElement('style');
