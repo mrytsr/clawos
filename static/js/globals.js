@@ -1669,6 +1669,7 @@ function loadUsersData() {
 // ========== 批量操作 ==========
 
 // ============ SweetAlert2 GitHub 风格封装 ============
+if (typeof Swal === 'undefined') { var Swal = window.Sweetalert2; }
 if (typeof Swal !== 'undefined') {
 const SwalGitHub = Swal.mixin({
     background: '#161b22',

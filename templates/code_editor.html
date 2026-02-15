@@ -496,12 +496,25 @@
 
         async function __confirmAndGoBack() {
             if (__dirty) { // 检查是否有未保存的更改
-                const r = await Swal.fire({ icon: "warning", title: "未保存的更改", text: "确定要离开吗？未保存的更改将丢失", showCancelButton: true, confirmButtonText: "离开", cancelButtonText: "取消" }); const confirmed = r.isConfirmed;
-                if (confirmed) {
-                    // 用户确认离开，允许返回
+                const r = await Swal.fire({ 
+                    icon: "warning", 
+                    title: "未保存的更改", 
+                    text: "确定要离开吗？",
+                    showDenyButton: true,
+                    showCancelButton: true,
+                    confirmButtonText: "保存",
+                    denyButtonText: "不保存",
+                    cancelButtonText: "取消"
+                });
+                if (r.isConfirmed) {
+                    // 用户点击"保存"
+                    await saveFile();
+                    history.back();
+                } else if (r.isDenied) {
+                    // 用户点击"不保存"
                     history.back();
                 } else {
-                    // 用户取消离开，什么都不做
+                    // 用户点击"取消"，什么都不做
                     return;
                 }
             } else {
