@@ -808,10 +808,16 @@ window.handleMainMenu = function(action) {
                         var match = d.data.content.match(/URL=(.+)/);
                         if (match && match[1]) {
                             window.open(match[1].trim(), '_blank');
+                        } else {
+                            alert('无法读取 URL 文件内容');
                         }
+                    } else {
+                        alert('文件不存在或无法读取: ' + config.path);
                     }
                 })
-                .catch(function() {});
+                .catch(function(e) { 
+                    alert('打开 URL 失败: ' + config.path); 
+                });
         } else if (config.open && window[config.open]) {
             window[config.open]();
         } else {

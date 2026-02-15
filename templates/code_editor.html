@@ -49,9 +49,7 @@
             height: 40px;
         }
         .header-buttons {
-            display: flex;
-            gap: 0.25rem;
-            flex-wrap: wrap;
+            display: none;
         }
         .editor-title-wrap {
             flex-grow: 1;
@@ -100,6 +98,18 @@
         .editor-container {
             padding: 0;
             height: calc(100vh - 40px);
+            position: relative;
+        }
+        .floating-buttons {
+            position: absolute;
+            right: 10px;
+            top: 10px;
+            z-index: 100;
+            display: flex;
+            gap: 0.25rem;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 6px;
+            border-radius: 8px;
         }
         .CodeMirror {
             height: 100% !important;
@@ -204,21 +214,27 @@
             <h1 class="editor-title" id="editorTitleText">{{ filename }}:0</h1>
             <button id="editorRefBtn" class="editor-btn" type="button" title="复制引用" onmousedown="event.preventDefault()">引用</button>
         </div>
-        <div class="header-buttons">
+    </div>
+
+    <div class="editor-container">
+        <div class="floating-buttons">
             <button class="editor-btn" onclick="openAiPanel()" title="AI 生成代码">✨</button>
             <button class="editor-btn" onclick="TerminalLib.open('{{ current_dir }}', '{{ file_path }}')" title="终端">📺</button>
             <button class="editor-btn" onclick="undo()">↩</button>
             <button class="editor-btn" onclick="redo()">↪</button>
             <button class="editor-btn" onclick="saveFile()">💾</button>
         </div>
+        <textarea id="editor">{{ content }}</textarea>
     </div>
 
-    <!-- AI 弹窗 -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <!-- AI Panel -->
     <div id="aiPanel" class="ai-panel" style="display:none;">
         <div class="ai-panel-backdrop" onclick="closeAiPanel()"></div>
         <div class="ai-panel-content">
             <div class="ai-panel-header">
-                <span>✨ AI 代码助手</span>
+                <span>AI 代码助手</span>
                 <button class="ai-panel-close" onclick="closeAiPanel()">×</button>
             </div>
             <div class="ai-panel-body">
@@ -231,12 +247,6 @@
             </div>
         </div>
     </div>
-
-    <div class="editor-container">
-        <textarea id="editor">{{ content }}</textarea>
-        <div id="saveStatus" class="save-status"></div>
-    </div>
-    <div id="toastContainer" class="toast-container"></div>
 
     <script>
         // 根据文件类型设置编辑器模式
@@ -584,12 +594,15 @@
         }
 
         // Ctrl+Enter 提交 AI Prompt
-        document.getElementById('aiPromptInput').addEventListener('keydown', function(e) {
-            if (e.ctrlKey && e.key === 'Enter') {
-                e.preventDefault();
-                generateCodeFromAi();
-            }
-        });
+        var aiPromptInput = document.getElementById('aiPromptInput');
+        if (aiPromptInput) {
+            aiPromptInput.addEventListener('keydown', function(e) {
+                if (e.ctrlKey && e.key === 'Enter') {
+                    e.preventDefault();
+                    generateCodeFromAi();
+                }
+            });
+        }
     </script>
 
 
