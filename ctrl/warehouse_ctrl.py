@@ -364,7 +364,7 @@ def generate_report(warehouse_id):
             df_detail.to_excel(writer, index=False, sheet_name="明细表")
             df_summary.to_excel(writer, index=False, sheet_name="库存汇总")
         
-        return send_file(output_path, as_attachment=True, download_name=f"{warehouse.name}.xlsx")
+        return send_file(output_path, as_attachment=True, download_name=f"{warehouse.name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx")
 
 
 @warehouse_bp.route("/api/warehouse/<int:warehouse_id>/import", methods=["POST"])

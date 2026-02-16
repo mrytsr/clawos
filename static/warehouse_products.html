@@ -51,7 +51,6 @@
         <div class="container">
             <div class="summary-row">
                 <div class="summary-card"><div class="value">{{ products.length }}</div><div class="label">商品种类</div></div>
-                <div class="summary-card"><div class="value">{{ totalStock }}</div><div class="label">总库存</div></div>
                 <div class="summary-card"><div class="value">¥{{ formatNumber(totalValue) }}</div><div class="label">总价值</div></div>
             </div>
             <div class="search-box">
@@ -60,8 +59,8 @@
             <div class="product-list">
                 <div v-for="p in filteredProducts" :key="p.id" class="product-item" @click="goDetail(p.id)">
                     <div style="flex:1">
-                        <div class="name">{{ p.name }}</div>
-                        <div class="info">¥{{ p.unit_price }}/{{ p.unit }}</div>
+                        <div class="name">{{ p._index }}. {{ p.name }}</div>
+                        <div class="info">¥{{ p.unit_price }}/{{ p.unit }} · ¥{{ formatNumber(p.current_stock * p.unit_price) }}</div>
                     </div>
                     <div class="stock" :class="{ low: p.current_stock < 10 }">{{ p.current_stock }}</div>
                     <div @click.stop>
@@ -175,7 +174,8 @@
                 },
                 async loadProducts() {
                     const res = await fetch('/warehouse/api/warehouse/' + this.warehouseId + '/products');
-                    this.products = await res.json();
+                    const products = await res.json();
+                    this.products = products.map((p, i) => ({...p, _index: i + 1}));
                 },
                 async addProduct() {
                     if (!this.form.name) return;
@@ -217,7 +217,7 @@
                     this.loadProducts();
                 },
                 goDetail(id) { window.location.href = '/warehouse/transactions/' + this.warehouseId + '/' + id; },
-                exportReport() { window.open('/warehouse/api/warehouse/' + this.warehouseId + '/report'); },
+                exportReport() { window.open('/warehouse/api/warehouse/' + this.warehouseId + '/report?t=' + Date.now()); },
                 importExcel() {
                     const input = document.createElement('input');
                     input.type = 'file';
