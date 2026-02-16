@@ -20,7 +20,7 @@
         .tabs { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; background: #16213e; padding: 3px; border-radius: 6px; max-height: 120px; overflow-y: auto; }
         .tab { flex: 0 0 auto; padding: 6px 12px; text-align: center; border-radius: 4px; cursor: pointer; font-size: 12px; white-space: nowrap; }
         .tab.active { background: #667eea; }
-        .search-box { margin-bottom: 8px; display: flex; gap: 8px; align-items: center; }
+        .search-box { margin-bottom: 12px; display: flex; gap: 10px; align-items: center; } .search-box input { flex: 1; }
         .info-row { display: flex; gap: 16px; margin-bottom: 8px; font-size: 13px; color: #888; background: #1e2a4a; padding: 8px 12px; border-radius: 6px; }
         .search-box input { width: 100%; padding: 8px 10px; background: #16213e; border: 1px solid #2a3a5a; border-radius: 6px; color: #fff; font-size: 13px; }
         .tx-item { background: #1e2a4a; border-radius: 4px; padding: 6px 8px; margin-bottom: 2px; display: flex; align-items: center; gap: 6px; font-size: 12px; }
@@ -56,7 +56,7 @@
                 <div v-for="p in products" :key="p.id" class="tab" :class="{ active: activeTab === p.id }" @click="activeTab = p.id; filterProductId = p.id">{{ p.name }}</div>
             </div>
             <div class="search-box">
-                <input v-model="searchKeyword" placeholder="搜索..." style="width:60%">
+                <input v-model="searchKeyword" placeholder="搜索商品/日期/数量/备注">
                 <button class="btn btn-primary btn-sm" @click="showAdd = true">+新增</button>
             </div>
             <div v-if="currentProductInfo" class="info-row">
