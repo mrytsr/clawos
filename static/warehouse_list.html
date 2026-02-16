@@ -17,11 +17,13 @@
         .btn-secondary { background: #4b5563; color: #fff; }
         .btn-danger { background: #ef4444; color: #fff; }
         .btn-sm { padding: 3px 8px; font-size: 11px; }
-        .list-item { background: #1e2a4a; border-radius: 6px; padding: 24px 10px; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; cursor: pointer; }
+        .list-item { background: #1e2a4a; border-radius: 8px; padding: 16px; margin-bottom: 12px; cursor: pointer; }
         .list-item:active { background: #2a3a5a; }
-        .list-item .name { flex: 1; font-size: 14px; }
-        .list-item .tags { font-size: 11px; color: #888; }
-        .list-item .tag { background: #2a3a5a; padding: 2px 6px; border-radius: 3px; margin-right: 4px; }
+        .list-item .row { display: flex; justify-content: space-between; align-items: center; }
+        .list-item .name { font-size: 16px; font-weight: 500; }
+        .list-item .info { display: flex; gap: 12px; margin-top: 8px; font-size: 13px; color: #888; }
+        .list-item .info span { display: flex; align-items: center; gap: 4px; }
+        .list-item .btns { display: flex; gap: 6px; }
         .empty { text-align: center; padding: 30px; color: #666; font-size: 13px; }
         .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
         .modal { background: #1a1a2e; border-radius: 10px; padding: 16px; width: 100%; max-width: 350px; }
@@ -42,14 +44,18 @@
             <div v-if="warehouses.length === 0" class="empty">📭 暂无仓库</div>
             <div v-else>
                 <div v-for="w in warehouses" :key="w.id" class="list-item" @click="goProducts(w.id)">
-                    <div class="name">📦 {{ w.name }}</div>
-                    <div class="tags">
-                        <span class="tag">品{{ w.product_count || 0 }}</span>
-                        <span class="tag">明{{ w.tx_count || 0 }}</span>
-                        <span class="tag">¥{{ formatNumber(w.total_value || 0) }}</span>
+                    <div class="row">
+                        <div class="name">📦 {{ w.name }}</div>
+                        <div class="btns">
+                            <button class="btn btn-secondary btn-sm" @click.stop="editWarehouse(w)">编</button>
+                            <button class="btn btn-danger btn-sm" @click.stop="deleteWarehouse(w.id)">删</button>
+                        </div>
                     </div>
-                    <button class="btn btn-secondary btn-sm" @click.stop="editWarehouse(w)">编</button>
-                    <button class="btn btn-danger btn-sm" @click.stop="deleteWarehouse(w.id)">删</button>
+                    <div class="info">
+                        <span>📋 {{ w.product_count || 0 }}种</span>
+                        <span>📝 {{ w.tx_count || 0 }}条</span>
+                        <span>💰 ¥{{ formatNumber(w.total_value || 0) }}</span>
+                    </div>
                 </div>
             </div>
         </div>
