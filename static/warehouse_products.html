@@ -16,7 +16,7 @@
         .btn-primary { background: #667eea; color: #fff; }
         .btn-secondary { background: #4b5563; color: #fff; }
         .btn-danger { background: #ef4444; color: #fff; }
-        .btn-sm { padding: 3px 8px; font-size: 11px; }
+        .btn-sm { padding: 3px 8px; font-size: 11px; } .btn:disabled { opacity: 0.6; cursor: not-allowed; }
         .summary-row { display: flex; gap: 6px; margin-bottom: 10px; }
         .summary-row .summary-card { flex: 1; background: #1e2a4a; border-radius: 6px; padding: 8px; text-align: center; }
         .summary-row .value { font-size: 14px; font-weight: bold; color: #667eea; }
@@ -46,7 +46,7 @@
             <h1>{{ warehouseName }}</h1>
             <button class="btn btn-primary btn-sm" @click="showAdd = true">+商品</button>
             <button class="btn btn-success btn-sm" @click="exportReport">导出</button>
-            <button class="btn btn-primary btn-sm" @click="importExcel">导入</button>
+            <button class="btn btn-primary btn-sm" @click="loading=true; importExcel()">导入</button>
         </div>
         <div class="container">
             <div class="summary-row">
@@ -140,6 +140,7 @@
         createApp({
             data() {
                 return {
+                    loading: false,
                     warehouseId: null, warehouseName: '商品列表',
                     products: [], searchKeyword: '',
                     showAdd: false, showEdit: false, showTx: false,
@@ -229,7 +230,7 @@
                         formData.append('file', file);
                         const res = await fetch('/warehouse/api/warehouse/' + this.warehouseId + '/import', { method: 'POST', body: formData });
                         const data = await res.json();
-                        if (data.success) { alert('导入成功'); this.loadProducts(); } else { alert('导入失败: ' + data.error); }
+                        if (data.success) { alert('导入成功'); this.loadProducts(); } else { alert('导入失败: ' + data.error); } this.loading = false;
                     };
                     input.click();
                 },

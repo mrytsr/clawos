@@ -43,7 +43,6 @@
         .form-group input, .form-group select { width: 100%; padding: 8px 10px; background: #16213e; border: 1px solid #2a3a5a; border-radius: 5px; color: #fff; font-size: 13px; }
         .modal-buttons { display: flex; gap: 6px; justify-content: flex-end; margin-top: 12px; }
     </style>
-</head>
 <body>
     <div id="app">
         <div class="header">
@@ -78,7 +77,7 @@
                     </span>
                 </div>
             </div>
-            <div v-if="filteredTxs.length === 0" class="empty">暂无记录</div>
+            <div v-if="filteredTxs.length === 0" class="empty">📋 暂无记录</div>
         </div>
         <div v-if="showAdd" class="modal-overlay" @click.self="showAdd = false">
             <div class="modal">
@@ -129,7 +128,7 @@
                     warehouseId: null, productId: null, pageTitle: '明细',
                     products: [], transactions: [], activeTab: 'all', filterProductId: null, searchKeyword: '',
                     showEdit: false, editForm: {},
-                showAdd: false,
+                    showAdd: false,
                 addForm: { type: '入库', quantity: 0, date: new Date().toISOString().split('T')[0], note: '' },
                 };
             },

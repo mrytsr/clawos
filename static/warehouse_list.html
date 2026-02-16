@@ -17,7 +17,7 @@
         .btn-secondary { background: #4b5563; color: #fff; }
         .btn-danger { background: #ef4444; color: #fff; }
         .btn-sm { padding: 3px 8px; font-size: 11px; }
-        .list-item { background: #1e2a4a; border-radius: 6px; padding: 12px 10px; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; cursor: pointer; }
+        .list-item { background: #1e2a4a; border-radius: 6px; padding: 24px 10px; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; cursor: pointer; }
         .list-item:active { background: #2a3a5a; }
         .list-item .name { flex: 1; font-size: 14px; }
         .list-item .tags { font-size: 11px; color: #888; }
@@ -31,7 +31,6 @@
         .form-group input { width: 100%; padding: 8px 10px; background: #16213e; border: 1px solid #2a3a5a; border-radius: 5px; color: #fff; font-size: 13px; }
         .modal-buttons { display: flex; gap: 6px; justify-content: flex-end; margin-top: 12px; }
     </style>
-</head>
 <body>
     <div id="app">
         <div class="header">
@@ -40,10 +39,10 @@
             <button class="btn btn-primary btn-sm" @click="showAdd = true">+ 仓库</button>
         </div>
         <div class="container">
-            <div v-if="warehouses.length === 0" class="empty">暂无仓库</div>
+            <div v-if="warehouses.length === 0" class="empty">📭 暂无仓库</div>
             <div v-else>
                 <div v-for="w in warehouses" :key="w.id" class="list-item" @click="goProducts(w.id)">
-                    <div class="name">{{ w.name }}</div>
+                    <div class="name">📦 {{ w.name }}</div>
                     <div class="tags">
                         <span class="tag">品{{ w.product_count || 0 }}</span>
                         <span class="tag">明{{ w.tx_count || 0 }}</span>
