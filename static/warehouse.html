@@ -51,6 +51,13 @@
         .product-item .stock.low { color: #ef4444; }
         
         .tx-list { display: flex; flex-direction: column; }
+        .tx-item { background: #1e2a4a; border-radius: 4px; padding: 6px 8px; margin-bottom: 2px; display: flex; align-items: center; gap: 6px; font-size: 12px; }
+        .tx-item .tx-date { color: #888; width: 80px; }
+        .tx-item .tx-icon { width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; }
+        .tx-item .tx-product { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .tx-item .tx-qty { width: 50px; text-align: right; font-weight: bold; }
+        .tx-item .tx-note { color: #666; width: 80px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .tx-item .tx-actions { display: flex; gap: 2px; }
         .tx-card { background: #1e2a4a; border-radius: 6px; padding: 10px; margin-bottom: 4px; }
         .tx-card .tx-header { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
         .tx-card .tx-icon { width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; }
@@ -95,6 +102,7 @@
                     editingProduct: {},
                     editingTransaction: {},
                     showEditProduct: false,
+                    showAddProduct: false,
                     showEditTx: false,
                     showTransaction: false,
                     currentProduct: null,
@@ -177,23 +185,39 @@
                         }).then(() => this.loadWarehouses());
                     }
                 },
+                cloneWarehouse(w) {
+                    const name = prompt('克隆仓库名称', w.name + '-克隆');
+                    if (name) {
+                        fetch('/warehouse/api/warehouses', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ name })
+                        }).then(() => this.loadWarehouses());
+                    }
+                },
                 confirmDeleteWarehouse(id) {
                     if (confirm('确定删除仓库？')) {
                         fetch('/warehouse/api/warehouses/' + id, { method: 'DELETE' })
                             .then(() => this.loadWarehouses());
                     }
                 },
-                promptAddProduct() {
-                    const name = prompt('商品名称');
-                    if (!name) return;
-                    const unit_price = parseFloat(prompt('单价', '0')) || 0;
-                    const unit = prompt('单位', '斤') || '斤';
-                    
+                newProduct: { name: '', unit_price: 0, unit: '斤' },
+                    showAddProduct: false,
+
+                showAddProductModal() {
+                    this.newProduct = { name: '', unit_price: 0, unit: '斤' };
+                    this.showAddProduct = true;
+                },
+                submitAddProduct() {
+                    if (!this.newProduct.name) return;
                     fetch('/warehouse/api/warehouse/' + this.currentWarehouse.id + '/products', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ name, unit_price, unit, current_stock: 0 })
-                    }).then(() => this.loadProducts());
+                        body: JSON.stringify({ ...this.newProduct, current_stock: 0 })
+                    }).then(() => {
+                        this.showAddProduct = false;
+                        this.loadProducts();
+                    });
                 },
                 openEditProduct(p) {
                     this.editingProduct = { ...p };
@@ -307,14 +331,16 @@
             <div class="container">
                 <div v-if="warehouses.length === 0" class="empty">暂无仓库</div>
                 <div v-else>
-                    <div v-for="w in warehouses" :key="w.id" class="list-item" @click="openWarehouse(w)">
+                    <div v-for="w in warehouses" :key="w.id" class="list-item" @click="openWarehouse(w); window.open('/warehouse/', '_blank')">
                         <div class="name">{{ w.name }}</div>
                         <div class="tags">
                             <span class="tag">品{{ w.product_count || 0 }}</span>
                             <span class="tag">明{{ w.tx_count || 0 }}</span>
                             <span class="tag">¥{{ formatNumber(w.total_value || 0) }}</span>
                         </div>
+                        <button class="btn btn-secondary btn-sm" @click.stop="cloneWarehouse(w)">克隆</button>
                         <button class="btn btn-secondary btn-sm" @click.stop="promptUpdateWarehouse(w)">编</button>
+                        <button class="btn btn-danger btn-sm" @click.stop="confirmDeleteWarehouse(w.id)">删</button>
                     </div>
                 </div>
             </div>
@@ -324,7 +350,7 @@
             <div class="header">
                 <a href="#" @click.prevent="currentWarehouse = null">←</a>
                 <h1>{{ currentWarehouse.name }}</h1>
-                <button class="btn btn-primary btn-sm" @click="promptAddProduct">+商品</button>
+                <button class="btn btn-primary btn-sm" @click="showAddProductModal()">+商品</button>
                 <button class="btn btn-primary btn-sm" @click="importExcel">导入</button>
                 <button class="btn btn-success btn-sm" @click="exportReport">导出</button>
             </div>
@@ -345,7 +371,7 @@
                 </div>
                 
                 <div v-if="activeTab === 'inventory'" class="product-list">
-                    <div v-for="p in filteredProducts" :key="p.id" class="product-item" :class="{ active: filterProductId === p.id }" @click="filterByProduct(p)">
+                    <div v-for="p in filteredProducts" :key="p.id" class="product-item" :class="{ active: filterProductId === p.id }" @click="filterByProduct(p); window.open('/warehouse/', '_blank')">
                         <div style="flex:1">
                             <div class="name">{{ p.name }}</div>
                             <div class="info">¥{{ p.unit_price }}/{{ p.unit }}</div>
@@ -365,20 +391,16 @@
                         <span style="font-size:12px; color:#888">单价:¥{{ currentProductInfo?.unit_price }} 库存:{{ currentProductInfo?.current_stock }}</span>
                     </div>
                     <div class="tx-list">
-                        <div v-for="t in filteredTransactions" :key="t.id" class="tx-card">
-                            <div class="tx-header">
-                                <div class="tx-icon" :class="t.type === '入库' ? 'in' : 'out'">{{ t.type === '入库' ? '+' : '-' }}</div>
-                                <div class="tx-product">{{ t.product_name }}</div>
-                                <div class="tx-qty" :class="t.type === '入库' ? 'in' : 'out'">{{ t.type === '入库' ? '+' : '-' }}{{ t.quantity }}</div>
-                            </div>
-                            <div class="tx-footer">
-                                <span>{{ t.date }}</span>
-                                <span>{{ t.note || '-' }}</span>
-                                <div class="tx-actions">
-                                    <button class="btn btn-secondary btn-sm" @click="openEditTx(t)">编</button>
-                                    <button class="btn btn-danger btn-sm" @click="deleteTransaction(t.id)">删</button>
-                                </div>
-                            </div>
+                        <div v-for="t in filteredTransactions" :key="t.id" class="tx-item">
+                            <span class="tx-date">{{ t.date }}</span>
+                            <span class="tx-icon" :class="t.type === '入库' ? 'in' : 'out'">{{ t.type === '入库' ? '+' : '-' }}</span>
+                            <span class="tx-product">{{ t.product_name }}</span>
+                            <span class="tx-qty" :class="t.type === '入库' ? 'in' : 'out'">{{ t.type === '入库' ? '+' : '-' }}{{ t.quantity }}</span>
+                            <span class="tx-note">{{ t.note || '-' }}</span>
+                            <span class="tx-actions">
+                                <button class="btn btn-secondary btn-sm" @click="openEditTx(t)">编</button>
+                                <button class="btn btn-danger btn-sm" @click="deleteTransaction(t.id)">删</button>
+                            </span>
                         </div>
                     </div>
                     <div v-if="filteredTransactions.length === 0" class="empty">暂无记录</div>
@@ -386,6 +408,29 @@
             </div>
         </div>
         
+        <div v-if="showAddProduct" class="modal-overlay" @click.self="showAddProduct = false">
+            <div class="modal">
+                <h3>添加商品</h3>
+                <div class="form-group"><label>名称</label><input v-model="newProduct.name"></div>
+                <div class="form-group"><label>单价</label><input v-model.number="newProduct.unit_price" type="number"></div>
+                <div class="form-group">
+                    <label>单位</label>
+                    <select v-model="newProduct.unit">
+                        <option value="斤">斤</option>
+                        <option value="箱">箱</option>
+                        <option value="条">条</option>
+                        <option value="只">只</option>
+                        <option value="个">个</option>
+                        <option value="冰">冰</option>
+                    </select>
+                </div>
+                <div class="modal-buttons">
+                    <button class="btn" @click="showAddProduct = false">取消</button>
+                    <button class="btn btn-primary" @click="submitAddProduct">确定</button>
+                </div>
+            </div>
+        </div>
+
         <div v-if="showEditProduct" class="modal-overlay" @click.self="showEditProduct = false">
             <div class="modal">
                 <h3>编辑商品</h3>
