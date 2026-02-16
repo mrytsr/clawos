@@ -150,7 +150,11 @@
                     }
                     if (this.searchKeyword) {
                         const kw = this.searchKeyword.toLowerCase();
-                        txs = txs.filter(t => t.product_name.substring(0,2).toLowerCase().includes(kw));
+                        txs = txs.filter(t => 
+                            t.product_name.toLowerCase().includes(kw) ||
+                            t.date.includes(kw) ||
+                            String(t.quantity).includes(kw) ||
+                            (t.note && t.note.toLowerCase().includes(kw)));
                     }
                     return txs;
                 }
