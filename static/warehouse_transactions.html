@@ -67,13 +67,13 @@
             <div class="tx-list">
                 <div v-for="t in filteredTxs" :key="t.id" class="tx-item">
                     <span class="tx-date">{{ t.date }}</span>
-                    <span class="tx-icon" :class="t.type === '入库' ? 'in' : 'out'">{{ t.type === '入库' ? '+' : '-' }}</span>
-                    <span class="tx-product">{{ t.product_name }}</span>
+                    
+                    <span class="tx-product">{{ t.product_name.substring(0,2) }}</span>
                     <span class="tx-qty" :class="t.type === '入库' ? 'in' : 'out'">{{ t.type === '入库' ? '+' : '-' }}{{ t.quantity }}</span>
                     <span class="tx-note">{{ t.note || '-' }}</span>
                     <span class="tx-actions">
                         <button class="btn btn-secondary btn-sm" @click="editTx(t)">编</button>
-                        <button class="btn btn-danger btn-sm" @click="deleteTx(t.id)">删</button>
+                        
                     </span>
                 </div>
             </div>
@@ -114,6 +114,7 @@
                 <div class="form-group"><label>日期</label><input v-model="editForm.date" type="date"></div>
                 <div class="form-group"><label>备注</label><input v-model="editForm.note"></div>
                 <div class="modal-buttons">
+                    <button class="btn btn-danger" @click="deleteTx(editForm.id)">删除</button>
                     <button class="btn" @click="showEdit = false">取消</button>
                     <button class="btn btn-primary" @click="saveEditTx">保存</button>
                 </div>
@@ -149,7 +150,7 @@
                     }
                     if (this.searchKeyword) {
                         const kw = this.searchKeyword.toLowerCase();
-                        txs = txs.filter(t => t.product_name.toLowerCase().includes(kw));
+                        txs = txs.filter(t => t.product_name.substring(0,2).toLowerCase().includes(kw));
                     }
                     return txs;
                 }
@@ -212,7 +213,7 @@
                 formatNumber(n) { return Math.round(n).toLocaleString(); },
                 async deleteTx(id) {
                     if (confirm('确定删除该记录？')) {
-                        await fetch('/warehouse/api/transaction/' + id, { method: 'DELETE' });
+                        await fetch('/warehouse/api/transaction/' + id, { method: 'DELETE' }); alert('删除成功');
                         this.loadData();
                     }
                 }
