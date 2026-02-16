@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>仓库管理</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #1a1a2e; color: #eee; min-height: 100vh; }
+        
+        .header { background: linear-gradient(135deg, #667eea, #764ba2); padding: 10px 12px; display: flex; align-items: center; gap: 10px; position: sticky; top: 0; z-index: 100; }
+        .header a { color: #fff; text-decoration: none; font-size: 20px; }
+        .header h1 { font-size: 15px; font-weight: 500; flex: 1; }
+        
+        .container { padding: 10px; }
+        .toolbar { display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; }
+        .btn { padding: 6px 12px; border: none; border-radius: 5px; cursor: pointer; font-size: 12px; }
+        .btn-primary { background: #667eea; color: #fff; }
+        .btn-success { background: #10b981; color: #fff; }
+        .btn-danger { background: #ef4444; color: #fff; }
+        .btn-secondary { background: #4b5563; color: #fff; }
+        .btn-sm { padding: 3px 8px; font-size: 11px; }
+        
+        .card { background: #16213e; border-radius: 8px; padding: 10px; margin-bottom: 6px; }
+        
+        .list-item { background: #1e2a4a; border-radius: 6px; padding: 12px 10px; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; cursor: pointer; }
+        .list-item:active { background: #2a3a5a; }
+        .list-item .name { flex: 1; font-size: 14px; }
+        .list-item .tags { font-size: 11px; color: #888; }
+        .list-item .tag { background: #2a3a5a; padding: 2px 6px; border-radius: 3px; margin-right: 4px; }
+        
+        .summary-row { display: flex; gap: 6px; margin-bottom: 10px; }
+        .summary-row .summary-card { flex: 1; background: #1e2a4a; border-radius: 6px; padding: 8px; text-align: center; }
+        .summary-row .value { font-size: 14px; font-weight: bold; color: #667eea; }
+        .summary-row .label { font-size: 10px; color: #888; margin-top: 2px; }
+        
+        .tabs { display: flex; gap: 4px; margin-bottom: 8px; background: #16213e; padding: 3px; border-radius: 6px; }
+        .tab { flex: 1; padding: 6px; text-align: center; border-radius: 4px; cursor: pointer; font-size: 12px; }
+        .tab.active { background: #667eea; }
+        
+        .search-box { margin-bottom: 8px; }
+        .search-box input { width: 100%; padding: 8px 10px; background: #16213e; border: 1px solid #2a3a5a; border-radius: 6px; color: #fff; font-size: 13px; }
+        
+        .product-list { display: flex; flex-direction: column; }
+        .product-item { background: #1e2a4a; border-radius: 6px; padding: 10px; margin-bottom: 4px; display: flex; align-items: center; gap: 8px; cursor: pointer; }
+        .product-item:active { transform: scale(0.99); }
+        .product-item .name { font-size: 14px; font-weight: 500; }
+        .product-item .info { font-size: 11px; color: #888; }
+        .product-item .stock { font-size: 16px; font-weight: bold; color: #10b981; margin-right: 8px; }
+        .product-item .stock.low { color: #ef4444; }
+        
+        .tx-list { display: flex; flex-direction: column; }
+        .tx-card { background: #1e2a4a; border-radius: 6px; padding: 10px; margin-bottom: 4px; }
+        .tx-card .tx-header { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+        .tx-card .tx-icon { width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; }
+        .tx-card .tx-icon.in { background: #10b981; }
+        .tx-card .tx-icon.out { background: #ef4444; }
+        .tx-card .tx-product { font-size: 13px; flex: 1; }
+        .tx-card .tx-qty { font-size: 14px; font-weight: bold; }
+        .tx-card .tx-qty.in { color: #10b981; }
+        .tx-card .tx-qty.out { color: #ef4444; }
+        .tx-card .tx-footer { display: flex; justify-content: space-between; font-size: 11px; color: #888; }
+        .tx-card .tx-actions { display: flex; gap: 4px; }
+        
+        .empty { text-align: center; padding: 30px; color: #666; font-size: 13px; }
+        
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
+        .modal { background: #1a1a2e; border-radius: 10px; padding: 16px; width: 100%; max-width: 350px; }
+        .modal h3 { margin-bottom: 12px; font-size: 15px; }
+        .form-group { margin-bottom: 10px; }
+        .form-group label { display: block; margin-bottom: 3px; color: #888; font-size: 12px; }
+        .form-group input, .form-group select { width: 100%; padding: 8px 10px; background: #16213e; border: 1px solid #2a3a5a; border-radius: 5px; color: #fff; font-size: 13px; }
+        .modal-buttons { display: flex; gap: 6px; justify-content: flex-end; margin-top: 12px; }
+    </style>
+</head>
+<body>
+    <div id="app"></div>
+
+    <script>
+        const { createApp, ref, computed } = Vue;
+
+        const app = createApp({
+            data() {
+                return {
+                    warehouses: [],
+                    currentWarehouse: null,
+                    products: [],
+                    allTransactions: [],
+                    filteredTransactions: [],
+                    activeTab: 'inventory',
+                    searchKeyword: '',
+                    filterProductId: null,
+                    newProduct: { name: '', unit_price: 0, unit: '斤' },
+                    editingProduct: {},
+                    editingTransaction: {},
+                    showEditProduct: false,
+                    showEditTx: false,
+                    showTransaction: false,
+                    currentProduct: null,
+                    transaction: { type: '入库', quantity: 0, date: new Date().toISOString().split('T')[0], note: '' }
+                };
+            },
+            computed: {
+                filteredProducts() {
+                    if (!this.searchKeyword) return this.products;
+                    const kw = this.searchKeyword.toLowerCase();
+                    return this.products.filter(p => p.name.toLowerCase().includes(kw));
+                },
+                totalStock() { return this.products.reduce((sum, p) => sum + p.current_stock, 0); },
+                totalValue() { return this.products.reduce((sum, p) => sum + p.current_stock * p.unit_price, 0); },
+                txCount() { return this.filterProductId ? this.filteredTransactions.length : this.allTransactions.length; },
+                currentProductInfo() {
+                    if (!this.filterProductId) return null;
+                    return this.products.find(p => p.id == this.filterProductId);
+                }
+            },
+            mounted() { this.loadWarehouses(); },
+            watch: {
+                filterProductId(val) {
+                    this.filteredTransactions = val 
+                        ? this.allTransactions.filter(t => t.product_id == val) 
+                        : this.allTransactions;
+                }
+            },
+            methods: {
+                async loadWarehouses() {
+                    const res = await fetch('/warehouse/api/warehouses');
+                    this.warehouses = await res.json();
+                    for (let w of this.warehouses) {
+                        try {
+                            const r = await fetch('/warehouse/api/warehouses/' + w.id);
+                            const d = await r.json();
+                            w.product_count = d.product_count || 0;
+                            w.total_value = d.total_value || 0;
+                            const tr = await fetch('/warehouse/api/warehouse/' + w.id + '/all-transactions?limit=1000');
+                            const td = await tr.json();
+                            w.tx_count = td.length || 0;
+                        } catch(e) {}
+                    }
+                },
+                async openWarehouse(w) {
+                    this.currentWarehouse = w;
+                    this.activeTab = 'inventory';
+                    this.filterProductId = null;
+                    await this.loadProducts();
+                    await this.loadAllTransactions();
+                },
+                async loadProducts() {
+                    if (!this.currentWarehouse) return;
+                    const res = await fetch('/warehouse/api/warehouse/' + this.currentWarehouse.id + '/products');
+                    this.products = await res.json();
+                },
+                async loadAllTransactions() {
+                    if (!this.currentWarehouse) return;
+                    const res = await fetch('/warehouse/api/warehouse/' + this.currentWarehouse.id + '/all-transactions?limit=500');
+                    this.allTransactions = await res.json();
+                    this.filteredTransactions = this.allTransactions;
+                },
+                promptAddWarehouse() {
+                    const name = prompt('仓库名称');
+                    if (name) {
+                        fetch('/warehouse/api/warehouses', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ name })
+                        }).then(() => this.loadWarehouses());
+                    }
+                },
+                promptUpdateWarehouse(w) {
+                    const name = prompt('仓库名称', w.name);
+                    if (name && name !== w.name) {
+                        fetch('/warehouse/api/warehouses/' + w.id, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ name })
+                        }).then(() => this.loadWarehouses());
+                    }
+                },
+                confirmDeleteWarehouse(id) {
+                    if (confirm('确定删除仓库？')) {
+                        fetch('/warehouse/api/warehouses/' + id, { method: 'DELETE' })
+                            .then(() => this.loadWarehouses());
+                    }
+                },
+                promptAddProduct() {
+                    const name = prompt('商品名称');
+                    if (!name) return;
+                    const unit_price = parseFloat(prompt('单价', '0')) || 0;
+                    const unit = prompt('单位', '斤') || '斤';
+                    
+                    fetch('/warehouse/api/warehouse/' + this.currentWarehouse.id + '/products', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ name, unit_price, unit, current_stock: 0 })
+                    }).then(() => this.loadProducts());
+                },
+                openEditProduct(p) {
+                    this.editingProduct = { ...p };
+                    this.showEditProduct = true;
+                },
+                async saveEditProduct() {
+                    await fetch('/warehouse/api/product/' + this.editingProduct.id, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            name: this.editingProduct.name,
+                            unit_price: this.editingProduct.unit_price,
+                            unit: this.editingProduct.unit
+                        })
+                    });
+                    this.showEditProduct = false;
+                    this.loadProducts();
+                },
+                confirmDeleteProduct(id) {
+                    if (confirm('确定删除商品？')) {
+                        fetch('/warehouse/api/product/' + id, { method: 'DELETE' })
+                            .then(() => { this.showEditProduct = false; this.loadProducts(); });
+                    }
+                },
+                filterByProduct(p) {
+                    this.activeTab = 'transactions';
+                    this.filterProductId = p.id;
+                },
+                clearFilter() {
+                    this.filterProductId = null;
+                    this.filteredTransactions = this.allTransactions;
+                },
+                openTransactionModal(p) {
+                    this.currentProduct = p;
+                    this.transaction = { type: '入库', quantity: 0, date: new Date().toISOString().split('T')[0], note: '' };
+                    this.showTransaction = true;
+                },
+                async submitTransaction() {
+                    if (!this.transaction.quantity) return;
+                    await fetch('/warehouse/api/product/' + this.currentProduct.id + '/transaction', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(this.transaction)
+                    });
+                    this.showTransaction = false;
+                    this.loadProducts();
+                    this.loadAllTransactions();
+                },
+                openEditTx(t) {
+                    this.editingTransaction = { ...t };
+                    this.showEditTx = true;
+                },
+                async saveEditTx() {
+                    // Delete old and create new
+                    await this.deleteTransaction(this.editingTransaction.id, false);
+                    await fetch('/warehouse/api/product/' + this.editingTransaction.product_id + '/transaction', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            type: this.editingTransaction.type,
+                            quantity: this.editingTransaction.quantity,
+                            date: this.editingTransaction.date,
+                            note: this.editingTransaction.note
+                        })
+                    });
+                    this.showEditTx = false;
+                    this.loadProducts();
+                    this.loadAllTransactions();
+                },
+                async deleteTransaction(id, reload = true) {
+                    // Note: Need backend support for delete
+                    if (confirm('确定删除该记录？')) {
+                        // For now, just reload
+                        if (reload) this.loadAllTransactions();
+                    }
+                },
+                exportReport() { window.open('/warehouse/api/warehouse/' + this.currentWarehouse.id + '/report'); },
+                importExcel() {
+                    const input = document.createElement('input');
+                    input.type = 'file';
+                    input.accept = '.xlsx';
+                    input.onchange = async (e) => {
+                        const file = e.target.files[0];
+                        if (!file) return;
+                        const formData = new FormData();
+                        formData.append('file', file);
+                        const res = await fetch('/warehouse/api/warehouse/' + this.currentWarehouse.id + '/import', {
+                            method: 'POST',
+                            body: formData
+                        });
+                        const data = await res.json();
+                        if (data.success) {
+                            alert('导入成功');
+                            this.loadProducts();
+                            this.loadAllTransactions();
+                        } else {
+                            alert('导入失败: ' + data.error);
+                        }
+                    };
+                    input.click();
+                },
+                formatNumber(n) { return Math.round(n).toLocaleString(); }
+            },
+            template: `
+        <div v-if="!currentWarehouse">
+            <div class="header">
+                <a href="/">←</a>
+                <h1>仓库管理</h1>
+                <button class="btn btn-primary btn-sm" @click="promptAddWarehouse">+ 仓库</button>
+            </div>
+            <div class="container">
+                <div v-if="warehouses.length === 0" class="empty">暂无仓库</div>
+                <div v-else>
+                    <div v-for="w in warehouses" :key="w.id" class="list-item" @click="openWarehouse(w)">
+                        <div class="name">{{ w.name }}</div>
+                        <div class="tags">
+                            <span class="tag">品{{ w.product_count || 0 }}</span>
+                            <span class="tag">明{{ w.tx_count || 0 }}</span>
+                            <span class="tag">¥{{ formatNumber(w.total_value || 0) }}</span>
+                        </div>
+                        <button class="btn btn-secondary btn-sm" @click.stop="promptUpdateWarehouse(w)">编</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div v-else>
+            <div class="header">
+                <a href="#" @click.prevent="currentWarehouse = null">←</a>
+                <h1>{{ currentWarehouse.name }}</h1>
+                <button class="btn btn-primary btn-sm" @click="promptAddProduct">+商品</button>
+                <button class="btn btn-primary btn-sm" @click="importExcel">导入</button>
+                <button class="btn btn-success btn-sm" @click="exportReport">导出</button>
+            </div>
+            <div class="container">
+                <div class="summary-row">
+                    <div class="summary-card"><div class="value">{{ products.length }}</div><div class="label">商品种类</div></div>
+                    <div class="summary-card"><div class="value">{{ totalStock }}</div><div class="label">总库存</div></div>
+                    <div class="summary-card"><div class="value">¥{{ formatNumber(totalValue) }}</div><div class="label">总价值</div></div>
+                </div>
+                
+                <div class="tabs">
+                    <div class="tab" :class="{ active: activeTab === 'inventory' }" @click="activeTab = 'inventory'; filterProductId = null">库存</div>
+                    <div class="tab" :class="{ active: activeTab === 'transactions' }" @click="activeTab = 'transactions'">明细{{ filterProductId ? '('+txCount+')' : '' }}</div>
+                </div>
+                
+                <div class="search-box">
+                    <input v-model="searchKeyword" placeholder="搜索商品...">
+                </div>
+                
+                <div v-if="activeTab === 'inventory'" class="product-list">
+                    <div v-for="p in filteredProducts" :key="p.id" class="product-item" :class="{ active: filterProductId === p.id }" @click="filterByProduct(p)">
+                        <div style="flex:1">
+                            <div class="name">{{ p.name }}</div>
+                            <div class="info">¥{{ p.unit_price }}/{{ p.unit }}</div>
+                        </div>
+                        <div class="stock" :class="{ low: p.current_stock < 10 }">{{ p.current_stock }}</div>
+                        <div @click.stop>
+                            <button class="btn btn-secondary btn-sm" @click="openEditProduct(p)">编</button>
+                            <button class="btn btn-primary btn-sm" @click="openTransactionModal(p)">±</button>
+                        </div>
+                    </div>
+                </div>
+                <div v-if="activeTab === 'inventory' && filteredProducts.length === 0" class="empty">暂无商品</div>
+                
+                <div v-if="activeTab === 'transactions'">
+                    <div v-if="filterProductId" style="margin-bottom:6px; display:flex; justify-content:space-between; align-items:center;">
+                        <button class="btn btn-secondary btn-sm" @click="clearFilter">← 清除</button>
+                        <span style="font-size:12px; color:#888">单价:¥{{ currentProductInfo?.unit_price }} 库存:{{ currentProductInfo?.current_stock }}</span>
+                    </div>
+                    <div class="tx-list">
+                        <div v-for="t in filteredTransactions" :key="t.id" class="tx-card">
+                            <div class="tx-header">
+                                <div class="tx-icon" :class="t.type === '入库' ? 'in' : 'out'">{{ t.type === '入库' ? '+' : '-' }}</div>
+                                <div class="tx-product">{{ t.product_name }}</div>
+                                <div class="tx-qty" :class="t.type === '入库' ? 'in' : 'out'">{{ t.type === '入库' ? '+' : '-' }}{{ t.quantity }}</div>
+                            </div>
+                            <div class="tx-footer">
+                                <span>{{ t.date }}</span>
+                                <span>{{ t.note || '-' }}</span>
+                                <div class="tx-actions">
+                                    <button class="btn btn-secondary btn-sm" @click="openEditTx(t)">编</button>
+                                    <button class="btn btn-danger btn-sm" @click="deleteTransaction(t.id)">删</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div v-if="filteredTransactions.length === 0" class="empty">暂无记录</div>
+                </div>
+            </div>
+        </div>
+        
+        <div v-if="showEditProduct" class="modal-overlay" @click.self="showEditProduct = false">
+            <div class="modal">
+                <h3>编辑商品</h3>
+                <div class="form-group"><label>名称</label><input v-model="editingProduct.name"></div>
+                <div class="form-group"><label>单价</label><input v-model.number="editingProduct.unit_price" type="number"></div>
+                <div class="form-group">
+                    <label>单位</label>
+                    <select v-model="editingProduct.unit">
+                        <option value="斤">斤</option>
+                        <option value="箱">箱</option>
+                        <option value="条">条</option>
+                        <option value="只">只</option>
+                        <option value="个">个</option>
+                        <option value="冰">冰</option>
+                    </select>
+                </div>
+                <div class="modal-buttons">
+                    <button class="btn btn-danger" @click="confirmDeleteProduct(editingProduct.id)">删除</button>
+                    <button class="btn" @click="showEditProduct = false">取消</button>
+                    <button class="btn btn-primary" @click="saveEditProduct">保存</button>
+                </div>
+            </div>
+        </div>
+        
+        <div v-if="showEditTx" class="modal-overlay" @click.self="showEditTx = false">
+            <div class="modal">
+                <h3>编辑明细</h3>
+                <div class="form-group">
+                    <label>类型</label>
+                    <select v-model="editingTransaction.type">
+                        <option value="入库">入库</option>
+                        <option value="出库">出库</option>
+                    </select>
+                </div>
+                <div class="form-group"><label>数量</label><input v-model.number="editingTransaction.quantity" type="number"></div>
+                <div class="form-group"><label>日期</label><input v-model="editingTransaction.date" type="date"></div>
+                <div class="form-group"><label>备注</label><input v-model="editingTransaction.note"></div>
+                <div class="modal-buttons">
+                    <button class="btn" @click="showEditTx = false">取消</button>
+                    <button class="btn btn-primary" @click="saveEditTx">保存</button>
+                </div>
+            </div>
+        </div>
+        
+        <div v-if="showTransaction" class="modal-overlay" @click.self="showTransaction = false">
+            <div class="modal">
+                <h3>出入库 - {{ currentProduct?.name }}</h3>
+                <div class="form-group">
+                    <label>类型</label>
+                    <select v-model="transaction.type">
+                        <option value="入库">入库</option>
+                        <option value="出库">出库</option>
+                    </select>
+                </div>
+                <div class="form-group"><label>数量</label><input v-model.number="transaction.quantity" type="number"></div>
+                <div class="form-group"><label>日期</label><input v-model="transaction.date" type="date"></div>
+                <div class="form-group"><label>备注</label><input v-model="transaction.note" placeholder="可选"></div>
+                <div class="modal-buttons">
+                    <button class="btn" @click="showTransaction = false">取消</button>
+                    <button class="btn btn-primary" @click="submitTransaction">确定</button>
+                </div>
+            </div>
+        </div>
+            `
+        });
+
+        app.mount('#app');
+    </script>
+</body>
+</html>
