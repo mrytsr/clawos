@@ -40,6 +40,24 @@ def transactions(warehouse_id, product_id=None):
     return send_from_directory("static", "warehouse_transactions.html")
 
 
+
+def recalculate_stock(session, product_id):
+    """从明细重新计算库存"""
+    transactions = session.exec(
+        select(Transaction).where(Transaction.product_id == product_id)
+    ).all()
+    stock = 0.0
+    for t in transactions:
+        if t.type == "入库":
+            stock += t.quantity
+        else:
+            stock -= t.quantity
+        t.stock_after = stock
+    product = session.get(Product, product_id)
+    if product:
+        product.current_stock = stock
+    return stock
+
 # ========== 仓库 API ==========
 
 @warehouse_bp.route("/api/warehouses", methods=["GET"])
@@ -271,28 +289,20 @@ def add_transaction(product_id):
         if not product:
             return jsonify({"error": "商品不存在"}), 404
         
-        # 计算库存
-        if tx_type == "出库" and quantity > product.current_stock:
-            return jsonify({"error": "库存不足"}), 400
-        
-        if tx_type == "入库":
-            product.current_stock += quantity
-            stock_after = product.current_stock
-        else:
-            product.current_stock -= quantity
-            stock_after = product.current_stock
-        
-        # 创建记录
+        # 先添加记录，然后重新计算库存
         transaction = Transaction(
             product_id=product_id,
             type=tx_type,
             quantity=quantity,
-            stock_after=stock_after,
+            stock_after=0,  # 临时值，会被重新计算
             date=date,
             note=note
         )
         session.add(transaction)
-        session.add(product)
+        session.commit()
+        
+        # 重新计算库存
+        stock_after = recalculate_stock(session, product_id)
         session.commit()
         
         return jsonify({
@@ -473,37 +483,21 @@ def update_transaction(tx_id):
         if not tx:
             return jsonify({"error": "记录不存在"}), 404
         
-        # 获取商品
-        product = session.get(Product, tx.product_id)
-        if not product:
-            return jsonify({"error": "商品不存在"}), 404
-        
-        # 计算库存变化
-        old_qty = tx.quantity if tx.type == "入库" else -tx.quantity
-        old_stock_after = tx.stock_after
-        
         # 更新记录
-        new_type = data.get("type", tx.type)
-        new_qty = float(data.get("quantity", tx.quantity))
-        
-        if new_type == "入库":
-            new_stock_change = new_qty
-        else:
-            new_stock_change = -new_qty
-        
-        # 重新计算库存：从原来的状态减回去，再加上新的
-        product.current_stock = old_stock_after - new_stock_change
-        
-        tx.type = new_type
-        tx.quantity = new_qty
-        tx.stock_after = product.current_stock
+        if "type" in data:
+            tx.type = data["type"]
+        if "quantity" in data:
+            tx.quantity = float(data["quantity"])
         if "date" in data:
             tx.date = data["date"]
         if "note" in data:
             tx.note = data["note"]
         
         session.add(tx)
-        session.add(product)
+        session.commit()
+        
+        # 重新计算库存
+        recalculate_stock(session, tx.product_id)
         session.commit()
         
         return jsonify({"success": True})
@@ -517,7 +511,15 @@ def delete_transaction(tx_id):
         if not tx:
             return jsonify({"error": "记录不存在"}), 404
         
-        # 获取商品并恢复库存
+        product_id = tx.product_id
+        session.delete(tx)
+        session.commit()
+        
+        # 重新计算库存
+        recalculate_stock(session, product_id)
+        session.commit()
+        
+        return jsonify({"success": True})
         product = session.get(Product, tx.product_id)
         if product:
             old_qty = tx.quantity if tx.type == "入库" else -tx.quantity

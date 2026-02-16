@@ -473,7 +473,7 @@ window.confirmDialogDrawer = function() {
 };
 
 window.showPromptDrawer = function(title, message, placeholder, defaultValue, confirmText, onConfirm, danger) {
-    SwalGitHub.fire({
+    window.SwalGitHub.fire({
         title: title || '输入',
         text: message || '',
         input: 'text',
@@ -490,7 +490,7 @@ window.showPromptDrawer = function(title, message, placeholder, defaultValue, co
 };
 
 window.showConfirmDrawer = function(title, message, confirmText, onConfirm, danger) {
-    SwalGitHub.fire({
+    window.SwalGitHub.fire({
         icon: danger ? 'warning' : 'question',
         title: title || '确认',
         text: message || '',
@@ -847,7 +847,13 @@ window.__confirmCancelCallback = null;
 window.__confirmDanger = false;
 
 window.showConfirm = function(title, message, onConfirm, danger, onCancel) {
-    SwalGitHub.fire({
+    if (!window.SwalGitHub) {
+        if (confirm(title + '\n' + (message || ''))) {
+            if (onConfirm) onConfirm();
+        }
+        return;
+    }
+    window.window.SwalGitHub.fire({
         icon: danger ? 'warning' : 'question',
         title: title || '确认操作',
         text: message || '确定要执行此操作吗？',
@@ -1679,8 +1685,9 @@ function loadUsersData() {
 
 // ============ SweetAlert2 GitHub 风格封装 ============
 if (typeof Swal === 'undefined') { var Swal = window.SweetAlert2 || window.Sweetalert2; }
+window.SwalGitHub = null;
 if (typeof Swal !== 'undefined') {
-const SwalGitHub = Swal.mixin({
+window.SwalGitHub = Swal.mixin({
     background: '#161b22',
     color: '#c9d1d9',
     confirmButtonColor: '#238636',
@@ -1714,7 +1721,7 @@ document.head.appendChild(style);
 window.SwalAlert = function(title, message, type) {
     type = type || 'info';
     const icons = { success: 'success', error: 'error', warning: 'warning', info: 'info' };
-    return SwalGitHub.fire({
+    return window.SwalGitHub.fire({
         icon: icons[type] || 'info',
         title: title || '',
         text: message || '',
@@ -1727,7 +1734,7 @@ window.SwalAlert = function(title, message, type) {
 window.SwalConfirm = function(title, message, onConfirm, type) {
     type = type || 'warning';
     const icons = { success: 'success', error: 'error', warning: 'warning', info: 'info' };
-    return SwalGitHub.fire({
+    return window.SwalGitHub.fire({
         icon: icons[type] || 'warning',
         title: title || '确认',
         text: message || '',
@@ -1739,7 +1746,7 @@ window.SwalConfirm = function(title, message, onConfirm, type) {
 
 // Prompt 封装
 window.SwalPrompt = function(title, message, defaultValue, onConfirm) {
-    return SwalGitHub.fire({
+    return window.SwalGitHub.fire({
         title: title || '输入',
         text: message || '',
         input: 'text',
