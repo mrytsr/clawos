@@ -68,7 +68,7 @@
                 <div v-for="t in filteredTxs" :key="t.id" class="tx-item">
                     <span class="tx-date">{{ t.date }}</span>
                     
-                    <span class="tx-product">{{ t.product_name.substring(0,2) }}</span>
+                    <span class="tx-product">{{ t.product_name.substring(0,4) }}</span>
                     <span class="tx-qty" :class="t.type === '入库' ? 'in' : 'out'">{{ t.type === '入库' ? '+' : '-' }}{{ t.quantity }}</span>
                     <span class="tx-note">{{ t.note || '-' }}</span>
                     <span class="tx-actions">
