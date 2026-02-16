@@ -24,7 +24,20 @@ from flask import send_from_directory
 @warehouse_bp.route("/")
 def index():
     """仓库列表页面"""
-    return send_from_directory("/root/clawos/static", "warehouse.html")
+    return send_from_directory("static", "warehouse_list.html")
+
+
+@warehouse_bp.route("/products/<int:warehouse_id>")
+def products(warehouse_id):
+    """商品列表页面"""
+    return send_from_directory("static", "warehouse_products.html")
+
+
+@warehouse_bp.route("/transactions/<int:warehouse_id>")
+@warehouse_bp.route("/transactions/<int:warehouse_id>/<int:product_id>")
+def transactions(warehouse_id, product_id=None):
+    """明细列表页面"""
+    return send_from_directory("static", "warehouse_transactions.html")
 
 
 # ========== 仓库 API ==========
@@ -449,3 +462,69 @@ def import_excel(warehouse_id):
         session.commit()
         
     return jsonify({"success": True, "message": "导入成功"})
+
+
+@warehouse_bp.route("/api/transaction/<int:tx_id>", methods=["PUT"])
+def update_transaction(tx_id):
+    """更新出入库记录"""
+    data = request.json
+    with Session(engine) as session:
+        tx = session.get(Transaction, tx_id)
+        if not tx:
+            return jsonify({"error": "记录不存在"}), 404
+        
+        # 获取商品
+        product = session.get(Product, tx.product_id)
+        if not product:
+            return jsonify({"error": "商品不存在"}), 404
+        
+        # 计算库存变化
+        old_qty = tx.quantity if tx.type == "入库" else -tx.quantity
+        old_stock_after = tx.stock_after
+        
+        # 更新记录
+        new_type = data.get("type", tx.type)
+        new_qty = float(data.get("quantity", tx.quantity))
+        
+        if new_type == "入库":
+            new_stock_change = new_qty
+        else:
+            new_stock_change = -new_qty
+        
+        # 重新计算库存：从原来的状态减回去，再加上新的
+        product.current_stock = old_stock_after - new_stock_change
+        
+        tx.type = new_type
+        tx.quantity = new_qty
+        tx.stock_after = product.current_stock
+        if "date" in data:
+            tx.date = data["date"]
+        if "note" in data:
+            tx.note = data["note"]
+        
+        session.add(tx)
+        session.add(product)
+        session.commit()
+        
+        return jsonify({"success": True})
+
+
+@warehouse_bp.route("/api/transaction/<int:tx_id>", methods=["DELETE"])
+def delete_transaction(tx_id):
+    """删除出入库记录"""
+    with Session(engine) as session:
+        tx = session.get(Transaction, tx_id)
+        if not tx:
+            return jsonify({"error": "记录不存在"}), 404
+        
+        # 获取商品并恢复库存
+        product = session.get(Product, tx.product_id)
+        if product:
+            old_qty = tx.quantity if tx.type == "入库" else -tx.quantity
+            product.current_stock = tx.stock_after - old_qty
+            session.add(product)
+        
+        session.delete(tx)
+        session.commit()
+        
+        return jsonify({"success": True})

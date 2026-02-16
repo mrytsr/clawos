@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>商品列表</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #1a1a2e; color: #eee; min-height: 100vh; }
+        .header { background: linear-gradient(135deg, #667eea, #764ba2); padding: 10px 12px; display: flex; align-items: center; gap: 10px; position: sticky; top: 0; z-index: 100; }
+        .header a { color: #fff; text-decoration: none; font-size: 20px; }
+        .header h1 { font-size: 15px; font-weight: 500; flex: 1; }
+        .container { padding: 10px; }
+        .btn { padding: 6px 12px; border: none; border-radius: 5px; cursor: pointer; font-size: 12px; }
+        .btn-primary { background: #667eea; color: #fff; }
+        .btn-secondary { background: #4b5563; color: #fff; }
+        .btn-danger { background: #ef4444; color: #fff; }
+        .btn-sm { padding: 3px 8px; font-size: 11px; }
+        .summary-row { display: flex; gap: 6px; margin-bottom: 10px; }
+        .summary-row .summary-card { flex: 1; background: #1e2a4a; border-radius: 6px; padding: 8px; text-align: center; }
+        .summary-row .value { font-size: 14px; font-weight: bold; color: #667eea; }
+        .summary-row .label { font-size: 10px; color: #888; margin-top: 2px; }
+        .search-box { margin-bottom: 8px; }
+        .search-box input { width: 100%; padding: 8px 10px; background: #16213e; border: 1px solid #2a3a5a; border-radius: 6px; color: #fff; font-size: 13px; }
+        .product-item { background: #1e2a4a; border-radius: 6px; padding: 10px; margin-bottom: 4px; display: flex; align-items: center; gap: 8px; cursor: pointer; }
+        .product-item:active { transform: scale(0.99); }
+        .product-item .name { font-size: 14px; font-weight: 500; }
+        .product-item .info { font-size: 11px; color: #888; }
+        .product-item .stock { font-size: 16px; font-weight: bold; color: #10b981; margin-right: 8px; }
+        .product-item .stock.low { color: #ef4444; }
+        .empty { text-align: center; padding: 30px; color: #666; font-size: 13px; }
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
+        .modal { background: #1a1a2e; border-radius: 10px; padding: 16px; width: 100%; max-width: 350px; }
+        .modal h3 { margin-bottom: 12px; font-size: 15px; }
+        .form-group { margin-bottom: 10px; }
+        .form-group label { display: block; margin-bottom: 3px; color: #888; font-size: 12px; }
+        .form-group input, .form-group select { width: 100%; padding: 8px 10px; background: #16213e; border: 1px solid #2a3a5a; border-radius: 5px; color: #fff; font-size: 13px; }
+        .modal-buttons { display: flex; gap: 6px; justify-content: flex-end; margin-top: 12px; }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div class="header">
+            <a :href="'/warehouse/'">←</a>
+            <h1>{{ warehouseName }}</h1>
+            <button class="btn btn-primary btn-sm" @click="showAdd = true">+商品</button>
+            <button class="btn btn-success btn-sm" @click="exportReport">导出</button>
+            <button class="btn btn-primary btn-sm" @click="importExcel">导入</button>
+        </div>
+        <div class="container">
+            <div class="summary-row">
+                <div class="summary-card"><div class="value">{{ products.length }}</div><div class="label">商品种类</div></div>
+                <div class="summary-card"><div class="value">{{ totalStock }}</div><div class="label">总库存</div></div>
+                <div class="summary-card"><div class="value">¥{{ formatNumber(totalValue) }}</div><div class="label">总价值</div></div>
+            </div>
+            <div class="search-box">
+                <input v-model="searchKeyword" placeholder="搜索商品...">
+            </div>
+            <div class="product-list">
+                <div v-for="p in filteredProducts" :key="p.id" class="product-item" @click="goDetail(p.id)">
+                    <div style="flex:1">
+                        <div class="name">{{ p.name }}</div>
+                        <div class="info">¥{{ p.unit_price }}/{{ p.unit }}</div>
+                    </div>
+                    <div class="stock" :class="{ low: p.current_stock < 10 }">{{ p.current_stock }}</div>
+                    <div @click.stop>
+                        <button class="btn btn-secondary btn-sm" @click="editProduct(p)">编</button>
+                    </div>
+                </div>
+            </div>
+            <div v-if="filteredProducts.length === 0" class="empty">暂无商品</div>
+        </div>
+        <div v-if="showAdd" class="modal-overlay" @click.self="showAdd = false">
+            <div class="modal">
+                <h3>添加商品</h3>
+                <div class="form-group"><label>名称</label><input v-model="form.name"></div>
+                <div class="form-group"><label>单价</label><input v-model.number="form.unit_price" type="number"></div>
+                <div class="form-group">
+                    <label>单位</label>
+                    <select v-model="form.unit">
+                        <option value="斤">斤</option>
+                        <option value="箱">箱</option>
+                        <option value="条">条</option>
+                        <option value="只">只</option>
+                        <option value="个">个</option>
+                        <option value="冰">冰</option>
+                    </select>
+                </div>
+                <div class="modal-buttons">
+                    <button class="btn" @click="showAdd = false">取消</button>
+                    <button class="btn btn-primary" @click="addProduct">确定</button>
+                </div>
+            </div>
+        </div>
+        <div v-if="showEdit" class="modal-overlay" @click.self="showEdit = false">
+            <div class="modal">
+                <h3>编辑商品</h3>
+                <div class="form-group"><label>名称</label><input v-model="editForm.name"></div>
+                <div class="form-group"><label>单价</label><input v-model.number="editForm.unit_price" type="number"></div>
+                <div class="form-group">
+                    <label>单位</label>
+                    <select v-model="editForm.unit">
+                        <option value="斤">斤</option>
+                        <option value="箱">箱</option>
+                        <option value="条">条</option>
+                        <option value="只">只</option>
+                        <option value="个">个</option>
+                        <option value="冰">冰</option>
+                    </select>
+                </div>
+                <div class="modal-buttons">
+                    <button class="btn btn-danger" @click="deleteProduct">删除</button>
+                    <button class="btn" @click="showEdit = false">取消</button>
+                    <button class="btn btn-primary" @click="saveEdit">保存</button>
+                </div>
+            </div>
+        </div>
+        <div v-if="showTx" class="modal-overlay" @click.self="showTx = false">
+            <div class="modal">
+                <h3>出入库 - {{ currentProduct?.name }}</h3>
+                <div class="form-group">
+                    <label>类型</label>
+                    <select v-model="txForm.type">
+                        <option value="入库">入库</option>
+                        <option value="出库">出库</option>
+                    </select>
+                </div>
+                <div class="form-group"><label>数量</label><input v-model.number="txForm.quantity" type="number"></div>
+                <div class="form-group"><label>日期</label><input v-model="txForm.date" type="date"></div>
+                <div class="form-group"><label>备注</label><input v-model="txForm.note"></div>
+                <div class="modal-buttons">
+                    <button class="btn" @click="showTx = false">取消</button>
+                    <button class="btn btn-primary" @click="submitTx">确定</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        const { createApp, ref, computed } = Vue;
+        createApp({
+            data() {
+                return {
+                    warehouseId: null, warehouseName: '商品列表',
+                    products: [], searchKeyword: '',
+                    showAdd: false, showEdit: false, showTx: false,
+                    form: { name: '', unit_price: 0, unit: '斤' },
+                    editForm: {}, txForm: { type: '入库', quantity: 0, date: new Date().toISOString().split('T')[0], note: '' },
+                    currentProduct: null
+                };
+            },
+            computed: {
+                filteredProducts() {
+                    if (!this.searchKeyword) return this.products;
+                    const kw = this.searchKeyword.toLowerCase();
+                    return this.products.filter(p => p.name.toLowerCase().includes(kw));
+                },
+                totalStock() { return this.products.reduce((sum, p) => sum + p.current_stock, 0); },
+                totalValue() { return this.products.reduce((sum, p) => sum + p.current_stock * p.unit_price, 0); }
+            },
+            mounted() {
+                const path = window.location.pathname;
+                const match = path.match(/warehouse\/products\/(\d+)/);
+                if (match) {
+                    this.warehouseId = parseInt(match[1]);
+                    this.loadWarehouse();
+                }
+            },
+            methods: {
+                async loadWarehouse() {
+                    const r = await fetch('/warehouse/api/warehouses/' + this.warehouseId);
+                    const w = await r.json();
+                    this.warehouseName = w.name;
+                    this.loadProducts();
+                },
+                async loadProducts() {
+                    const res = await fetch('/warehouse/api/warehouse/' + this.warehouseId + '/products');
+                    this.products = await res.json();
+                },
+                async addProduct() {
+                    if (!this.form.name) return;
+                    await fetch('/warehouse/api/warehouse/' + this.warehouseId + '/products', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ ...this.form, current_stock: 0 })
+                    });
+                    this.showAdd = false;
+                    this.form = { name: '', unit_price: 0, unit: '斤' };
+                    this.loadProducts();
+                },
+                editProduct(p) { this.editForm = { ...p }; this.showEdit = true; },
+                async saveEdit() {
+                    await fetch('/warehouse/api/product/' + this.editForm.id, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(this.editForm)
+                    });
+                    this.showEdit = false;
+                    this.loadProducts();
+                },
+                async deleteProduct() {
+                    if (confirm('确定删除商品？')) {
+                        await fetch('/warehouse/api/product/' + this.editForm.id, { method: 'DELETE' });
+                        this.showEdit = false;
+                        this.loadProducts();
+                    }
+                },
+                openTxModal(p) { this.currentProduct = p; this.txForm = { type: '入库', quantity: 0, date: new Date().toISOString().split('T')[0], note: '' }; this.showTx = true; },
+                async submitTx() {
+                    if (!this.txForm.quantity) return;
+                    await fetch('/warehouse/api/product/' + this.currentProduct.id + '/transaction', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(this.txForm)
+                    });
+                    this.showTx = false;
+                    this.loadProducts();
+                },
+                goDetail(id) { window.location.href = '/warehouse/transactions/' + this.warehouseId + '/' + id; },
+                exportReport() { window.open('/warehouse/api/warehouse/' + this.warehouseId + '/report'); },
+                importExcel() {
+                    const input = document.createElement('input');
+                    input.type = 'file';
+                    input.accept = '.xlsx';
+                    input.onchange = async (e) => {
+                        const file = e.target.files[0];
+                        if (!file) return;
+                        const formData = new FormData();
+                        formData.append('file', file);
+                        const res = await fetch('/warehouse/api/warehouse/' + this.warehouseId + '/import', { method: 'POST', body: formData });
+                        const data = await res.json();
+                        if (data.success) { alert('导入成功'); this.loadProducts(); } else { alert('导入失败: ' + data.error); }
+                    };
+                    input.click();
+                },
+                formatNumber(n) { return Math.round(n).toLocaleString(); }
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>

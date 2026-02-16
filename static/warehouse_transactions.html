@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>明细列表</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #1a1a2e; color: #eee; min-height: 100vh; }
+        .header { background: linear-gradient(135deg, #667eea, #764ba2); padding: 10px 12px; display: flex; align-items: center; gap: 10px; position: sticky; top: 0; z-index: 100; }
+        .header a { color: #fff; text-decoration: none; font-size: 20px; }
+        .header h1 { font-size: 15px; font-weight: 500; flex: 1; }
+        .container { padding: 10px; }
+        .btn { padding: 6px 12px; border: none; border-radius: 5px; cursor: pointer; font-size: 12px; }
+        .btn-primary { background: #667eea; color: #fff; }
+        .btn-secondary { background: #4b5563; color: #fff; }
+        .btn-danger { background: #ef4444; color: #fff; }
+        .btn-sm { padding: 3px 8px; font-size: 11px; }
+        .tabs { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; background: #16213e; padding: 3px; border-radius: 6px; max-height: 120px; overflow-y: auto; }
+        .tab { flex: 0 0 auto; padding: 6px 12px; text-align: center; border-radius: 4px; cursor: pointer; font-size: 12px; white-space: nowrap; }
+        .tab.active { background: #667eea; }
+        .search-box { margin-bottom: 8px; display: flex; gap: 8px; align-items: center; }
+        .info-row { display: flex; gap: 16px; margin-bottom: 8px; font-size: 13px; color: #888; background: #1e2a4a; padding: 8px 12px; border-radius: 6px; }
+        .search-box input { width: 100%; padding: 8px 10px; background: #16213e; border: 1px solid #2a3a5a; border-radius: 6px; color: #fff; font-size: 13px; }
+        .tx-item { background: #1e2a4a; border-radius: 4px; padding: 6px 8px; margin-bottom: 2px; display: flex; align-items: center; gap: 6px; font-size: 12px; }
+        .tx-item .tx-date { color: #888; width: 80px; }
+        .tx-item .tx-icon { width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; }
+        .tx-item .tx-icon.in { background: #10b981; }
+        .tx-item .tx-icon.out { background: #ef4444; }
+        .tx-item .tx-product { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .tx-item .tx-qty { width: 50px; text-align: right; font-weight: bold; }
+        .tx-item .tx-qty.in { color: #10b981; }
+        .tx-item .tx-qty.out { color: #ef4444; }
+        .tx-item .tx-note { color: #666; width: 80px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .tx-item .tx-actions { display: flex; gap: 2px; }
+        .empty { text-align: center; padding: 30px; color: #666; font-size: 13px; }
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
+        .modal { background: #1a1a2e; border-radius: 10px; padding: 16px; width: 100%; max-width: 350px; }
+        .modal h3 { margin-bottom: 12px; font-size: 15px; }
+        .form-group { margin-bottom: 10px; }
+        .form-group label { display: block; margin-bottom: 3px; color: #888; font-size: 12px; }
+        .form-group input, .form-group select { width: 100%; padding: 8px 10px; background: #16213e; border: 1px solid #2a3a5a; border-radius: 5px; color: #fff; font-size: 13px; }
+        .modal-buttons { display: flex; gap: 6px; justify-content: flex-end; margin-top: 12px; }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div class="header">
+            <a :href="'/warehouse/products/' + warehouseId">←</a>
+            
+            <h1>{{ pageTitle }}</h1>
+        </div>
+        <div class="container">
+            <div class="tabs">
+                
+                <div v-for="p in products" :key="p.id" class="tab" :class="{ active: activeTab === p.id }" @click="activeTab = p.id; filterProductId = p.id">{{ p.name }}</div>
+            </div>
+            <div class="search-box">
+                <input v-model="searchKeyword" placeholder="搜索..." style="width:60%">
+                <button class="btn btn-primary btn-sm" @click="showAdd = true">+新增</button>
+            </div>
+            <div v-if="currentProductInfo" class="info-row">
+                <span>单价: ¥{{ currentProductInfo.unit_price }}</span>
+                <span>库存: {{ currentProductInfo.current_stock }}</span>
+                <span>金额: ¥{{ formatNumber(currentProductInfo.current_stock * currentProductInfo.unit_price) }}</span>
+            </div>
+            <div class="tx-list">
+                <div v-for="t in filteredTxs" :key="t.id" class="tx-item">
+                    <span class="tx-date">{{ t.date }}</span>
+                    <span class="tx-icon" :class="t.type === '入库' ? 'in' : 'out'">{{ t.type === '入库' ? '+' : '-' }}</span>
+                    <span class="tx-product">{{ t.product_name }}</span>
+                    <span class="tx-qty" :class="t.type === '入库' ? 'in' : 'out'">{{ t.type === '入库' ? '+' : '-' }}{{ t.quantity }}</span>
+                    <span class="tx-note">{{ t.note || '-' }}</span>
+                    <span class="tx-actions">
+                        <button class="btn btn-secondary btn-sm" @click="editTx(t)">编</button>
+                        <button class="btn btn-danger btn-sm" @click="deleteTx(t.id)">删</button>
+                    </span>
+                </div>
+            </div>
+            <div v-if="filteredTxs.length === 0" class="empty">暂无记录</div>
+        </div>
+        <div v-if="showAdd" class="modal-overlay" @click.self="showAdd = false">
+            <div class="modal">
+                <h3>新增明细</h3>
+                <div class="form-group"><label>商品</label><input :value="currentProductName" disabled></div>
+                <div class="form-group">
+                    <label>类型</label>
+                    <select v-model="addForm.type">
+                        <option value="入库">入库</option>
+                        <option value="出库">出库</option>
+                    </select>
+                </div>
+                <div class="form-group"><label>数量</label><input v-model.number="addForm.quantity" type="number"></div>
+                <div class="form-group"><label>日期</label><input v-model="addForm.date" type="date"></div>
+                <div class="form-group"><label>备注</label><input v-model="addForm.note"></div>
+                <div class="modal-buttons">
+                    <button class="btn" @click="showAdd = false">取消</button>
+                    <button class="btn btn-primary" @click="submitAdd()">确定</button>
+                </div>
+            </div>
+        </div>
+
+        <div v-if="showEdit" class="modal-overlay" @click.self="showEdit = false">
+            <div class="modal">
+                <h3>编辑明细</h3>
+                <div class="form-group">
+                    <label>类型</label>
+                    <select v-model="editForm.type">
+                        <option value="入库">入库</option>
+                        <option value="出库">出库</option>
+                    </select>
+                </div>
+                <div class="form-group"><label>数量</label><input v-model.number="editForm.quantity" type="number"></div>
+                <div class="form-group"><label>日期</label><input v-model="editForm.date" type="date"></div>
+                <div class="form-group"><label>备注</label><input v-model="editForm.note"></div>
+                <div class="modal-buttons">
+                    <button class="btn" @click="showEdit = false">取消</button>
+                    <button class="btn btn-primary" @click="saveEditTx">保存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        const { createApp, ref, computed } = Vue;
+        createApp({
+            data() {
+                return {
+                    warehouseId: null, productId: null, pageTitle: '明细',
+                    products: [], transactions: [], activeTab: 'all', filterProductId: null, searchKeyword: '',
+                    showEdit: false, editForm: {},
+                showAdd: false,
+                addForm: { type: '入库', quantity: 0, date: new Date().toISOString().split('T')[0], note: '' },
+                };
+            },
+            computed: {
+                currentProductInfo() {
+                    if (!this.filterProductId) return null;
+                    return this.products.find(p => p.id == this.filterProductId);
+                },
+                currentProductName() {
+                    if (!this.filterProductId) return '全部';
+                    const p = this.products.find(p => p.id == this.filterProductId);
+                    return p ? p.name : '未知';
+                },
+                filteredTxs() {
+                    let txs = this.transactions;
+                    if (this.filterProductId && this.activeTab !== 'all') {
+                        txs = txs.filter(t => t.product_id == this.filterProductId);
+                    }
+                    if (this.searchKeyword) {
+                        const kw = this.searchKeyword.toLowerCase();
+                        txs = txs.filter(t => t.product_name.toLowerCase().includes(kw));
+                    }
+                    return txs;
+                }
+            },
+            mounted() {
+                const path = window.location.pathname;
+                const match = path.match(/warehouse\/transactions\/(\d+)(?:\/(\d+))?/);
+                if (match) {
+                    this.warehouseId = parseInt(match[1]);
+                    this.productId = match[2] ? parseInt(match[2]) : null;
+                    if (this.productId) {
+                        this.filterProductId = this.productId;
+                        this.activeTab = this.productId;
+                    }
+                    this.loadData();
+                }
+            },
+            methods: {
+                async loadData() {
+                    const [wRes, pRes, tRes] = await Promise.all([
+                        fetch('/warehouse/api/warehouses/' + this.warehouseId),
+                        fetch('/warehouse/api/warehouse/' + this.warehouseId + '/products'),
+                        fetch('/warehouse/api/warehouse/' + this.warehouseId + '/all-transactions?limit=500')
+                    ]);
+                    const w = await wRes.json();
+                    this.pageTitle = w.name + ' - 明细';
+                    this.products = await pRes.json();
+                    this.transactions = await tRes.json();
+                },
+                async submitAdd() {
+                    if (!this.filterProductId || !this.addForm.quantity) return;
+                    await fetch('/warehouse/api/product/' + this.filterProductId + '/transaction', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            type: this.addForm.type,
+                            quantity: this.addForm.quantity,
+                            date: this.addForm.date,
+                            note: this.addForm.note
+                        })
+                    });
+                    this.showAdd = false;
+                    this.loadData();
+                },
+                editTx(t) { this.editForm = { ...t }; this.showEdit = true; },
+                async saveEditTx() {
+                    await fetch('/warehouse/api/transaction/' + this.editForm.id, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            type: this.editForm.type,
+                            quantity: this.editForm.quantity,
+                            date: this.editForm.date,
+                            note: this.editForm.note
+                        })
+                    });
+                    this.showEdit = false;
+                    this.loadData();
+                },
+                formatNumber(n) { return Math.round(n).toLocaleString(); },
+                async deleteTx(id) {
+                    if (confirm('确定删除该记录？')) {
+                        await fetch('/warehouse/api/transaction/' + id, { method: 'DELETE' });
+                        this.loadData();
+                    }
+                }
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>
