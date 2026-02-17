@@ -340,7 +340,7 @@ def generate_report(warehouse_id):
                 # 无明细时，导出一行初始库存（变动数量=当前库存）
                 details.append({
                     "错误": None,
-                    "物品名称": f"{idx}.{p.name}({p.unit_price})",
+                    "物品名称": f"{idx}.{p.name}({int(p.unit_price)})",
                     "变动数量": int(p.current_stock),
                     "当前库存": int(p.current_stock),
                     "总价值": int(p.current_stock * p.unit_price),
@@ -353,7 +353,7 @@ def generate_report(warehouse_id):
                     qty = t.quantity if t.type == "入库" else -t.quantity
                     details.append({
                         "错误": None,
-                        "物品名称": f"{idx}.{p.name}({p.unit_price})",
+                        "物品名称": f"{idx}.{p.name}({int(p.unit_price)})",
                         "变动数量": int(qty),
                         "当前库存": int(t.stock_after),
                         "总价值": int(t.stock_after * p.unit_price),
@@ -410,14 +410,18 @@ def import_excel(warehouse_id):
                 if pd.isna(name_raw) or not name_raw:
                     continue
                 
-                # 解析名称和单价: "1.虾仁(125)"
+                # 解析名称和单价: "1.虾仁(125)" 或 "虾仁(125)"
                 import re
-                match = re.match(r'^\d+\.([^\(]+)\((\d+)\)$', str(name_raw))
+                name_str = str(name_raw).strip()
+                match = re.match(r'^(\d+\.\s*)?(.+)\(([^)]+)\)$', name_str)
                 if match:
-                    name = match.group(1).strip()
-                    unit_price = float(match.group(2))
+                    name = match.group(2).strip()
+                    try:
+                        unit_price = float(match.group(3))
+                    except:
+                        unit_price = 0
                 else:
-                    name = str(name_raw).strip()
+                    name = name_str
                     unit_price = 0
                 
                 if name not in product_data:
@@ -442,11 +446,12 @@ def import_excel(warehouse_id):
                 
                 # 解析名称
                 import re
-                match = re.match(r'^\d+\.([^\(]+)\((\d+)\)$', str(name_raw))
+                name_str = str(name_raw).strip()
+                match = re.match(r'^(\d+\.\s*)?(.+)\(([^)]+)\)$', name_str)
                 if match:
-                    name = match.group(1).strip()
+                    name = match.group(2).strip()
                 else:
-                    name = str(name_raw).strip()
+                    name = name_str
                 
                 if name not in product_data:
                     continue
