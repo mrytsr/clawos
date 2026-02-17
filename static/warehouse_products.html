@@ -21,7 +21,7 @@
         .summary-row .summary-card { flex: 1; background: #1e2a4a; border-radius: 6px; padding: 8px; text-align: center; }
         .summary-row .value { font-size: 14px; font-weight: bold; color: #667eea; }
         .summary-row .label { font-size: 10px; color: #888; margin-top: 2px; }
-        .search-box { margin-bottom: 8px; }
+        .search-box { margin-bottom: 8px; position: relative; display: flex; align-items: center; } .search-box input { width: 100%; padding-right: 25px; } .search-box .clear-btn { position: absolute; right: 8px; cursor: pointer; color: #888; font-size: 14px; }
         .search-box input { width: 100%; padding: 8px 10px; background: #16213e; border: 1px solid #2a3a5a; border-radius: 6px; color: #fff; font-size: 13px; }
         .product-item { background: #1e2a4a; border-radius: 6px; padding: 10px; margin-bottom: 4px; display: flex; align-items: center; gap: 8px; cursor: pointer; }
         .product-item:active { transform: scale(0.99); }
@@ -55,6 +55,7 @@
             </div>
             <div class="search-box">
                 <input v-model="searchKeyword" placeholder="搜索商品...">
+                <span v-if="searchKeyword" class="clear-btn" @click="searchKeyword=''">✕</span>
             </div>
             <div class="product-list">
                 <div v-for="p in filteredProducts" :key="p.id" class="product-item" @click="goDetail(p.id)">
