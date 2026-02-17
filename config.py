@@ -1,5 +1,5 @@
 import os
-
+WAREHOUSE_DB_URL = "mysql+pymysql://tjx:sdE8j2wJ5F2MBPWR@utjx.cn:3306/xiandan"
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 ROOT_DIR = os.path.expanduser('~')  # 动态获取当前用户home目录

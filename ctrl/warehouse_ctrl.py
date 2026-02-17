@@ -7,24 +7,26 @@ from sqlmodel import Session, select, create_engine, SQLModel
 from datetime import datetime
 import pandas as pd
 
-# 创建数据库
-DB_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "warehouse.db")
-os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
-engine = create_engine(f"sqlite:///{DB_PATH}", echo=False)
+# 创建数据库引擎
+from config import WAREHOUSE_DB_URL
+engine = create_engine(WAREHOUSE_DB_URL, echo=False, pool_pre_ping=True)
 
-# 创建表
 from models.warehouse_model import Warehouse, Product, Transaction
-SQLModel.metadata.create_all(engine)
 
 warehouse_bp = Blueprint("warehouse", __name__, url_prefix="/warehouse")
 
 
 from flask import send_from_directory
 
+
+def _dt(v):
+    return v.isoformat() if v else None
+
 @warehouse_bp.route("/")
 def index():
     """仓库列表页面"""
     return send_from_directory("static", "warehouse_list.html")
+
 
 
 @warehouse_bp.route("/products/<int:warehouse_id>")
@@ -44,7 +46,9 @@ def transactions(warehouse_id, product_id=None):
 def recalculate_stock(session, product_id):
     """从明细重新计算库存"""
     transactions = session.exec(
-        select(Transaction).where(Transaction.product_id == product_id)
+        select(Transaction)
+        .where(Transaction.product_id == product_id)
+        .order_by(Transaction.date, Transaction.id)
     ).all()
     stock = 0.0
     for t in transactions:
@@ -52,10 +56,10 @@ def recalculate_stock(session, product_id):
             stock += t.quantity
         else:
             stock -= t.quantity
-        t.stock_after = stock
     product = session.get(Product, product_id)
     if product:
         product.current_stock = stock
+        product.mtime = datetime.utcnow()
     return stock
 
 # ========== 仓库 API ==========
@@ -68,9 +72,8 @@ def get_warehouses():
         return jsonify([{
             "id": w.id,
             "name": w.name,
-            "location": w.location,
-            "description": w.description,
-            "created_at": w.created_at
+            "ctime": _dt(w.ctime),
+            "mtime": _dt(w.mtime)
         } for w in warehouses])
 
 
@@ -79,9 +82,7 @@ def create_warehouse():
     """创建仓库"""
     data = request.json
     warehouse = Warehouse(
-        name=data["name"],
-        location=data.get("location", ""),
-        description=data.get("description", "")
+        name=data["name"]
     )
     with Session(engine) as session:
         session.add(warehouse)
@@ -105,11 +106,10 @@ def get_warehouse(warehouse_id):
         return jsonify({
             "id": warehouse.id,
             "name": warehouse.name,
-            "location": warehouse.location,
-            "description": warehouse.description,
             "product_count": len(products),
             "total_value": total_value,
-            "created_at": warehouse.created_at
+            "ctime": _dt(warehouse.ctime),
+            "mtime": _dt(warehouse.mtime)
         })
 
 
@@ -142,10 +142,7 @@ def update_warehouse(warehouse_id):
             return jsonify({"error": "仓库不存在"}), 404
         if "name" in data:
             warehouse.name = data["name"]
-        if "location" in data:
-            warehouse.location = data["location"]
-        if "description" in data:
-            warehouse.description = data["description"]
+        warehouse.mtime = datetime.utcnow()
         session.add(warehouse)
         session.commit()
         return jsonify({"success": True})
@@ -200,6 +197,7 @@ def update_product(product_id):
             product.unit_price = float(data["unit_price"])
         if "unit" in data:
             product.unit = data["unit"]
+        product.mtime = datetime.utcnow()
         
         session.add(product)
         session.commit()
@@ -238,10 +236,10 @@ def get_transactions(product_id):
             "id": t.id,
             "type": t.type,
             "quantity": t.quantity,
-            "stock_after": t.stock_after,
             "date": t.date,
             "note": t.note,
-            "created_at": t.created_at
+            "ctime": _dt(t.ctime),
+            "mtime": _dt(t.mtime)
         } for t in transactions])
 
 
@@ -268,10 +266,10 @@ def get_all_transactions(warehouse_id):
             "product_name": product_map.get(t.product_id, "未知"),
             "type": t.type,
             "quantity": t.quantity,
-            "stock_after": t.stock_after,
             "date": t.date,
             "note": t.note,
-            "created_at": t.created_at
+            "ctime": _dt(t.ctime),
+            "mtime": _dt(t.mtime)
         } for t in transactions])
 
 
@@ -289,12 +287,10 @@ def add_transaction(product_id):
         if not product:
             return jsonify({"error": "商品不存在"}), 404
         
-        # 先添加记录，然后重新计算库存
         transaction = Transaction(
             product_id=product_id,
             type=tx_type,
             quantity=quantity,
-            stock_after=0,  # 临时值，会被重新计算
             date=date,
             note=note
         )
@@ -302,12 +298,11 @@ def add_transaction(product_id):
         session.commit()
         
         # 重新计算库存
-        stock_after = recalculate_stock(session, product_id)
+        recalculate_stock(session, product_id)
         session.commit()
         
         return jsonify({
-            "id": transaction.id,
-            "stock_after": stock_after
+            "id": transaction.id
         })
 
 
@@ -333,7 +328,7 @@ def generate_report(warehouse_id):
             transactions = session.exec(
                 select(Transaction)
                 .where(Transaction.product_id == p.id)
-                .order_by(Transaction.date)
+                .order_by(Transaction.date, Transaction.id)
             ).all()
             
             if not transactions:
@@ -349,14 +344,16 @@ def generate_report(warehouse_id):
                     "备注/原因": "期初库存"
                 })
             else:
+                stock = 0.0
                 for t in transactions:
                     qty = t.quantity if t.type == "入库" else -t.quantity
+                    stock += qty
                     details.append({
                         "错误": None,
                         "物品名称": f"{idx}.{p.name}({int(p.unit_price)})",
                         "变动数量": int(qty),
-                        "当前库存": int(t.stock_after),
-                        "总价值": int(t.stock_after * p.unit_price),
+                        "当前库存": int(stock),
+                        "总价值": int(stock * p.unit_price),
                         "操作时间": t.date,
                         "操作类型": t.type,
                         "备注/原因": t.note or ""
@@ -439,6 +436,7 @@ def import_excel(warehouse_id):
             session.commit()
             
             # 第二遍：处理出入库记录
+            touched_product_ids = set()
             for _, row in df_detail.iterrows():
                 name_raw = row.get("物品名称", "")
                 if pd.isna(name_raw) or not name_raw:
@@ -482,13 +480,17 @@ def import_excel(warehouse_id):
                         product_id=product_id,
                         type=tx_type,
                         quantity=quantity,
-                        stock_after=stock_after,
                         date=date,
                         note=str(note).strip() if pd.notna(note) else ""
                     )
                     session.add(tx)
                     product.current_stock = stock_after
+                    product.mtime = datetime.utcnow()
+                    touched_product_ids.add(product_id)
             
+            session.commit()
+            for pid in touched_product_ids:
+                recalculate_stock(session, pid)
             session.commit()
         
     return jsonify({"success": True, "message": "导入成功"})
@@ -512,6 +514,7 @@ def update_transaction(tx_id):
             tx.date = data["date"]
         if "note" in data:
             tx.note = data["note"]
+        tx.mtime = datetime.utcnow()
         
         session.add(tx)
         session.commit()
@@ -537,16 +540,6 @@ def delete_transaction(tx_id):
         
         # 重新计算库存
         recalculate_stock(session, product_id)
-        session.commit()
-        
-        return jsonify({"success": True})
-        product = session.get(Product, tx.product_id)
-        if product:
-            old_qty = tx.quantity if tx.type == "入库" else -tx.quantity
-            product.current_stock = tx.stock_after - old_qty
-            session.add(product)
-        
-        session.delete(tx)
         session.commit()
         
         return jsonify({"success": True})
