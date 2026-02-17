@@ -324,9 +324,12 @@ def generate_report(warehouse_id):
         # 获取所有商品
         products = session.exec(select(Product).where(Product.warehouse_id == warehouse_id)).all()
         
+        # 汇总序号
+        product_list = list(products)
+        
         # 明细数据
         details = []
-        for p in products:
+        for idx, p in enumerate(product_list, 1):
             transactions = session.exec(
                 select(Transaction)
                 .where(Transaction.product_id == p.id)
@@ -334,45 +337,37 @@ def generate_report(warehouse_id):
             ).all()
             
             if not transactions:
+                # 无明细时，导出一行初始库存（变动数量=当前库存）
                 details.append({
-                    "物品名称": f"{p.name}({p.unit_price})",
-                    "变动数量": None,
-                    "当前库存": p.current_stock,
-                    "总价值": p.current_stock * p.unit_price,
+                    "错误": None,
+                    "物品名称": f"{idx}.{p.name}({p.unit_price})",
+                    "变动数量": int(p.current_stock),
+                    "当前库存": int(p.current_stock),
+                    "总价值": int(p.current_stock * p.unit_price),
                     "操作时间": None,
-                    "操作类型": None,
-                    "备注": None
+                    "操作类型": "入库",
+                    "备注/原因": "期初库存"
                 })
             else:
                 for t in transactions:
+                    qty = t.quantity if t.type == "入库" else -t.quantity
                     details.append({
-                        "物品名称": f"{p.name}({p.unit_price})",
-                        "变动数量": t.quantity if t.type == "入库" else -t.quantity,
-                        "当前库存": t.stock_after,
-                        "总价值": t.stock_after * p.unit_price,
+                        "错误": None,
+                        "物品名称": f"{idx}.{p.name}({p.unit_price})",
+                        "变动数量": int(qty),
+                        "当前库存": int(t.stock_after),
+                        "总价值": int(t.stock_after * p.unit_price),
                         "操作时间": t.date,
                         "操作类型": t.type,
-                        "备注": t.note
+                        "备注/原因": t.note or ""
                     })
         
         df_detail = pd.DataFrame(details)
-        
-        # 汇总数据
-        summary = [{
-            "物品名称": p.name,
-            "当前库存": p.current_stock,
-            "总价值": p.current_stock * p.unit_price
-        } for p in products]
-        
-        total_value = sum(s["总价值"] for s in summary)
-        summary.append({"物品名称": "总计", "当前库存": None, "总价值": total_value})
-        df_summary = pd.DataFrame(summary)
         
         # 导出 Excel
         output_path = f"/tmp/warehouse_{warehouse_id}_{datetime.now().strftime('%Y%m%d-%H%M%S')}.xlsx"
         with pd.ExcelWriter(output_path, engine='openpyxl') as writer:
             df_detail.to_excel(writer, index=False, sheet_name="明细表")
-            df_summary.to_excel(writer, index=False, sheet_name="库存汇总")
         
         return send_file(output_path, as_attachment=True, download_name=f"{warehouse.name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx")
 
@@ -397,11 +392,19 @@ def import_excel(warehouse_id):
         if not warehouse:
             return jsonify({"error": "仓库不存在"}), 404
         
+        # 先删除该仓库的所有商品和明细
+        products = session.exec(select(Product).where(Product.warehouse_id == warehouse_id)).all()
+        for p in products:
+            session.query(Transaction).filter(Transaction.product_id == p.id).delete()
+        session.query(Product).filter(Product.warehouse_id == warehouse_id).delete()
+        session.commit()
+        
         # 解析明细表
         if "明细表" in df:
             df_detail = df["明细表"]
-            product_map = {}  # name -> product_id
+            product_data = {}  # name -> {unit_price, id}
             
+            # 第一遍：创建所有商品
             for _, row in df_detail.iterrows():
                 name_raw = row.get("物品名称", "")
                 if pd.isna(name_raw) or not name_raw:
@@ -409,16 +412,15 @@ def import_excel(warehouse_id):
                 
                 # 解析名称和单价: "1.虾仁(125)"
                 import re
-                match = re.match(r'^\d+\.(.+)\((\d+)\)$', str(name_raw))
+                match = re.match(r'^\d+\.([^\(]+)\((\d+)\)$', str(name_raw))
                 if match:
-                    name = match.group(1)
+                    name = match.group(1).strip()
                     unit_price = float(match.group(2))
                 else:
-                    name = str(name_raw)
+                    name = str(name_raw).strip()
                     unit_price = 0
                 
-                # 获取或创建商品
-                if name not in product_map:
+                if name not in product_data:
                     product = Product(
                         warehouse_id=warehouse_id,
                         name=name,
@@ -428,13 +430,28 @@ def import_excel(warehouse_id):
                     )
                     session.add(product)
                     session.flush()
-                    product_map[name] = product.id
-                    product_id = product.id
+                    product_data[name] = {"unit_price": unit_price, "id": product.id}
+            
+            session.commit()
+            
+            # 第二遍：处理出入库记录
+            for _, row in df_detail.iterrows():
+                name_raw = row.get("物品名称", "")
+                if pd.isna(name_raw) or not name_raw:
+                    continue
+                
+                # 解析名称
+                import re
+                match = re.match(r'^\d+\.([^\(]+)\((\d+)\)$', str(name_raw))
+                if match:
+                    name = match.group(1).strip()
                 else:
-                    product_id = product_map[name]
-                    product = session.get(Product, product_id)
-                    if product and unit_price > 0:
-                        product.unit_price = unit_price
+                    name = str(name_raw).strip()
+                
+                if name not in product_data:
+                    continue
+                
+                product_id = product_data[name]["id"]
                 
                 # 处理出入库记录
                 qty = row.get("变动数量")
@@ -443,12 +460,7 @@ def import_excel(warehouse_id):
                 note = row.get("备注/原因") or row.get("备注") or ""
                 
                 if pd.notna(qty) and pd.notna(tx_type) and tx_type in ["入库", "出库"]:
-                    if tx_type == "入库":
-                        quantity = abs(float(qty))
-                        stock_change = quantity
-                    else:
-                        quantity = abs(float(qty))
-                        stock_change = -quantity
+                    quantity = abs(float(qty))
                     
                     if pd.notna(date):
                         date = str(date)[:10]
@@ -456,7 +468,10 @@ def import_excel(warehouse_id):
                         date = datetime.now().strftime("%Y-%m-%d")
                     
                     product = session.get(Product, product_id)
-                    stock_after = product.current_stock + stock_change
+                    if tx_type == "出库":
+                        stock_after = product.current_stock - quantity
+                    else:
+                        stock_after = product.current_stock + quantity
                     
                     tx = Transaction(
                         product_id=product_id,
@@ -464,12 +479,12 @@ def import_excel(warehouse_id):
                         quantity=quantity,
                         stock_after=stock_after,
                         date=date,
-                        note=str(note) if pd.notna(note) else ""
+                        note=str(note).strip() if pd.notna(note) else ""
                     )
                     session.add(tx)
                     product.current_stock = stock_after
-        
-        session.commit()
+            
+            session.commit()
         
     return jsonify({"success": True, "message": "导入成功"})
 
