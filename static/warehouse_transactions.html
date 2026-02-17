@@ -45,7 +45,7 @@
         .form-group { margin-bottom: 10px; }
         .form-group label { display: block; margin-bottom: 3px; color: #888; font-size: 12px; }
         .form-group input, .form-group select { width: 100%; padding: 8px 10px; background: #16213e; border: 1px solid #2a3a5a; border-radius: 5px; color: #fff; font-size: 13px; }
-        .modal-buttons { display: flex; gap: 6px; justify-content: flex-end; margin-top: 12px; }
+        .modal-buttons { display: flex; justify-content: space-between; margin-top: 12px; } .modal-btns-right { display: flex; gap: 6px; }
     </style>
 <body>
     <div id="app">
@@ -122,8 +122,10 @@
                 <div class="form-group"><label>备注</label><input v-model="editForm.note"></div>
                 <div class="modal-buttons">
                     <button class="btn btn-danger" @click="deleteTx(editForm.id)">删除</button>
-                    <button class="btn" @click="showEdit = false">取消</button>
-                    <button class="btn btn-primary" @click="saveEditTx">保存</button>
+                    <div class="modal-btns-right">
+                        <button class="btn" @click="showEdit = false">取消</button>
+                        <button class="btn btn-primary" @click="saveEditTx">保存</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -192,7 +194,7 @@
                     this.transactions = await tRes.json();
                 },
                 async submitAdd() {
-                    if (!this.filterProductId || !this.addForm.quantity) { alert('请选择商品并填写数量'); return; }
+                    if (!this.filterProductId || this.addForm.quantity === '' || this.addForm.quantity === null) { alert('请选择商品并填写数量'); return; }
                     const res = await fetch('/warehouse/api/product/' + this.filterProductId + '/transaction', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -226,7 +228,9 @@
                 formatNumber(n) { return Math.round(n).toLocaleString(); },
                 async deleteTx(id) {
                     if (confirm('确定删除该记录？')) {
-                        await fetch('/warehouse/api/transaction/' + id, { method: 'DELETE' }); alert('删除成功');
+                        await fetch('/warehouse/api/transaction/' + id, { method: 'DELETE' });
+                        alert('删除成功');
+                        this.showEdit = false;
                         this.loadData();
                     }
                 }

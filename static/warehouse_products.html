@@ -36,7 +36,7 @@
         .form-group { margin-bottom: 10px; }
         .form-group label { display: block; margin-bottom: 3px; color: #888; font-size: 12px; }
         .form-group input, .form-group select { width: 100%; padding: 8px 10px; background: #16213e; border: 1px solid #2a3a5a; border-radius: 5px; color: #fff; font-size: 13px; }
-        .modal-buttons { display: flex; gap: 6px; justify-content: flex-end; margin-top: 12px; }
+        .modal-buttons { display: flex; justify-content: space-between; margin-top: 12px; } .modal-btns-right { display: flex; gap: 6px; }
     </style>
 </head>
 <body>
@@ -113,8 +113,10 @@
                 </div>
                 <div class="modal-buttons">
                     <button class="btn btn-danger" @click="deleteProduct">删除</button>
-                    <button class="btn" @click="showEdit = false">取消</button>
-                    <button class="btn btn-primary" @click="saveEdit">保存</button>
+                    <div class="modal-btns-right">
+                        <button class="btn" @click="showEdit = false">取消</button>
+                        <button class="btn btn-primary" @click="saveEdit">保存</button>
+                    </div>
                 </div>
             </div>
         </div>
