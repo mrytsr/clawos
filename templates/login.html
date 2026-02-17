@@ -16,6 +16,9 @@
     </div>
     {% endif %}
     <form method="post" action="/login">
+        {% if success_redirect %}
+        <input type="hidden" name="success_redirect" value="{{ success_redirect }}">
+        {% endif %}
         <label style="display:block;margin:8px 0 6px 0;color:#24292f;">密码</label>
         <input name="password" type="password" autocomplete="current-password" style="width:100%;padding:10px 12px;border:1px solid #d0d7de;border-radius:8px;font-size:16px;outline:none;" autofocus>
         <button type="submit" style="margin-top:12px;width:100%;padding:10px 12px;border:0;border-radius:8px;background:#0969da;color:#fff;font-size:16px;cursor:pointer;">登录</button>

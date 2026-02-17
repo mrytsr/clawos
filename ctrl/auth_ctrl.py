@@ -93,9 +93,9 @@ def _is_request_authed():
     return True
 
 
-def _render_login_page(error_message=None):
+def _render_login_page(error_message=None, success_redirect=None):
     err = (error_message or '').strip()
-    return render_template('login.html', error_message=err)
+    return render_template('login.html', error_message=err, success_redirect=success_redirect)
 
 
 @auth_bp.route('/login', methods=['GET', 'POST'])
@@ -103,9 +103,11 @@ def login():
     if request.method == 'GET':
         if _is_request_authed():
             return redirect(url_for('browser.browse'))
-        return _render_login_page(), 200, {'Content-Type': 'text/html; charset=utf-8'}
+        success_redirect = request.args.get('success_redirect', '')
+        return _render_login_page(success_redirect=success_redirect), 200, {'Content-Type': 'text/html; charset=utf-8'}
 
     password = (request.form.get('password') or '').strip()
+    success_redirect = request.form.get('success_redirect', '').strip()
     if password and password == config.AUTH_PASSWORD:
         now_ts = _now_ts()
         token = 'sess_' + secrets.token_urlsafe(32)
@@ -122,7 +124,11 @@ def login():
             data['sessions'] = sessions
             _save_auth_store(data)
 
-        resp = redirect(url_for('browser.browse'))
+        success_redirect = success_redirect or ''
+        if success_redirect and success_redirect.startswith('/'):
+            resp = redirect(success_redirect)
+        else:
+            resp = redirect(url_for('browser.browse'))
         resp.set_cookie(
             AUTH_COOKIE_NAME,
             token,
@@ -156,7 +162,7 @@ def require_auth():
         return jsonify({'success': False, 'error': {'message': 'Unauthorized'}}), 401
     if request.path.startswith('/socket.io'):
         return ('Unauthorized', 401, {'Cache-Control': 'no-store'})
-    return redirect('/login')
+    return redirect('/login?success_redirect=' + request.full_path)
 
 
 @auth_bp.route('/logout')
