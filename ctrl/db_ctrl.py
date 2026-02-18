@@ -35,21 +35,6 @@ _engines = {}
 _engines_lock = Lock()
 
 
-def _encrypt(text):
-    """简单加密."""
-    if not text:
-        return ''
-    return base64.b64encode(text.encode()).decode()
-
-
-def _decrypt(encrypted):
-    """解密."""
-    if not encrypted:
-        return ''
-    try:
-        return base64.b64decode(encrypted.encode()).decode()
-    except:
-        return ''
 
 
 def _load_connections():
@@ -91,7 +76,7 @@ def _get_engine(conn):
         from sqlalchemy import create_engine
         
         # 构建连接 URL
-        password = _decrypt(conn.get('password', '')) if conn.get('password') else ''
+        password = conn.get('password', '')
         database = conn.get('database', '')
         
         # MySQL URL
@@ -149,14 +134,14 @@ def api_db_connect():
     
     # 加密密码
     password = data.get('password', '')
-    encrypted_password = _encrypt(password) if password else ''
+    password = password if password else ''
     
     conn = {
         'name': data.get('name', ''),
         'host': data.get('host', 'localhost'),
         'port': int(data.get('port', 3306)),
         'user': data.get('user', 'root'),
-        'password': encrypted_password,
+        'password': password,
         'database': data.get('database', ''),
         'charset': data.get('charset', 'utf8mb4'),
         'created_at': datetime.now().isoformat(),
@@ -196,7 +181,7 @@ def api_db_test():
         'host': data.get('host', '') or (saved_conn.get('host') if saved_conn else ''),
         'port': str(data.get('port', 3306)) or str(saved_conn.get('port', 3306)) if saved_conn else '3306',
         'user': data.get('user', '') or (saved_conn.get('user') if saved_conn else ''),
-        'password': data.get('password', '') or (_decrypt(saved_conn.get('password', '')) if saved_conn and saved_conn.get('password') else ''),
+        'password': data.get('password', '') or (saved_conn.get('password', '') if saved_conn else ''),
         'database': data.get('database', '') or (saved_conn.get('database') if saved_conn else ''),
     }
     
@@ -253,7 +238,7 @@ def api_db_update_connection(conn_id):
     
     # 保留原密码（如果未提供新密码）
     password = data.get('password', '')
-    encrypted_password = password if password else old_conn.get('password', '')
+    password = password if password else old_conn.get('password', '')
     
     conn = {
         'name': data.get('name', old_conn.get('name', '')),
@@ -261,7 +246,7 @@ def api_db_update_connection(conn_id):
         'host': data.get('host', old_conn.get('host', '')),
         'port': int(data.get('port', old_conn.get('port', 3306))),
         'user': data.get('user', old_conn.get('user', '')),
-        'password': encrypted_password,
+        'password': password,
         'database': data.get('database', old_conn.get('database', '')),
         'created_at': old_conn.get('created_at', datetime.now().isoformat()),
     }
@@ -289,7 +274,7 @@ def api_db_get_password(conn_id):
         return api_error('Connection not found')
     
     conn = conns[conn_id]
-    password = _decrypt(conn.get('password', '')) if conn.get('password') else ''
+    password = conn.get('password', '')
     
     return api_ok({'password': password})
 
@@ -351,7 +336,7 @@ def api_db_tables_by_db(conn_id, db):
         from sqlalchemy import create_engine, text, inspect
         from sqlalchemy.engine.url import make_url
         
-        password = _decrypt(conn.get('password', '')) if conn.get('password') else ''
+        password = conn.get('password', '')
         url = f"mysql+pymysql://{conn['user']}:{password}@{conn['host']}:{conn['port']}/{db}"
         engine = create_engine(url, echo=False)
         inspector = inspect(engine)
@@ -597,7 +582,7 @@ def api_db_tree():
             from sqlalchemy.engine.url import make_url
             
             # 构建引擎 URL
-            password = _decrypt(conn.get('password', '')) if conn.get('password') else ''
+            password = conn.get('password', '')
             
             if conn.get('engine') == 'sqlite':
                 url = f"sqlite:///{conn.get('database', '')}"
