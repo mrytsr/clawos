@@ -378,12 +378,14 @@
         .modal.show { display: flex; }
         .modal-content { background: #16213e; border-radius: 12px; padding: 20px; max-width: 360px; width: 100%; }
         .modal-title { font-size: 16px; font-weight: 500; margin-bottom: 16px; }
-        .form-group { margin-bottom: 14px; }
-        .form-group label { display: block; font-size: 12px; color: #888; margin-bottom: 6px; }
-        .form-group input, .form-group select {
-            width: 100%; padding: 12px; background: #1a1a2e; border: 1px solid #0f3460;
-            border-radius: 8px; color: #fff; font-size: 14px;
-        }
+        .form-grid { display: grid; grid-template-columns: 60px 1fr; gap: 8px 8px; }
+        .form-grid .field-row { display: contents; }
+        .form-grid label { font-size: 12px; color: #888; text-align: right; padding-right: 8px; line-height: 32px; }
+        .form-grid .input-wrap { position: relative; }
+        .form-grid input, .form-grid select { width: 100%; padding: 6px 28px 6px 8px; background: #1a1a2e; border: 1px solid #0f3460; border-radius: 4px; color: #fff; font-size: 12px; height: 32px; }
+        .form-grid .copy-btn { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #666; cursor: pointer; font-size: 11px; }
+        .form-grid .copy-btn:hover { color: #fff; }
+        .form-grid .full-width { grid-column: 1 / -1; }
         .modal-actions { display: flex; gap: 12px; margin-top: 20px; }
         .modal-actions button {
             flex: 1; padding: 12px; border-radius: 8px; border: none;
@@ -497,33 +499,26 @@
     
     <!-- 添加连接弹窗 -->
     <div id="addModal" class="modal">
-        <div class="modal-content">
+        <div class="modal-content" style="max-width:420px;">
             <div class="modal-title">新建连接</div>
-            <div class="form-group">
-                <label>数据库引擎</label>
-                <select id="dbEngine">
-                    <option value="mysql">MySQL</option>
-                    <option value="postgresql">PostgreSQL</option>
-                    <option value="sqlite">SQLite</option>
-                    <option value="mariadb">MariaDB</option>
-                    <option value="oracle">Oracle</option>
-                    <option value="mssql">SQL Server</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>URL</label>
-                <div style="display:flex;gap:8px;">
-                    <input type="text" id="dbUrl" placeholder="mysql+pymysql://user:pass@host:3306/db">
-                    <button onclick="applyDbUrl(true)" style="background:#0f3460;border:none;border-radius:8px;color:#ccc;cursor:pointer;padding:0 12px;">解析</button>
+            <div class="form-grid stacked">
+                <div class="field-row"><label>引擎</label><select id="dbEngine"><option value="mysql">MySQL</option><option value="postgresql">PostgreSQL</option><option value="sqlite">SQLite</option><option value="mariadb">MariaDB</option><option value="oracle">Oracle</option><option value="mssql">SQL Server</option></select></div>
+                <div class="field-row"><label>名称</label><div class="input-wrap"><input type="text" id="dbName" placeholder="例如: 生产库"><button class="copy-btn" onclick="copyToClipboard($$('dbName').value)">📋</button></div></div>
+                <div class="field-row full-width">
+                    <label>URL</label>
+                    <div class="input-wrap">
+                        <input type="text" id="dbUrl" placeholder="mysql+pymysql://user:pass@host:3306/db">
+                        <button class="copy-btn" onclick="applyDbUrl(true)" style="right:60px;">⚡</button>
+                        <button class="copy-btn" onclick="copyToClipboard($$('dbUrl').value)">📋</button>
+                    </div>
                 </div>
+                <div class="field-row"><label>主机</label><div class="input-wrap"><input type="text" id="dbHost" placeholder="localhost"><button class="copy-btn" onclick="copyToClipboard($$('dbHost').value)">📋</button></div></div>
+                <div class="field-row"><label>端口</label><div class="input-wrap"><input type="number" id="dbPort" value="3306"><button class="copy-btn" onclick="copyToClipboard($$('dbPort').value)">📋</button></div></div>
+                <div class="field-row"><label>用户名</label><div class="input-wrap"><input type="text" id="dbUser" placeholder="root"><button class="copy-btn" onclick="copyToClipboard($$('dbUser').value)">📋</button></div></div>
+                <div class="field-row"><label>密码</label><div class="input-wrap"><input type="password" id="dbPass" placeholder="密码"><button class="copy-btn" onclick="copyToClipboard($$('dbPass').value)">📋</button></div></div>
+                <div class="field-row"><label>数据库</label><div class="input-wrap"><input type="text" id="dbDatabase" placeholder="数据库名"><button class="copy-btn" onclick="copyToClipboard($$('dbDatabase').value)">📋</button></div></div>
+                <div class="field-row sqlite-field" style="display:none;"><label>文件路径</label><div class="input-wrap"><input type="text" id="dbSqlitePath" placeholder="/path/to/db.sqlite"><button class="copy-btn" onclick="copyToClipboard($$('dbSqlitePath').value)">📋</button></div></div>
             </div>
-            <div class="form-group"><label>名称</label><input type="text" id="dbName" placeholder="例如: 生产库"></div>
-            <div class="form-group host-field"><label>主机</label><input type="text" id="dbHost" placeholder="localhost"></div>
-            <div class="form-group host-field"><label>端口</label><input type="number" id="dbPort" value="3306"></div>
-            <div class="form-group host-field"><label>用户名</label><input type="text" id="dbUser" placeholder="root"></div>
-            <div class="form-group host-field"><label>密码</label><input type="password" id="dbPass" placeholder="密码"></div>
-            <div class="form-group db-field"><label>数据库</label><input type="text" id="dbDatabase" placeholder="数据库名"></div>
-            <div class="form-group sqlite-field" style="display:none;"><label>文件路径</label><input type="text" id="dbSqlitePath" placeholder="/path/to/db.sqlite"></div>
             <div class="modal-actions">
                 <button class="cancel" onclick="closeAddModal()">取消</button>
                 <button class="secondary" onclick="testConnection()" style="background:#0f3460;">测试</button>
@@ -534,17 +529,25 @@
     
     <!-- 编辑连接弹窗 -->
     <div id="editModal" class="modal">
-        <div class="modal-content">
+        <div class="modal-content" style="max-width:420px;">
             <div class="modal-title">编辑连接</div>
             <input type="hidden" id="editConnId">
-            <div class="form-group"><label>SQLAlchemy URL</label><div style="display:flex;gap:8px;"><input type="text" id="editDbUrl" readonly style="background:#0f3460;color:#4ade80;font-size:11px;"><button onclick="copyDbUrl()" style="background:#0f3460;border:none;border-radius:8px;color:#ccc;cursor:pointer;padding:0 12px;">复制</button></div></div>
-            <div class="form-group"><label>名称</label><input type="text" id="editDbName"></div>
-            <div class="form-group host-field"><label>主机</label><input type="text" id="editDbHost"></div>
-            <div class="form-group host-field"><label>端口</label><input type="number" id="editDbPort"></div>
-            <div class="form-group host-field"><label>用户名</label><input type="text" id="editDbUser"></div>
-            <div class="form-group host-field"><label>密码</label><input type="password" id="editDbPass" placeholder="留空保持原密码"></div>
-            <div class="form-group db-field"><label>数据库</label><input type="text" id="editDbDatabase"></div>
-            <div class="form-group sqlite-field" style="display:none;"><label>文件路径</label><input type="text" id="editDbSqlitePath"></div>
+            <div class="form-grid stacked">
+                <div class="form-group full-width url-field">
+                    <label>URL</label>
+                    <div class="input-wrap">
+                        <input type="text" id="editDbUrl" readonly style="background:#0f3460;color:#4ade80;font-size:11px;">
+                        <button class="copy-btn" onclick="copyToClipboard($$('editDbUrl').value)">📋</button>
+                    </div>
+                </div>
+                <div class="field-row"><label>名称</label><div class="input-wrap"><input type="text" id="editDbName"><button class="copy-btn" onclick="copyToClipboard($$('editDbName').value)">📋</button></div></div>
+                <div class="field-row"><label>主机</label><div class="input-wrap"><input type="text" id="editDbHost"><button class="copy-btn" onclick="copyToClipboard($$('editDbHost').value)">📋</button></div></div>
+                <div class="field-row"><label>端口</label><div class="input-wrap"><input type="number" id="editDbPort"><button class="copy-btn" onclick="copyToClipboard($$('editDbPort').value)">📋</button></div></div>
+                <div class="field-row"><label>用户名</label><div class="input-wrap"><input type="text" id="editDbUser"><button class="copy-btn" onclick="copyToClipboard($$('editDbUser').value)">📋</button></div></div>
+                <div class="field-row"><label>密码</label><div class="input-wrap"><input type="password" id="editDbPass" placeholder="留空保持原密码"><button class="copy-btn" onclick="copyToClipboard($$('editDbPass').value)">📋</button></div></div>
+                <div class="field-row"><label>数据库</label><div class="input-wrap"><input type="text" id="editDbDatabase"><button class="copy-btn" onclick="copyToClipboard($$('editDbDatabase').value)">📋</button></div></div>
+                <div class="field-row" style="display:none;"><label>文件路径</label><div class="input-wrap"><input type="text" id="editDbSqlitePath"><button class="copy-btn" onclick="copyToClipboard($$('editDbSqlitePath').value)">📋</button></div></div>
+            </div>
             <div class="modal-actions">
                 <button class="cancel" onclick="closeEditModal()">取消</button>
                 <button class="secondary" onclick="testEditConnection()" style="background:#0f3460;">测试</button>
@@ -1927,7 +1930,7 @@
             $$('editModal').classList.add('show');
         }
         function closeEditModal() { $$('editModal').classList.remove('show'); }
-        function copyDbUrl() { copyToClipboard($$('editDbUrl').value); }
+        
         async function saveEditConnection() {
             const id = $$('editConnId').value;
             const eng = connections.find(c => c.id === id)?.engine || 'mysql';
