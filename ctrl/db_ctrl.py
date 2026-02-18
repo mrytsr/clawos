@@ -184,13 +184,20 @@ def api_db_test():
     data = request.get_json(silent=True) or {}
     engine_type = data.get('engine', 'mysql')
     
-    # 构建临时连接数据
+    # 如果提供了conn_id，使用已保存的连接信息
+    conn_id = data.get('conn_id')
+    saved_conn = None
+    if conn_id:
+        conns = _load_connections()
+        saved_conn = conns.get(conn_id)
+    
+    # 构建临时连接数据，优先使用传入值，否则用已保存的值
     conn = {
-        'host': data.get('host', ''),
-        'port': str(data.get('port', 3306)),
-        'user': data.get('user', ''),
-        'password': data.get('password', ''),
-        'database': data.get('database', ''),
+        'host': data.get('host', '') or (saved_conn.get('host') if saved_conn else ''),
+        'port': str(data.get('port', 3306)) or str(saved_conn.get('port', 3306)) if saved_conn else '3306',
+        'user': data.get('user', '') or (saved_conn.get('user') if saved_conn else ''),
+        'password': data.get('password', '') or (_decrypt(saved_conn.get('password', '')) if saved_conn and saved_conn.get('password') else ''),
+        'database': data.get('database', '') or (saved_conn.get('database') if saved_conn else ''),
     }
     
     # SQLite 特殊处理
@@ -223,7 +230,8 @@ def api_db_test():
             }
             url = url_map.get(engine_type, url_map['mysql'])
         
-        engine = create_engine(url, echo=False, timeout=10)
+        connect_args = {"connect_timeout": 10} if engine_type != "sqlite" else {}
+        engine = create_engine(url, echo=False, connect_args=connect_args)
         with engine.connect() as c:
             c.execute(text('SELECT 1'))
         engine.dispose()

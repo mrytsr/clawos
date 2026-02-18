@@ -514,6 +514,7 @@
             <div class="form-group sqlite-field" style="display:none;"><label>文件路径</label><input type="text" id="dbSqlitePath" placeholder="/path/to/db.sqlite"></div>
             <div class="modal-actions">
                 <button class="cancel" onclick="closeAddModal()">取消</button>
+                <button class="secondary" onclick="testConnection()" style="background:#0f3460;">测试</button>
                 <button class="confirm" onclick="testAndSave()">保存</button>
             </div>
         </div>
@@ -534,6 +535,7 @@
             <div class="form-group sqlite-field" style="display:none;"><label>文件路径</label><input type="text" id="editDbSqlitePath"></div>
             <div class="modal-actions">
                 <button class="cancel" onclick="closeEditModal()">取消</button>
+                <button class="secondary" onclick="testEditConnection()" style="background:#0f3460;">测试</button>
                 <button class="confirm" onclick="saveEditConnection()">保存</button>
             </div>
         </div>
@@ -1860,6 +1862,25 @@
             if ($$('dbDatabase')) $$('dbDatabase').value = parsed.database || $$('dbDatabase').value;
             if ($$('dbPort')) $$('dbPort').value = parsed.port || String(ENGINE_CONFIG[eng]?.port || $$('dbPort').value || '');
         }
+        
+        async function testConnection() {
+            const eng = $$('dbEngine').value;
+            const data = {name:$$('dbName').value || 'test', engine:eng, host:eng==='sqlite'?'':$$('dbHost').value, port:String($$('dbPort').value||ENGINE_CONFIG[eng]?.port||3306), 
+                user:eng==='sqlite'?'':$$('dbUser').value, password:eng==='sqlite'?'':$$('dbPass').value, database:eng==='sqlite'?$$('dbSqlitePath').value:$$('dbDatabase').value};
+            if (eng !== 'sqlite' && (!data.host || !data.user)) { showStatus('请填写必要信息', true); return; }
+            showStatus('测试连接中...', false);
+            try {
+                
+                const r = await fetch('/api/db/test', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)});
+                
+                const result = await r.json();
+                if (!r.ok || !result.success) { 
+                    const errMsg = result.error?.message || result.error || '连接失败';
+                    showStatus(errMsg.substring(0, 100), true); return; 
+                }
+                showStatus('连接成功!', false);
+            } catch (e) { showStatus('连接失败: ' + e.message, true); }
+        }
         async function testAndSave() {
             const eng = $$('dbEngine').value;
             const data = {name:$$('dbName').value, engine:eng, host:eng==='sqlite'?'':$$('dbHost').value, port:String($$('dbPort').value||ENGINE_CONFIG[eng]?.port||3306), 
@@ -1867,7 +1888,9 @@
             if (!data.name) { showStatus('请填写名称', true); return; }
             if (eng !== 'sqlite' && (!data.host || !data.user)) { showStatus('请填写必要信息', true); return; }
             try {
-                await fetch('/api/db/connect', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)});
+                const r = await fetch('/api/db/connect', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)});
+                const result = await r.json();
+                if (!r.ok || !result.success) { showStatus(result.error || '保存失败', true); return; }
                 closeAddModal(); loadTree(); loadConnections(); showStatus('已保存', false);
             } catch (e) { showStatus('保存失败: ' + e.message, true); }
         }
@@ -1891,9 +1914,44 @@
             const eng = connections.find(c => c.id === id)?.engine || 'mysql';
             const data = {name:$$('editDbName').value, engine:eng, host:$$('editDbHost').value, port:String($$('editDbPort').value), user:$$('editDbUser').value, password:$$('editDbPass').value, database:$$('editDbDatabase').value};
             try {
-                await fetch(`/api/db/connection/${id}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)});
+                const r = await fetch(`/api/db/connection/${id}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)});
+                const result = await r.json();
+                if (!r.ok || !result.success) { showStatus(result.error || '保存失败', true); return; }
                 closeEditModal(); loadTree(); loadConnections(); showStatus('已更新', false);
             } catch (e) { showStatus('保存失败', true); }
+        }
+        
+        async function testEditConnection() {
+            const id = $$('editConnId').value;
+            const conn = connections.find(c => c.id === id);
+            const eng = conn?.engine || 'mysql';
+            const isSqlite = eng === 'sqlite';
+            // Use input password, or fallback to saved password
+            const inputPwd = $$('editDbPass').value;
+            const savedPwd = conn?.password || '';
+            const password = inputPwd || savedPwd;
+            const data = {
+                conn_id: id,
+                name:$$('editDbName').value || 'test', 
+                engine:eng, 
+                host:isSqlite?'':$$('editDbHost').value, 
+                port:String($$('editDbPort').value||3306),
+                user:isSqlite?'':$$('editDbUser').value, 
+                password:password, 
+                database:isSqlite?$$('editDbSqlitePath').value:$$('editDbDatabase').value
+            };
+            showStatus('测试连接中...', false);
+            try {
+                
+                const r = await fetch('/api/db/test', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)});
+                
+                const result = await r.json();
+                if (!r.ok || !result.success) { 
+                    const errMsg = result.error?.message || result.error || '连接失败';
+                    showStatus(errMsg.substring(0, 100), true); return; 
+                }
+                showStatus('连接成功!', false);
+            } catch (e) { showStatus('连接失败: ' + e.message, true); }
         }
         
         function deleteConnection(id) {
