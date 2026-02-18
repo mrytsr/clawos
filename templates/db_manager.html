@@ -290,6 +290,31 @@
         .btn-ai-generate:disabled {
             opacity: 0.6; cursor: not-allowed; transform: none;
         }
+        
+        /* AI 历史下拉 */
+        .ai-history-dropdown {
+            position: absolute; left: 0; top: 100%; margin-top: 4px;
+            background: #1a1a2e; border: 1px solid #0f3460; border-radius: 8px;
+            width: 100%; max-height: 400px; overflow-y: auto; z-index: 100;
+            display: none; box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+        }
+        .ai-history-dropdown.show { display: block; }
+        .ai-history-item {
+            padding: 12px; border-bottom: 1px solid #0f3460; cursor: pointer;
+        }
+        .ai-history-item:hover { background: #0f3460; }
+        .ai-history-item:last-child { border-bottom: none; }
+        .ai-history-item .prompt {
+            font-size: 12px; color: #ccc; margin-bottom: 6px;
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .ai-history-item .sql {
+            font-size: 11px; color: #888; font-family: 'SF Mono', monospace;
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .ai-history-item .time {
+            font-size: 10px; color: #666; margin-top: 4px;
+        }
         .ai-loading {
             display: inline-block; width: 14px; height: 14px;
             border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff;
@@ -441,9 +466,11 @@
                     <button class="secondary" onclick="sqlHistoryPrev()" title="上一条">⏮</button>
                     <button class="secondary" onclick="sqlHistoryNext()" title="下一条">⏭</button>
                 </div>
-                <div class="ai-prompt-row">
+                <div class="ai-prompt-row" style="position:relative;">
                     <input type="text" id="aiPromptInput" class="ai-prompt-input"
                            placeholder="✨ 输入自然语言，让 AI 生成/修改 SQL...">
+                    <button id="btnAiHistory" type="button" class="btn-ai-generate" style="padding:8px 12px;background:#0f3460;margin-left:8px;" onclick="toggleAiHistory()">📜</button>
+                    <div class="ai-history-dropdown" id="aiHistoryDropdown"></div>
                     <button id="btnAiGenerate" class="btn-ai-generate" onclick="generateSqlFromPrompt()">
                         生成SQL
                     </button>
@@ -1360,7 +1387,59 @@
         }
         
         // AI SQL 生成
-        async function generateSqlFromPrompt() {
+        let aiHistoryCache = null;
+
+async function loadAiHistory() {
+    if (aiHistoryCache) return aiHistoryCache;
+    try {
+        const res = await fetch('/db/ai-history');
+        const data = await res.json();
+        aiHistoryCache = (data.data && data.data.history) || [];
+        return aiHistoryCache;
+    } catch(e) { return []; }
+}
+
+async function toggleAiHistory() {
+    const dropdown = document.getElementById('aiHistoryDropdown');
+    if (dropdown.classList.contains('show')) {
+        dropdown.classList.remove('show');
+        return;
+    }
+    const history = await loadAiHistory();
+    if (history.length === 0) {
+        dropdown.innerHTML = '<div style="padding:20px;text-align:center;color:#666;font-size:12px;">暂无历史记录</div>';
+    } else {
+        dropdown.innerHTML = history.slice(0, 10).map(item => `
+            <div class="ai-history-item" onclick="selectAiHistory('${item.prompt.replace(/'/g, "\'")}', '${item.sql.replace(/'/g, "\'").replace(/\n/g, " ")}')">
+                <div class="prompt">${item.prompt}</div>
+                <div class="sql">${item.sql}</div>
+                <div class="time">${item.time || ''}</div>
+            </div>
+        `).join('');
+    }
+    dropdown.classList.add('show');
+}
+
+function selectAiHistory(prompt, sql) {
+    document.getElementById('aiPromptInput').value = prompt;
+    document.getElementById('aiHistoryDropdown').classList.remove('show');
+    // 如果需要同时设置SQL
+    if (sql) {
+        const sqlInput = document.getElementById('sqlInput');
+        if (sqlInput) sqlInput.value = sql;
+    }
+}
+
+// 点击其他地方关闭下拉
+document.addEventListener('click', function(e) {
+    const dropdown = document.getElementById('aiHistoryDropdown');
+    const btn = document.getElementById('btnAiHistory');
+    if (dropdown && btn && !dropdown.contains(e.target) && !btn.contains(e.target)) {
+        dropdown.classList.remove('show');
+    }
+});
+
+async function generateSqlFromPrompt() {
             const prompt = $$('aiPromptInput').value.trim();
             const currentSql = $$('sqlEditor').value.trim();
             

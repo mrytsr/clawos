@@ -710,6 +710,13 @@ def _save_ai_history(prompt, sql):
         pass
 
 
+@db_bp.route('/db/ai-history')
+def api_ai_history():
+    """获取 AI SQL 生成历史."""
+    history = _load_ai_history(limit=10)
+    return api_ok({'history': history})
+
+
 @db_bp.route('/db/ai-generate-sql', methods=['POST'])
 def ai_generate_sql():
     """AI 生成 SQL."""
