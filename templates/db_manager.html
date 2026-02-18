@@ -358,6 +358,17 @@
         .status-bar .success { color: #4ade80; }
         .status-bar .error { color: #ef4444; }
         
+        /* Toast 通知 */
+        #toast {
+            position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+            background: rgba(0,0,0,0.9); color: #fff; padding: 12px 24px;
+            border-radius: 8px; font-size: 14px; z-index: 9999;
+            opacity: 0; transition: opacity 0.3s;
+        }
+        #toast.show { opacity: 1; }
+        #toast.error { border-left: 4px solid #ef4444; }
+        #toast.success { border-left: 4px solid #4ade80; }
+        
         /* 弹窗 */
         .modal {
             position: fixed; inset: 0; background: rgba(0,0,0,0.7);
@@ -479,7 +490,8 @@
             </div>
             
             <!-- 状态栏 -->
-            <div class="status-bar" id="statusBar"><span>就绪</span></div>
+            <div id="toast"></div>
+        <div class="status-bar" id="statusBar"><span>就绪</span></div>
         </div>
     </div>
     
@@ -1753,7 +1765,14 @@
             } catch (e) { $$('schemaPanel').innerHTML = '<div class="results-empty">加载失败</div>'; }
         }
         
-        function showStatus(msg, error) { $$('statusBar').innerHTML = `<span class="${error ? 'error' : 'success'}">${msg}</span>`; }
+        function showStatus(msg, error) { 
+            $$('statusBar').innerHTML = `<span class="${error ? 'error' : 'success'}">${msg}</span>`;
+            // 同时显示顶部toast
+            const toast = $$('toast');
+            toast.textContent = msg;
+            toast.className = 'show ' + (error ? 'error' : 'success');
+            setTimeout(() => { toast.className = ''; }, 2500);
+        }
         
         function showConfirm(title, msg, onConfirm, danger) {
             $$('confirmTitle').textContent = title;
