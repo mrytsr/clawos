@@ -21,14 +21,19 @@ from email.mime.multipart import MIMEMultipart
 from email.header import Header
 
 RECIPIENT = 'mrytsr@qq.com'
-CLAWOS_DIR = os.path.expanduser('~/clawos')
 
-def get_git_stats(date_str):
+# 项目配置
+PROJECTS = {
+    'clawos': os.path.expanduser('~/clawos'),
+    'xiandan': os.path.expanduser('~/xiandan'),
+}
+
+def get_git_stats(date_str, project_dir):
     """获取指定日期的git代码统计"""
     result = subprocess.run(
         ['git', 'log', f'--since={date_str} 00:00:00', f'--until={date_str} 23:59:59',
          '--pretty=format:%h', '--numstat', '--'],
-        capture_output=True, text=True, cwd=CLAWOS_DIR
+        capture_output=True, text=True, cwd=project_dir
     )
     
     total_added = 0
@@ -67,7 +72,7 @@ def get_git_stats(date_str):
     # 获取提交数
     commit_result = subprocess.run(
         ['git', 'log', f'--since={date_str} 00:00:00', f'--until={date_str} 23:59:59', '--count', '--'],
-        capture_output=True, text=True, cwd=CLAWOS_DIR
+        capture_output=True, text=True, cwd=project_dir
     )
     try:
         commits = int(commit_result.stdout.strip())
@@ -78,7 +83,7 @@ def get_git_stats(date_str):
     author_result = subprocess.run(
         ['git', 'log', f'--since={date_str} 00:00:00', f'--until={date_str} 23:59:59',
          '--pretty=format:%an', '--numstat', '--'],
-        capture_output=True, text=True, cwd=CLAWOS_DIR
+        capture_output=True, text=True, cwd=project_dir
     )
     
     for line in author_result.stdout.split('\n'):
@@ -95,7 +100,7 @@ def get_git_stats(date_str):
     # 统计每个作者的提交数
     commit_authors = subprocess.run(
         ['git', 'log', f'--since={date_str} 00:00:00', f'until={date_str} 23:59:59', '--pretty=format:%an', '--'],
-        capture_output=True, text=True, cwd=CLAWOS_DIR
+        capture_output=True, text=True, cwd=project_dir
     )
     author_commits = defaultdict(int)
     for author in commit_authors.stdout.strip().split('\n'):
@@ -120,12 +125,14 @@ def get_git_stats(date_str):
         'top_authors': sorted(author_stats.items(), key=lambda x: x[1]['additions'], reverse=True)[:5]
     }
 
-def get_last_10_days_stats():
+def get_last_10_days_stats(project_name='clawos'):
     """获取过去10天的统计数据"""
+    project_dir = PROJECTS.get(project_name, PROJECTS['clawos'])
     stats = []
     for i in range(1, 11):
         date = (datetime.now() - timedelta(days=i)).strftime('%Y-%m-%d')
-        day_stats = get_git_stats(date)
+        day_stats = get_git_stats(date, project_dir)
+        day_stats['project'] = project_name
         stats.append(day_stats)
     return stats
 
@@ -204,11 +211,15 @@ def generate_ascii_chart(stats):
     
     return '\n'.join(lines)
 
-def generate_html(stats):
+def generate_html(all_stats):
     """生成HTML邮件内容"""
     today = datetime.now().strftime('%Y-%m-%d')
+    project_names = ' + '.join(all_stats.keys())
     
-    # 汇总统计
+    # 汇总所有项目的统计
+    stats = []
+    for project_stats in all_stats.values():
+        stats.extend(project_stats)
     total_added = sum(s['added'] for s in stats)
     total_deleted = sum(s['deleted'] for s in stats)
     total_commits = sum(s['commits'] for s in stats)
@@ -319,8 +330,11 @@ def generate_html(stats):
     <div class="container">
         <!-- Header -->
         <div class="header">
-            <h1>📊 ClawOS 代码统计</h1>
-            <div class="subtitle">过去 10 天 · {active_days} 天有提交 · {today}</div>
+            <h1>📊 代码统计</h1>
+            <div class="subtitle">
+            项目: {project_names}<br>
+            过去 10 天 · {active_days} 天有提交 · {today}
+        </div>
         </div>
         
         <!-- 核心指标 -->
@@ -470,14 +484,15 @@ def generate_sparkline_svg(data):
         <polyline fill="none" stroke="#58a6ff" stroke-width="2" points="{' '.join(points)}"/>
     </svg>'''
 
-def send_email(stats):
+def send_email(all_stats):
     """发送邮件"""
-    html = generate_html(stats)
+    html = generate_html(all_stats)
     
     message = MIMEMultipart('alternative')
     message['From'] = f'ClawOS <{SMTP_USER}>'
     message['To'] = RECIPIENT
-    message['Subject'] = Header(f'📊 ClawOS 代码统计 (过去10天)', 'utf-8')
+    project_names = ' + '.join(all_stats.keys())
+    message['Subject'] = Header(f'📊 {project_names} 代码统计 (过去10天)', 'utf-8')
     message.attach(MIMEText(html, 'html', 'utf-8'))
     
     server = smtplib.SMTP_SSL(SMTP_SERVER, SMTP_PORT)
@@ -488,14 +503,25 @@ def send_email(stats):
     print('邮件发送成功!')
 
 if __name__ == '__main__':
-    print('获取过去10天统计数据...')
-    stats = get_last_10_days_stats()
+    all_stats = {}
     
-    total_added = sum(s['added'] for s in stats)
-    total_deleted = sum(s['deleted'] for s in stats)
-    total_commits = sum(s['commits'] for s in stats)
+    for project_name, project_dir in PROJECTS.items():
+        if os.path.isdir(project_dir):
+            print(f'获取 {project_name} 过去10天统计数据...')
+            stats = get_last_10_days_stats(project_name)
+            all_stats[project_name] = stats
     
-    print(f'\n汇总: +{total_added:,} -{total_deleted:,} ({total_commits} commits)\n')
-    print(generate_ascii_chart(stats))
+    # 汇总
+    total_added = sum(s['added'] for stats in all_stats.values() for s in stats)
+    total_deleted = sum(s['deleted'] for stats in all_stats.values() for s in stats)
+    total_commits = sum(s['commits'] for stats in all_stats.values() for s in stats)
     
-    send_email(stats)
+    print(f'\n========== 汇总 ==========')
+    print(f'总计: +{total_added:,} -{total_deleted:,} ({total_commits} commits)\n')
+    
+    for project_name, stats in all_stats.items():
+        print(f'--- {project_name} ---')
+        print(generate_ascii_chart(stats))
+        print()
+    
+    send_email(all_stats)
