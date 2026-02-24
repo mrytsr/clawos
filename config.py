@@ -13,7 +13,13 @@ CONVERSATION_FILE = os.path.join(DATA_DIR, 'conversations.json')
 AUTH_FILE = os.path.join(DATA_DIR, 'auth.json')
 PIN_FILE = os.path.join(DATA_DIR, 'pin.json')
 
-AUTH_PASSWORD = os.getenv('AUTH_PASSWORD', '46e9b994b1cd055')
+import os as _os
+_AUTH_FILE = _os.path.expanduser('~/.local/clawos/clawos_password.json')
+if _os.path.exists(_AUTH_FILE):
+    import json as _json
+    AUTH_PASSWORD = _json.load(open(_AUTH_FILE))['password']
+else:
+    AUTH_PASSWORD = os.getenv('AUTH_PASSWORD', '')
 
 SERVER_HOST = '0.0.0.0'
 SERVER_PORT = int(os.getenv('SERVER_PORT', '6002'))
