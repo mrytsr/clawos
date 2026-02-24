@@ -1688,9 +1688,26 @@
                     <span>小</span>
                     <span>大</span>
                 </div>
-                <div style="margin-top: 16px;">
-                    <button class="dialog-btn dialog-btn-danger" style="width:100%;padding:10px;" onclick="logoutAuth()">退出登录</button>
+            </div>
+            
+            <div class="config-section" style="margin-top: 20px;">
+                <label class="config-label">📂 文件打开方式</label>
+                <div id="fileOpenConfigList" style="margin-top: 8px;">
+                    <div style="color: #666; font-size: 13px;">加载中...</div>
                 </div>
+                <button class="modal-btn modal-btn-confirm" style="margin-top: 12px; width: 100%;" onclick="window.open('/file-open-config', '_blank')">管理文件打开方式</button>
+            </div>
+            
+            <div class="config-section" style="margin-top: 20px;">
+                <label class="config-label">📧 邮件配置</label>
+                <div id="emailConfigStatus" style="margin-top: 8px;">
+                    <div style="color: #666; font-size: 13px;">加载中...</div>
+                </div>
+                <button class="modal-btn modal-btn-confirm" style="margin-top: 12px; width: 100%;" onclick="window.open('/email-config', '_blank')">管理邮件配置</button>
+            </div>
+            
+            <div class="config-section" style="margin-top: 20px;">
+                <button class="dialog-btn dialog-btn-danger" style="width:100%;padding:10px;" onclick="logoutAuth()">退出登录</button>
             </div>
         </div>
     </div>
@@ -2457,7 +2474,7 @@
         <button class="dock-btn" onclick="handleMainMenu('bot')" title="对话">🤖</button>
         <button class="dock-btn" onclick="handleMainMenu('terminal')" title="终端">🖥️</button>
         <button class="dock-btn" onclick="window.open('/db/manager', '_blank')" title="数据库管理">🗄️</button>
-        <button class="dock-btn" onclick="handleMainMenu('config')" title="配置">⚙️</button>
+        <button class="dock-btn" onclick="handleMainMenu('system')" title="系统设置">⚙️</button>
     </div>
     
     <style>
@@ -2496,6 +2513,59 @@
             background: rgba(0, 0, 0, 0.12);
         }
     </style>
+
+    <script>
+    // 页面加载后加载系统设置中的配置信息
+    (function() {
+        // 加载文件打开方式配置
+        fetch('/api/file-open-config')
+            .then(function(r) { return r.json(); })
+            .then(function(d) {
+                var el = document.getElementById('fileOpenConfigList');
+                if (el && d.success && d.data) {
+                    var html = '';
+                    var keys = Object.keys(d.data).slice(0, 3);
+                    for (var i = 0; i < keys.length; i++) {
+                        var k = keys[i];
+                        html += '<div style="padding:8px;background:#f6f8fa;border-radius:6px;margin-bottom:6px;font-size:13px;">';
+                        html += '<span style="font-weight:600;">' + k + '</span>: ' + (d.data[k] || '默认');
+                        html += '</div>';
+                    }
+                    if (keys.length > 3) {
+                        html += '<div style="color:#666;font-size:12px;">... 共 ' + Object.keys(d.data).length + ' 项</div>';
+                    }
+                    el.innerHTML = html || '<div style="color:#666;font-size:13px;">暂无配置</div>';
+                }
+            })
+            .catch(function() {
+                var el = document.getElementById('fileOpenConfigList');
+                if (el) el.innerHTML = '<div style="color:#666;font-size:13px;">加载失败</div>';
+            });
+        
+        // 加载邮件配置状态
+        fetch('/api/email/config')
+            .then(function(r) { return r.json(); })
+            .then(function(d) {
+                var el = document.getElementById('emailConfigStatus');
+                if (el && d.success && d.data) {
+                    var html = '<div style="padding:8px;background:#f6f8fa;border-radius:6px;font-size:13px;">';
+                    if (d.data.smtp_server) {
+                        html += '✓ SMTP: ' + d.data.smtp_server + ':' + d.data.smtp_port;
+                    } else {
+                        html += '✗ 未配置';
+                    }
+                    html += '</div>';
+                    el.innerHTML = html;
+                } else {
+                    el.innerHTML = '<div style="padding:8px;background:#f6f8fa;border-radius:6px;font-size:13px;">✗ 未配置</div>';
+                }
+            })
+            .catch(function() {
+                var el = document.getElementById('emailConfigStatus');
+                if (el) el.innerHTML = '<div style="color:#666;font-size:13px;">加载失败</div>';
+            });
+    })();
+    </script>
 
 </body>
 </html>
