@@ -125,7 +125,6 @@ function dispatchDrawerEvent(modalId, eventName, detail) {
         try {
             window.history.pushState({ __drawer_placeholder: true }, '', document.location.href);
             st.hasPlaceholder = true;
-            if (typeof window.showToast === 'function') window.showToast('已添加后退占位', 'info');
         } catch (e) {}
     };
 
@@ -135,7 +134,6 @@ function dispatchDrawerEvent(modalId, eventName, detail) {
         if (!window.history || typeof window.history.back !== 'function') return;
         st.ignoreNextPop = true;
         st.hasPlaceholder = false;
-        if (typeof window.showToast === 'function') window.showToast('已清除后退占位', 'info');
         try {
             window.history.back();
         } catch (e) {}

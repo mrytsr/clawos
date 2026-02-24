@@ -3,7 +3,7 @@ import os
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 ROOT_DIR = os.path.expanduser('~')  # 动态获取当前用户home目录
-# ROOT_DIR = '/home/tjx'  # 硬编码示例
+
 DATA_DIR = os.path.abspath(os.path.join(os.path.expanduser('~'), '.local', 'clawos'))
 os.makedirs(DATA_DIR, exist_ok=True)
 TRASH_DIR = os.path.join(DATA_DIR, 'trash')
