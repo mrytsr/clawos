@@ -1,13 +1,10 @@
-# Email Configuration (from xiandan/config_dev/config.py)
+# Email Configuration
+# 请修改以下配置或设置环境变量 SMTP_SERVER, SMTP_PORT, SMTP_USER, SMTP_PASS
 
-# SMTP Server Settings
-SMTP_SERVER = "smtp.qq.com"
+SMTP_SERVER = "smtp.example.com"
 SMTP_PORT = 465
-SMTP_USER = "mrytsr@qq.com"
-SMTP_PASS = "rykouxobfexacaff"
+SMTP_USER = "your-email@example.com"
+SMTP_PASS = "your-password"
 
 # Enable email sending (True = real send, False = mock/debug mode)
-ENABLE_EMAIL = True
-
-# Rate Limiting (optional)
-EMAIL_RATE_LIMIT = 10  # emails per minute
+ENABLE_EMAIL = False

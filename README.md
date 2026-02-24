@@ -137,7 +137,7 @@ A web-based management console for Linux systems with file management, system mo
 ├─────────────────────────────────────┤
 │  Service Status: ● Running          │
 │                                     │
-│  Server: 179.utjx.cn:17777         │
+│  Server: your-frp-server:17777      │
 │                                     │
 │  Proxies:                           │
 │  - test-tcp (22 → 6022)           │
@@ -214,47 +214,39 @@ node --version
 git clone https://github.com/your-repo/clawos.git
 cd clawos
 
-# Create virtual environment (recommended)
-python -m venv venv
-source venv/bin/activate  # Linux/macOS
-# or
-.\venv\Scripts\activate   # Windows
-
 # Install Python dependencies
 pip install -r requirements.txt
 ```
 
-### 2. Configuration (Optional)
-
-Environment variables:
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `ROOT_DIR` | Root directory to manage | User home directory |
-| `SERVER_PORT` | HTTP server port | `6002` |
-| `SERVER_DEBUG` | Enable debug mode | `false` |
-| `SERVER_USE_RELOADER` | Use Flask reloader | `false` |
+### 2. Install CLI & Generate Password
 
 ```bash
-# Linux/macOS
-export ROOT_DIR=/your/path
-export SERVER_PORT=6002
-export SERVER_DEBUG=0
-
-# Windows PowerShell
-$env:ROOT_DIR="C:\your\path"
-$env:SERVER_PORT="6002"
+# Run installation script (generates random password)
+bash install.sh
 ```
 
-### 3. Run the Server
+This will:
+- Create data directory at `~/.local/clawos`
+- Generate random password to `~/.local/clawos/clawos_password.json`
+- Install CLI to `/usr/local/bin/clawos`
+- Install systemd user service
+
+### 3. Start Service
 
 ```bash
-# Development mode
-python app.py
+# Using CLI
+clawos start      # Start service
+clawos stop       # Stop service
+clawos restart    # Restart service
+clawos status     # Show status & password
+clawos log        # View logs
+clawos password   # Show password
 
-# Production mode (use eventlet)
-pip install eventlet
-python app.py
+# Or using systemd
+systemctl --user start clawos
+systemctl --user stop clawos
+systemctl --user status clawos
+systemctl --user enable clawos  # Enable on boot
 ```
 
 ### 4. Access the Interface
@@ -263,12 +255,7 @@ python app.py
 http://127.0.0.1:6002/
 ```
 
-### 5. Login
-
-Default credentials (change immediately in production!):
-
-- **Username**: `admin`
-- **Password**: `46e9b994b1cd055`
+Login password is shown in `clawos status` or stored in `~/.local/clawos/clawos_password.json`
 
 ---
 
@@ -531,7 +518,7 @@ MIT License - See LICENSE file for details.
 ├─────────────────────────────────────┤
 │  服务状态: ● 运行中                  │
 │                                     │
-│  服务端: 179.utjx.cn:17777           │
+│  服务端: your-frp-server:17777      │
 │                                     │
 │  代理列表:                           │
 │  - test-tcp (22 → 6022)            │
@@ -606,46 +593,39 @@ node --version
 git clone https://github.com/your-repo/clawos.git
 cd clawos
 
-# 创建虚拟环境（推荐）
-python -m venv venv
-source venv/bin/activate  # Linux/macOS
-# 或
-.\venv\Scripts\activate   # Windows
-
 # 安装 Python 依赖
 pip install -r requirements.txt
 ```
 
-### 2. 配置（可选）
-
-环境变量：
-
-| 变量 | 描述 | 默认值 |
-|------|------|--------|
-| `ROOT_DIR` | 管理的根目录 | 用户主目录 |
-| `SERVER_PORT` | HTTP 服务端口 | `6002` |
-| `SERVER_DEBUG` | 开启调试模式 | `false` |
-| `SERVER_USE_RELOADER` | 使用 Flask 重载器 | `false` |
+### 2. 安装 CLI 并生成密码
 
 ```bash
-# Linux/macOS
-export ROOT_DIR=/your/path
-export SERVER_PORT=6002
-
-# Windows PowerShell
-$env:ROOT_DIR="C:\your\path"
-$env:SERVER_PORT="6002"
+# 运行安装脚本（生成随机密码）
+bash install.sh
 ```
 
-### 3. 运行服务
+安装过程会：
+- 在 `~/.local/clawos` 创建数据目录
+- 生成随机密码到 `~/.local/clawos/clawos_password.json`
+- 安装 CLI 到 `/usr/local/bin/clawos`
+- 安装 systemd 用户服务
+
+### 3. 启动服务
 
 ```bash
-# 开发模式
-python app.py
+# 使用 CLI
+clawos start      # 启动服务
+clawos stop       # 停止服务
+clawos restart    # 重启服务
+clawos status     # 查看状态和密码
+clawos log        # 查看日志
+clawos password   # 查看密码
 
-# 生产模式（使用 eventlet）
-pip install eventlet
-python app.py
+# 或使用 systemd
+systemctl --user start clawos
+systemctl --user stop clawos
+systemctl --user status clawos
+systemctl --user enable clawos  # 开机自启
 ```
 
 ### 4. 访问界面
@@ -654,12 +634,7 @@ python app.py
 http://127.0.0.1:6002/
 ```
 
-### 5. 登录
-
-默认凭据（生产环境请立即修改！）：
-
-- **用户名**: `admin`
-- **密码**: `46e9b994b1cd055`
+登录密码在 `clawos status` 中查看，或查看 `~/.local/clawos/clawos_password.json`
 
 ## API 参考
 
