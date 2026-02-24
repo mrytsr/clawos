@@ -27,7 +27,7 @@ from ctrl.log_ctrl import log_bp
 from ctrl.openclaw_ctrl import openclaw_bp
 from ctrl.system_ctrl import system_bp
 from ctrl.task_ctrl import task_bp
-from ctrl.term import register_term_socketio
+from ctrl.term_ctrl import register_term_socketio
 
 app = Flask(__name__, static_folder='static', static_url_path='/static', template_folder='templates')
 app.config['SECRET_KEY'] = os.urandom(24).hex()
