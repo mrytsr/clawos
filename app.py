@@ -28,7 +28,6 @@ from ctrl.openclaw_ctrl import openclaw_bp
 from ctrl.system_ctrl import system_bp
 from ctrl.task_ctrl import task_bp
 from ctrl.term import register_term_socketio
-#from ctrl.warehouse_ctrl import warehouse_bp
 
 app = Flask(__name__, static_folder='static', static_url_path='/static', template_folder='templates')
 app.config['SECRET_KEY'] = os.urandom(24).hex()
@@ -94,7 +93,6 @@ app.register_blueprint(browser_bp)
 app.register_blueprint(edit_bp)
 app.register_blueprint(file_bp)
 app.register_blueprint(ai_eval_bp)
-#app.register_blueprint(warehouse_bp)
 register_term_socketio(socketio, terminal_root_dir=config.ROOT_DIR)
 
 

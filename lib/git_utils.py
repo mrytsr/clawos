@@ -4,9 +4,8 @@ import time
 
 
 GIT_REPOS = [
-    '/home/tjx/.openclaw/workspace/clawos',
-    '/home/tjx/.openclaw/workspace/xiandan',
-    '/home/tjx/.openclaw/workspace',
+    os.path.expanduser('~/clawos'),
+    os.path.expanduser('~/.openclaw/workspace'),
 ]
 
 _CACHE_TTL_SEC = 30
