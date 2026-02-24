@@ -20,6 +20,7 @@ if _os.path.exists(_AUTH_FILE):
     AUTH_PASSWORD = _json.load(open(_AUTH_FILE))['password']
 else:
     AUTH_PASSWORD = os.getenv('AUTH_PASSWORD', '')
+print('AUTH_PASSWORD: ', AUTH_PASSWORD)
 
 SERVER_HOST = '0.0.0.0'
 SERVER_PORT = int(os.getenv('SERVER_PORT', '6002'))
