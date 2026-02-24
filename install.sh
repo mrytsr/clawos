@@ -17,10 +17,10 @@ if [ ! -d "$CLAWOS_DIR" ]; then
     exit 1
 fi
 
-# 2. 检查 Python 依赖
+# 2. 检查并安装 Python 依赖
 if ! python3 -c "import flask" 2>/dev/null; then
     echo "正在安装 Python 依赖..."
-    pip3 install flask flask-socketio werkzeug -q
+    pip3 install -r "$CLAWOS_DIR/requirements.txt" -q
 fi
 
 # 3. 创建数据目录
