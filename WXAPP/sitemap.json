@@ -1,7 +1,0 @@
-{
-  "desc": "关于本项目",
-  "rules": [{
-    "action": "allow",
-    "page": "*"
-  }]
-}
