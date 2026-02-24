@@ -30,21 +30,20 @@ mkdir -p "$DATA_DIR"
 PASSWORD=$(openssl rand -hex 8)
 echo "{\"password\": \"$PASSWORD\"}" > "$DATA_DIR/clawos_password.json"
 
-# 加载密码的函数（install.sh 和 CLI 共用）
+# 加载密码的函数
 load_password() {
     if [ -f "$DATA_DIR/clawos_password.json" ]; then
         python3 -c "import json; print(json.load(open('$DATA_DIR/clawos_password.json'))['password'])"
     fi
 }
 
-# 5. 安装 CLI
+# 5. 安装 CLI（使用 systemd 管理）
 cat > "$BIN_FILE" << 'CLAWOS_EOF'
 #!/bin/bash
-# ClawOS CLI
+# ClawOS CLI - 使用 systemd 管理
 
 APP_DIR="$HOME/clawos"
 DATA_DIR="$HOME/.local/clawos"
-PID_FILE="$DATA_DIR/clawos.pid"
 LOG_FILE="/tmp/clawos.log"
 
 load_password() {
@@ -55,46 +54,34 @@ load_password() {
 
 case "$1" in
     start)
-        if [ -f "$PID_FILE" ] && kill -0 $(cat "$PID_FILE") 2>/dev/null; then
-            echo "已在运行 (PID: $(cat $PID_FILE))"
-            exit 0
-        fi
-        export AUTH_PASSWORD=$(load_password)
-        cd "$APP_DIR" && nohup python3 app.py >> "$LOG_FILE" 2>&1 &
-        echo $! > "$PID_FILE"
+        systemctl --user start clawos
         sleep 1
-        if kill -0 $(cat "$PID_FILE") 2>/dev/null; then
-            echo "启动成功 (PID: $(cat $PID_FILE))"
+        if systemctl --user is-active --quiet clawos; then
+            echo "启动成功"
+            echo "访问地址: http://localhost:6002"
         else
-            echo "启动失败，请检查日志: tail $LOG_FILE"
-            rm -f "$PID_FILE"
+            echo "启动失败，请检查日志: journalctl --user -u clawos -e"
             exit 1
         fi
         ;;
     stop)
-        if [ -f "$PID_FILE" ]; then
-            kill $(cat "$PID_FILE") 2>/dev/null || true
-            rm -f "$PID_FILE"
-            echo "已停止"
-        else
-            echo "未运行"
-        fi
+        systemctl --user stop clawos
+        echo "已停止"
         ;;
     restart)
-        $0 stop
-        sleep 1
-        $0 start
+        systemctl --user restart clawos
+        echo "已重启"
         ;;
     status)
         echo "=== ClawOS 状态 ==="
         echo "安装位置: $APP_DIR"
         echo "配置目录: $DATA_DIR"
-        echo "日志路径: $LOG_FILE"
+        echo "日志命令: journalctl --user -u clawos -f"
         echo "CLI 位置: $0"
         echo "访问端口: 6002"
         echo ""
-        if [ -f "$PID_FILE" ] && kill -0 $(cat "$PID_FILE") 2>/dev/null; then
-            echo "运行状态: 运行中 (PID: $(cat $PID_FILE))"
+        if systemctl --user is-active --quiet clawos; then
+            echo "运行状态: 运行中"
             echo "访问地址: http://localhost:6002"
         else
             echo "运行状态: 未运行"
@@ -103,17 +90,21 @@ case "$1" in
         echo "登录密码: $(load_password)"
         ;;
     log)
-        if [ -f "$LOG_FILE" ]; then
-            tail -f "$LOG_FILE"
-        else
-            echo "日志文件不存在: $LOG_FILE"
-        fi
+        journalctl --user -u clawos -f
+        ;;
+    enable)
+        systemctl --user enable clawos
+        echo "已启用开机自启"
+        ;;
+    disable)
+        systemctl --user disable clawos
+        echo "已禁用开机自启"
         ;;
     password)
         cat "$DATA_DIR/clawos_password.json"
         ;;
     *)
-        echo "用法: clawos {start|stop|restart|status|log|password}"
+        echo "用法: clawos {start|stop|restart|status|log|enable|disable|password}"
         exit 1
         ;;
 esac
@@ -133,20 +124,23 @@ WorkingDirectory=$CLAWOS_DIR
 ExecStart=/usr/bin/python3 $CLAWOS_DIR/app.py
 Restart=on-failure
 RestartSec=5
-StandardOutput=append:$LOG_FILE
-StandardError=append:$LOG_FILE
+StandardOutput=journal
+StandardError=journal
 
 [Install]
 WantedBy=default.target
 EOF
 
-# 7. 启用服务
-systemctl --user daemon-reload 2>/dev/null || true
-systemctl --user enable clawos.service 2>/dev/null || true
+# 7. 重新加载并启用服务
+systemctl --user daemon-reload
+systemctl --user enable clawos.service
+
+# 8. 启动服务
+systemctl --user start clawos
 
 echo ""
 echo "=== 安装完成 ==="
 echo ""
 
-# 8. 显示状态（包含密码）
+# 9. 显示状态（包含密码）
 clawos status

@@ -239,7 +239,7 @@ clawos start      # Start service
 clawos stop       # Stop service
 clawos restart    # Restart service
 clawos status     # Show status & password
-clawos log        # View logs
+clawos log        # journalctl --user -u clawos -f View logs
 clawos password   # Show password
 
 # Or using systemd
@@ -618,7 +618,7 @@ clawos start      # 启动服务
 clawos stop       # 停止服务
 clawos restart    # 重启服务
 clawos status     # 查看状态和密码
-clawos log        # 查看日志
+clawos log        # journalctl --user -u clawos -f 查看日志
 clawos password   # 查看密码
 
 # 或使用 systemd
