@@ -209,65 +209,50 @@ Click to view full size.
 
 ## Installation
 
-### Prerequisites
+### Requirements
+
+- Linux with systemd user services (`systemctl --user`)
+- `python3`, `pip3`, `git`, `openssl`
+
+### 1. Clone to the expected path
+
+The installer assumes the source code is located at `~/clawos`.
 
 ```bash
-# Python 3.8+
-python --version  # Must be 3.8 or higher
-
-# Node.js (optional, for frontend tests)
-node --version
+git clone https://github.com/mrytsr/clawos.git ~/clawos
+cd ~/clawos
 ```
 
-### 1. Install Dependencies
+### 2. Run installer
 
 ```bash
-# Clone the repository
-git clone https://github.com/mrytsr/clawos.git
-cd clawos
-
-# Install Python dependencies
-pip install -r requirements.txt
-```
-
-### 2. Install CLI & Generate Password
-
-```bash
-# Run installation script (generates random password)
 bash install.sh
 ```
 
-This will:
-- Create data directory at `~/.local/clawos`
-- Generate random password to `~/.local/clawos/clawos_password.json`
-- Install CLI to `/usr/local/bin/clawos`
-- Install systemd user service
+What the script does:
 
-### 3. Start Service
+- Installs Python dependencies when needed (`pip3 install -r ~/clawos/requirements.txt` if Flask is missing)
+- Creates data directory: `~/.local/clawos`
+- Generates random password: `~/.local/clawos/clawos_password.json`
+- Installs CLI to: `/usr/local/bin/clawos`
+- Writes user unit to: `~/.config/systemd/user/clawos.service`
+- Enables and starts service via: `systemctl --user`
+
+### 3. Access & manage
+
+- Web UI: `http://127.0.0.1:6002/`
+- Password: `clawos status` or `cat ~/.local/clawos/clawos_password.json`
+- Logs: `journalctl --user -u clawos -f`
 
 ```bash
-# Using CLI
-clawos start      # Start service
-clawos stop       # Stop service
-clawos restart    # Restart service
-clawos status     # Show status & password
-clawos log        # journalctl --user -u clawos -f View logs
-clawos password   # Show password
-
-# Or using systemd
-systemctl --user start clawos
-systemctl --user stop clawos
-systemctl --user status clawos
-systemctl --user enable clawos  # Enable on boot
+clawos start|stop|restart|status|log|enable|disable|password
 ```
 
-### 4. Access the Interface
+#### Notes
 
-```
-http://127.0.0.1:6002/
-```
-
-Login password is shown in `clawos status` or stored in `~/.local/clawos/clawos_password.json`
+- If you cannot write to `/usr/local/bin`, change `BIN_FILE` in `install.sh` to `~/.local/bin/clawos` (and ensure `~/.local/bin` is in `PATH`), then rerun.
+- On headless servers, user services may stop after logout; enable linger if you need it:
+  `loginctl enable-linger $USER`
 
 ---
 
@@ -590,63 +575,48 @@ MIT License - See LICENSE file for details.
 
 ### 环境要求
 
-```bash
-# Python 3.8+
-python --version  # 必须 3.8 或更高版本
+- Linux 且支持 systemd 用户服务（`systemctl --user`）
+- `python3`、`pip3`、`git`、`openssl`
 
-# Node.js (可选，用于前端测试)
-node --version
+### 1. 按脚本约定路径克隆
+
+安装脚本默认源码目录为 `~/clawos`。
+
+```bash
+git clone https://github.com/mrytsr/clawos.git ~/clawos
+cd ~/clawos
 ```
 
-### 1. 安装依赖
+### 2. 运行安装脚本
 
 ```bash
-# 克隆仓库
-git clone https://github.com/mrytsr/clawos.git
-cd clawos
-
-# 安装 Python 依赖
-pip install -r requirements.txt
-```
-
-### 2. 安装 CLI 并生成密码
-
-```bash
-# 运行安装脚本（生成随机密码）
 bash install.sh
 ```
 
-安装过程会：
-- 在 `~/.local/clawos` 创建数据目录
-- 生成随机密码到 `~/.local/clawos/clawos_password.json`
-- 安装 CLI 到 `/usr/local/bin/clawos`
-- 安装 systemd 用户服务
+脚本会自动：
 
-### 3. 启动服务
+- 在需要时安装 Python 依赖（若缺少 Flask，则执行 `pip3 install -r ~/clawos/requirements.txt`）
+- 创建数据目录：`~/.local/clawos`
+- 生成随机密码：`~/.local/clawos/clawos_password.json`
+- 安装 CLI 到：`/usr/local/bin/clawos`
+- 写入 systemd 用户服务：`~/.config/systemd/user/clawos.service`
+- 通过 `systemctl --user` 启用并启动服务
+
+### 3. 访问与管理
+
+- Web 地址：`http://127.0.0.1:6002/`
+- 密码查看：`clawos status` 或 `cat ~/.local/clawos/clawos_password.json`
+- 日志查看：`journalctl --user -u clawos -f`
 
 ```bash
-# 使用 CLI
-clawos start      # 启动服务
-clawos stop       # 停止服务
-clawos restart    # 重启服务
-clawos status     # 查看状态和密码
-clawos log        # journalctl --user -u clawos -f 查看日志
-clawos password   # 查看密码
-
-# 或使用 systemd
-systemctl --user start clawos
-systemctl --user stop clawos
-systemctl --user status clawos
-systemctl --user enable clawos  # 开机自启
+clawos start|stop|restart|status|log|enable|disable|password
 ```
 
-### 4. 访问界面
+#### 注意
 
-```
-http://127.0.0.1:6002/
-```
-
-登录密码在 `clawos status` 中查看，或查看 `~/.local/clawos/clawos_password.json`
+- 如果 `/usr/local/bin` 无写权限，可把 `install.sh` 里的 `BIN_FILE` 改为 `~/.local/bin/clawos`（并确保 `~/.local/bin` 在 `PATH` 中），再重新运行脚本。
+- 无桌面/无登录常驻的服务器上，用户服务可能在退出登录后停止；如有需要可启用 linger：
+  `loginctl enable-linger $USER`
 
 ## API 参考
 
