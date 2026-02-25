@@ -932,8 +932,110 @@ function renderProgressBar(current, total, unit) {
 
 window.openGpuModal = function() { Drawer.open('gpuModal'); loadGpuInfo(); };
 
+function __serviceButtons(serviceKey) {
+    var prefix = String(serviceKey || '');
+    return {
+        install: document.getElementById(prefix + 'InstallBtn'),
+        reinstall: document.getElementById(prefix + 'ReinstallBtn'),
+        uninstall: document.getElementById(prefix + 'UninstallBtn')
+    };
+}
+
+function __renderServiceInstallButtons(serviceKey, installed) {
+    var btns = __serviceButtons(serviceKey);
+    if (!btns.install || !btns.reinstall || !btns.uninstall) return;
+    btns.install.style.display = installed ? 'none' : 'inline-flex';
+    btns.reinstall.style.display = installed ? 'inline-flex' : 'none';
+    btns.uninstall.style.display = installed ? 'inline-flex' : 'none';
+}
+
+function __setServiceButtonsDisabled(serviceKey, disabled) {
+    var btns = __serviceButtons(serviceKey);
+    Object.keys(btns).forEach(function(k) {
+        var el = btns[k];
+        if (!el) return;
+        el.disabled = !!disabled;
+        el.style.opacity = disabled ? '0.6' : '1';
+        el.style.cursor = disabled ? 'not-allowed' : 'pointer';
+    });
+}
+
+function __serviceInstallUrl(serviceKey, action) {
+    var k = String(serviceKey || '');
+    var a = String(action || '');
+    if (k === 'ollama') return '/api/ollama/' + a;
+    if (k === 'openclaw') return '/api/openclaw/' + a;
+    if (k === 'clash') return '/api/clash/' + a;
+    if (k === 'frp') return '/api/frp/' + a;
+    return '';
+}
+
+window.refreshServiceInstallState = function(serviceKey) {
+    var url = __serviceInstallUrl(serviceKey, 'install_state');
+    if (!url) return Promise.resolve(null);
+    __setServiceButtonsDisabled(serviceKey, true);
+    return fetch(url, { headers: authHeaders() })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            var payload = apiData(data);
+            var installed = !!(payload && payload.installed);
+            __renderServiceInstallButtons(serviceKey, installed);
+            return payload;
+        })
+        .catch(function() {
+            __renderServiceInstallButtons(serviceKey, false);
+            return null;
+        })
+        .finally(function() {
+            __setServiceButtonsDisabled(serviceKey, false);
+        });
+};
+
+window.serviceInstallAction = function(serviceKey, action) {
+    var url = __serviceInstallUrl(serviceKey, action);
+    if (!url) return;
+    var actionText = action === 'install' ? '安装' : action === 'reinstall' ? '重新安装' : '卸载';
+    SwalConfirm('确认操作', '确定要' + actionText + '吗？', function() {
+        __setServiceButtonsDisabled(serviceKey, true);
+        __postJson(url, {})
+            .then(function(resp) {
+                if (!resp || !resp.success) {
+                    SwalAlert('操作失败', (resp && (resp.message || (resp.error && resp.error.message))) || '未知错误', 'error');
+                    return;
+                }
+                var taskId = (resp.data && resp.data.taskId) || resp.taskId;
+                if (taskId && window.TaskPoller && typeof window.TaskPoller.start === 'function') {
+                    showToast(actionText + '已开始…', 'info');
+                    if (window.__activeTaskPoller && typeof window.__activeTaskPoller.cancel === 'function') {
+                        window.__activeTaskPoller.cancel();
+                    }
+                    window.__activeTaskPoller = window.TaskPoller.start(taskId, { intervalMs: 1000, timeoutMs: 10 * 60 * 1000 });
+                    window.__activeTaskPoller.promise.then(function(res) {
+                        if (res && res.ok) showToast(actionText + '成功', 'success');
+                        else showToast(actionText + '失败', 'error');
+                        window.refreshServiceInstallState(serviceKey);
+                        if (serviceKey === 'ollama') window.loadOllamaModels();
+                        if (serviceKey === 'openclaw') window.loadOpenclawConfig();
+                        if (serviceKey === 'clash') window.loadClashConfigEnhanced();
+                        if (serviceKey === 'frp') window.loadFrpConfig();
+                    });
+                    return;
+                }
+                showToast(actionText + '完成', 'success');
+                window.refreshServiceInstallState(serviceKey);
+            })
+            .catch(function(err) {
+                showToast('请求失败: ' + err.message, 'error');
+            })
+            .finally(function() {
+                __setServiceButtonsDisabled(serviceKey, false);
+            });
+    }, 'warning');
+};
+
 // Ollama模型
 window.loadOllamaModels = function() {
+    window.refreshServiceInstallState('ollama');
     const container = document.getElementById('ollamaModelsContainer');
     if (container) container.innerHTML = '<div style="text-align:center;padding:40px;color:#666;">🔄 加载中...</div>';
     fetch('/api/ollama/models', { headers: authHeaders() })
@@ -972,6 +1074,7 @@ window.openOllamaModal = function() { Drawer.open('ollamaModal'); loadOllamaMode
 
 // OpenClaw配置
 window.loadOpenclawConfig = function() {
+    window.refreshServiceInstallState('openclaw');
     const container = document.getElementById('openclawConfigContainer');
     if (container) container.innerHTML = '<div style="text-align:center;padding:40px;color:#666;">🔄 加载中...</div>';
     
@@ -1223,6 +1326,7 @@ window.closeClashModal = function() { Drawer.close('clashModal'); };
 
 // FRP管理
 window.loadFrpConfig = function() {
+    window.refreshServiceInstallState('frp');
     const container = document.getElementById('frpContainer');
     if (!container) return;
     container.innerHTML = '<div style="text-align:center;padding:40px;color:#666;">🔄 加载中...</div>';
@@ -1464,6 +1568,7 @@ window.openFrpProxyDrawer = function() {
 
 // ============ Enhanced Clash Management ============
 window.loadClashConfigEnhanced = function() {
+    window.refreshServiceInstallState('clash');
     const container = document.getElementById('clashContainer');
     if (!container) return;
     container.innerHTML = '<div style="text-align:center;padding:40px;color:#666;">🔄 加载中...</div>';

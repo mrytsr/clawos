@@ -2,13 +2,16 @@ import json
 import os
 import re
 import subprocess
+import shutil
 
 
 def detect_package_manager():
     """检测系统包管理器类型"""
-    if subprocess.run(['which', 'dnf'], capture_output=True).returncode == 0:
+    if os.name == 'nt':
+        return 'unknown'
+    if shutil.which('dnf'):
         return 'dnf'
-    elif subprocess.run(['which', 'apt'], capture_output=True).returncode == 0:
+    elif shutil.which('apt'):
         return 'apt'
     return 'unknown'
 
@@ -111,6 +114,11 @@ def uninstall_pip_package(package):
 
 def find_npm():
     """查找 npm 命令路径"""
+    npm = shutil.which('npm')
+    if npm:
+        return npm
+    if os.name == 'nt':
+        return None
     nvm_paths = [
         '/root/.nvm/versions/node/v22.22.0/bin/npm',
         '/root/.nvm/versions/node/v20.10.0/bin/npm',
@@ -121,9 +129,6 @@ def find_npm():
     for path in nvm_paths:
         if os.path.exists(path):
             return path
-    result = subprocess.run(['which', 'npm'], capture_output=True, text=True)
-    if result.returncode == 0:
-        return result.stdout.strip()
     return None
 
 

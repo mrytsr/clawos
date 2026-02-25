@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>数据库管理</title>
     <!-- Tabulator 样式 - 匹配数据库页面 -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/tabulator/5.5.0/css/tabulator.min.css" rel="stylesheet">
+    <link href="/static/lib/tabulator.min.css" rel="stylesheet">
     <style>
         #resultsTable {
             width: 100%;
@@ -98,7 +98,7 @@
             background: #16213e !important;
         }
     </style>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/tabulator/5.5.0/js/tabulator.min.js"></script>
+    <script src="/static/lib/tabulator.min.js"></script>
     <script src="/static/js/clipboard.min.js"></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -272,19 +272,57 @@
         .ai-prompt-row {
             display: flex; gap: 8px; padding: 10px 0 0; align-items: center;
         }
+        .ai-prompt-combo {
+            position: relative;
+            flex: 1;
+            min-width: 0;
+        }
         .ai-prompt-input {
             flex: 1; padding: 10px 12px; background: #1a1a2e; border: 1px solid #0f3460;
             border-radius: 6px; color: #fff; font-size: 13px; outline: none;
             transition: border-color 0.2s;
         }
+        .ai-prompt-combo .ai-prompt-input {
+            width: 100%;
+            padding-right: 46px;
+        }
         .ai-prompt-input:focus { border-color: #667eea; }
         .ai-prompt-input::placeholder { color: #666; }
+        .ai-combo-toggle {
+            position: absolute;
+            right: 7px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            border: 1px solid #0f3460;
+            background: #0f3460;
+            color: #ccc;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s, transform 0.2s, opacity 0.2s;
+        }
+        .ai-combo-toggle:hover { opacity: 0.95; }
+        .ai-combo-toggle:active { transform: translateY(-50%) scale(0.98); }
+        .ai-combo-toggle:focus-visible { outline: 2px solid rgba(102, 126, 234, 0.9); outline-offset: 2px; }
         .btn-ai-generate {
             background: linear-gradient(135deg, #667eea, #764ba2);
             padding: 10px 20px; border-radius: 6px; border: none;
             color: #fff; cursor: pointer; font-size: 13px; font-weight: 500;
             white-space: nowrap; transition: transform 0.2s, opacity 0.2s;
         }
+        .btn-ai-generate.icon {
+            width: 44px;
+            height: 44px;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .btn-ai-generate.icon svg { width: 18px; height: 18px; }
         .btn-ai-generate:hover { transform: scale(1.02); opacity: 0.95; }
         .btn-ai-generate:active { transform: scale(0.98); }
         .btn-ai-generate:disabled {
@@ -466,13 +504,18 @@
                     <button class="secondary" onclick="sqlHistoryPrev()" title="上一条">⏮</button>
                     <button class="secondary" onclick="sqlHistoryNext()" title="下一条">⏭</button>
                 </div>
-                <div class="ai-prompt-row" style="position:relative;">
-                    <input type="text" id="aiPromptInput" class="ai-prompt-input"
-                           placeholder="✨ 输入自然语言，让 AI 生成/修改 SQL...">
-                    <button id="btnAiHistory" type="button" class="btn-ai-generate" style="padding:8px 12px;background:#0f3460;margin-left:8px;" onclick="toggleAiHistory()">📜</button>
-                    <div class="ai-history-dropdown" id="aiHistoryDropdown"></div>
-                    <button id="btnAiGenerate" class="btn-ai-generate" onclick="generateSqlFromPrompt()">
-                        生成SQL
+                <div class="ai-prompt-row">
+                    <div class="ai-prompt-combo" id="aiPromptCombo">
+                        <input type="text" id="aiPromptInput" class="ai-prompt-input"
+                               placeholder="✨ 输入自然语言，让 AI 生成/修改 SQL...">
+                        <button id="btnAiHistory" type="button" class="ai-combo-toggle" onclick="toggleAiHistory()" aria-label="历史">▾</button>
+                        <div class="ai-history-dropdown" id="aiHistoryDropdown"></div>
+                    </div>
+                    <button id="btnAiGenerate" class="btn-ai-generate icon" onclick="generateSqlFromPrompt()" title="AI 生成 SQL" aria-label="AI 生成 SQL">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M12 2l1.6 5.4L19 9l-5.4 1.6L12 16l-1.6-5.4L5 9l5.4-1.6L12 2z"></path>
+                            <path d="M19 13l.8 2.7 2.2.7-2.2.7L19 20l-.8-2.6-2.2-.7 2.2-.7L19 13z"></path>
+                        </svg>
                     </button>
                 </div>
             </div>
@@ -1433,8 +1476,8 @@ function selectAiHistory(prompt, sql) {
 // 点击其他地方关闭下拉
 document.addEventListener('click', function(e) {
     const dropdown = document.getElementById('aiHistoryDropdown');
-    const btn = document.getElementById('btnAiHistory');
-    if (dropdown && btn && !dropdown.contains(e.target) && !btn.contains(e.target)) {
+    const combo = document.getElementById('aiPromptCombo');
+    if (dropdown && combo && !combo.contains(e.target)) {
         dropdown.classList.remove('show');
     }
 });
@@ -1451,7 +1494,7 @@ async function generateSqlFromPrompt() {
             const btn = $$('btnAiGenerate');
             const originalText = btn.innerHTML;
             btn.disabled = true;
-            btn.innerHTML = '<span class="ai-loading"></span> 生成中...';
+            btn.innerHTML = '<span class="ai-loading"></span>';
             
             try {
                 // 获取当前连接的数据库信息

@@ -5,19 +5,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>clawOS</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/default.min.css">
-    <link rel="stylesheet" href="https://unpkg.com/xterm@5.3.0/css/xterm.css" />
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <link rel="stylesheet" href="/static/lib/highlight-default.min.css">
+    <link rel="stylesheet" href="/static/lib/xterm.css" />
+    <script src="/static/lib/highlight.min.js"></script>
+    <script src="/static/lib/xlsx.full.min.js"></script>
     <script src="/static/js/clipboard.min.js"></script>
-    <script src="https://unpkg.com/xterm@5.3.0/lib/xterm.js"></script>
-    <script src="https://unpkg.com/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.js"></script>
-    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
-    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+    <script src="/static/lib/xterm.js"></script>
+    <script src="/static/lib/xterm-addon-fit.js"></script>
+    <script src="/static/lib/socket.io.min.js"></script>
+    <script src="/static/lib/vue.global.prod.js"></script>
     <link rel="stylesheet" href="/static/css/style.css">
     <link rel="stylesheet" href="/static/lib/sweetalert2.min.css">
     <script src="/static/lib/sweetalert2.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js"></script>
+    <script src="/static/lib/echarts.min.js"></script>
     <!-- 全局函数预加载（必须在最前） -->
     <script src="/static/js/globals.js"></script>
     <script src="/static/js/file_clipboard.js"></script>
@@ -1669,12 +1669,12 @@
         }
     </style>
 
-    <!-- 系统设置抽屉 -->
+    <!-- clawOS配置抽屉 -->
     <div id="configBackdrop" class="drawer-backdrop" onclick="closeConfigModal()"></div>
     <div id="configModal" class="drawer">
         <div class="drawer-handle"></div>
         <div class="drawer-header">
-            <div class="drawer-title">⚙️ 系统设置</div>
+            <div class="drawer-title">⚙️ clawOS配置</div>
             <button class="drawer-close-btn" onclick="closeConfigModal()">&times;</button>
         </div>
         <div class="drawer-content" style="padding: 16px;">
@@ -1704,6 +1704,12 @@
                     <div style="color: #666; font-size: 13px;">加载中...</div>
                 </div>
                 <button class="modal-btn modal-btn-confirm" style="margin-top: 12px; width: 100%;" onclick="window.open('/email-config', '_blank')">管理邮件配置</button>
+            </div>
+
+            <div class="config-section" style="margin-top: 20px;">
+                <label class="config-label">✨ AI 模型配置</label>
+                <div style="margin-top: 8px; color: #666; font-size: 13px;">配置 provider、模型与评测</div>
+                <button class="modal-btn modal-btn-confirm" style="margin-top: 12px; width: 100%;" onclick="window.open('/ai/model-config', '_blank')">打开 AI 模型配置</button>
             </div>
             
             <div class="config-section" style="margin-top: 20px;">
@@ -1971,6 +1977,9 @@
         <div class="drawer-header">
             <div class="drawer-title">🦙 Ollama 模型</div>
             <div style="display:flex;gap:8px;">
+                <button id="ollamaInstallBtn" style="display:none;background:#2da44e;border:none;border-radius:6px;color:#fff;padding:6px 10px;cursor:pointer;font-size:13px;" onclick="serviceInstallAction('ollama','install')">安装</button>
+                <button id="ollamaReinstallBtn" style="display:none;background:#0969da;border:none;border-radius:6px;color:#fff;padding:6px 10px;cursor:pointer;font-size:13px;" onclick="serviceInstallAction('ollama','reinstall')">重新安装</button>
+                <button id="ollamaUninstallBtn" style="display:none;background:#cf222e;border:none;border-radius:6px;color:#fff;padding:6px 10px;cursor:pointer;font-size:13px;" onclick="serviceInstallAction('ollama','uninstall')">卸载</button>
                 <button style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px;" onclick="loadOllamaModels()" title="刷新">🔄</button>
                 <button class="drawer-close-btn" onclick="closeOllamaModal()">&times;</button>
             </div>
@@ -1987,6 +1996,9 @@
         <div class="drawer-header">
             <div class="drawer-title">⚙️ OpenClaw 配置</div>
             <div style="display:flex;gap:8px;">
+                <button id="openclawInstallBtn" style="display:none;background:#2da44e;border:none;border-radius:6px;color:#fff;padding:6px 10px;cursor:pointer;font-size:13px;" onclick="serviceInstallAction('openclaw','install')">安装</button>
+                <button id="openclawReinstallBtn" style="display:none;background:#0969da;border:none;border-radius:6px;color:#fff;padding:6px 10px;cursor:pointer;font-size:13px;" onclick="serviceInstallAction('openclaw','reinstall')">重新安装</button>
+                <button id="openclawUninstallBtn" style="display:none;background:#cf222e;border:none;border-radius:6px;color:#fff;padding:6px 10px;cursor:pointer;font-size:13px;" onclick="serviceInstallAction('openclaw','uninstall')">卸载</button>
                 <button style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px;" onclick="loadOpenclawConfig()" title="刷新">🔄</button>
                 <button class="drawer-close-btn" onclick="closeOpenclawModal()">&times;</button>
             </div>
@@ -2003,6 +2015,9 @@
         <div class="drawer-header">
             <div class="drawer-title">🌐 Clash 代理</div>
             <div style="display:flex;gap:8px;">
+                <button id="clashInstallBtn" style="display:none;background:#2da44e;border:none;border-radius:6px;color:#fff;padding:6px 10px;cursor:pointer;font-size:13px;" onclick="serviceInstallAction('clash','install')">安装</button>
+                <button id="clashReinstallBtn" style="display:none;background:#0969da;border:none;border-radius:6px;color:#fff;padding:6px 10px;cursor:pointer;font-size:13px;" onclick="serviceInstallAction('clash','reinstall')">重新安装</button>
+                <button id="clashUninstallBtn" style="display:none;background:#cf222e;border:none;border-radius:6px;color:#fff;padding:6px 10px;cursor:pointer;font-size:13px;" onclick="serviceInstallAction('clash','uninstall')">卸载</button>
                 <button style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px;" onclick="loadClashConfigEnhanced()" title="刷新">🔄</button>
                 <button class="drawer-close-btn" onclick="closeClashModal()">&times;</button>
             </div>
@@ -2019,6 +2034,9 @@
         <div class="drawer-header">
             <div class="drawer-title">🔗 FRP 内网穿透</div>
             <div style="display:flex;gap:8px;">
+                <button id="frpInstallBtn" style="display:none;background:#2da44e;border:none;border-radius:6px;color:#fff;padding:6px 10px;cursor:pointer;font-size:13px;" onclick="serviceInstallAction('frp','install')">安装</button>
+                <button id="frpReinstallBtn" style="display:none;background:#0969da;border:none;border-radius:6px;color:#fff;padding:6px 10px;cursor:pointer;font-size:13px;" onclick="serviceInstallAction('frp','reinstall')">重新安装</button>
+                <button id="frpUninstallBtn" style="display:none;background:#cf222e;border:none;border-radius:6px;color:#fff;padding:6px 10px;cursor:pointer;font-size:13px;" onclick="serviceInstallAction('frp','uninstall')">卸载</button>
                 <button style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px;" onclick="loadFrpConfig()" title="刷新">🔄</button>
                 <button class="drawer-close-btn" onclick="closeFrpModal()">&times;</button>
             </div>
@@ -2474,7 +2492,7 @@
         <button class="dock-btn" onclick="handleMainMenu('bot')" title="对话">🤖</button>
         <button class="dock-btn" onclick="handleMainMenu('terminal')" title="终端">🖥️</button>
         <button class="dock-btn" onclick="window.open('/db/manager', '_blank')" title="数据库管理">🗄️</button>
-        <button class="dock-btn" onclick="handleMainMenu('system')" title="系统设置">⚙️</button>
+        <button class="dock-btn" onclick="handleMainMenu('system')" title="clawOS配置">⚙️</button>
     </div>
     
     <style>

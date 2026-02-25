@@ -400,48 +400,6 @@ def api_gpu_info():
     except Exception as e:
         return api_error(str(e), status=500)
 
-@system_bp.route('/api/ollama/models')
-def api_ollama_models():
-    """获取Ollama模型列表"""
-    try:
-        result = subprocess.run(
-            ['curl', '-s', 'http://localhost:11434/api/tags'],
-            capture_output=True, text=True, timeout=5
-        )
-        if result.returncode != 0:
-            # 尝试ollama list命令
-            result = subprocess.run(
-                ['ollama', 'list'],
-                capture_output=True, text=True, timeout=10
-            )
-            if result.returncode == 0:
-                models = []
-                for line in result.stdout.strip().split('\n'):
-                    if line:
-                        parts = line.split()
-                        if parts:
-                            model_name = parts[0]
-                            size = parts[1] if len(parts) > 1 else '?'
-                            models.append({
-                                'name': model_name,
-                                'size': size
-                            })
-                return api_ok({'models': models})
-            return api_error('无法获取模型列表')
-        
-        data = json.loads(result.stdout)
-        models = []
-        for m in data.get('models', []):
-            models.append({
-                'name': m.get('name', ''),
-                'size': m.get('size', 0),
-                'modified': m.get('modified', '')
-            })
-        return api_ok({'models': models})
-    except Exception as e:
-        return api_error(str(e), status=500)
-
-
 @system_bp.route('/api/system/exec', methods=['POST'])
 def api_system_exec():
     """执行系统命令（仅限用户态服务管理）"""
@@ -586,6 +544,13 @@ def api_network_connections():
 def api_users_list():
     """获取用户列表"""
     try:
+        if os.name == 'nt':
+            import getpass
+            name = (getpass.getuser() or os.environ.get('USERNAME') or '').strip() or 'unknown'
+            home = os.path.expanduser('~')
+            shell = os.environ.get('COMSPEC') or ''
+            return api_ok({'users': [{'name': name, 'uid': None, 'gid': None, 'home': home, 'shell': shell}]})
+
         import pwd
         users = []
         for entry in pwd.getpwall():
@@ -605,6 +570,8 @@ def api_users_list():
 def api_users_groups():
     """获取用户组列表"""
     try:
+        if os.name == 'nt':
+            return api_ok({'groups': []})
         import grp
         groups = []
         for entry in grp.getgrall():
@@ -702,6 +669,13 @@ def api_system_status():
 def api_users_me():
     """获取当前用户信息"""
     try:
+        if os.name == 'nt':
+            import getpass
+            name = (getpass.getuser() or os.environ.get('USERNAME') or '').strip() or 'unknown'
+            home = os.path.expanduser('~')
+            shell = os.environ.get('COMSPEC') or ''
+            return api_ok({'name': name, 'uid': None, 'gid': None, 'home': home, 'shell': shell})
+
         import pwd
         uid = os.getuid()
         entry = pwd.getpwuid(uid)

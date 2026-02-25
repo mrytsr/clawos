@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ filename }} - 查看器</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css">
+    <link rel="stylesheet" href="/static/lib/codemirror/codemirror.min.css">
+    <link rel="stylesheet" href="/static/lib/codemirror/theme/dracula.min.css">
     <style>
         /* 覆盖 CDN 字体大小 - 强制最高优先级 */
         .CodeMirror,
@@ -42,8 +42,8 @@
             font-size: 7px !important;
         }
     </style>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/dialog/dialog.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/foldgutter.min.css">
+    <link rel="stylesheet" href="/static/lib/codemirror/addon/dialog/dialog.min.css">
+    <link rel="stylesheet" href="/static/lib/codemirror/addon/fold/foldgutter.min.css">
     <style>
         body { margin: 0; padding: 0; background: #282a36; }
         .header {
@@ -84,17 +84,17 @@
     {% endif %}
     <textarea id="code">{{ content }}</textarea>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/mode/loadmode.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/dialog/dialog.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/search/searchcursor.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/search/search.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/foldcode.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/foldgutter.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/brace-fold.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/comment-fold.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/xml-fold.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/markdown-fold.min.js"></script>
+    <script src="/static/lib/codemirror/codemirror.min.js"></script>
+    <script src="/static/lib/codemirror/addon/mode/loadmode.min.js"></script>
+    <script src="/static/lib/codemirror/addon/dialog/dialog.min.js"></script>
+    <script src="/static/lib/codemirror/addon/search/searchcursor.min.js"></script>
+    <script src="/static/lib/codemirror/addon/search/search.min.js"></script>
+    <script src="/static/lib/codemirror/addon/fold/foldcode.min.js"></script>
+    <script src="/static/lib/codemirror/addon/fold/foldgutter.min.js"></script>
+    <script src="/static/lib/codemirror/addon/fold/brace-fold.min.js"></script>
+    <script src="/static/lib/codemirror/addon/fold/comment-fold.min.js"></script>
+    <script src="/static/lib/codemirror/addon/fold/xml-fold.min.js"></script>
+    <script src="/static/lib/codemirror/addon/fold/markdown-fold.min.js"></script>
     <script>
         const filePath = '{{ file_path }}';
         const extension = '{{ extension }}'.toLowerCase();
@@ -124,7 +124,7 @@
         }
         
         // 初始化 CodeMirror
-        CodeMirror.modeURL = 'https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/%N/%N.min.js';
+        CodeMirror.modeURL = '/static/lib/codemirror/mode/%N/%N.min.js';
         const mode = getMode(extension);
         
         // 强制设置编辑器字体大小

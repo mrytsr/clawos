@@ -1,15 +1,102 @@
 import os
 import re
 import subprocess
+import tarfile
+import tempfile
+import platform
 
 from flask import Blueprint, request
 
 from ctrl import api_error, api_ok
+from ctrl.task_ctrl import create_task, update_task
 from lib import systemd_utils
+import requests
 
 
 frp_bp = Blueprint('frp', __name__)
 
+
+def _arch_linux_name():
+    m = (platform.machine() or '').lower()
+    if m in ('x86_64', 'amd64'):
+        return 'amd64'
+    if m in ('aarch64', 'arm64'):
+        return 'arm64'
+    if m.startswith('armv7'):
+        return 'arm'
+    if m in ('i386', 'i686', 'x86'):
+        return '386'
+    return 'amd64'
+
+
+def _run_shell(task_id, cmd: str, timeout=None):
+    update_task(task_id, status='running', message=cmd)
+    r = subprocess.run(['bash', '-lc', cmd], capture_output=True, text=True, timeout=timeout)
+    if r.returncode != 0:
+        err = (r.stderr or r.stdout or '').strip()
+        raise RuntimeError(err or ('command failed: ' + cmd))
+    return r.stdout
+
+
+def _frp_install_state():
+    bin_path = '/usr/local/frp/frpc'
+    installed = os.path.exists(bin_path) or _systemctl_user_show('frpc.service').get('available')
+    return {'installed': bool(installed), 'bin_path': bin_path}
+
+
+@frp_bp.route('/api/frp/install_state')
+def api_frp_install_state():
+    return api_ok(_frp_install_state())
+
+
+def _ensure_frpc_service(task_id):
+    unit_dir = os.path.expanduser('~/.config/systemd/user')
+    os.makedirs(unit_dir, exist_ok=True)
+    unit_path = os.path.join(unit_dir, 'frpc.service')
+    content = '\n'.join([
+        '[Unit]',
+        'Description=FRP Client (frpc)',
+        'After=network.target',
+        '',
+        '[Service]',
+        'Type=simple',
+        'ExecStart=/usr/local/frp/frpc -c /usr/local/frp/frpc.toml',
+        'Restart=on-failure',
+        'RestartSec=2',
+        '',
+        '[Install]',
+        'WantedBy=default.target',
+        '',
+    ])
+    with open(unit_path, 'w', encoding='utf-8') as f:
+        f.write(content)
+    _run_shell(task_id, 'systemctl --user daemon-reload', timeout=20)
+    _run_shell(task_id, 'systemctl --user enable frpc.service', timeout=20)
+    _run_shell(task_id, 'systemctl --user restart frpc.service', timeout=30)
+
+
+def _ensure_frpc_config():
+    cfg_path = '/usr/local/frp/frpc.toml'
+    os.makedirs('/usr/local/frp', exist_ok=True)
+    if os.path.exists(cfg_path):
+        return
+    content = '\n'.join([
+        'serverAddr = "your-frp-server"',
+        'serverPort = 7000',
+        '',
+        'auth.method = "token"',
+        'auth.token = "change-me"',
+        '',
+        '[[proxies]]',
+        'name = "ssh"',
+        'type = "tcp"',
+        'localIP = "127.0.0.1"',
+        'localPort = 22',
+        'remotePort = 6002',
+        '',
+    ])
+    with open(cfg_path, 'w', encoding='utf-8') as f:
+        f.write(content)
 
 def _systemctl_user_show(unit: str):
     try:
@@ -178,3 +265,163 @@ def api_frp_control():
     if isinstance(result, dict):
         message = result.get('message')
     return api_error(message or 'Error', status=500)
+
+
+@frp_bp.route('/api/frp/install', methods=['POST'])
+def api_frp_install():
+    def _install(task_id, skip_if_installed: bool):
+        state = _frp_install_state()
+        if skip_if_installed and state.get('installed'):
+            return
+
+        update_task(task_id, status='running', message='fetching latest frp release')
+        resp = requests.get('https://api.github.com/repos/fatedier/frp/releases/latest', timeout=15)
+        resp.raise_for_status()
+        data = resp.json() or {}
+        tag = (data.get('tag_name') or '').strip()
+        ver = tag[1:] if tag.startswith('v') else tag
+        if not ver:
+            raise RuntimeError('failed to detect frp version')
+        arch = _arch_linux_name()
+        filename = f'frp_{ver}_linux_{arch}.tar.gz'
+        url = f'https://github.com/fatedier/frp/releases/download/{tag}/{filename}'
+
+        update_task(task_id, status='running', message='downloading ' + filename)
+        with requests.get(url, stream=True, timeout=60) as r:
+            r.raise_for_status()
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.tar.gz') as tf:
+                for chunk in r.iter_content(chunk_size=1024 * 256):
+                    if chunk:
+                        tf.write(chunk)
+                tar_path = tf.name
+
+        update_task(task_id, status='running', message='extracting ' + filename)
+        try:
+            with tarfile.open(tar_path, 'r:gz') as tar:
+                members = tar.getmembers()
+                frpc_member = None
+                for m in members:
+                    base = os.path.basename(m.name)
+                    if base == 'frpc' and m.isfile():
+                        frpc_member = m
+                        break
+                if not frpc_member:
+                    raise RuntimeError('frpc not found in archive')
+                os.makedirs('/usr/local/frp', exist_ok=True)
+                extracted = tar.extractfile(frpc_member)
+                if not extracted:
+                    raise RuntimeError('extract frpc failed')
+                out_path = '/usr/local/frp/frpc'
+                with open(out_path, 'wb') as f:
+                    f.write(extracted.read())
+                os.chmod(out_path, 0o755)
+        finally:
+            try:
+                os.remove(tar_path)
+            except Exception:
+                pass
+
+        _ensure_frpc_config()
+        _ensure_frpc_service(task_id)
+
+    task_id = create_task(lambda tid: _install(tid, True), name='frp install')
+    return api_ok({'taskId': task_id})
+
+@frp_bp.route('/api/frp/reinstall', methods=['POST'])
+def api_frp_reinstall():
+    def _do(task_id):
+        _do_uninstall(task_id)
+        api_frp_install_inner(task_id)
+
+    def api_frp_install_inner(task_id):
+        state = _frp_install_state()
+        if state.get('installed'):
+            _do_uninstall(task_id)
+        update_task(task_id, status='running', message='reinstalling frpc')
+        resp = requests.get('https://api.github.com/repos/fatedier/frp/releases/latest', timeout=15)
+        resp.raise_for_status()
+        data = resp.json() or {}
+        tag = (data.get('tag_name') or '').strip()
+        ver = tag[1:] if tag.startswith('v') else tag
+        if not ver:
+            raise RuntimeError('failed to detect frp version')
+        arch = _arch_linux_name()
+        filename = f'frp_{ver}_linux_{arch}.tar.gz'
+        url = f'https://github.com/fatedier/frp/releases/download/{tag}/{filename}'
+        update_task(task_id, status='running', message='downloading ' + filename)
+        with requests.get(url, stream=True, timeout=60) as r:
+            r.raise_for_status()
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.tar.gz') as tf:
+                for chunk in r.iter_content(chunk_size=1024 * 256):
+                    if chunk:
+                        tf.write(chunk)
+                tar_path = tf.name
+        update_task(task_id, status='running', message='extracting ' + filename)
+        try:
+            with tarfile.open(tar_path, 'r:gz') as tar:
+                frpc_member = None
+                for m in tar.getmembers():
+                    if os.path.basename(m.name) == 'frpc' and m.isfile():
+                        frpc_member = m
+                        break
+                if not frpc_member:
+                    raise RuntimeError('frpc not found in archive')
+                os.makedirs('/usr/local/frp', exist_ok=True)
+                extracted = tar.extractfile(frpc_member)
+                if not extracted:
+                    raise RuntimeError('extract frpc failed')
+                out_path = '/usr/local/frp/frpc'
+                with open(out_path, 'wb') as f:
+                    f.write(extracted.read())
+                os.chmod(out_path, 0o755)
+        finally:
+            try:
+                os.remove(tar_path)
+            except Exception:
+                pass
+        _ensure_frpc_config()
+        _ensure_frpc_service(task_id)
+
+    task_id = create_task(_do, name='frp reinstall')
+    return api_ok({'taskId': task_id})
+
+
+def _do_uninstall(task_id):
+    try:
+        _run_shell(task_id, 'systemctl --user stop frpc.service', timeout=20)
+    except Exception:
+        pass
+    try:
+        _run_shell(task_id, 'systemctl --user disable frpc.service', timeout=20)
+    except Exception:
+        pass
+    unit_path = os.path.expanduser('~/.config/systemd/user/frpc.service')
+    try:
+        if os.path.exists(unit_path):
+            os.remove(unit_path)
+    except Exception:
+        pass
+    try:
+        _run_shell(task_id, 'systemctl --user daemon-reload', timeout=20)
+    except Exception:
+        pass
+    for p in ['/usr/local/frp/frpc', '/usr/local/frp/frpc.toml']:
+        try:
+            if os.path.exists(p):
+                os.remove(p)
+        except Exception:
+            pass
+    try:
+        if os.path.isdir('/usr/local/frp'):
+            os.rmdir('/usr/local/frp')
+    except Exception:
+        pass
+
+
+@frp_bp.route('/api/frp/uninstall', methods=['POST'])
+def api_frp_uninstall():
+    def _do(task_id):
+        _do_uninstall(task_id)
+
+    task_id = create_task(_do, name='frp uninstall')
+    return api_ok({'taskId': task_id})

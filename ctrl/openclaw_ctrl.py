@@ -7,11 +7,64 @@ import subprocess
 from flask import Blueprint
 
 from ctrl import api_error, api_ok
+from ctrl.task_ctrl import create_task
+from lib import packages_utils
 
 
 openclaw_bp = Blueprint('openclaw', __name__)
 
 OPENCLAW_CONFIG_PATH = os.path.expanduser('~/.openclaw/openclaw.json')
+
+
+def _is_openclaw_installed():
+    info = packages_utils.list_npm_packages()
+    if not info.get('success'):
+        return False
+    packages = info.get('packages') or []
+    for p in packages:
+        if (p.get('name') or '').strip().lower() == 'openclaw':
+            return True
+    return False
+
+
+@openclaw_bp.route('/api/openclaw/install_state')
+def api_openclaw_install_state():
+    installed = _is_openclaw_installed()
+    return api_ok({'installed': installed})
+
+
+@openclaw_bp.route('/api/openclaw/install', methods=['POST'])
+def api_openclaw_install():
+    def _do():
+        r = packages_utils.install_npm_package('openclaw')
+        if not r.get('success'):
+            raise RuntimeError(r.get('message') or 'install failed')
+
+    task_id = create_task(_do, name='openclaw install')
+    return api_ok({'taskId': task_id})
+
+
+@openclaw_bp.route('/api/openclaw/reinstall', methods=['POST'])
+def api_openclaw_reinstall():
+    def _do():
+        packages_utils.uninstall_npm_package('openclaw')
+        r = packages_utils.install_npm_package('openclaw')
+        if not r.get('success'):
+            raise RuntimeError(r.get('message') or 'install failed')
+
+    task_id = create_task(_do, name='openclaw reinstall')
+    return api_ok({'taskId': task_id})
+
+
+@openclaw_bp.route('/api/openclaw/uninstall', methods=['POST'])
+def api_openclaw_uninstall():
+    def _do():
+        r = packages_utils.uninstall_npm_package('openclaw')
+        if not r.get('success'):
+            raise RuntimeError(r.get('message') or 'uninstall failed')
+
+    task_id = create_task(_do, name='openclaw uninstall')
+    return api_ok({'taskId': task_id})
 
 
 @openclaw_bp.route('/api/openclaw/config')
@@ -83,10 +136,29 @@ def api_openclaw_status():
         }
     }
 
+    import platform
+    os_text = ''
+    try:
+        if hasattr(os, 'uname'):
+            u = os.uname()
+            os_text = f'{u.sysname} {u.release} {u.machine}'
+        else:
+            os_text = platform.platform()
+    except Exception:
+        os_text = platform.platform()
+
+    node_ver = ''
+    try:
+        node_ver = subprocess.run(['node', '--version'], capture_output=True, text=True, timeout=3).stdout.strip()
+        if node_ver.startswith('v'):
+            node_ver = node_ver[1:]
+    except Exception:
+        node_ver = ''
+
     result['overview'] = {
         'version': '2026.2.2',
-        'os': f'{os.uname().sysname} {os.uname().release} {os.uname().machine}',
-        'node': subprocess.run(['node', '--version'], capture_output=True, text=True).stdout.strip().replace('v', ''),
+        'os': os_text,
+        'node': node_ver,
         'dashboard': 'http://127.0.0.1:18789/',
         'tailscale': 'off',
         'channel': 'stable'

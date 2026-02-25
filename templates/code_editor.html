@@ -5,28 +5,28 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ filename }} - 代码编辑器</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/python/python.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/javascript/javascript.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/htmlmixed/htmlmixed.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/css/css.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/xml/xml.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/clike/clike.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/markdown/markdown.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/edit/matchbrackets.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/comment/comment.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/keymap/sublime.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/selection/active-line.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/search/searchcursor.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/dialog/dialog.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/search/search.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/edit/closebrackets.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/fold/foldcode.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/fold/foldgutter.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/fold/brace-fold.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/dialog/dialog.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/fold/foldgutter.min.css">
+    <link rel="stylesheet" href="/static/lib/codemirror/codemirror.min.css">
+    <script src="/static/lib/codemirror/codemirror.min.js"></script>
+    <script src="/static/lib/codemirror/mode/python/python.min.js"></script>
+    <script src="/static/lib/codemirror/mode/javascript/javascript.min.js"></script>
+    <script src="/static/lib/codemirror/mode/htmlmixed/htmlmixed.min.js"></script>
+    <script src="/static/lib/codemirror/mode/css/css.min.js"></script>
+    <script src="/static/lib/codemirror/mode/xml/xml.min.js"></script>
+    <script src="/static/lib/codemirror/mode/clike/clike.min.js"></script>
+    <script src="/static/lib/codemirror/mode/markdown/markdown.min.js"></script>
+    <script src="/static/lib/codemirror/addon/edit/matchbrackets.min.js"></script>
+    <script src="/static/lib/codemirror/addon/comment/comment.min.js"></script>
+    <script src="/static/lib/codemirror/keymap/sublime.min.js"></script>
+    <script src="/static/lib/codemirror/addon/selection/active-line.min.js"></script>
+    <script src="/static/lib/codemirror/addon/search/searchcursor.min.js"></script>
+    <script src="/static/lib/codemirror/addon/dialog/dialog.min.js"></script>
+    <script src="/static/lib/codemirror/addon/search/search.min.js"></script>
+    <script src="/static/lib/codemirror/addon/edit/closebrackets.min.js"></script>
+    <script src="/static/lib/codemirror/addon/fold/foldcode.min.js"></script>
+    <script src="/static/lib/codemirror/addon/fold/foldgutter.min.js"></script>
+    <script src="/static/lib/codemirror/addon/fold/brace-fold.min.js"></script>
+    <link rel="stylesheet" href="/static/lib/codemirror/addon/dialog/dialog.min.css">
+    <link rel="stylesheet" href="/static/lib/codemirror/addon/fold/foldgutter.min.css">
     <style>
         body {
             margin: 0;
@@ -195,17 +195,17 @@
         }
         .ai-loading-text { color: #888; font-size: 13px; }
     </style>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/default.min.css">
+    <link rel="stylesheet" href="/static/lib/highlight-default.min.css">
     <link rel="stylesheet" href="/static/css/style.css">
-    <link rel="stylesheet" href="https://unpkg.com/xterm@5.3.0/css/xterm.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <link rel="stylesheet" href="/static/lib/xterm.css">
+    <script src="/static/lib/highlight.min.js"></script>
     <script src="/static/js/clipboard.min.js"></script>
     <script src="/static/js/globals.js"></script>
-    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
-    <script src="https://unpkg.com/xterm@5.3.0/lib/xterm.js"></script>
-    <script src="https://unpkg.com/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.js"></script>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.js"></script>
+    <script src="/static/lib/socket.io.min.js"></script>
+    <script src="/static/lib/xterm.js"></script>
+    <script src="/static/lib/xterm-addon-fit.js"></script>
+<link rel="stylesheet" href="/static/lib/sweetalert2.min.css">
+<script src="/static/lib/sweetalert2.min.js"></script>
 </head>
 <body>
     <div class="editor-header">

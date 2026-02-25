@@ -3,12 +3,19 @@ import re
 import subprocess
 import base64
 import shlex
+import gzip
+import platform
+import shutil
+import tarfile
+import tempfile
+import zipfile
 import requests
 from datetime import datetime
 
 from flask import Blueprint, request, jsonify
 
 from ctrl import api_error, api_ok
+from ctrl.task_ctrl import create_task, update_task
 from lib import systemd_utils
 
 
@@ -17,6 +24,46 @@ clash_bp = Blueprint('clash', __name__)
 
 DEFAULT_SERVICE = 'clash.service'
 SERVICE_CANDIDATES = ['clash.service', 'clash-meta.service', 'mihomo.service']
+
+
+def _arch_linux_name():
+    m = (platform.machine() or '').lower()
+    if m in ('x86_64', 'amd64'):
+        return 'amd64'
+    if m in ('aarch64', 'arm64'):
+        return 'arm64'
+    if m.startswith('armv7'):
+        return 'armv7'
+    if m in ('i386', 'i686', 'x86'):
+        return '386'
+    return 'amd64'
+
+
+def _run_shell(task_id, cmd: str, timeout=None):
+    update_task(task_id, status='running', message=cmd)
+    r = subprocess.run(['bash', '-lc', cmd], capture_output=True, text=True, timeout=timeout)
+    if r.returncode != 0:
+        err = (r.stderr or r.stdout or '').strip()
+        raise RuntimeError(err or ('command failed: ' + cmd))
+    return r.stdout
+
+
+def _mihomo_bin_path():
+    for p in ['/usr/local/mihomo/mihomo', '/usr/local/bin/mihomo', '/usr/bin/mihomo', '/usr/local/bin/clash', '/usr/bin/clash']:
+        if os.path.exists(p) and os.access(p, os.X_OK):
+            return p
+    found = shutil.which('mihomo') or shutil.which('clash')
+    return found or ''
+
+
+def _clash_install_state():
+    installed = bool(_mihomo_bin_path()) or any(_systemctl_user_show(u).get('available') for u in SERVICE_CANDIDATES)
+    return {'installed': bool(installed), 'bin': _mihomo_bin_path()}
+
+
+@clash_bp.route('/api/clash/install_state')
+def api_clash_install_state():
+    return api_ok(_clash_install_state())
 
 
 def _systemctl_show_props(unit: str, props: str, user: bool = True):
@@ -516,3 +563,192 @@ def api_clash_config_save():
         return api_ok({'success': True, 'path': config_path, 'backup': backup_path})
     except Exception as e:
         return api_error(str(e), status=500)
+
+
+def _ensure_mihomo_config():
+    cfg_dir = os.path.expanduser('~/.config/mihomo')
+    os.makedirs(cfg_dir, exist_ok=True)
+    cfg_path = os.path.join(cfg_dir, 'config.yaml')
+    if os.path.exists(cfg_path):
+        return cfg_dir, cfg_path
+    content = '\n'.join([
+        'mixed-port: 7890',
+        'allow-lan: true',
+        'mode: rule',
+        'log-level: info',
+        'external-controller: 127.0.0.1:9090',
+        '',
+        'proxies: []',
+        'proxy-groups: []',
+        'rules: []',
+        '',
+    ])
+    with open(cfg_path, 'w', encoding='utf-8') as f:
+        f.write(content)
+    return cfg_dir, cfg_path
+
+
+def _ensure_mihomo_service(task_id):
+    unit_dir = os.path.expanduser('~/.config/systemd/user')
+    os.makedirs(unit_dir, exist_ok=True)
+    unit_path = os.path.join(unit_dir, 'mihomo.service')
+    cfg_dir, _ = _ensure_mihomo_config()
+    content = '\n'.join([
+        '[Unit]',
+        'Description=Mihomo (Clash Meta)',
+        'After=network.target',
+        '',
+        '[Service]',
+        'Type=simple',
+        f'ExecStart=/usr/local/mihomo/mihomo -d {cfg_dir}',
+        'Restart=on-failure',
+        'RestartSec=2',
+        '',
+        '[Install]',
+        'WantedBy=default.target',
+        '',
+    ])
+    with open(unit_path, 'w', encoding='utf-8') as f:
+        f.write(content)
+    _run_shell(task_id, 'systemctl --user daemon-reload', timeout=20)
+    _run_shell(task_id, 'systemctl --user enable mihomo.service', timeout=20)
+    _run_shell(task_id, 'systemctl --user restart mihomo.service', timeout=30)
+
+
+def _download_mihomo_binary(task_id):
+    arch = _arch_linux_name()
+    update_task(task_id, status='running', message='fetching mihomo release')
+    resp = requests.get('https://api.github.com/repos/MetaCubeX/mihomo/releases/latest', timeout=15)
+    resp.raise_for_status()
+    data = resp.json() or {}
+    assets = data.get('assets') or []
+    candidates = []
+    for a in assets:
+        name = (a.get('name') or '').lower()
+        if 'linux' not in name:
+            continue
+        if arch not in name:
+            continue
+        if name.endswith(('.gz', '.tar.gz', '.zip')):
+            candidates.append(a)
+    if not candidates:
+        for a in assets:
+            name = (a.get('name') or '').lower()
+            if 'linux' in name and arch in name:
+                candidates.append(a)
+    if not candidates:
+        raise RuntimeError('no compatible mihomo asset found')
+    asset = candidates[0]
+    url = asset.get('browser_download_url') or ''
+    if not url:
+        raise RuntimeError('asset missing download url')
+    filename = asset.get('name') or 'mihomo'
+
+    update_task(task_id, status='running', message='downloading ' + filename)
+    with requests.get(url, stream=True, timeout=60) as r:
+        r.raise_for_status()
+        with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(filename)[1]) as tf:
+            for chunk in r.iter_content(chunk_size=1024 * 256):
+                if chunk:
+                    tf.write(chunk)
+            file_path = tf.name
+
+    os.makedirs('/usr/local/mihomo', exist_ok=True)
+    out_path = '/usr/local/mihomo/mihomo'
+    update_task(task_id, status='running', message='installing mihomo')
+    try:
+        if filename.endswith('.gz') and not filename.endswith('.tar.gz'):
+            with gzip.open(file_path, 'rb') as f_in, open(out_path, 'wb') as f_out:
+                shutil.copyfileobj(f_in, f_out)
+        elif filename.endswith('.tar.gz'):
+            with tarfile.open(file_path, 'r:gz') as tar:
+                member = None
+                for m in tar.getmembers():
+                    if os.path.basename(m.name) in ('mihomo', 'clash') and m.isfile():
+                        member = m
+                        break
+                if not member:
+                    raise RuntimeError('mihomo binary not found in tar')
+                extracted = tar.extractfile(member)
+                if not extracted:
+                    raise RuntimeError('extract failed')
+                with open(out_path, 'wb') as f_out:
+                    f_out.write(extracted.read())
+        elif filename.endswith('.zip'):
+            with zipfile.ZipFile(file_path, 'r') as zf:
+                bin_name = None
+                for n in zf.namelist():
+                    if os.path.basename(n) in ('mihomo', 'clash'):
+                        bin_name = n
+                        break
+                if not bin_name:
+                    raise RuntimeError('mihomo binary not found in zip')
+                with zf.open(bin_name) as f_in, open(out_path, 'wb') as f_out:
+                    shutil.copyfileobj(f_in, f_out)
+        else:
+            shutil.copyfile(file_path, out_path)
+        os.chmod(out_path, 0o755)
+    finally:
+        try:
+            os.remove(file_path)
+        except Exception:
+            pass
+
+
+def _clash_uninstall(task_id):
+    try:
+        _run_shell(task_id, 'systemctl --user stop mihomo.service', timeout=20)
+    except Exception:
+        pass
+    try:
+        _run_shell(task_id, 'systemctl --user disable mihomo.service', timeout=20)
+    except Exception:
+        pass
+    unit_path = os.path.expanduser('~/.config/systemd/user/mihomo.service')
+    try:
+        if os.path.exists(unit_path):
+            os.remove(unit_path)
+    except Exception:
+        pass
+    try:
+        _run_shell(task_id, 'systemctl --user daemon-reload', timeout=20)
+    except Exception:
+        pass
+    try:
+        if os.path.isdir('/usr/local/mihomo'):
+            shutil.rmtree('/usr/local/mihomo', ignore_errors=True)
+    except Exception:
+        pass
+
+
+@clash_bp.route('/api/clash/install', methods=['POST'])
+def api_clash_install():
+    def _do(task_id):
+        state = _clash_install_state()
+        if state.get('installed'):
+            return
+        _download_mihomo_binary(task_id)
+        _ensure_mihomo_service(task_id)
+
+    task_id = create_task(_do, name='clash install')
+    return api_ok({'taskId': task_id})
+
+
+@clash_bp.route('/api/clash/reinstall', methods=['POST'])
+def api_clash_reinstall():
+    def _do(task_id):
+        _clash_uninstall(task_id)
+        _download_mihomo_binary(task_id)
+        _ensure_mihomo_service(task_id)
+
+    task_id = create_task(_do, name='clash reinstall')
+    return api_ok({'taskId': task_id})
+
+
+@clash_bp.route('/api/clash/uninstall', methods=['POST'])
+def api_clash_uninstall():
+    def _do(task_id):
+        _clash_uninstall(task_id)
+
+    task_id = create_task(_do, name='clash uninstall')
+    return api_ok({'taskId': task_id})

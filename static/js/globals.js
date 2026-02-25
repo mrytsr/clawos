@@ -697,19 +697,19 @@ window.openMainMenuModal = function() {
         var items = [
             { action: 'process', icon: '📊', text: '进程管理' },
             { action: 'gpu', icon: '🖥️', text: '显卡管理' },
-            { action: 'ollama', icon: '🦙', text: 'Ollama' },
             { action: 'ai_eval', icon: '🧠', text: 'AI评测' },
-            { action: 'openclaw', icon: '⚙️', text: 'OpenClaw' },
             { action: 'pkg', icon: '📦', text: '包管理' },
             { action: 'perf', icon: '📈', text: '性能监控' },
             { action: 'network', icon: '🌐', text: '网络管理' },
             { action: 'users', icon: '👥', text: '用户管理' },
             { action: 'docker', icon: '🐳', text: 'docker管理' },
             { action: 'systemd', icon: '🔧', text: 'systemd管理' },
-            { action: 'clash', icon: '🌐', text: 'Clash代理' },
-            { action: 'frp', icon: '🔗', text: 'FRP内网穿透' },
             { action: 'disk', icon: '💾', text: '磁盘管理' },
-            { action: 'cron', icon: '⏰', text: 'Cron管理' }
+            { action: 'cron', icon: '⏰', text: 'Cron管理' },
+            { action: 'ollama', icon: '🦙', text: 'Ollama' },
+            { action: 'openclaw', icon: '⚙️', text: 'OpenClaw' },
+            { action: 'clash', icon: '🌐', text: 'Clash代理' },
+            { action: 'frp', icon: '🔗', text: 'FRP内网穿透' }
         ];
         c.innerHTML = items.map(function(item) {
             return '<div class="modal-item menu-item" data-action="' + item.action + '"><span style="margin-right:12px;">' + item.icon + '</span>' + item.text + '</div>';
@@ -1746,5 +1746,3 @@ window.SwalPrompt = function(title, message, defaultValue, onConfirm) {
         }
     });
 };
-
-;

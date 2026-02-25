@@ -24,6 +24,7 @@ from ctrl.cron_ctrl import cron_bp
 from ctrl.db_ctrl import db_bp
 from ctrl.frp_ctrl import frp_bp
 from ctrl.log_ctrl import log_bp
+from ctrl.ollama_ctrl import ollama_bp
 from ctrl.openclaw_ctrl import openclaw_bp
 from ctrl.system_ctrl import system_bp
 from ctrl.task_ctrl import task_bp
@@ -87,6 +88,7 @@ app.register_blueprint(clash_bp)
 app.register_blueprint(cron_bp)
 app.register_blueprint(db_bp)
 app.register_blueprint(log_bp)
+app.register_blueprint(ollama_bp)
 app.register_blueprint(openclaw_bp)
 app.register_blueprint(task_bp)
 app.register_blueprint(browser_bp)
