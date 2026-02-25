@@ -223,7 +223,7 @@ node --version
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-repo/clawos.git
+git clone https://github.com/mrytsr/clawos.git
 cd clawos
 
 # Install Python dependencies
@@ -602,7 +602,7 @@ node --version
 
 ```bash
 # 克隆仓库
-git clone https://github.com/your-repo/clawos.git
+git clone https://github.com/mrytsr/clawos.git
 cd clawos
 
 # 安装 Python 依赖
