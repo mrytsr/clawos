@@ -141,6 +141,12 @@ def home():
     return send_from_directory(static_dir, 'home.html')
 
 
+@browser_bp.route('/screenshots/<path:filename>')
+def serve_screenshot(filename):
+    screenshots_dir = os.path.join(config.SCRIPT_DIR, 'screenshots')
+    return send_from_directory(screenshots_dir, filename)
+
+
 @browser_bp.route('/browse')
 @browser_bp.route('/browse/')
 @browser_bp.route('/browse/<path:path>')

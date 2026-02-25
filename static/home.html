@@ -196,11 +196,16 @@
             color: #64ffda;
             text-decoration: none;
         }
-        .github-link {
+        .top-links {
             position: fixed;
-            top: 16px;
-            right: 16px;
+            top: calc(12px + env(safe-area-inset-top));
+            right: calc(12px + env(safe-area-inset-right));
             z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .top-link {
             display: inline-flex;
             align-items: center;
             gap: 8px;
@@ -216,12 +221,12 @@
             backdrop-filter: blur(10px);
             transition: transform 0.2s, box-shadow 0.2s, background 0.2s;
         }
-        .github-link:hover {
+        .top-link:hover {
             background: rgba(13, 17, 23, 0.85);
             box-shadow: 0 10px 30px rgba(100, 255, 218, 0.18);
             transform: translateY(-1px);
         }
-        .github-link:focus-visible {
+        .top-link:focus-visible {
             outline: 2px solid rgba(100, 255, 218, 0.9);
             outline-offset: 2px;
         }
@@ -326,7 +331,10 @@
     </style>
 </head>
 <body>
-    <a class="github-link" href="https://github.com/mrytsr/clawos" target="_blank" rel="noopener noreferrer">GitHub</a>
+    <div class="top-links">
+        <a class="top-link" href="/browse/" target="_blank" rel="noopener noreferrer">Demo</a>
+        <a class="top-link" href="https://github.com/mrytsr/clawos" target="_blank" rel="noopener noreferrer">GitHub</a>
+    </div>
     <div class="container">
         <div class="hero">
             <div class="logo">🖥️</div>
