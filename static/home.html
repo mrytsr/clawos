@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>ClawOS - Linux Web 管理面板</title>
     <style>
         * {
@@ -198,12 +198,18 @@
         }
         .top-links {
             position: fixed;
-            top: calc(12px + env(safe-area-inset-top));
-            right: calc(12px + env(safe-area-inset-right));
+            top: 12px;
+            right: 12px;
             z-index: 1000;
             display: flex;
             align-items: center;
             gap: 10px;
+        }
+        @supports (top: env(safe-area-inset-top)) {
+            .top-links {
+                top: calc(12px + env(safe-area-inset-top));
+                right: calc(12px + env(safe-area-inset-right));
+            }
         }
         .top-link {
             display: inline-flex;
