@@ -10,6 +10,8 @@ import json
 import time
 import requests
 import threading
+import traceback
+from urllib.parse import urlparse
 from flask import Blueprint, jsonify, request, current_app, send_from_directory, redirect
 
 import config
@@ -218,6 +220,93 @@ def delete_model():
         provider_cfg["models"] = [m for m in models_list if m != model]
     save_provider_models(provider_models)
     return jsonify({"success": True})
+
+def _redact_secret(text: str, secret: str):
+    if not text or not secret:
+        return text
+    return text.replace(secret, "***")
+
+def _build_openai_chat_completions_url(base_url: str):
+    url = (base_url or "").strip().rstrip("/")
+    if not url:
+        return ""
+    if url.endswith("/chat/completions"):
+        return url
+
+    parsed = urlparse(url)
+    path = (parsed.path or "").rstrip("/")
+    if "/v1" in path:
+        return url + "/chat/completions"
+    return url + "/v1/chat/completions"
+
+@ai_eval_bp.route('/api/ai/models/test', methods=['POST'])
+def test_model():
+    data = request.json or {}
+    provider = (data.get('provider', '') or '').strip().lower()
+    base_url = (data.get('base_url', '') or '').strip()
+    api_key = (data.get('api_key', '') or '').strip()
+    model = (data.get('model', '') or '').strip()
+    engine = (data.get('engine', '') or '').strip()
+
+    if not model:
+        return jsonify({"success": False, "error": "缺少必要参数: model"})
+
+    try:
+        from lib.ai_client import load_provider_models
+        provider_models = load_provider_models()
+        if provider and provider in provider_models:
+            cfg = provider_models.get(provider) or {}
+            base_url = base_url or (cfg.get("base_url") or "")
+            api_key = api_key or (cfg.get("api_key") or "")
+            engine = engine or (cfg.get("engine") or "")
+            extra_headers = cfg.get("extra_headers") if isinstance(cfg.get("extra_headers"), dict) else {}
+        else:
+            extra_headers = {}
+
+        prompt = "你好"
+        started = time.time()
+
+        if (engine or "").lower() == "zhipu-sdk":
+            try:
+                from zhipuai import ZhipuAI
+            except Exception as e:
+                raise RuntimeError(f"zhipuai 未安装或不可用: {e}")
+
+            if not api_key:
+                raise RuntimeError("缺少 api_key")
+            client = ZhipuAI(api_key=api_key)
+            resp = client.chat.completions.create(
+                model=model,
+                messages=[{"role": "user", "content": prompt}],
+            )
+            reply = resp.choices[0].message.content
+        else:
+            url = _build_openai_chat_completions_url(base_url)
+            if not url:
+                raise RuntimeError("缺少 base_url")
+            if not api_key:
+                raise RuntimeError("缺少 api_key")
+
+            headers = {"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"}
+            for k, v in extra_headers.items():
+                if isinstance(k, str) and isinstance(v, str) and k:
+                    headers[k] = v
+            payload = {"model": model, "messages": [{"role": "user", "content": prompt}]}
+            r = requests.post(url, headers=headers, json=payload, timeout=25)
+            if r.status_code < 200 or r.status_code >= 300:
+                body = r.text
+                body = _redact_secret(body, api_key)
+                raise RuntimeError(f"HTTP {r.status_code}\n{body}")
+            data = r.json()
+            reply = (((data.get("choices") or [{}])[0]).get("message") or {}).get("content") or ""
+
+        elapsed_ms = int((time.time() - started) * 1000)
+        return jsonify({"success": True, "reply": reply, "elapsed_ms": elapsed_ms})
+    except Exception as e:
+        detail = traceback.format_exc()
+        detail = _redact_secret(detail, api_key)
+        err = _redact_secret(str(e), api_key)
+        return jsonify({"success": False, "error": err, "detail": detail})
 
 @ai_eval_bp.route('/api/ai/config', methods=['GET'])
 def get_ai_config():

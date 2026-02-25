@@ -249,6 +249,7 @@
                     <div class="model-name">${m.display_name || m.model}</div>
                     <div class="model-url">${m.base_url}</div>
                 </div>
+                <button class="btn btn-info" style="padding:4px 8px;font-size:11px;" onclick="testModel(${i})">测试</button>
                 <button class="btn btn-secondary" style="padding:4px 8px;font-size:11px;" onclick="editModel(${i})">编辑</button>
                 <button class="btn btn-danger" style="padding:4px 8px;font-size:11px;" onclick="deleteModel(${i})">删除</button>
             </div>
@@ -377,6 +378,62 @@
             icon: 'info',
             confirmButtonText: '关闭'
         });
+    }
+
+    function testModel(index) {
+        const m = models[index];
+        Swal.fire({
+            title: '测试中',
+            text: '发送“你好”测试模型可用性…',
+            allowOutsideClick: false,
+            didOpen: () => Swal.showLoading()
+        });
+
+        fetch('/api/ai/models/test', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                provider: m.provider || 'custom',
+                base_url: m.base_url || '',
+                api_key: m.api_key || '',
+                model: m.model || '',
+                engine: m.engine || ''
+            })
+        }).then(r => r.json())
+          .then(data => {
+              if (data.success) {
+                  const reply = (data.reply || '').toString();
+                  const elapsed = typeof data.elapsed_ms === 'number' ? data.elapsed_ms : null;
+                  Swal.fire({
+                      title: '可用',
+                      html: `<div style="text-align:left"><div>耗时: ${elapsed !== null ? elapsed + 'ms' : '-'}</div><pre style="white-space:pre-wrap;word-break:break-word;margin-top:10px;max-height:50vh;overflow:auto;">${escapeHtml(reply)}</pre></div>`,
+                      icon: 'success',
+                      confirmButtonText: '关闭'
+                  });
+              } else {
+                  const err = (data.error || '测试失败').toString();
+                  const detail = (data.detail || '').toString();
+                  Swal.fire({
+                      title: '不可用',
+                      html: `<div style="text-align:left"><pre style="white-space:pre-wrap;word-break:break-word;max-height:60vh;overflow:auto;">${escapeHtml(err + (detail ? '\\n\\n' + detail : ''))}</pre></div>`,
+                      icon: 'error',
+                      confirmButtonText: '关闭'
+                  });
+              }
+          })
+          .catch(e => {
+              Swal.fire('不可用', String(e || '测试失败'), 'error');
+          });
+    }
+
+    function escapeHtml(str) {
+        return (str || '').replace(/[&<>"']/g, s => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#39;'
+        }[s]));
     }
 
     function triggerImportConfig() {
