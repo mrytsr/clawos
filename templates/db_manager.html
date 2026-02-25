@@ -141,6 +141,13 @@
             display: flex; align-items: center; justify-content: space-between;
         }
         .drawer-header h2 { font-size: 15px; font-weight: 500; color: #fff; }
+        .drawer-header-actions { display: flex; align-items: center; gap: 6px; }
+        .drawer-mini-btn {
+            padding: 6px 10px; border-radius: 8px;
+            background: #0f3460; border: none; color: #ccc;
+            cursor: pointer; font-size: 12px;
+        }
+        .drawer-mini-btn:hover { color: #fff; }
         .drawer-close {
             width: 32px; height: 32px; border-radius: 8px;
             background: #0f3460; border: none; color: #888;
@@ -472,7 +479,12 @@
         <div class="drawer" id="drawer">
             <div class="drawer-header">
                 <h2>📊 数据库</h2>
-                <button class="drawer-close" onclick="closeDrawer()">×</button>
+                <div class="drawer-header-actions">
+                    <input id="dbConnImportFile" type="file" accept="application/json" style="display:none;" onchange="onImportDbConnectionsFileChange(event)">
+                    <button class="drawer-mini-btn" onclick="triggerImportDbConnections()">导入</button>
+                    <button class="drawer-mini-btn" onclick="exportDbConnections()">导出</button>
+                    <button class="drawer-close" onclick="closeDrawer()">×</button>
+                </div>
             </div>
             <div class="drawer-content">
                 <button class="add-btn" onclick="openAddModal()">+ 新建连接</button>
@@ -2112,6 +2124,68 @@ async function generateSqlFromPrompt() {
             const r = await fetch('/api/db/connections');
             const data = await r.json();
             if (data.success) connections = data.data?.connections || [];
+        }
+
+        function __downloadJson(filename, obj) {
+            const blob = new Blob([JSON.stringify(obj, null, 2)], { type: 'application/json;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        async function exportDbConnections() {
+            showStatus('导出中...', false);
+            try {
+                const r = await fetch('/api/db/connections/export');
+                const data = await r.json();
+                if (!r.ok || !data.success) {
+                    const errMsg = data.error?.message || data.error || '导出失败';
+                    showStatus(errMsg, true);
+                    return;
+                }
+                __downloadJson('db_connections.json', data.data || {});
+                showStatus('已导出', false);
+            } catch (e) {
+                showStatus('导出失败: ' + (e && e.message ? e.message : 'Error'), true);
+            }
+        }
+
+        function triggerImportDbConnections() {
+            const input = $$('dbConnImportFile');
+            if (!input) return;
+            input.value = '';
+            input.click();
+        }
+
+        async function onImportDbConnectionsFileChange(ev) {
+            const file = ev && ev.target && ev.target.files ? ev.target.files[0] : null;
+            if (!file) return;
+            try {
+                const text = await file.text();
+                const json = JSON.parse(text);
+                showStatus('导入中...', false);
+                const r = await fetch('/api/db/connections/import', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(json)
+                });
+                const data = await r.json();
+                if (!r.ok || !data.success) {
+                    const errMsg = data.error?.message || data.error || '导入失败';
+                    showStatus(errMsg, true);
+                    return;
+                }
+                await loadConnections();
+                await loadTree();
+                showStatus(`已导入 ${data.data?.imported || 0} 条`, false);
+            } catch (e) {
+                showStatus('导入失败: ' + (e && e.message ? e.message : 'Error'), true);
+            }
         }
 
         if ($$('dbEngine')) $$('dbEngine').addEventListener('change', function() { updateEngineFields(); });

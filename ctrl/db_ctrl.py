@@ -128,6 +128,111 @@ def api_db_connections():
         result.append(v_copy)
     return api_ok({'connections': result})
 
+@db_bp.route('/api/db/connections/export')
+def api_db_connections_export():
+    conns = _load_connections()
+    exported = {}
+    for k, v in conns.items():
+        if _is_meta_key(k):
+            continue
+        if not isinstance(v, dict):
+            continue
+        exported[k] = v
+    return api_ok({
+        'version': 1,
+        'exported_at': datetime.utcnow().isoformat(timespec='seconds') + 'Z',
+        'connections': exported,
+    })
+
+
+@db_bp.route('/api/db/connections/import', methods=['POST'])
+def api_db_connections_import():
+    data = request.get_json(silent=True) or {}
+    payload = data.get('connections') if isinstance(data, dict) else None
+    if payload is None:
+        payload = data
+
+    items = []
+    if isinstance(payload, list):
+        for item in payload:
+            if isinstance(item, dict):
+                items.append(item)
+    elif isinstance(payload, dict):
+        for conn_id, item in payload.items():
+            if _is_meta_key(conn_id) or not isinstance(item, dict):
+                continue
+            merged = dict(item)
+            merged['id'] = conn_id
+            items.append(merged)
+    else:
+        return api_error('Invalid payload')
+
+    if not items:
+        return api_error('No connections to import')
+
+    conns = _load_connections()
+    updated = 0
+    imported = 0
+    now = datetime.now().isoformat()
+    imported_ids = []
+
+    for item in items:
+        conn_id = item.get('id') or item.get('name') or ''
+        if not isinstance(conn_id, str):
+            continue
+        conn_id = conn_id.strip()
+        if not conn_id or _is_meta_key(conn_id):
+            continue
+
+        engine = item.get('engine', 'mysql')
+        if not isinstance(engine, str) or not engine:
+            engine = 'mysql'
+        engine = engine.strip()
+
+        port = item.get('port', 3306)
+        try:
+            port = int(port)
+        except Exception:
+            port = 3306
+
+        conn = {
+            'name': item.get('name') if isinstance(item.get('name'), str) and item.get('name').strip() else conn_id,
+            'engine': engine,
+            'host': item.get('host', 'localhost') if isinstance(item.get('host'), str) else 'localhost',
+            'port': port,
+            'user': item.get('user', 'root') if isinstance(item.get('user'), str) else 'root',
+            'password': item.get('password', '') if isinstance(item.get('password'), str) else '',
+            'database': item.get('database', '') if isinstance(item.get('database'), str) else '',
+            'charset': item.get('charset', 'utf8mb4') if isinstance(item.get('charset'), str) else 'utf8mb4',
+            'created_at': item.get('created_at', now) if isinstance(item.get('created_at'), str) else now,
+        }
+
+        if isinstance(item.get('state'), dict):
+            conn['state'] = item.get('state')
+
+        existed = conn_id in conns
+        conns[conn_id] = conn
+        imported_ids.append(conn_id)
+        imported += 1
+        if existed:
+            updated += 1
+
+    if imported == 0:
+        return api_error('No valid connections to import')
+
+    _save_connections(conns)
+
+    with _engines_lock:
+        for conn_id in imported_ids:
+            if conn_id in _engines:
+                try:
+                    _engines[conn_id][0].dispose()
+                except Exception:
+                    pass
+                del _engines[conn_id]
+
+    return api_ok({'imported': imported, 'updated': updated})
+
 
 @db_bp.route('/api/db/connect', methods=['POST'])
 def api_db_connect():
@@ -810,7 +915,10 @@ def ai_generate_sql():
             {"role": "user", "content": prompt}
         ])
 
-        generated_sql = response.get('choices', [{}])[0].get('message', {}).get('content', '').strip()
+        if isinstance(response, str):
+            generated_sql = response.strip()
+        else:
+            generated_sql = (response.get('choices', [{}])[0].get('message', {}).get('content', '') if isinstance(response, dict) else '').strip()
 
         # 清理 markdown 代码块
         generated_sql = re.sub(r'^```sql?\n', '', generated_sql)

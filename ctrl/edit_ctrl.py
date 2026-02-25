@@ -128,7 +128,10 @@ def ai_generate_code():
             {"role": "user", "content": prompt}
         ])
 
-        generated_code = response.get('choices', [{}])[0].get('message', {}).get('content', '').strip()
+        if isinstance(response, str):
+            generated_code = response.strip()
+        else:
+            generated_code = (response.get('choices', [{}])[0].get('message', {}).get('content', '') if isinstance(response, dict) else '').strip()
 
         # 清理 markdown 代码块
         generated_code = re.sub(r'^```[a-zA-Z]*\n', '', generated_code)
