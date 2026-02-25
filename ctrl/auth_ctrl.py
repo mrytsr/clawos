@@ -146,6 +146,10 @@ def require_auth():
         return None
     if request.path == '/favicon.ico':
         return None
+    if request.path == '/':
+        return None
+    if request.path.startswith('/screenshots/'):
+        return None
     if request.path.startswith('/login'):
         return None
     if request.path.startswith('/@vite'):
