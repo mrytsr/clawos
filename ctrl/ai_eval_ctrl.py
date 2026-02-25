@@ -26,8 +26,6 @@ def ai_evaluate():
 def ai_model_config():
     return send_from_directory(current_app.template_folder, 'ai_evaluate.html')
 
-# 模型存储文件
-MODELS_FILE = os.path.join(config.DATA_DIR, 'ai_models.json')
 # 评测状态文件
 EVAL_STATE_FILE = os.path.join(config.DATA_DIR, 'ai_eval_state.json')
 
@@ -67,46 +65,74 @@ EVAL_STATE = {
 
 def load_models():
     """加载模型列表"""
-    models = load_ai_client_models()
-    if os.path.exists(MODELS_FILE):
-        try:
-            with open(MODELS_FILE, 'r', encoding='utf-8') as f:
-                user_models = json.load(f)
-                for m in user_models:
-                    m['source'] = 'user'
-                models.extend(user_models)
-        except:
-            pass
-    return models
+    return load_ai_client_models()
 
 def load_ai_client_models():
     """从 ai_client 加载预设模型"""
     models = []
     try:
-        sys.path.insert(0, '/root/clawos')
-        from lib.ai_client import PROVIDOR_MODELS
-        for provider, config in PROVIDOR_MODELS.items():
-            base_url = config.get('base_url', '')
-            api_key = config.get('api_key', '')
-            provider_models = config.get('models', [])
-            for model in provider_models:
+        from lib.ai_client import load_provider_models
+        provider_models = load_provider_models()
+        for provider, provider_config in provider_models.items():
+            base_url = provider_config.get('base_url', '')
+            api_key = provider_config.get('api_key', '')
+            engine = provider_config.get('engine', '')
+            models_list = provider_config.get('models', []) or []
+            for model in models_list:
                 models.append({
                     "base_url": base_url,
                     "api_key": api_key,
                     "model": model,
                     "display_name": f"{provider}:{model}",
-                    "source": "ai_client"
+                    "source": "config",
+                    "provider": provider,
+                    "engine": engine,
                 })
     except Exception as e:
         print(f"加载 ai_client 模型失败: {e}")
     return models
 
 def save_models(models):
-    """保存模型列表（只保存用户添加的）"""
-    os.makedirs(os.path.dirname(MODELS_FILE), exist_ok=True)
-    user_models = [m for m in models if m.get('source') == 'user']
-    with open(MODELS_FILE, 'w', encoding='utf-8') as f:
-        json.dump(user_models, f, ensure_ascii=False, indent=2)
+    """保存模型列表（保存到 ai_client_config.json）"""
+    from lib.ai_client import load_provider_models, save_provider_models
+
+    provider_models = load_provider_models()
+    for provider in list(provider_models.keys()):
+        provider_models[provider]["models"] = []
+
+    for m in models:
+        provider = (m.get("provider") or "").strip().lower()
+        if not provider and ":" in (m.get("display_name") or ""):
+            provider = (m.get("display_name") or "").split(":", 1)[0].strip().lower()
+        if not provider:
+            provider = "custom"
+
+        model = (m.get("model") or "").strip()
+        if not model:
+            continue
+
+        if provider not in provider_models:
+            provider_models[provider] = {
+                "engine": (m.get("engine") or "openai-api").strip() or "openai-api",
+                "base_url": (m.get("base_url") or "").strip(),
+                "api_key": (m.get("api_key") or "").strip(),
+                "models": [],
+            }
+
+        base_url = (m.get("base_url") or "").strip()
+        api_key = (m.get("api_key") or "").strip()
+        engine = (m.get("engine") or "").strip()
+        if base_url:
+            provider_models[provider]["base_url"] = base_url
+        if api_key:
+            provider_models[provider]["api_key"] = api_key
+        if engine:
+            provider_models[provider]["engine"] = engine
+
+        if model not in provider_models[provider]["models"]:
+            provider_models[provider]["models"].append(model)
+
+    save_provider_models(provider_models)
 
 def load_eval_state():
     """加载评测状态"""
@@ -136,38 +162,107 @@ def get_models():
 def add_model():
     """添加模型"""
     data = request.json
-    base_url = data.get('base_url', '').strip()
-    api_key = data.get('api_key', '').strip()
-    model = data.get('model', '').strip()
-    display_name = data.get('display_name', '').strip()
+    provider = (data.get('provider', '') or '').strip().lower() or 'custom'
+    base_url = (data.get('base_url', '') or '').strip()
+    api_key = (data.get('api_key', '') or '').strip()
+    model = (data.get('model', '') or '').strip()
+    engine = (data.get('engine', '') or '').strip()
     
-    if not base_url or not api_key or not model:
+    if not provider or not model:
         return jsonify({"success": False, "error": "缺少必要参数"})
-    
-    models = load_models()
-    for m in models:
-        if m['base_url'] == base_url and m['model'] == model:
-            return jsonify({"success": False, "error": "模型已存在"})
-    
-    models.append({
-        "base_url": base_url,
-        "api_key": api_key,
-        "model": model,
-        "display_name": display_name or model,
-        "source": "user"
-    })
-    save_models(models)
+
+    from lib.ai_client import load_provider_models, save_provider_models
+    provider_models = load_provider_models()
+    if provider not in provider_models:
+        provider_models[provider] = {
+            "engine": engine or "openai-api",
+            "base_url": base_url,
+            "api_key": api_key,
+            "models": [],
+        }
+
+    provider_cfg = provider_models[provider]
+    if base_url:
+        provider_cfg["base_url"] = base_url
+    if api_key:
+        provider_cfg["api_key"] = api_key
+    if engine:
+        provider_cfg["engine"] = engine
+
+    provider_cfg.setdefault("models", [])
+    if not isinstance(provider_cfg["models"], list):
+        provider_cfg["models"] = []
+    if model in provider_cfg["models"]:
+        return jsonify({"success": False, "error": "模型已存在"})
+    provider_cfg["models"].append(model)
+
+    save_provider_models(provider_models)
     return jsonify({"success": True})
 
 @ai_eval_bp.route('/api/ai/models/delete', methods=['POST'])
 def delete_model():
     """删除模型"""
     data = request.json
-    base_url = data.get('base_url', '')
-    model = data.get('model', '')
-    models = load_models()
-    models = [m for m in models if not (m['base_url'] == base_url and m['model'] == model)]
-    save_models(models)
+    provider = (data.get('provider', '') or '').strip().lower() or 'custom'
+    model = (data.get('model', '') or '').strip()
+    if not model:
+        return jsonify({"success": False, "error": "缺少必要参数"})
+
+    from lib.ai_client import load_provider_models, save_provider_models
+    provider_models = load_provider_models()
+    provider_cfg = provider_models.get(provider)
+    if not provider_cfg:
+        return jsonify({"success": True})
+    models_list = provider_cfg.get("models", [])
+    if isinstance(models_list, list):
+        provider_cfg["models"] = [m for m in models_list if m != model]
+    save_provider_models(provider_models)
+    return jsonify({"success": True})
+
+@ai_eval_bp.route('/api/ai/config', methods=['GET'])
+def get_ai_config():
+    from lib.ai_client import load_provider_models
+    return jsonify({"success": True, "config": {"providers": load_provider_models()}})
+
+@ai_eval_bp.route('/api/ai/config', methods=['POST'])
+def set_ai_config():
+    data = request.json or {}
+    providers = data.get("providers") if isinstance(data, dict) else None
+    if not isinstance(providers, dict):
+        if isinstance(data, dict):
+            providers = data
+        else:
+            providers = None
+    if not isinstance(providers, dict):
+        return jsonify({"success": False, "error": "无效的 JSON"})
+
+    from lib.ai_client import save_provider_models
+    merged = {}
+
+    for provider, value in providers.items():
+        p = (provider or "").strip().lower()
+        if not p:
+            continue
+        if isinstance(value, str):
+            merged.setdefault(p, {"engine": "openai-api", "base_url": "", "api_key": "", "models": []})
+            merged[p]["api_key"] = value
+            merged[p]["models"] = merged[p].get("models", []) or []
+            continue
+        if not isinstance(value, dict):
+            continue
+        merged.setdefault(p, {"engine": "openai-api", "base_url": "", "api_key": "", "models": []})
+        if "engine" in value:
+            merged[p]["engine"] = (value.get("engine") or merged[p].get("engine") or "openai-api")
+        if "base_url" in value:
+            merged[p]["base_url"] = (value.get("base_url") or merged[p].get("base_url") or "")
+        if "api_key" in value:
+            merged[p]["api_key"] = (value.get("api_key") or "")
+        models = value.get("models", [])
+        merged[p]["models"] = models if isinstance(models, list) else []
+        if isinstance(value.get("extra_headers"), dict):
+            merged[p]["extra_headers"] = value.get("extra_headers", {})
+
+    save_provider_models(merged)
     return jsonify({"success": True})
 
 @ai_eval_bp.route('/api/ai/eval/status', methods=['GET'])

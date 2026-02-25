@@ -155,6 +155,10 @@
                 <div style="font-size:18px;font-weight:600;margin-bottom:16px;" id="modalTitle">➕ 添加模型</div>
                 <div class="form-grid">
                     <div class="form-group">
+                        <label>Provider</label>
+                        <input type="text" id="providerName" placeholder="deepseek / openrouter / custom">
+                    </div>
+                    <div class="form-group">
                         <label>Base URL</label>
                         <input type="text" id="baseUrl" placeholder="https://api.example.com/v1">
                     </div>
@@ -165,10 +169,6 @@
                     <div class="form-group">
                         <label>模型名称</label>
                         <input type="text" id="modelName" placeholder="gpt-3.5-turbo">
-                    </div>
-                    <div class="form-group">
-                        <label>显示名称（可选）</label>
-                        <input type="text" id="displayName" placeholder="自定义名称">
                     </div>
                 </div>
                 <div style="display:flex;gap:8px;margin-top:16px;">
@@ -184,6 +184,9 @@
                 📋 已添加的模型
                 <div style="margin-left:auto;display:flex;gap:6px;">
                     <button class="btn btn-primary" style="padding:4px 10px;font-size:12px;" onclick="openAddModelModal()">➕ 添加</button>
+                    <input id="importConfigFile" type="file" accept="application/json" style="display:none" onchange="handleImportConfig(event)">
+                    <button class="btn btn-secondary" style="padding:4px 10px;font-size:12px;" onclick="triggerImportConfig()">导入</button>
+                    <button class="btn btn-secondary" style="padding:4px 10px;font-size:12px;" onclick="exportConfig()">导出</button>
                     <button class="btn btn-secondary" style="padding:4px 10px;font-size:12px;" onclick="selectAllModels()">全选</button>
                     <button class="btn btn-secondary" style="padding:4px 10px;font-size:12px;" onclick="deselectAllModels()">清空</button>
                 </div>
@@ -246,13 +249,8 @@
                     <div class="model-name">${m.display_name || m.model}</div>
                     <div class="model-url">${m.base_url}</div>
                 </div>
-                ${m.source === 'user' ? `
-                    <button class="btn btn-secondary" style="padding:4px 8px;font-size:11px;" onclick="editModel(${i})">编辑</button>
-                    <button class="btn btn-danger" style="padding:4px 8px;font-size:11px;" onclick="deleteModel(${i})">删除</button>
-                ` : `
-                    <button class="btn btn-info" style="padding:4px 8px;font-size:11px;" onclick="viewModelDetails(${i})">详情</button>
-                    <span class="model-tag">内置</span>
-                `}
+                <button class="btn btn-secondary" style="padding:4px 8px;font-size:11px;" onclick="editModel(${i})">编辑</button>
+                <button class="btn btn-danger" style="padding:4px 8px;font-size:11px;" onclick="deleteModel(${i})">删除</button>
             </div>
         `).join('');
     }
@@ -261,10 +259,10 @@
     function openAddModelModal() {
         editingModelIndex = -1;
         document.getElementById('modalTitle').textContent = '➕ 添加模型';
+        document.getElementById('providerName').value = 'custom';
         document.getElementById('baseUrl').value = '';
         document.getElementById('apiKey').value = '';
         document.getElementById('modelName').value = '';
-        document.getElementById('displayName').value = '';
         document.getElementById('modelModal').style.display = 'flex';
     }
     
@@ -273,10 +271,10 @@
         const m = models[index];
         editingModelIndex = index;
         document.getElementById('modalTitle').textContent = '✏️ 编辑模型';
+        document.getElementById('providerName').value = m.provider || 'custom';
         document.getElementById('baseUrl').value = m.base_url || '';
         document.getElementById('apiKey').value = m.api_key || '';
         document.getElementById('modelName').value = m.model || '';
-        document.getElementById('displayName').value = m.display_name || '';
         document.getElementById('modelModal').style.display = 'flex';
     }
     
@@ -287,13 +285,13 @@
     
     // 保存模型
     function saveModel() {
+        const provider = document.getElementById('providerName').value.trim() || 'custom';
         const baseUrl = document.getElementById('baseUrl').value.trim();
         const apiKey = document.getElementById('apiKey').value.trim();
         const modelName = document.getElementById('modelName').value.trim();
-        const displayName = document.getElementById('displayName').value.trim();
         
-        if (!baseUrl || !apiKey || !modelName) {
-            Swal.fire('提示', '请填写完整信息', 'warning');
+        if (!provider || !modelName) {
+            Swal.fire('提示', '请填写 Provider 和模型名称', 'warning');
             return;
         }
         
@@ -303,25 +301,25 @@
             fetch('/api/ai/models/delete', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ base_url: oldModel.base_url, model: oldModel.model })
+                body: JSON.stringify({ provider: oldModel.provider || 'custom', model: oldModel.model })
             }).then(() => {
                 // 添加新的
-                addModelApi(baseUrl, apiKey, modelName, displayName);
+                addModelApi(provider, baseUrl, apiKey, modelName);
             });
         } else {
-            addModelApi(baseUrl, apiKey, modelName, displayName);
+            addModelApi(provider, baseUrl, apiKey, modelName);
         }
     }
     
-    function addModelApi(baseUrl, apiKey, modelName, displayName) {
+    function addModelApi(provider, baseUrl, apiKey, modelName) {
         fetch('/api/ai/models/add', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({
+                provider: provider,
                 base_url: baseUrl,
                 api_key: apiKey,
-                model: modelName,
-                display_name: displayName || modelName
+                model: modelName
             })
         }).then(r => r.json())
           .then(data => {
@@ -348,7 +346,7 @@
             fetch('/api/ai/models/delete', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ base_url: m.base_url, model: m.model })
+                body: JSON.stringify({ provider: m.provider || 'custom', model: m.model })
             }).then(r => r.json())
               .then(data => {
                   if (data.success) {
@@ -363,10 +361,11 @@
         const m = models[index];
         const details = `
             <div style="text-align:left;line-height:1.8;">
+                <strong>Provider:</strong> ${m.provider || '-'}<br>
                 <strong>模型ID:</strong> ${m.model || '-'}<br>
-                <strong>显示名称:</strong> ${m.display_name || '-'}<br>
+                <strong>Engine:</strong> ${m.engine || '-'}<br>
                 <strong>API地址:</strong> ${m.base_url || '-'}<br>
-                <strong>来源:</strong> ${m.source || '内置'}<br>
+                <strong>来源:</strong> ${m.source || '-'}<br>
                 <strong>Context Window:</strong> ${m.context_window ? m.context_window.toLocaleString() : '-'}<br>
                 <strong>Max Tokens:</strong> ${m.max_tokens ? m.max_tokens.toLocaleString() : '-'}<br>
                 <strong>支持输入:</strong> ${(m.input || []).join(', ') || '-'}
@@ -378,6 +377,62 @@
             icon: 'info',
             confirmButtonText: '关闭'
         });
+    }
+
+    function triggerImportConfig() {
+        const el = document.getElementById('importConfigFile');
+        el.value = '';
+        el.click();
+    }
+
+    function handleImportConfig(event) {
+        const file = event.target.files && event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+            let jsonObj = null;
+            try {
+                jsonObj = JSON.parse(String(reader.result || ''));
+            } catch (e) {
+                Swal.fire('错误', 'JSON 解析失败', 'error');
+                return;
+            }
+            fetch('/api/ai/config', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(jsonObj)
+            }).then(r => r.json())
+              .then(data => {
+                  if (data.success) {
+                      loadModels();
+                      Swal.fire('成功', '导入成功', 'success');
+                  } else {
+                      Swal.fire('错误', data.error || '导入失败', 'error');
+                  }
+              });
+        };
+        reader.readAsText(file, 'utf-8');
+    }
+
+    function exportConfig() {
+        fetch('/api/ai/config')
+            .then(r => r.json())
+            .then(data => {
+                if (!data.success) {
+                    Swal.fire('错误', data.error || '导出失败', 'error');
+                    return;
+                }
+                const content = JSON.stringify(data.config || {}, null, 2);
+                const blob = new Blob([content], {type: 'application/json;charset=utf-8'});
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'ai_client_config.json';
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                URL.revokeObjectURL(url);
+            });
     }
     
     // 全选/清空
