@@ -196,9 +196,137 @@
             color: #64ffda;
             text-decoration: none;
         }
+        .github-link {
+            position: fixed;
+            top: 16px;
+            right: 16px;
+            z-index: 1000;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 14px;
+            border-radius: 999px;
+            background: rgba(13, 17, 23, 0.65);
+            border: 1px solid rgba(100, 255, 218, 0.35);
+            color: #64ffda;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 14px;
+            white-space: nowrap;
+            backdrop-filter: blur(10px);
+            transition: transform 0.2s, box-shadow 0.2s, background 0.2s;
+        }
+        .github-link:hover {
+            background: rgba(13, 17, 23, 0.85);
+            box-shadow: 0 10px 30px rgba(100, 255, 218, 0.18);
+            transform: translateY(-1px);
+        }
+        .github-link:focus-visible {
+            outline: 2px solid rgba(100, 255, 218, 0.9);
+            outline-offset: 2px;
+        }
+        .screenshots-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 14px;
+            margin-top: 18px;
+        }
+        @media (max-width: 900px) {
+            .screenshots-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        }
+        @media (max-width: 520px) {
+            .screenshots-grid { grid-template-columns: 1fr; }
+        }
+        .screenshot-card {
+            display: block;
+            width: 100%;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            background: rgba(255, 255, 255, 0.03);
+            cursor: pointer;
+            transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+        }
+        .screenshot-card:hover {
+            transform: translateY(-2px);
+            border-color: rgba(100, 255, 218, 0.55);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+        }
+        .screenshot-card img {
+            display: block;
+            width: 100%;
+            height: auto;
+            aspect-ratio: 16 / 9;
+            object-fit: cover;
+            background: rgba(13, 17, 23, 0.7);
+        }
+        .lightbox {
+            position: fixed;
+            inset: 0;
+            z-index: 2000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 22px;
+            background: rgba(0, 0, 0, 0.72);
+            backdrop-filter: blur(6px);
+        }
+        .lightbox.open { display: flex; }
+        .lightbox-content {
+            width: min(1100px, 100%);
+            max-height: 88vh;
+            border-radius: 14px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            background: rgba(13, 17, 23, 0.92);
+            box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6);
+        }
+        .lightbox-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 10px 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .lightbox-title {
+            color: #c9d1d9;
+            font-size: 13px;
+            opacity: 0.9;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .lightbox-close {
+            appearance: none;
+            border: 0;
+            background: transparent;
+            color: #c9d1d9;
+            cursor: pointer;
+            padding: 6px 10px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 700;
+        }
+        .lightbox-close:hover { background: rgba(255, 255, 255, 0.08); }
+        .lightbox-body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 12px;
+        }
+        .lightbox-body img {
+            max-width: 100%;
+            max-height: calc(88vh - 56px);
+            height: auto;
+            width: auto;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
     </style>
 </head>
 <body>
+    <a class="github-link" href="https://github.com/your-repo/clawos" target="_blank" rel="noopener noreferrer">GitHub</a>
     <div class="container">
         <div class="hero">
             <div class="logo">🖥️</div>
@@ -386,10 +514,77 @@ ROOT_DIR = ~                  # 管理的根目录</code></pre>
 }</code></pre>
         </div>
 
+        <div class="section">
+            <h2>📸 界面预览</h2>
+            <p>以下为 ClawOS 的部分界面截图（点击可放大查看）。</p>
+            <div class="screenshots-grid">
+                <button class="screenshot-card" type="button" onclick="openLightbox('screenshots/20260225-110434.jpg', 'ClawOS 界面截图 1')">
+                    <img src="screenshots/20260225-110434.jpg" alt="ClawOS 界面截图 1" loading="lazy" decoding="async">
+                </button>
+                <button class="screenshot-card" type="button" onclick="openLightbox('screenshots/20260225-110441.jpg', 'ClawOS 界面截图 2')">
+                    <img src="screenshots/20260225-110441.jpg" alt="ClawOS 界面截图 2" loading="lazy" decoding="async">
+                </button>
+                <button class="screenshot-card" type="button" onclick="openLightbox('screenshots/20260225-110446.jpg', 'ClawOS 界面截图 3')">
+                    <img src="screenshots/20260225-110446.jpg" alt="ClawOS 界面截图 3" loading="lazy" decoding="async">
+                </button>
+                <button class="screenshot-card" type="button" onclick="openLightbox('screenshots/20260225-110451.jpg', 'ClawOS 界面截图 4')">
+                    <img src="screenshots/20260225-110451.jpg" alt="ClawOS 界面截图 4" loading="lazy" decoding="async">
+                </button>
+                <button class="screenshot-card" type="button" onclick="openLightbox('screenshots/20260225-110456.jpg', 'ClawOS 界面截图 5')">
+                    <img src="screenshots/20260225-110456.jpg" alt="ClawOS 界面截图 5" loading="lazy" decoding="async">
+                </button>
+                <button class="screenshot-card" type="button" onclick="openLightbox('screenshots/20260225-110500.jpg', 'ClawOS 界面截图 6')">
+                    <img src="screenshots/20260225-110500.jpg" alt="ClawOS 界面截图 6" loading="lazy" decoding="async">
+                </button>
+                <button class="screenshot-card" type="button" onclick="openLightbox('screenshots/20260225-110505.jpg', 'ClawOS 界面截图 7')">
+                    <img src="screenshots/20260225-110505.jpg" alt="ClawOS 界面截图 7" loading="lazy" decoding="async">
+                </button>
+                <button class="screenshot-card" type="button" onclick="openLightbox('screenshots/20260225-110510.jpg', 'ClawOS 界面截图 8')">
+                    <img src="screenshots/20260225-110510.jpg" alt="ClawOS 界面截图 8" loading="lazy" decoding="async">
+                </button>
+                <button class="screenshot-card" type="button" onclick="openLightbox('screenshots/20260225-110514.jpg', 'ClawOS 界面截图 9')">
+                    <img src="screenshots/20260225-110514.jpg" alt="ClawOS 界面截图 9" loading="lazy" decoding="async">
+                </button>
+            </div>
+        </div>
+
         <div class="footer">
             <p>ClawOS - 开源的 Linux Web 管理面板</p>
-            <p>MIT License | <a href="https://github.com/your-repo/clawos">GitHub</a></p>
+            <p>MIT License | <a href="https://github.com/your-repo/clawos" target="_blank" rel="noopener noreferrer">GitHub</a></p>
         </div>
     </div>
+
+    <div id="lightbox" class="lightbox" role="dialog" aria-modal="true" onclick="closeLightbox()">
+        <div class="lightbox-content" onclick="event.stopPropagation()">
+            <div class="lightbox-header">
+                <div id="lightboxTitle" class="lightbox-title"></div>
+                <button class="lightbox-close" type="button" onclick="closeLightbox()" aria-label="关闭">×</button>
+            </div>
+            <div class="lightbox-body">
+                <img id="lightboxImage" alt="">
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function openLightbox(src, title) {
+            var lightbox = document.getElementById('lightbox');
+            var img = document.getElementById('lightboxImage');
+            var titleEl = document.getElementById('lightboxTitle');
+            img.src = src;
+            img.alt = title || '截图预览';
+            titleEl.textContent = title || src;
+            lightbox.classList.add('open');
+        }
+        function closeLightbox() {
+            var lightbox = document.getElementById('lightbox');
+            var img = document.getElementById('lightboxImage');
+            lightbox.classList.remove('open');
+            img.src = '';
+        }
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') closeLightbox();
+        });
+    </script>
 </body>
 </html>
