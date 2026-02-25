@@ -5,12 +5,16 @@ import os
 import subprocess
 import re
 import threading
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, current_app, send_from_directory
 
 from ctrl import api_error, api_ok
 
 cron_bp = Blueprint('cron', __name__)
 _cron_lock = threading.Lock()
+
+@cron_bp.route('/cron/manager')
+def cron_manager():
+    return send_from_directory(current_app.template_folder, 'cron_manager.html')
 
 
 def _parse_crontab(content):

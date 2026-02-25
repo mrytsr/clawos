@@ -10,11 +10,21 @@ import json
 import time
 import requests
 import threading
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, current_app, send_from_directory, redirect
 
 import config
 
 ai_eval_bp = Blueprint('ai_eval', __name__)
+
+
+@ai_eval_bp.route('/ai/evaluate')
+def ai_evaluate():
+    return redirect('/ai/model-config')
+
+
+@ai_eval_bp.route('/ai/model-config')
+def ai_model_config():
+    return send_from_directory(current_app.template_folder, 'ai_evaluate.html')
 
 # 模型存储文件
 MODELS_FILE = os.path.join(config.DATA_DIR, 'ai_models.json')

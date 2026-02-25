@@ -7,11 +7,16 @@ import base64
 from datetime import datetime
 from contextlib import contextmanager
 from threading import Lock
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, current_app, send_from_directory
 
 from ctrl import api_error, api_ok
 
 db_bp = Blueprint('db', __name__)
+
+
+@db_bp.route('/db/manager')
+def db_manager():
+    return send_from_directory(current_app.template_folder, 'db_manager.html')
 
 # 数据库连接配置存储路径
 DB_CONFIG_DIR = os.path.expanduser('~/.local/clawos')

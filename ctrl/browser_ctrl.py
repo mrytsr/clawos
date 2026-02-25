@@ -136,6 +136,12 @@ def _prune_pins_for_deleted_item(root_dir, full_path, is_dir):
 
 
 @browser_bp.route('/')
+def home():
+    static_dir = os.path.join(config.SCRIPT_DIR, 'static')
+    return send_from_directory(static_dir, 'home.html')
+
+
+@browser_bp.route('/browse')
 @browser_bp.route('/browse/')
 @browser_bp.route('/browse/<path:path>')
 def browse(path=''):

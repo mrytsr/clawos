@@ -5,7 +5,7 @@ import os
 import subprocess
 import re
 from datetime import datetime
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, current_app, send_from_directory
 
 from ctrl import api_error, api_ok
 
@@ -15,6 +15,10 @@ SERVICES = [
     'frpc', 'clash', 'openclaw-gateway', 
     'clawos', 'docker', 'nginx'
 ]
+
+@log_bp.route('/log/viewer')
+def log_viewer():
+    return send_from_directory(current_app.template_folder, 'log_viewer.html')
 
 def _parse_journal_line(line):
     """解析 journalctl 输出行."""

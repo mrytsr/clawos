@@ -2,7 +2,7 @@ import os
 import re
 
 
-from flask import Flask, jsonify, request, send_from_directory
+from flask import Flask, jsonify, request
 from flask import Response
 from flask_socketio import SocketIO
 from werkzeug.exceptions import HTTPException
@@ -114,27 +114,6 @@ def handle_unhandled_exception(e):
 @app.route('/@vite/client')
 def vite_client_noop():
     return Response('export {};', mimetype='application/javascript')
-
-
-# 独立页面路由
-@app.route('/log/viewer')
-def log_viewer():
-    return send_from_directory(app.template_folder, 'log_viewer.html')
-
-
-@app.route('/cron/manager')
-def cron_manager():
-    return send_from_directory(app.template_folder, 'cron_manager.html')
-
-
-@app.route('/db/manager')
-def db_manager():
-    return send_from_directory(app.template_folder, 'db_manager.html')
-
-
-@app.route('/ai/evaluate')
-def ai_evaluate():
-    return send_from_directory(app.template_folder, 'ai_evaluate.html')
 
 
 if __name__ == '__main__':

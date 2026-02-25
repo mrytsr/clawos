@@ -697,7 +697,6 @@ window.openMainMenuModal = function() {
         var items = [
             { action: 'process', icon: '📊', text: '进程管理' },
             { action: 'gpu', icon: '🖥️', text: '显卡管理' },
-            { action: 'ai_eval', icon: '🧠', text: 'AI评测' },
             { action: 'pkg', icon: '📦', text: '包管理' },
             { action: 'perf', icon: '📈', text: '性能监控' },
             { action: 'network', icon: '🌐', text: '网络管理' },
@@ -748,7 +747,6 @@ window.openConfigModal = function() { var m = document.getElementById('configMod
 window.logoutAuth = function() { window.location.href = '/logout'; };
 
 window.actionToModalMap = {
-    'ai_eval': { url: '/ai/evaluate', target: '_blank' },
     'git': { modal: 'gitModal', load: 'loadGitList', open: 'openGitModal' },
     'process': { modal: 'processModal', load: 'loadProcessList', open: 'openProcessModal' },
     'perf': { func: 'openPerfDrawer' },
