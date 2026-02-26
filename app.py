@@ -104,6 +104,18 @@ def handle_unhandled_exception(e):
         return e
     app.logger.exception('Unhandled exception')
     if request.path.startswith('/api/'):
+        trace_on = False
+        try:
+            trace_on = bool(config.SERVER_DEBUG) or (request.headers.get('X-ClawOS-Trace') == '1')
+        except Exception:
+            trace_on = False
+        if trace_on:
+            import traceback
+            return jsonify({
+                'success': False,
+                'error': {'message': str(e) or 'Internal Server Error'},
+                'trace': traceback.format_exc(),
+            }), 500
         return jsonify({
             'success': False,
             'error': {'message': 'Internal Server Error'},

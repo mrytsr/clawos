@@ -401,29 +401,22 @@ def api_openclaw_cron_add():
         }), 404
 
     name = message
+    result = subprocess.run(
+        ['openclaw', 'cron', 'add', '--name', name, '--' + time_type, schedule, '--message', '🔔 ' + message, '--delete-after-run'],
+        capture_output=True,
+        text=True,
+        timeout=30
+    )
+    if result.returncode != 0:
+        return api_error(result.stderr or 'Command failed', status=500)
+    stdout = result.stdout or ''
+    if not stdout.strip():
+        return api_ok({'success': True})
     try:
-        result = subprocess.run(
-            ['openclaw', 'cron', 'add', '--name', name, '--' + time_type, schedule, '--message', '🔔 ' + message, '--delete-after-run'],
-            capture_output=True,
-            text=True,
-            timeout=30
-        )
-        if result.returncode != 0:
-            return api_error(result.stderr or 'Command failed', status=500)
-        stdout = result.stdout or ''
-        if not stdout.strip():
-            return api_ok({'success': True})
-        try:
-            output = json.loads(stdout)
-        except Exception:
-            output = stdout
-        return api_ok({'result': output})
-    except FileNotFoundError:
-        return api_error('OpenClaw not installed: path', status=404)
-    except subprocess.TimeoutExpired:
-        return api_error('Command timeout', status=500)
-    except Exception as e:
-        return api_error(str(e), status=500)
+        output = json.loads(stdout)
+    except Exception:
+        output = stdout
+    return api_ok({'result': output})
 
 
 @openclaw_bp.route('/api/openclaw/cron/remove', methods=['POST'])
