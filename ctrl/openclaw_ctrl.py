@@ -17,36 +17,66 @@ openclaw_bp = Blueprint('openclaw', __name__)
 OPENCLAW_CONFIG_PATH = os.path.expanduser('~/.openclaw/openclaw.json')
 
 
-def _is_openclaw_installed():
-    if shutil.which('openclaw'):
-        return True
-    info = packages_utils.list_npm_packages()
-    if not info.get('success'):
-        return False
-    packages = info.get('packages') or []
-    for p in packages:
-        if (p.get('name') or '').strip().lower() == 'openclaw':
-            return True
-    return False
-
-
 def _openclaw_install_check():
-    if shutil.which('openclaw'):
-        return True, 'path'
+    env = {}
+    try:
+        env = packages_utils.get_npm_env()
+    except Exception:
+        env = os.environ.copy()
+
+    env_path = env.get('PATH') or ''
+    env_path_parts = [p for p in env_path.split(os.pathsep) if p]
+    extra_bins = [os.path.expanduser('~/.local/bin'), '/usr/local/bin', '/usr/bin']
+    for p in reversed(extra_bins):
+        if p and p not in env_path_parts:
+            env_path_parts.insert(0, p)
+    env['PATH'] = os.pathsep.join(env_path_parts)
+
+    path = env.get('PATH') or ''
+    cmd = shutil.which('openclaw', path=path) or shutil.which('openclaw')
+    if cmd:
+        return {'installed': True, 'reason': 'path', 'cmd': cmd, 'env': env}
+
+    npm_cmd = None
+    try:
+        npm_cmd = packages_utils.find_npm()
+    except Exception:
+        npm_cmd = None
+
+    if npm_cmd:
+        npm_bin = ''
+        try:
+            npm_bin = subprocess.run(
+                [npm_cmd, 'bin', '-g'],
+                capture_output=True,
+                text=True,
+                timeout=5,
+                env=env,
+            ).stdout.strip()
+        except Exception:
+            npm_bin = ''
+        if npm_bin:
+            env2 = dict(env)
+            env2['PATH'] = npm_bin + os.pathsep + (env.get('PATH') or '')
+            cmd2 = shutil.which('openclaw', path=env2.get('PATH') or '')
+            if cmd2:
+                return {'installed': True, 'reason': 'npm_bin', 'cmd': cmd2, 'env': env2}
+            env = env2
+
     info = packages_utils.list_npm_packages()
     if not info.get('success'):
-        return False, 'npm_list_failed'
+        return {'installed': False, 'reason': 'npm_list_failed'}
     packages = info.get('packages') or []
     for p in packages:
         if (p.get('name') or '').strip().lower() == 'openclaw':
-            return True, 'npm_list'
-    return False, 'not_found'
+            return {'installed': False, 'reason': 'npm_list_no_bin'}
+    return {'installed': False, 'reason': 'not_found'}
 
 
 @openclaw_bp.route('/api/openclaw/install_state')
 def api_openclaw_install_state():
-    installed, reason = _openclaw_install_check()
-    return api_ok({'installed': installed, 'reason': reason})
+    check = _openclaw_install_check()
+    return api_ok({'installed': check.get('installed'), 'reason': check.get('reason')})
 
 
 @openclaw_bp.route('/api/openclaw/install', methods=['POST'])
@@ -324,13 +354,18 @@ def api_openclaw_exec():
     allowed_prefixes = ['cron ']
     if not any(command.startswith(p) for p in allowed_prefixes):
         return api_error('Command not allowed', status=403)
+
+    check = _openclaw_install_check()
+    if not check.get('installed'):
+        return api_error('OpenClaw not installed', status=404)
     
     try:
         result = subprocess.run(
-            ['openclaw'] + command.split(),
+            [check.get('cmd') or 'openclaw'] + command.split(),
             capture_output=True,
             text=True,
-            timeout=30
+            timeout=30,
+            env=check.get('env'),
         )
         return api_ok({
             'stdout': result.stdout,
@@ -345,16 +380,19 @@ def api_openclaw_exec():
 
 @openclaw_bp.route('/api/openclaw/cron/list')
 def api_openclaw_cron_list():
-    installed, reason = _openclaw_install_check()
+    check = _openclaw_install_check()
+    installed = bool(check.get('installed'))
+    reason = check.get('reason')
     if not installed:
         return api_ok({'jobs': [], 'installed': False, 'reason': reason})
 
     try:
         result = subprocess.run(
-            ['openclaw', 'cron', 'list', '--json'],
+            [check.get('cmd') or 'openclaw', 'cron', 'list', '--json'],
             capture_output=True,
             text=True,
-            timeout=30
+            timeout=30,
+            env=check.get('env'),
         )
         stdout = result.stdout or ''
         if result.returncode != 0 and not stdout.strip():
@@ -391,7 +429,9 @@ def api_openclaw_cron_add():
         return api_error('Invalid timeType', status=400)
     if not schedule:
         return api_error('Missing schedule', status=400)
-    installed, reason = _openclaw_install_check()
+    check = _openclaw_install_check()
+    installed = bool(check.get('installed'))
+    reason = check.get('reason')
     if not installed:
         return jsonify({
             'success': False,
@@ -402,10 +442,11 @@ def api_openclaw_cron_add():
 
     name = message
     result = subprocess.run(
-        ['openclaw', 'cron', 'add', '--name', name, '--' + time_type, schedule, '--message', '🔔 ' + message, '--delete-after-run'],
+        [check.get('cmd') or 'openclaw', 'cron', 'add', '--name', name, '--' + time_type, schedule, '--message', '🔔 ' + message, '--delete-after-run'],
         capture_output=True,
         text=True,
-        timeout=30
+        timeout=30,
+        env=check.get('env'),
     )
     if result.returncode != 0:
         return api_error(result.stderr or 'Command failed', status=500)
@@ -425,7 +466,9 @@ def api_openclaw_cron_remove():
     job_id = (data.get('jobId') or '').strip()
     if not job_id:
         return api_error('Missing jobId', status=400)
-    installed, reason = _openclaw_install_check()
+    check = _openclaw_install_check()
+    installed = bool(check.get('installed'))
+    reason = check.get('reason')
     if not installed:
         return jsonify({
             'success': False,
@@ -435,10 +478,11 @@ def api_openclaw_cron_remove():
         }), 404
     try:
         result = subprocess.run(
-            ['openclaw', 'cron', 'remove', job_id],
+            [check.get('cmd') or 'openclaw', 'cron', 'remove', job_id],
             capture_output=True,
             text=True,
-            timeout=30
+            timeout=30,
+            env=check.get('env'),
         )
         if result.returncode != 0:
             return api_error(result.stderr or 'Command failed', status=500)
@@ -473,7 +517,8 @@ def api_exec_simple():
     
     parts = cmd.split()
     is_list = 'cron' in parts and 'list' in parts and '--json' in parts
-    if not _is_openclaw_installed():
+    check = _openclaw_install_check()
+    if not check.get('installed'):
         if is_list:
             return api_ok({'jobs': []})
         return api_error('OpenClaw not installed', status=404)
@@ -482,10 +527,11 @@ def api_exec_simple():
 
     try:
         result = subprocess.run(
-            ['openclaw'] + cli_args,
+            [check.get('cmd') or 'openclaw'] + cli_args,
             capture_output=True,
             text=True,
-            timeout=30
+            timeout=30,
+            env=check.get('env'),
         )
         stdout = result.stdout or ''
         if result.returncode != 0 and is_list and not stdout.strip():
