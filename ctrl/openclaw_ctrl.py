@@ -5,7 +5,7 @@ import socket
 import subprocess
 import shutil
 
-from flask import Blueprint, request
+from flask import Blueprint, request, jsonify
 
 from ctrl import api_error, api_ok
 from ctrl.task_ctrl import create_task
@@ -393,7 +393,12 @@ def api_openclaw_cron_add():
         return api_error('Missing schedule', status=400)
     installed, reason = _openclaw_install_check()
     if not installed:
-        return api_error('OpenClaw not installed: ' + reason, status=404)
+        return jsonify({
+            'success': False,
+            'error': {'message': 'OpenClaw not installed'},
+            'installed': installed,
+            'reason': reason,
+        }), 404
 
     name = message
     try:
@@ -429,7 +434,12 @@ def api_openclaw_cron_remove():
         return api_error('Missing jobId', status=400)
     installed, reason = _openclaw_install_check()
     if not installed:
-        return api_error('OpenClaw not installed: ' + reason, status=404)
+        return jsonify({
+            'success': False,
+            'error': {'message': 'OpenClaw not installed'},
+            'installed': installed,
+            'reason': reason,
+        }), 404
     try:
         result = subprocess.run(
             ['openclaw', 'cron', 'remove', job_id],
