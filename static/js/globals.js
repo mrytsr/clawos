@@ -214,6 +214,28 @@ function authHeaders() {
 }
 
 (function() {
+    if (window.__clawosFetchWrapped) return;
+    window.__clawosFetchWrapped = true;
+    var originalFetch = window.fetch;
+    if (typeof originalFetch !== 'function') return;
+
+    window.fetch = function(input, init) {
+        return originalFetch(input, init).then(function(resp) {
+            try {
+                if (resp && resp.status === 401) {
+                    if (!window.__clawosAuthRedirecting && window.location && window.location.pathname !== '/login') {
+                        window.__clawosAuthRedirecting = true;
+                        var here = (window.location.pathname || '/') + (window.location.search || '');
+                        window.location.href = '/login?success_redirect=' + encodeURIComponent(here);
+                    }
+                }
+            } catch (e) {}
+            return resp;
+        });
+    };
+})();
+
+(function() {
     if (window.__scrollLockInited) return;
     window.__scrollLockInited = true;
 
