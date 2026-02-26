@@ -340,27 +340,37 @@ def api_exec_simple():
     if 'cron' not in cmd:
         return api_error('Command not allowed', status=403)
     
+    parts = cmd.split()
+    is_list = 'cron' in parts and 'list' in parts and '--json' in parts
+    if not _is_openclaw_installed():
+        if is_list:
+            return api_ok({'jobs': []})
+        return api_error('OpenClaw not installed', status=404)
+
+    cli_args = parts[1:] if parts and parts[0] == 'openclaw' else parts
+
     try:
-        # 解析命令
-        parts = cmd.split()
-        # 去除 "openclaw" 前缀
-        cli_args = parts[1:] if len(parts) > 1 else []
-        
         result = subprocess.run(
             ['openclaw'] + cli_args,
             capture_output=True,
             text=True,
             timeout=30
         )
-        
-        # 尝试解析 JSON 输出
+        stdout = result.stdout or ''
+        if result.returncode != 0 and is_list and not stdout.strip():
+            return api_ok({'jobs': []})
         try:
             import json
-            output = json.loads(result.stdout)
+            output = json.loads(stdout) if stdout.strip() else ({'jobs': []} if is_list else '')
         except:
-            output = result.stdout
-        
+            output = stdout
+        if is_list and output == '':
+            output = {'jobs': []}
         return api_ok(output)
+    except FileNotFoundError:
+        if is_list:
+            return api_ok({'jobs': []})
+        return api_error('OpenClaw not installed', status=404)
     except subprocess.TimeoutExpired:
         return api_error('Command timeout', status=500)
     except Exception as e:

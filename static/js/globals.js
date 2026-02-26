@@ -210,7 +210,11 @@ const Drawer = {
 
 // 认证头辅助函数
 function authHeaders() {
-    return {};
+    const cookieValue = document.cookie
+        .split('; ')
+        .find(row => row.startsWith('clawos_auth='))
+        ?.split('=')[1];
+    return cookieValue ? { 'Authorization': `Bearer ${cookieValue}` } : {};
 }
 
 (function() {

@@ -35,6 +35,7 @@ export default [
                 MutationObserver: "readonly",
                 WebSocket: "readonly",
                 TextEncoder: "readonly",
+                XMLHttpRequest: "readonly",
                 // Socket.IO
                 io: "readonly",
                 socketio: "readonly",
@@ -57,6 +58,7 @@ export default [
                 loadBotHistory: "readonly",
                 botConnect: "readonly",
                 botIsConnected: "writable",
+                loadCronJobList: "readonly",
                 loadSystemdList: "readonly",
                 loadGitList: "readonly",
                 loadGitCommitDetail: "readonly",
