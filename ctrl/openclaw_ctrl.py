@@ -327,6 +327,115 @@ def api_openclaw_exec():
         return api_error(str(e), status=500)
 
 
+@openclaw_bp.route('/api/openclaw/cron/list')
+def api_openclaw_cron_list():
+    if not _is_openclaw_installed():
+        return api_ok({'jobs': []})
+
+    try:
+        result = subprocess.run(
+            ['openclaw', 'cron', 'list', '--json'],
+            capture_output=True,
+            text=True,
+            timeout=30
+        )
+        stdout = result.stdout or ''
+        if result.returncode != 0 and not stdout.strip():
+            return api_ok({'jobs': []})
+        if not stdout.strip():
+            return api_ok({'jobs': []})
+        try:
+            output = json.loads(stdout)
+        except Exception:
+            return api_error('输出解析失败', status=500)
+        if isinstance(output, list):
+            return api_ok({'jobs': output})
+        if isinstance(output, dict):
+            return api_ok(output)
+        return api_ok({'jobs': []})
+    except FileNotFoundError:
+        return api_ok({'jobs': []})
+    except subprocess.TimeoutExpired:
+        return api_error('Command timeout', status=500)
+    except Exception as e:
+        return api_error(str(e), status=500)
+
+
+@openclaw_bp.route('/api/openclaw/cron/add', methods=['POST'])
+def api_openclaw_cron_add():
+    data = request.get_json(silent=True) or {}
+    message = (data.get('message') or '').strip()
+    time_type = (data.get('timeType') or '').strip()
+    schedule = (data.get('schedule') or '').strip()
+
+    if not message:
+        return api_error('Missing message', status=400)
+    if time_type not in ('at', 'cron'):
+        return api_error('Invalid timeType', status=400)
+    if not schedule:
+        return api_error('Missing schedule', status=400)
+    if not _is_openclaw_installed():
+        return api_error('OpenClaw not installed', status=404)
+
+    name = message
+    try:
+        result = subprocess.run(
+            ['openclaw', 'cron', 'add', '--name', name, '--' + time_type, schedule, '--message', '🔔 ' + message, '--delete-after-run'],
+            capture_output=True,
+            text=True,
+            timeout=30
+        )
+        if result.returncode != 0:
+            return api_error(result.stderr or 'Command failed', status=500)
+        stdout = result.stdout or ''
+        if not stdout.strip():
+            return api_ok({'success': True})
+        try:
+            output = json.loads(stdout)
+        except Exception:
+            output = stdout
+        return api_ok({'result': output})
+    except FileNotFoundError:
+        return api_error('OpenClaw not installed', status=404)
+    except subprocess.TimeoutExpired:
+        return api_error('Command timeout', status=500)
+    except Exception as e:
+        return api_error(str(e), status=500)
+
+
+@openclaw_bp.route('/api/openclaw/cron/remove', methods=['POST'])
+def api_openclaw_cron_remove():
+    data = request.get_json(silent=True) or {}
+    job_id = (data.get('jobId') or '').strip()
+    if not job_id:
+        return api_error('Missing jobId', status=400)
+    if not _is_openclaw_installed():
+        return api_error('OpenClaw not installed', status=404)
+    try:
+        result = subprocess.run(
+            ['openclaw', 'cron', 'remove', job_id],
+            capture_output=True,
+            text=True,
+            timeout=30
+        )
+        if result.returncode != 0:
+            return api_error(result.stderr or 'Command failed', status=500)
+        stdout = result.stdout or ''
+        if not stdout.strip():
+            return api_ok({'success': True})
+        try:
+            output = json.loads(stdout)
+        except Exception:
+            output = stdout
+        return api_ok({'result': output})
+    except FileNotFoundError:
+        return api_error('OpenClaw not installed', status=404)
+    except subprocess.TimeoutExpired:
+        return api_error('Command timeout', status=500)
+    except Exception as e:
+        return api_error(str(e), status=500)
+
+
 @openclaw_bp.route('/exec')
 def api_exec_simple():
     """简单的命令执行接口（用于前端）"""
