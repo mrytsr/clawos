@@ -3,6 +3,7 @@ import json
 import os
 import socket
 import subprocess
+import shutil
 
 from flask import Blueprint, request
 
@@ -17,6 +18,8 @@ OPENCLAW_CONFIG_PATH = os.path.expanduser('~/.openclaw/openclaw.json')
 
 
 def _is_openclaw_installed():
+    if shutil.which('openclaw'):
+        return True
     info = packages_utils.list_npm_packages()
     if not info.get('success'):
         return False
