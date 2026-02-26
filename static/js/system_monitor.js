@@ -1233,6 +1233,24 @@ window.loadCronJobList = function() {
     const container = document.getElementById('cronJobList');
     if (!container) return;
     
+    function formatAtToBeijing(atValue) {
+        const raw = (atValue === null || atValue === undefined) ? '' : String(atValue).trim();
+        if (!raw) return '-';
+        const d = new Date(raw);
+        if (!Number.isNaN(d.getTime())) {
+            return d.toLocaleString('zh-CN', {
+                timeZone: 'Asia/Shanghai',
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+            });
+        }
+        return raw;
+    }
+
     fetch('/api/openclaw/cron/list', { headers: authHeaders() })
         .then(function(r) { return r.json(); })
         .then(function(data) {
@@ -1254,7 +1272,11 @@ window.loadCronJobList = function() {
                 const nextRun = job.nextRunAtMs ? new Date(job.nextRunAtMs).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false }) : '-';
                 const statusIcon = job.enabled ? '🟢' : '🔴';
                 const statusText = job.enabled ? '已启用' : '已禁用';
-                const scheduleText = job.schedule && job.schedule.kind === 'cron' ? job.schedule.cron : (job.schedule && job.schedule.kind === 'at' ? '一次性: ' + (job.schedule.at || '-') : '周期任务');
+                const scheduleText = job.schedule && job.schedule.kind === 'cron'
+                    ? job.schedule.cron
+                    : (job.schedule && job.schedule.kind === 'at'
+                        ? ('一次性: ' + formatAtToBeijing(job.schedule.at))
+                        : '周期任务');
         
                 html += '<div style="padding:10px 12px;' + (idx < jobs.length - 1 ? 'border-bottom:1px solid #eee;' : '') + '">';
                 html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;gap:10px;">';

@@ -1317,6 +1317,15 @@
             </div>
 
             <div id="botConfigPanel" style="display:block;overflow-y:auto;flex:1;padding:16px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px;">
+                    <div style="font-weight:600;font-size:14px;">⚙️ OpenClaw 配置</div>
+                    <div style="display:flex;gap:8px;flex-shrink:0;">
+                        <button id="openclawInstallBtn" style="display:none;background:#2da44e;border:none;border-radius:6px;color:#fff;padding:6px 10px;cursor:pointer;font-size:13px;" onclick="serviceInstallAction('openclaw','install')">安装</button>
+                        <button id="openclawReinstallBtn" style="display:none;background:#0969da;border:none;border-radius:6px;color:#fff;padding:6px 10px;cursor:pointer;font-size:13px;" onclick="serviceInstallAction('openclaw','reinstall')">重新安装</button>
+                        <button id="openclawUninstallBtn" style="display:none;background:#cf222e;border:none;border-radius:6px;color:#fff;padding:6px 10px;cursor:pointer;font-size:13px;" onclick="serviceInstallAction('openclaw','uninstall')">卸载</button>
+                        <button style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px;" onclick="loadOpenclawConfig()" title="刷新">🔄</button>
+                    </div>
+                </div>
                 <div id="botOpenclawConfigContainer"></div>
             </div>
 
@@ -2007,10 +2016,6 @@
         <div class="drawer-header">
             <div class="drawer-title">⚙️ OpenClaw 配置</div>
             <div style="display:flex;gap:8px;">
-                <button id="openclawInstallBtn" style="display:none;background:#2da44e;border:none;border-radius:6px;color:#fff;padding:6px 10px;cursor:pointer;font-size:13px;" onclick="serviceInstallAction('openclaw','install')">安装</button>
-                <button id="openclawReinstallBtn" style="display:none;background:#0969da;border:none;border-radius:6px;color:#fff;padding:6px 10px;cursor:pointer;font-size:13px;" onclick="serviceInstallAction('openclaw','reinstall')">重新安装</button>
-                <button id="openclawUninstallBtn" style="display:none;background:#cf222e;border:none;border-radius:6px;color:#fff;padding:6px 10px;cursor:pointer;font-size:13px;" onclick="serviceInstallAction('openclaw','uninstall')">卸载</button>
-                <button style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px;" onclick="loadOpenclawConfig()" title="刷新">🔄</button>
                 <button class="drawer-close-btn" onclick="closeOpenclawModal()">&times;</button>
             </div>
         </div>
