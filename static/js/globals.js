@@ -732,7 +732,6 @@ window.openMainMenuModal = function() {
             { action: 'disk', icon: '💾', text: '磁盘管理' },
             { action: 'cron', icon: '⏰', text: 'Cron管理' },
             { action: 'ollama', icon: '🦙', text: 'Ollama' },
-            { action: 'openclaw', icon: '⚙️', text: 'OpenClaw' },
             { action: 'clash', icon: '🌐', text: 'Clash代理' },
             { action: 'frp', icon: '🔗', text: 'FRP内网穿透' }
         ];
