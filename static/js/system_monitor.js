@@ -1075,7 +1075,13 @@ window.openOllamaModal = function() { Drawer.open('ollamaModal'); loadOllamaMode
 // OpenClaw配置
 window.loadOpenclawConfig = function() {
     window.refreshServiceInstallState('openclaw');
-    const container = document.getElementById('openclawConfigContainer');
+    let container = null;
+    const botDrawer = document.getElementById('botDrawer');
+    const botPanel = document.getElementById('botConfigPanel');
+    if (botDrawer && botDrawer.classList.contains('open') && botPanel && botPanel.style.display !== 'none') {
+        container = document.getElementById('botOpenclawConfigContainer');
+    }
+    if (!container) container = document.getElementById('openclawConfigContainer') || document.getElementById('botOpenclawConfigContainer');
     if (container) container.innerHTML = '<div style="text-align:center;padding:40px;color:#666;">🔄 加载中...</div>';
     
     fetch('/api/openclaw/status', { headers: authHeaders() })
@@ -1086,6 +1092,16 @@ window.loadOpenclawConfig = function() {
             
             let html = '';
             
+            html += '<div style="margin-bottom:16px;">';
+            html += '<div style="font-size:13px;color:#666;margin-bottom:8px;padding-left:4px;display:flex;justify-content:space-between;align-items:center;">';
+            html += '<span>⏰ 定时任务</span>';
+            html += '<button onclick="openCronAddModal()" style="background:#0969da;border:none;border-radius:6px;color:#fff;padding:4px 10px;cursor:pointer;font-size:12px;">+ 添加</button>';
+            html += '</div>';
+            html += '<div id="cronJobList" style="background:#fff;border:1px solid #d0d7de;border-radius:8px;overflow:hidden;">';
+            html += '<div style="padding:20px;text-align:center;color:#666;">加载中...</div>';
+            html += '</div>';
+            html += '</div>';
+
             // ========== 概览卡片 ==========
             const ov = payload.overview || {};
             html += '<div style="margin-bottom:16px;">';
@@ -1193,29 +1209,24 @@ window.loadOpenclawConfig = function() {
             }
             
             html += '</div></div>';
-            
-            // ========== Cron 定时任务卡片 ==========
-            html += '<div style="margin-bottom:16px;">';
-            html += '<div style="font-size:13px;color:#666;margin-bottom:8px;padding-left:4px;display:flex;justify-content:space-between;align-items:center;">';
-            html += '<span>⏰ 定时任务</span>';
-            html += '<button onclick="openCronAddModal()" style="background:#0969da;border:none;border-radius:6px;color:#fff;padding:4px 10px;cursor:pointer;font-size:12px;">+ 添加</button>';
-            html += '</div>';
-            html += '<div id="cronJobList" style="background:#fff;border:1px solid #d0d7de;border-radius:8px;overflow:hidden;">';
-            html += '<div style="padding:20px;text-align:center;color:#666;">加载中...</div>';
-            html += '</div>';
-            html += '</div>';
-            
-            // 加载 Cron 任务列表
-            setTimeout(loadCronJobList, 100);
-            
+
             container.innerHTML = html;
+            setTimeout(function() { if (typeof loadCronJobList === 'function') loadCronJobList(); }, 50);
         })
         .catch(function(err) {
             console.error(err);
             if (container) container.innerHTML = '<div style="text-align:center;padding:40px;color:#cf222e;">加载失败</div>';
         });
 };
-window.openOpenclawModal = function() { Drawer.open('openclawModal'); loadOpenclawConfig(); };
+window.openOpenclawModal = function() {
+    if (typeof window.openBotModal === 'function') {
+        window.openBotModal();
+        if (typeof window.switchBotTab === 'function') window.switchBotTab('config');
+        return;
+    }
+    Drawer.open('openclawModal');
+    loadOpenclawConfig();
+};
 
 // ========== OpenClaw Cron 管理函数 ==========
 window.loadCronJobList = function() {
@@ -1238,22 +1249,23 @@ window.loadCronJobList = function() {
             }
     
             let html = '';
+            window.__openclawCronJobs = jobs;
             jobs.forEach(function(job, idx) {
-                const nextRun = job.nextRunAtMs ? new Date(job.nextRunAtMs + 8*60*60*1000).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '-';
+                const nextRun = job.nextRunAtMs ? new Date(job.nextRunAtMs).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false }) : '-';
                 const statusIcon = job.enabled ? '🟢' : '🔴';
                 const statusText = job.enabled ? '已启用' : '已禁用';
                 const scheduleText = job.schedule && job.schedule.kind === 'cron' ? job.schedule.cron : (job.schedule && job.schedule.kind === 'at' ? '一次性: ' + (job.schedule.at || '-') : '周期任务');
         
                 html += '<div style="padding:10px 12px;' + (idx < jobs.length - 1 ? 'border-bottom:1px solid #eee;' : '') + '">';
-                html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">';
-                html += '<span style="font-weight:500;font-size:14px;">' + escapeHtml(job.name || '未命名') + '</span>';
+                html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;gap:10px;">';
+                html += '<span style="font-weight:500;font-size:14px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + escapeHtml(job.name || '未命名') + '</span>';
+                html += '<span style="display:flex;align-items:center;gap:8px;flex-shrink:0;">';
                 html += '<span style="font-size:11px;">' + statusIcon + ' ' + statusText + '</span>';
+                html += '<button onclick="openCronEditModal(' + idx + ')" style="padding:4px 10px;border:1px solid #d0d7de;border-radius:6px;background:#fff;color:#24292f;cursor:pointer;font-size:12px;">✏️ 编辑</button>';
+                html += '</span>';
                 html += '</div>';
-                html += '<div style="font-size:12px;color:#57606a;margin-bottom:4px;">' + escapeHtml(scheduleText) + '</div>';
-                html += '<div style="font-size:11px;color:#666;">下次执行: ' + nextRun + '</div>';
-                html += '<div style="display:flex;gap:8px;margin-top:8px;">';
-                html += '<button onclick="removeCronJob(\'' + escapeHtml(job.id) + '\')" style="padding:4px 10px;border:1px solid #cf222e;border-radius:4px;background:#fff;color:#cf222e;cursor:pointer;font-size:12px;">🗑 删除</button>';
-                html += '</div>';
+                html += '<div style="font-size:12px;color:#57606a;margin-bottom:4px;">北京时间: ' + escapeHtml(nextRun) + '</div>';
+                html += '<div style="font-size:11px;color:#666;">' + escapeHtml(scheduleText) + '</div>';
                 html += '</div>';
             });
     
@@ -1281,6 +1293,18 @@ window.removeCronJob = function(jobId) {
 };
 
 window.openCronAddModal = function() {
+    window.openCronJobModal({ mode: 'add' });
+};
+
+window.openCronEditModal = function(jobIndex) {
+    window.openCronJobModal({ mode: 'edit', jobIndex: jobIndex });
+};
+
+window.openCronJobModal = function(opts) {
+    const mode = (opts && opts.mode) ? opts.mode : 'add';
+    const jobIndex = opts && typeof opts.jobIndex === 'number' ? opts.jobIndex : -1;
+    const job = (mode === 'edit' && Array.isArray(window.__openclawCronJobs)) ? window.__openclawCronJobs[jobIndex] : null;
+
     // 创建模态框
     const overlay = document.createElement('div');
     overlay.id = 'cronAddModal';
@@ -1291,7 +1315,7 @@ window.openCronAddModal = function() {
     
     let html = `
         <div style="padding:16px 20px;border-bottom:1px solid #eee;display:flex;justify-content:space-between;align-items:center;">
-            <span style="font-weight:600;font-size:16px;">⏰ 添加定时任务</span>
+            <span style="font-weight:600;font-size:16px;">⏰ ${mode === 'edit' ? '编辑定时任务' : '添加定时任务'}</span>
             <button onclick="document.getElementById('cronAddModal').remove()" style="border:none;background:none;font-size:22px;cursor:pointer;color:#666;">&times;</button>
         </div>
         <div style="padding:16px 20px;">
@@ -1301,7 +1325,7 @@ window.openCronAddModal = function() {
             </div>
             <div style="margin-bottom:14px;">
                 <label style="display:block;font-size:13px;color:#666;margin-bottom:6px;">执行方式</label>
-                <select id="cronTimeType" onchange="toggleCronTimeInput()" style="width:100%;padding:10px 12px;border:1px solid #d0d7de;border-radius:6px;font-size:14px;background:#fff;box-sizing:border-box;">
+                <select id="cronTimeType" style="width:100%;padding:10px 12px;border:1px solid #d0d7de;border-radius:6px;font-size:14px;background:#fff;box-sizing:border-box;">
                     <option value="at">一次性 (如: 10分钟后)</option>
                     <option value="cron">周期任务 (如: 每天早上8点)</option>
                 </select>
@@ -1331,8 +1355,9 @@ window.openCronAddModal = function() {
                 <input type="text" id="cronCron" placeholder="0 8 * * *" style="width:100%;padding:10px 12px;border:1px solid #d0d7de;border-radius:6px;font-size:14px;box-sizing:border-box;">
             </div>
             <div style="display:flex;gap:10px;margin-top:20px;">
-                <button onclick="document.getElementById('cronAddModal').remove()" style="flex:1;padding:12px;border:1px solid #d0d7de;border-radius:6px;background:#fff;font-size:14px;cursor:pointer;">取消</button>
-                <button onclick="submitCronJob()" style="flex:1;padding:12px;border:none;border-radius:6px;background:#0969da;color:#fff;font-size:14px;cursor:pointer;">添加</button>
+                <button id="cronCancelBtn" style="flex:1;padding:12px;border:1px solid #d0d7de;border-radius:6px;background:#fff;font-size:14px;cursor:pointer;">取消</button>
+                ${mode === 'edit' ? '<button id="cronDeleteBtn" style="flex:1;padding:12px;border:1px solid #cf222e;border-radius:6px;background:#fff;color:#cf222e;font-size:14px;cursor:pointer;">删除</button>' : ''}
+                <button id="cronSubmitBtn" style="flex:1;padding:12px;border:none;border-radius:6px;background:#0969da;color:#fff;font-size:14px;cursor:pointer;">${mode === 'edit' ? '保存' : '添加'}</button>
             </div>
         </div>
     `;
@@ -1340,58 +1365,152 @@ window.openCronAddModal = function() {
     container.innerHTML = html;
     overlay.appendChild(container);
     document.body.appendChild(overlay);
-    
-    // 暴露切换函数到全局
-    window.toggleCronTimeInput = function() {
+
+    function toastOk(text) {
+        const toast = document.createElement('div');
+        toast.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#2da44e;color:#fff;padding:10px 20px;border-radius:6px;font-size:14px;z-index:30000;';
+        toast.textContent = text;
+        document.body.appendChild(toast);
+        setTimeout(function() { toast.remove(); }, 2000);
+    }
+
+    function close() {
+        const el = document.getElementById('cronAddModal');
+        if (el) el.remove();
+    }
+
+    function toggleInputs() {
         const type = document.getElementById('cronTimeType').value;
-        document.getElementById('cronAtGroup').style.display = type === 'at' ? 'block' : 'none';
-        document.getElementById('cronCronGroup').style.display = type === 'cron' ? 'block' : 'none';
-    };
-    
-    window.submitCronJob = function() {
-        const message = document.getElementById('cronMessage').value.trim();
-        const timeType = document.getElementById('cronTimeType').value;
-        
-        if (!message) {
-            alert('请输入提醒内容');
-            return;
-        }
-        
-        let schedule = '';
-        if (timeType === 'at') {
-            schedule = document.getElementById('cronAt').value;
-        } else {
-            schedule = document.getElementById('cronCron').value.trim();
-            if (!schedule) {
-                alert('请输入 Cron 表达式');
-                return;
+        const atGroup = document.getElementById('cronAtGroup');
+        const cronGroup = document.getElementById('cronCronGroup');
+        if (atGroup) atGroup.style.display = type === 'at' ? 'block' : 'none';
+        if (cronGroup) cronGroup.style.display = type === 'cron' ? 'block' : 'none';
+    }
+
+    const timeTypeEl = document.getElementById('cronTimeType');
+    if (timeTypeEl) timeTypeEl.addEventListener('change', toggleInputs);
+    toggleInputs();
+
+    const cancelBtn = document.getElementById('cronCancelBtn');
+    if (cancelBtn) cancelBtn.addEventListener('click', close);
+
+    if (job && mode === 'edit') {
+        const msg = (job.name || job.message || '').replace(/^🔔\s*/g, '').trim();
+        const msgEl = document.getElementById('cronMessage');
+        if (msgEl) msgEl.value = msg;
+
+        const sch = job.schedule || {};
+        if (sch.kind === 'cron') {
+            if (timeTypeEl) timeTypeEl.value = 'cron';
+            toggleInputs();
+            const cronEl = document.getElementById('cronCron');
+            if (cronEl) cronEl.value = sch.cron || '';
+        } else if (sch.kind === 'at') {
+            if (timeTypeEl) timeTypeEl.value = 'at';
+            toggleInputs();
+            const atEl = document.getElementById('cronAt');
+            if (atEl && sch.at) {
+                const target = String(sch.at);
+                const existing = Array.prototype.slice.call(atEl.options || []).some(function(o) { return o && o.value === target; });
+                if (!existing) {
+                    const opt = document.createElement('option');
+                    opt.value = target;
+                    opt.textContent = target;
+                    atEl.appendChild(opt);
+                }
+                atEl.value = target;
             }
         }
-        
-        fetch('/api/openclaw/cron/add', {
-            method: 'POST',
-            headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders()),
-            body: JSON.stringify({ message: message, timeType: timeType, schedule: schedule })
-        })
-            .then(function(r) { return r.json(); })
-            .then(function(data) {
-                const payload = apiData(data);
-                if (payload !== null) {
-                    document.getElementById('cronAddModal').remove();
-                    loadCronJobList();
-                    const toast = document.createElement('div');
-                    toast.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#2da44e;color:#fff;padding:10px 20px;border-radius:6px;font-size:14px;z-index:30000;';
-                    toast.textContent = '✅ 添加成功';
-                    document.body.appendChild(toast);
-                    setTimeout(() => toast.remove(), 2000);
+
+        const delBtn = document.getElementById('cronDeleteBtn');
+        if (delBtn) {
+            delBtn.addEventListener('click', function() {
+                if (!job || !job.id) return;
+                if (!confirm('确定删除这个定时任务吗？')) return;
+                fetch('/api/openclaw/cron/remove', {
+                    method: 'POST',
+                    headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders()),
+                    body: JSON.stringify({ jobId: job.id })
+                })
+                    .then(function(r) { return r.json(); })
+                    .then(function(data) {
+                        const payload = apiData(data);
+                        if (payload !== null) {
+                            close();
+                            loadCronJobList();
+                            toastOk('✅ 已删除');
+                        } else {
+                            alert('删除失败: ' + ((data && (data.message || data.error)) || '未知错误'));
+                        }
+                    })
+                    .catch(function(err) { alert('删除失败: ' + err.message); });
+            });
+        }
+    }
+
+    const submitBtn = document.getElementById('cronSubmitBtn');
+    if (submitBtn) {
+        submitBtn.addEventListener('click', function() {
+            const message = (document.getElementById('cronMessage').value || '').trim();
+            const timeType = document.getElementById('cronTimeType').value;
+
+            if (!message) {
+                alert('请输入提醒内容');
+                return;
+            }
+
+            let schedule = '';
+            if (timeType === 'at') {
+                schedule = document.getElementById('cronAt').value;
+            } else {
+                schedule = (document.getElementById('cronCron').value || '').trim();
+                if (!schedule) {
+                    alert('请输入 Cron 表达式');
                     return;
                 }
-                alert('添加失败: ' + ((data && (data.message || data.error)) || '未知错误'));
-            })
-            .catch(function(err) {
-                alert('添加失败: ' + err.message);
-            });
-    };
+            }
+
+            function doAdd() {
+                return fetch('/api/openclaw/cron/add', {
+                    method: 'POST',
+                    headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders()),
+                    body: JSON.stringify({ message: message, timeType: timeType, schedule: schedule })
+                })
+                    .then(function(r) { return r.json(); });
+            }
+
+            function doRemove() {
+                if (!job || !job.id) return Promise.resolve({ success: true, data: {} });
+                return fetch('/api/openclaw/cron/remove', {
+                    method: 'POST',
+                    headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders()),
+                    body: JSON.stringify({ jobId: job.id })
+                })
+                    .then(function(r) { return r.json(); });
+            }
+
+            const chain = (mode === 'edit') ? doRemove().then(function(res) {
+                const payload = apiData(res);
+                if (payload === null) throw new Error('删除旧任务失败');
+                return doAdd();
+            }) : doAdd();
+
+            chain
+                .then(function(res) {
+                    const payload = apiData(res);
+                    if (payload !== null) {
+                        close();
+                        loadCronJobList();
+                        toastOk(mode === 'edit' ? '✅ 已保存' : '✅ 添加成功');
+                        return;
+                    }
+                    alert((mode === 'edit' ? '保存' : '添加') + '失败: ' + ((res && (res.message || res.error)) || '未知错误'));
+                })
+                .catch(function(err) {
+                    alert((mode === 'edit' ? '保存' : '添加') + '失败: ' + err.message);
+                });
+        });
+    }
 };
 
 window.loadClashConfig = function() {

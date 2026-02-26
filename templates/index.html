@@ -1311,16 +1311,27 @@
                 <button onclick="toggleBotSettings()" class="dialog-btn" style="margin-top: auto; background: #ddd;">关闭设置</button>
             </div>
 
-            <div class="bot-chat-box" id="botChatBox">
-                <ul id="botHistoryList" class="bot-history" style="list-style: none; padding: 0; margin: 0;"></ul>
+            <div style="display:flex;border-bottom:1px solid #d0d7de;background:#f6f8fa;">
+                <button class="bot-tab active" data-tab="config" onclick="switchBotTab('config')" style="flex:1;padding:10px;border:none;background:transparent;font-size:13px;color:#57606a;cursor:pointer;border-bottom:2px solid transparent;">配置</button>
+                <button class="bot-tab" data-tab="chat" onclick="switchBotTab('chat')" style="flex:1;padding:10px;border:none;background:transparent;font-size:13px;color:#57606a;cursor:pointer;border-bottom:2px solid transparent;">对话</button>
             </div>
-            <button id="botJumpLatestBtn" type="button" onclick="botJumpToLatest()" style="position:absolute;right:16px;bottom:78px;z-index:5;display:none;padding:10px 12px;border-radius:999px;border:1px solid #d0d7de;background:#ffffff;color:#24292f;box-shadow:0 6px 16px rgba(0,0,0,0.12);cursor:pointer;font-size: var(--global-font-size, 12px);">
-                ⬇ 跳转到最新
-            </button>
-            
-            <div class="bot-input-area">
-                <textarea class="bot-input" id="botInput" placeholder="输入消息..." style="flex: 1; border: 1px solid #ddd; background: #f5f5f5; padding: 10px 12px; border-radius: 8px; font-size: var(--global-font-size, 14px); resize: none; outline: none; height: 40px; max-height: 100px;"></textarea>
-                <button class="bot-send-btn" onclick="botSend()" style="width: 40px; height: 40px; border-radius: 8px; background: #95ec69; border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0;">🚀</button>
+
+            <div id="botConfigPanel" style="display:block;overflow-y:auto;flex:1;padding:16px;">
+                <div id="botOpenclawConfigContainer"></div>
+            </div>
+
+            <div id="botChatPanel" style="display:none;flex:1;min-height:0;">
+                <div class="bot-chat-box" id="botChatBox">
+                    <ul id="botHistoryList" class="bot-history" style="list-style: none; padding: 0; margin: 0;"></ul>
+                </div>
+                <button id="botJumpLatestBtn" type="button" onclick="botJumpToLatest()" style="position:absolute;right:16px;bottom:78px;z-index:5;display:none;padding:10px 12px;border-radius:999px;border:1px solid #d0d7de;background:#ffffff;color:#24292f;box-shadow:0 6px 16px rgba(0,0,0,0.12);cursor:pointer;font-size: var(--global-font-size, 12px);">
+                    ⬇ 跳转到最新
+                </button>
+
+                <div class="bot-input-area">
+                    <textarea class="bot-input" id="botInput" placeholder="输入消息..." style="flex: 1; border: 1px solid #ddd; background: #f5f5f5; padding: 10px 12px; border-radius: 8px; font-size: var(--global-font-size, 14px); resize: none; outline: none; height: 40px; max-height: 100px;"></textarea>
+                    <button class="bot-send-btn" onclick="botSend()" style="width: 40px; height: 40px; border-radius: 8px; background: #95ec69; border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0;">🚀</button>
+                </div>
             </div>
         </div>
     </div>

@@ -753,11 +753,32 @@ window.openBotModal = function() {
     var b = document.getElementById('botBackdrop'); 
     if (d) d.classList.add('open'); 
     if (b) b.classList.add('open'); 
-    if (typeof loadBotHistory === 'function') { loadBotHistory(); } 
+    if (typeof window.switchBotTab === 'function') { window.switchBotTab('config'); }
+    if (typeof window.loadBotHistory === 'function') { window.loadBotHistory(); } 
     var t = localStorage.getItem('pywebdeck_bot_token'); 
-    if (t) { if (typeof botConnect === 'function' && !botIsConnected) { botConnect(); } } 
+    if (t) { if (typeof window.botConnect === 'function' && !window.botIsConnected) { window.botConnect(); } } 
 };
 window.toggleBotSettings = function() { var s = document.getElementById('botSettings'); if (s) { s.style.display = s.style.display === 'none' ? 'block' : 'none'; } };
+window.switchBotTab = function(tab) {
+    var configPanel = document.getElementById('botConfigPanel');
+    var chatPanel = document.getElementById('botChatPanel');
+    var tabs = Array.prototype.slice.call(document.querySelectorAll('.bot-tab'));
+    tabs.forEach(function(el) {
+        var active = el && el.dataset && el.dataset.tab === tab;
+        el.classList.toggle('active', active);
+        el.style.borderBottomColor = active ? '#0969da' : 'transparent';
+        el.style.color = active ? '#24292f' : '#57606a';
+        el.style.fontWeight = active ? '600' : '400';
+    });
+    if (configPanel) configPanel.style.display = tab === 'config' ? 'block' : 'none';
+    if (chatPanel) chatPanel.style.display = tab === 'chat' ? 'flex' : 'none';
+    if (tab === 'config') {
+        if (typeof window.loadOpenclawConfig === 'function') { window.loadOpenclawConfig(); }
+    } else if (tab === 'chat') {
+        if (typeof window.loadBotHistory === 'function') { window.loadBotHistory(); }
+        if (typeof window.botJumpToLatest === 'function') { setTimeout(function() { window.botJumpToLatest(); }, 0); }
+    }
+};
 window.openSearchModal = function() { 
     Drawer.open('searchModal');
     var input = document.getElementById('searchInput');
