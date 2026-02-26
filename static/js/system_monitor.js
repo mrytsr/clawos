@@ -1194,6 +1194,20 @@ window.loadOpenclawConfig = function() {
             
             html += '</div></div>';
             
+            // ========== Cron 定时任务卡片 ==========
+            html += '<div style="margin-bottom:16px;">';
+            html += '<div style="font-size:13px;color:#666;margin-bottom:8px;padding-left:4px;display:flex;justify-content:space-between;align-items:center;">';
+            html += '<span>⏰ 定时任务</span>';
+            html += '<button onclick="openCronAddModal()" style="background:#0969da;border:none;border-radius:6px;color:#fff;padding:4px 10px;cursor:pointer;font-size:12px;">+ 添加</button>';
+            html += '</div>';
+            html += '<div id="cronJobList" style="background:#fff;border:1px solid #d0d7de;border-radius:8px;overflow:hidden;">';
+            html += '<div style="padding:20px;text-align:center;color:#666;">加载中...</div>';
+            html += '</div>';
+            html += '</div>';
+            
+            // 加载 Cron 任务列表
+            setTimeout(loadCronJobList, 100);
+            
             container.innerHTML = html;
         })
         .catch(function(err) {
@@ -1202,6 +1216,207 @@ window.loadOpenclawConfig = function() {
         });
 };
 window.openOpenclawModal = function() { Drawer.open('openclawModal'); loadOpenclawConfig(); };
+
+// ========== OpenClaw Cron 管理函数 ==========
+window.loadCronJobList = function() {
+    const container = document.getElementById('cronJobList');
+    if (!container) return;
+    
+    // 直接通过执行命令获取 cron 列表
+    const xhr = new XMLHttpRequest();
+    xhr.open('GET', '/exec?cmd=openclaw+cron+list+--json', true);
+    xhr.onreadystatechange = function() {
+        if (xhr.readyState === 4) {
+            if (xhr.status === 200) {
+                let jobs = [];
+                try {
+                    const resp = JSON.parse(xhr.responseText);
+                    // API 返回格式: { success: true, data: { jobs: [...] } }
+                    if (resp.data && resp.data.jobs) {
+                        jobs = resp.data.jobs;
+                    } else if (resp.jobs) {
+                        jobs = resp.jobs;
+                    }
+                } catch(e) {
+                    console.error('解析 cron 列表失败:', e);
+                }
+        
+                if (jobs.length === 0) {
+                    container.innerHTML = '<div style="padding:20px;text-align:center;color:#666;">暂无定时任务<br><span style="font-size:11px;color:#999;">点击上方"+ 添加"创建新任务</span></div>';
+                    return;
+                }
+        
+                let html = '';
+                jobs.forEach(function(job, idx) {
+                    // 北京时间显示
+                    const nextRun = job.nextRunAtMs ? new Date(job.nextRunAtMs + 8*60*60*1000).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '-';
+                    const statusIcon = job.enabled ? '🟢' : '🔴';
+                    const statusText = job.enabled ? '已启用' : '已禁用';
+                    const scheduleText = job.schedule && job.schedule.kind === 'cron' ? job.schedule.cron : (job.schedule && job.schedule.kind === 'at' ? '一次性: ' + (job.schedule.at || '-') : '周期任务');
+            
+                    html += '<div style="padding:10px 12px;' + (idx < jobs.length - 1 ? 'border-bottom:1px solid #eee;' : '') + '">';
+                    html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">';
+                    html += '<span style="font-weight:500;font-size:14px;">' + escapeHtml(job.name || '未命名') + '</span>';
+                    html += '<span style="font-size:11px;">' + statusIcon + ' ' + statusText + '</span>';
+                    html += '</div>';
+                    html += '<div style="font-size:12px;color:#57606a;margin-bottom:4px;">' + escapeHtml(scheduleText) + '</div>';
+                    html += '<div style="font-size:11px;color:#666;">下次执行: ' + nextRun + '</div>';
+                    html += '<div style="display:flex;gap:8px;margin-top:8px;">';
+                    html += '<button onclick="removeCronJob(\'' + escapeHtml(job.id) + '\')" style="padding:4px 10px;border:1px solid #cf222e;border-radius:4px;background:#fff;color:#cf222e;cursor:pointer;font-size:12px;">🗑 删除</button>';
+                    html += '</div>';
+                    html += '</div>';
+                });
+        
+                container.innerHTML = html;
+            } else {
+                container.innerHTML = '<div style="padding:20px;text-align:center;color:#cf222e;">加载失败</div>';
+            }
+        }
+    };
+    xhr.send();
+};
+
+window.removeCronJob = function(jobId) {
+    if (!confirm('确定删除这个定时任务吗？')) return;
+    const xhr = new XMLHttpRequest();
+    xhr.open('GET', '/exec?cmd=openclaw+cron+remove+' + jobId, true);
+    xhr.onreadystatechange = function() {
+        if (xhr.readyState === 4 && xhr.status === 200) {
+            loadCronJobList();
+        }
+    };
+    xhr.send();
+};
+
+window.openCronAddModal = function() {
+    // 创建模态框
+    const overlay = document.createElement('div');
+    overlay.id = 'cronAddModal';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:20000;display:flex;align-items:center;justify-content:center;';
+    
+    const container = document.createElement('div');
+    container.style.cssText = 'background:#fff;border-radius:12px;width:90%;max-width:380px;max-height:90vh;overflow:auto;';
+    
+    let html = `
+        <div style="padding:16px 20px;border-bottom:1px solid #eee;display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-weight:600;font-size:16px;">⏰ 添加定时任务</span>
+            <button onclick="document.getElementById('cronAddModal').remove()" style="border:none;background:none;font-size:22px;cursor:pointer;color:#666;">&times;</button>
+        </div>
+        <div style="padding:16px 20px;">
+            <div style="margin-bottom:14px;">
+                <label style="display:block;font-size:13px;color:#666;margin-bottom:6px;">任务名称</label>
+                <input type="text" id="cronName" placeholder="如: 喝水提醒" style="width:100%;padding:10px 12px;border:1px solid #d0d7de;border-radius:6px;font-size:14px;box-sizing:border-box;">
+            </div>
+            <div style="margin-bottom:14px;">
+                <label style="display:block;font-size:13px;color:#666;margin-bottom:6px;">提醒内容</label>
+                <input type="text" id="cronMessage" placeholder="如: 喝水时间到！" style="width:100%;padding:10px 12px;border:1px solid #d0d7de;border-radius:6px;font-size:14px;box-sizing:border-box;">
+            </div>
+            <div style="margin-bottom:14px;">
+                <label style="display:block;font-size:13px;color:#666;margin-bottom:6px;">执行方式</label>
+                <select id="cronTimeType" onchange="toggleCronTimeInput()" style="width:100%;padding:10px 12px;border:1px solid #d0d7de;border-radius:6px;font-size:14px;background:#fff;box-sizing:border-box;">
+                    <option value="at">一次性 (如: 10分钟后)</option>
+                    <option value="cron">周期任务 (如: 每天早上8点)</option>
+                </select>
+            </div>
+            <div style="margin-bottom:14px;" id="cronAtGroup">
+                <label style="display:block;font-size:13px;color:#666;margin-bottom:6px;">延迟时间</label>
+                <select id="cronAt" style="width:100%;padding:10px 12px;border:1px solid #d0d7de;border-radius:6px;font-size:14px;background:#fff;box-sizing:border-box;">
+                    <option value="5m">5 分钟后</option>
+                    <option value="10m">10 分钟后</option>
+                    <option value="30m">30 分钟后</option>
+                    <option value="1h">1 小时后</option>
+                    <option value="2h">2 小时后</option>
+                    <option value="3h">3 小时后</option>
+                    <option value="tomorrow">明天同时间</option>
+                </select>
+            </div>
+            <div style="margin-bottom:14px;display:none;" id="cronCronGroup">
+                <label style="display:block;font-size:13px;color:#666;margin-bottom:6px;">Cron 表达式</label>
+                <select id="cronCronPreset" onchange="document.getElementById('cronCron').value=this.value" style="width:100%;padding:10px 12px;border:1px solid #d0d7de;border-radius:6px;font-size:14px;background:#fff;margin-bottom:8px;box-sizing:border-box;">
+                    <option value="">-- 常用模板 --</option>
+                    <option value="0 8 * * *">每天早上 8 点</option>
+                    <option value="0 12 * * *">每天中午 12 点</option>
+                    <option value="0 18 * * *">每天下午 6 点</option>
+                    <option value="0 9 * * 1-5">工作日早上 9 点</option>
+                    <option value="0 10 * * 0,6">周末早上 10 点</option>
+                </select>
+                <input type="text" id="cronCron" placeholder="0 8 * * *" style="width:100%;padding:10px 12px;border:1px solid #d0d7de;border-radius:6px;font-size:14px;box-sizing:border-box;">
+            </div>
+            <div style="display:flex;gap:10px;margin-top:20px;">
+                <button onclick="document.getElementById('cronAddModal').remove()" style="flex:1;padding:12px;border:1px solid #d0d7de;border-radius:6px;background:#fff;font-size:14px;cursor:pointer;">取消</button>
+                <button onclick="submitCronJob()" style="flex:1;padding:12px;border:none;border-radius:6px;background:#0969da;color:#fff;font-size:14px;cursor:pointer;">添加</button>
+            </div>
+        </div>
+    `;
+    
+    container.innerHTML = html;
+    overlay.appendChild(container);
+    document.body.appendChild(overlay);
+    
+    // 暴露切换函数到全局
+    window.toggleCronTimeInput = function() {
+        const type = document.getElementById('cronTimeType').value;
+        document.getElementById('cronAtGroup').style.display = type === 'at' ? 'block' : 'none';
+        document.getElementById('cronCronGroup').style.display = type === 'cron' ? 'block' : 'none';
+    };
+    
+    window.submitCronJob = function() {
+        const name = document.getElementById('cronName').value.trim();
+        const message = document.getElementById('cronMessage').value.trim();
+        const timeType = document.getElementById('cronTimeType').value;
+        
+        if (!name) {
+            alert('请输入任务名称');
+            return;
+        }
+        if (!message) {
+            alert('请输入提醒内容');
+            return;
+        }
+        
+        let schedule = '';
+        if (timeType === 'at') {
+            schedule = document.getElementById('cronAt').value;
+        } else {
+            schedule = document.getElementById('cronCron').value.trim();
+            if (!schedule) {
+                alert('请输入 Cron 表达式');
+                return;
+            }
+        }
+        
+        const cmd = 'openclaw cron add --name "' + name + '" --' + timeType + ' "' + schedule + '" --message "🔔 ' + message + '" --delete-after-run';
+        
+        const xhr = new XMLHttpRequest();
+        xhr.open('GET', '/exec?cmd=' + encodeURIComponent(cmd), true);
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState === 4) {
+                if (xhr.status === 200) {
+                    try {
+                        const resp = JSON.parse(xhr.responseText);
+                        if (resp.success) {
+                            document.getElementById('cronAddModal').remove();
+                            loadCronJobList();
+                            // 显示成功提示
+                            const toast = document.createElement('div');
+                            toast.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#2da44e;color:#fff;padding:10px 20px;border-radius:6px;font-size:14px;z-index:30000;';
+                            toast.textContent = '✅ 添加成功';
+                            document.body.appendChild(toast);
+                            setTimeout(() => toast.remove(), 2000);
+                        } else {
+                            alert('添加失败: ' + (resp.error || '未知错误'));
+                        }
+                    } catch(e) {
+                        alert('添加失败: 响应解析错误');
+                    }
+                } else {
+                    alert('添加失败: 服务器错误 ' + xhr.status);
+                }
+            }
+        };
+        xhr.send();
+    };
+};
 
 window.loadClashConfig = function() {
     const container = document.getElementById('clashContainer');

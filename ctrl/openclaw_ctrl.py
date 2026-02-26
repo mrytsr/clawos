@@ -4,7 +4,7 @@ import os
 import socket
 import subprocess
 
-from flask import Blueprint
+from flask import Blueprint, request
 
 from ctrl import api_error, api_ok
 from ctrl.task_ctrl import create_task
@@ -292,3 +292,76 @@ def api_openclaw_status():
     }
 
     return api_ok(result)
+
+
+@openclaw_bp.route('/api/openclaw/exec', methods=['POST'])
+def api_openclaw_exec():
+    """执行 OpenClaw CLI 命令"""
+    from flask import request
+    data = request.get_json(silent=True) or {}
+    command = data.get('command', '').strip()
+    
+    if not command:
+        return api_error('Missing command', status=400)
+    
+    # 安全检查：只允许特定的 cron 命令
+    allowed_prefixes = ['cron ']
+    if not any(command.startswith(p) for p in allowed_prefixes):
+        return api_error('Command not allowed', status=403)
+    
+    try:
+        result = subprocess.run(
+            ['openclaw'] + command.split(),
+            capture_output=True,
+            text=True,
+            timeout=30
+        )
+        return api_ok({
+            'stdout': result.stdout,
+            'stderr': result.stderr,
+            'returncode': result.returncode
+        })
+    except subprocess.TimeoutExpired:
+        return api_error('Command timeout', status=500)
+    except Exception as e:
+        return api_error(str(e), status=500)
+
+
+@openclaw_bp.route('/exec')
+def api_exec_simple():
+    """简单的命令执行接口（用于前端）"""
+    import urllib.parse
+    cmd = request.args.get('cmd', '').strip()
+    
+    if not cmd:
+        return api_error('Missing cmd', status=400)
+    
+    # 安全检查：只允许 openclaw cron 命令
+    if 'cron' not in cmd:
+        return api_error('Command not allowed', status=403)
+    
+    try:
+        # 解析命令
+        parts = cmd.split()
+        # 去除 "openclaw" 前缀
+        cli_args = parts[1:] if len(parts) > 1 else []
+        
+        result = subprocess.run(
+            ['openclaw'] + cli_args,
+            capture_output=True,
+            text=True,
+            timeout=30
+        )
+        
+        # 尝试解析 JSON 输出
+        try:
+            import json
+            output = json.loads(result.stdout)
+        except:
+            output = result.stdout
+        
+        return api_ok(output)
+    except subprocess.TimeoutExpired:
+        return api_error('Command timeout', status=500)
+    except Exception as e:
+        return api_error(str(e), status=500)
