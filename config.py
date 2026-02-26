@@ -13,9 +13,8 @@ CONVERSATION_FILE = os.path.join(DATA_DIR, 'conversations.json')
 AUTH_FILE = os.path.join(DATA_DIR, 'auth.json')
 PIN_FILE = os.path.join(DATA_DIR, 'pin.json')
 
-import os as _os
-_AUTH_FILE = _os.path.expanduser('~/.local/clawos/clawos_password.json')
-if _os.path.exists(_AUTH_FILE):
+_AUTH_FILE = os.path.join(DATA_DIR, 'clawos_password.json')
+if os.path.exists(_AUTH_FILE):
     import json as _json
     AUTH_PASSWORD = _json.load(open(_AUTH_FILE))['password']
 else:

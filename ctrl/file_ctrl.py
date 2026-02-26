@@ -302,7 +302,7 @@ def send_file_email():
 
 
 # 邮箱历史记录
-EMAIL_HISTORY_DIR = os.path.expanduser('~/.local/clawos')
+EMAIL_HISTORY_DIR = config.DATA_DIR
 EMAIL_HISTORY_FILE = os.path.join(EMAIL_HISTORY_DIR, 'email_history.json')
 
 def load_email_history():
@@ -356,7 +356,7 @@ def delete_email_history():
 
 
 # Email config
-EMAIL_CONFIG_FILE = os.path.join(os.path.expanduser('~/.local/clawos'), 'email_config.json')
+EMAIL_CONFIG_FILE = os.path.join(config.DATA_DIR, 'email_config.json')
 
 def load_email_config():
     try:

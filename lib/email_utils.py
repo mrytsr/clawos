@@ -7,6 +7,7 @@ from email.header import Header
 from email import encoders
 import mimetypes
 import os
+import config
 
 # 硬编码配置
 SMTP_SERVER = "smtp.qq.com"
@@ -226,7 +227,7 @@ if __name__ == "__main__":
 
 
 # Load config from file
-EMAIL_CONFIG_FILE = os.path.expanduser('~/.local/clawos/email_config.json')
+EMAIL_CONFIG_FILE = os.path.join(config.DATA_DIR, 'email_config.json')
 
 def get_email_config():
     try:

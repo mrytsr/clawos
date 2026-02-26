@@ -4,7 +4,7 @@
 统一 Chat Client - 支持多个 AI 供应商
 支持的供应商: deepseek, zhipu, openrouter, qwen, realmrouter, kimi, qiniu
 
-使用前请在 ~/.local/clawos/ai_client_config.json 中配置 API Key，格式:
+使用前请在 DATA_DIR/ai_client_config.json 中配置 API Key，格式:
 {
     "deepseek": "your-api-key",
     "zhipu": "your-api-key",
@@ -15,6 +15,7 @@
 """
 
 import os
+import config
 import json
 import requests
 import argparse
@@ -27,7 +28,7 @@ from PIL import Image
 import numpy as np
 
 # 配置文件路径
-_CONFIG_FILE = os.path.expanduser("~/.local/clawos/ai_client_config.json")
+_CONFIG_FILE = os.path.join(config.DATA_DIR, 'ai_client_config.json')
 
 def _read_config_file():
     config = {}
@@ -138,7 +139,7 @@ class AiClient:
         
         # 如果没有 API Key，尝试从旧版配置文件读取
         if not self.api_key:
-            legacy_config_file = os.path.expanduser("~/.local/clawos/config.json")
+            legacy_config_file = os.path.join(config.DATA_DIR, 'config.json')
             if os.path.exists(legacy_config_file):
                 try:
                     with open(legacy_config_file, 'r') as f:

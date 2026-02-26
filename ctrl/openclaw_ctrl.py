@@ -30,10 +30,23 @@ def _is_openclaw_installed():
     return False
 
 
+def _openclaw_install_check():
+    if shutil.which('openclaw'):
+        return True, 'path'
+    info = packages_utils.list_npm_packages()
+    if not info.get('success'):
+        return False, 'npm_list_failed'
+    packages = info.get('packages') or []
+    for p in packages:
+        if (p.get('name') or '').strip().lower() == 'openclaw':
+            return True, 'npm_list'
+    return False, 'not_found'
+
+
 @openclaw_bp.route('/api/openclaw/install_state')
 def api_openclaw_install_state():
-    installed = _is_openclaw_installed()
-    return api_ok({'installed': installed})
+    installed, reason = _openclaw_install_check()
+    return api_ok({'installed': installed, 'reason': reason})
 
 
 @openclaw_bp.route('/api/openclaw/install', methods=['POST'])
@@ -332,8 +345,9 @@ def api_openclaw_exec():
 
 @openclaw_bp.route('/api/openclaw/cron/list')
 def api_openclaw_cron_list():
-    if not _is_openclaw_installed():
-        return api_ok({'jobs': []})
+    installed, reason = _openclaw_install_check()
+    if not installed:
+        return api_ok({'jobs': [], 'installed': False, 'reason': reason})
 
     try:
         result = subprocess.run(
@@ -377,8 +391,9 @@ def api_openclaw_cron_add():
         return api_error('Invalid timeType', status=400)
     if not schedule:
         return api_error('Missing schedule', status=400)
-    if not _is_openclaw_installed():
-        return api_error('OpenClaw not installed', status=404)
+    installed, reason = _openclaw_install_check()
+    if not installed:
+        return api_error('OpenClaw not installed: ' + reason, status=404)
 
     name = message
     try:
@@ -399,7 +414,7 @@ def api_openclaw_cron_add():
             output = stdout
         return api_ok({'result': output})
     except FileNotFoundError:
-        return api_error('OpenClaw not installed', status=404)
+        return api_error('OpenClaw not installed: path', status=404)
     except subprocess.TimeoutExpired:
         return api_error('Command timeout', status=500)
     except Exception as e:
@@ -412,8 +427,9 @@ def api_openclaw_cron_remove():
     job_id = (data.get('jobId') or '').strip()
     if not job_id:
         return api_error('Missing jobId', status=400)
-    if not _is_openclaw_installed():
-        return api_error('OpenClaw not installed', status=404)
+    installed, reason = _openclaw_install_check()
+    if not installed:
+        return api_error('OpenClaw not installed: ' + reason, status=404)
     try:
         result = subprocess.run(
             ['openclaw', 'cron', 'remove', job_id],
@@ -432,7 +448,7 @@ def api_openclaw_cron_remove():
             output = stdout
         return api_ok({'result': output})
     except FileNotFoundError:
-        return api_error('OpenClaw not installed', status=404)
+        return api_error('OpenClaw not installed: path', status=404)
     except subprocess.TimeoutExpired:
         return api_error('Command timeout', status=500)
     except Exception as e:

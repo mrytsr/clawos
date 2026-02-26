@@ -10,6 +10,7 @@ from threading import Lock
 from flask import Blueprint, request, jsonify, current_app, send_from_directory
 
 from ctrl import api_error, api_ok
+import config
 
 db_bp = Blueprint('db', __name__)
 
@@ -19,18 +20,10 @@ def db_manager():
     return send_from_directory(current_app.template_folder, 'db_manager.html')
 
 # 数据库连接配置存储路径
-DB_CONFIG_DIR = os.path.expanduser('~/.local/clawos')
+DB_CONFIG_DIR = config.DATA_DIR
 os.makedirs(DB_CONFIG_DIR, exist_ok=True)
 DB_CONFIG_FILE = os.path.join(DB_CONFIG_DIR, 'db_connections.json')
 UI_STATE_KEY = '__ui_state__'
-
-# 迁移旧数据
-OLD_CONFIG_DIR = os.path.expanduser('~/.local/share/clawos')
-if os.path.exists(OLD_CONFIG_DIR) and not os.path.exists(DB_CONFIG_FILE):
-    OLD_FILE = os.path.join(OLD_CONFIG_DIR, 'db_connections.json')
-    if os.path.exists(OLD_FILE):
-        import shutil
-        shutil.copy(OLD_FILE, DB_CONFIG_FILE)
 
 # 加密密钥
 ENCRYPTION_KEY = os.environ.get('DB_ENCRYPTION_KEY', 'clawos-db-secret-key-32chars!')[:32]
@@ -790,7 +783,7 @@ def api_db_databases(conn_id):
         return api_error(str(e))
 
 
-AI_HISTORY_FILE = os.path.expanduser('~/.local/clawos/ai_sql_history.json')
+AI_HISTORY_FILE = os.path.join(config.DATA_DIR, 'ai_sql_history.json')
 
 
 def _load_ai_history(limit=10):
