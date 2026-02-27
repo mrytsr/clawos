@@ -1072,7 +1072,39 @@ function formatSize(bytes) {
 
 window.openOllamaModal = function() { Drawer.open('ollamaModal'); loadOllamaModels(); };
 
-// OpenClaw配置
+function renderOpenclawChannelsCard(channels) {
+    const safeChannels = channels || {};
+    const channelNames = Object.keys(safeChannels);
+    let html = '';
+    html += '<div style="margin-bottom:16px;">';
+    html += '<div style="font-size:13px;color:#666;margin-bottom:8px;padding-left:4px;">Channels</div>';
+    html += '<div style="background:#fff;border:1px solid #d0d7de;border-radius:8px;overflow:hidden;">';
+    if (!channelNames.length) {
+        html += '<div style="padding:12px;color:#57606a;font-size:13px;">暂无 Channels</div>';
+        html += '</div></div>';
+        return html;
+    }
+    channelNames.forEach(function(ch, idx) {
+        const cfg = safeChannels[ch] || {};
+        const statusIcon = cfg.status === 'ok' ? '🟢' : (cfg.enabled ? '🟡' : '🔴');
+        const statusText = cfg.status === 'ok' ? '已连接' : (cfg.enabled ? '待配置' : '已禁用');
+        html += '<div style="padding:10px 12px;' + (idx < channelNames.length - 1 ? 'border-bottom:1px solid #eee;' : '') + 'display:flex;justify-content:space-between;align-items:center;">';
+        html += '<div style="display:flex;align-items:center;gap:8px;">';
+        html += '<span>' + statusIcon + '</span>';
+        html += '<span style="font-weight:500;font-size:14px;text-transform:capitalize;">' + escapeHtml(ch) + '</span>';
+        html += '</div>';
+        html += '<div style="text-align:right;">';
+        html += '<div style="font-size:13px;">' + statusText + '</div>';
+        if (cfg.accounts_total > 0) {
+            html += '<div style="font-size:11px;color:#57606a;">' + cfg.accounts_ok + '/' + cfg.accounts_total + ' 账户</div>';
+        }
+        html += '</div>';
+        html += '</div>';
+    });
+    html += '</div></div>';
+    return html;
+}
+
 window.loadOpenclawConfig = function() {
     window.refreshServiceInstallState('openclaw');
     let container = null;
@@ -1150,31 +1182,6 @@ window.loadOpenclawConfig = function() {
             });
             html += '</div></div>';
             
-            // ========== Channels卡片 ==========
-            const channels = payload.channels || {};
-            const channelNames = Object.keys(channels);
-            html += '<div style="margin-bottom:16px;">';
-            html += '<div style="font-size:13px;color:#666;margin-bottom:8px;padding-left:4px;">Channels</div>';
-            html += '<div style="background:#fff;border:1px solid #d0d7de;border-radius:8px;overflow:hidden;">';
-            channelNames.forEach(function(ch, idx) {
-                const cfg = channels[ch];
-                const statusIcon = cfg.status === 'ok' ? '🟢' : (cfg.enabled ? '🟡' : '🔴');
-                const statusText = cfg.status === 'ok' ? '已连接' : (cfg.enabled ? '待配置' : '已禁用');
-                html += '<div style="padding:10px 12px;' + (idx < channelNames.length - 1 ? 'border-bottom:1px solid #eee;' : '') + 'display:flex;justify-content:space-between;align-items:center;">';
-                html += '<div style="display:flex;align-items:center;gap:8px;">';
-                html += '<span>' + statusIcon + '</span>';
-                html += '<span style="font-weight:500;font-size:14px;text-transform:capitalize;">' + escapeHtml(ch) + '</span>';
-                html += '</div>';
-                html += '<div style="text-align:right;">';
-                html += '<div style="font-size:13px;">' + statusText + '</div>';
-                if (cfg.accounts_total > 0) {
-                    html += '<div style="font-size:11px;color:#57606a;">' + cfg.accounts_ok + '/' + cfg.accounts_total + ' 账户</div>';
-                }
-                html += '</div>';
-                html += '</div>';
-            });
-            html += '</div></div>';
-            
             // ========== 诊断卡片 ==========
             const diag = payload.diagnosis || {};
             const warnings = diag.warnings || [];
@@ -1216,6 +1223,150 @@ window.loadOpenclawConfig = function() {
         .catch(function(err) {
             console.error(err);
             if (container) container.innerHTML = '<div style="text-align:center;padding:40px;color:#cf222e;">加载失败</div>';
+        });
+};
+
+window.loadOpenclawChannels = function() {
+    let container = document.getElementById('botOpenclawChannelsContainer');
+    if (!container) return;
+    container.innerHTML = '<div style="text-align:center;padding:40px;color:#666;">🔄 加载中...</div>';
+    fetch('/api/openclaw/status', { headers: authHeaders() })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            const payload = apiData(data);
+            if (!payload || !container) return;
+            container.innerHTML = renderOpenclawChannelsCard(payload.channels || {});
+        })
+        .catch(function(err) {
+            console.error(err);
+            if (container) container.innerHTML = '<div style="text-align:center;padding:40px;color:#cf222e;">加载失败</div>';
+        });
+};
+
+window.loadOpenclawModels = function() {
+    let container = document.getElementById('botOpenclawModelsContainer');
+    if (!container) return;
+    container.innerHTML = '<div style="text-align:center;padding:40px;color:#666;">🔄 加载中...</div>';
+    fetch('/api/openclaw/models/list', { headers: authHeaders() })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            const payload = apiData(data);
+            if (!payload || !container) return;
+            const models = payload.models || [];
+            const defaultModelId = payload.defaultModelId || '';
+            let html = '';
+            html += '<div style="background:#fff;border:1px solid #d0d7de;border-radius:8px;overflow:hidden;">';
+            if (!models.length) {
+                html += '<div style="padding:12px;color:#57606a;font-size:13px;">暂无模型</div>';
+                html += '</div>';
+                container.innerHTML = html;
+                return;
+            }
+            models.forEach(function(m, idx) {
+                const isDefault = !!m.default || (defaultModelId && m.id === defaultModelId);
+                html += '<div style="padding:10px 12px;' + (idx < models.length - 1 ? 'border-bottom:1px solid #eee;' : '') + 'display:flex;align-items:center;justify-content:space-between;gap:12px;">';
+                html += '<div style="min-width:0;">';
+                html += '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">';
+                html += '<span style="font-weight:600;font-size:14px;">' + escapeHtml(m.name || m.id || '-') + '</span>';
+                html += '<span style="font-size:11px;padding:1px 6px;border-radius:999px;background:#ddf4ff;color:#0969da;">' + escapeHtml(m.provider || '-') + '</span>';
+                if (m.reasoning) {
+                    html += '<span style="font-size:11px;padding:1px 6px;border-radius:999px;background:#fff8c5;color:#9a6700;">reasoning</span>';
+                }
+                if (isDefault) {
+                    html += '<span style="font-size:11px;padding:1px 6px;border-radius:999px;background:#dafbe1;color:#1a7f37;">default</span>';
+                }
+                html += '</div>';
+                html += '<div style="font-family:ui-monospace;font-size:12px;color:#57606a;word-break:break-all;">' + escapeHtml(m.id || '-') + '</div>';
+                html += '</div>';
+                html += '<div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">';
+                html += '<button onclick="openclawSetDefaultModel(' + JSON.stringify(m.id || '') + ')" style="background:#2da44e;border:none;border-radius:6px;color:#fff;padding:6px 10px;cursor:pointer;font-size:12px;' + (isDefault ? 'opacity:0.6;cursor:default;' : '') + '" ' + (isDefault ? 'disabled' : '') + '>设为默认</button>';
+                html += '<button onclick="openclawRemoveModel(' + JSON.stringify(m.provider || '') + ',' + JSON.stringify(m.id || '') + ')" style="background:#cf222e;border:none;border-radius:6px;color:#fff;padding:6px 10px;cursor:pointer;font-size:12px;">删除</button>';
+                html += '</div>';
+                html += '</div>';
+            });
+            html += '</div>';
+            container.innerHTML = html;
+        })
+        .catch(function(err) {
+            console.error(err);
+            if (container) container.innerHTML = '<div style="text-align:center;padding:40px;color:#cf222e;">加载失败</div>';
+        });
+};
+
+window.openclawSetDefaultModel = function(modelId) {
+    const mid = (modelId || '').toString().trim();
+    if (!mid) return;
+    fetch('/api/openclaw/models/set_default', {
+        method: 'POST',
+        headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders()),
+        body: JSON.stringify({ modelId: mid })
+    })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (!data || !data.success) {
+                const msg = (data && data.error && data.error.message) ? data.error.message : '设置失败';
+                alert(msg);
+                return;
+            }
+            if (typeof window.loadOpenclawModels === 'function') window.loadOpenclawModels();
+        })
+        .catch(function(err) {
+            console.error(err);
+            alert('设置失败');
+        });
+};
+
+window.openclawRemoveModel = function(provider, modelId) {
+    const mid = (modelId || '').toString().trim();
+    const p = (provider || '').toString().trim();
+    if (!mid) return;
+    const ok = confirm('确定删除模型 ' + mid + ' 吗？');
+    if (!ok) return;
+    fetch('/api/openclaw/models/remove', {
+        method: 'POST',
+        headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders()),
+        body: JSON.stringify({ provider: p, modelId: mid })
+    })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (!data || !data.success) {
+                const msg = (data && data.error && data.error.message) ? data.error.message : '删除失败';
+                alert(msg);
+                return;
+            }
+            if (typeof window.loadOpenclawModels === 'function') window.loadOpenclawModels();
+        })
+        .catch(function(err) {
+            console.error(err);
+            alert('删除失败');
+        });
+};
+
+window.openOpenclawAddModelModal = function() {
+    const provider = prompt('Provider（例如 openai / anthropic / default）', 'default');
+    if (provider === null) return;
+    const modelId = prompt('Model ID（例如 gpt-4.1 / claude-3.5-sonnet）', '');
+    if (modelId === null) return;
+    const name = prompt('显示名称（可留空）', '');
+    if (name === null) return;
+    const reasoning = confirm('是否启用 reasoning？');
+    fetch('/api/openclaw/models/add', {
+        method: 'POST',
+        headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders()),
+        body: JSON.stringify({ provider: provider, id: modelId, name: name, reasoning: reasoning })
+    })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (!data || !data.success) {
+                const msg = (data && data.error && data.error.message) ? data.error.message : '添加失败';
+                alert(msg);
+                return;
+            }
+            if (typeof window.loadOpenclawModels === 'function') window.loadOpenclawModels();
+        })
+        .catch(function(err) {
+            console.error(err);
+            alert('添加失败');
         });
 };
 window.openOpenclawModal = function() {

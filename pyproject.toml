@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "clawos"
+version = "1.0.0"
+description = "一个基于 Flask + SocketIO 的网页管理器。"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { file = "LICENSE" }
+dependencies = [
+  "Flask>=2.0.0",
+  "Flask-SocketIO>=5.0.0",
+  "eventlet>=0.33.0",
+  "python-socketio>=5.0.0",
+  "python-engineio>=4.0.0",
+  "openai>=1.0.0",
+  "zhipuai>=2.0.0",
+  "Pillow>=10.0.0",
+  "markdown>=3.4.0",
+  "numpy>=1.24.0",
+  "SQLAlchemy>=2.0.0",
+  "PyMySQL>=1.1.0",
+  "requests>=2.28.0",
+  "psutil>=5.9.0",
+  "websocket-client>=1.6.0",
+  "pyyaml>=6.0",
+  "cryptography>=41.0",
+  "beautifulsoup4>=4.12",
+  "click>=8.0",
+]
+
+[tool.setuptools]
+packages = ["ctrl", "lib"]
+py-modules = ["app", "config", "ai_client", "llm_batch_eval_enhanced"]

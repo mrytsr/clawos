@@ -760,6 +760,8 @@ window.openBotModal = function() {
 window.toggleBotSettings = function() { var s = document.getElementById('botSettings'); if (s) { s.style.display = s.style.display === 'none' ? 'block' : 'none'; } };
 window.switchBotTab = function(tab) {
     var configPanel = document.getElementById('botConfigPanel');
+    var modelsPanel = document.getElementById('botModelsPanel');
+    var channelsPanel = document.getElementById('botChannelsPanel');
     var chatPanel = document.getElementById('botChatPanel');
     var tabs = Array.prototype.slice.call(document.querySelectorAll('.bot-tab'));
     tabs.forEach(function(el) {
@@ -770,9 +772,15 @@ window.switchBotTab = function(tab) {
         el.style.fontWeight = active ? '600' : '400';
     });
     if (configPanel) configPanel.style.display = tab === 'config' ? 'block' : 'none';
+    if (modelsPanel) modelsPanel.style.display = tab === 'models' ? 'block' : 'none';
+    if (channelsPanel) channelsPanel.style.display = tab === 'channels' ? 'block' : 'none';
     if (chatPanel) chatPanel.style.display = tab === 'chat' ? 'flex' : 'none';
     if (tab === 'config') {
         if (typeof window.loadOpenclawConfig === 'function') { window.loadOpenclawConfig(); }
+    } else if (tab === 'models') {
+        if (typeof window.loadOpenclawModels === 'function') { window.loadOpenclawModels(); }
+    } else if (tab === 'channels') {
+        if (typeof window.loadOpenclawChannels === 'function') { window.loadOpenclawChannels(); }
     } else if (tab === 'chat') {
         if (typeof window.loadBotHistory === 'function') { window.loadBotHistory(); }
         if (typeof window.botJumpToLatest === 'function') { setTimeout(function() { window.botJumpToLatest(); }, 0); }

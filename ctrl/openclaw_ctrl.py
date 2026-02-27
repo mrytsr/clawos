@@ -16,6 +16,43 @@ openclaw_bp = Blueprint('openclaw', __name__)
 
 OPENCLAW_CONFIG_PATH = os.path.expanduser('~/.openclaw/openclaw.json')
 
+def _load_openclaw_config_raw():
+    if not os.path.exists(OPENCLAW_CONFIG_PATH):
+        raise FileNotFoundError('配置文件不存在')
+    with open(OPENCLAW_CONFIG_PATH, 'r', encoding='utf-8') as f:
+        return json.load(f)
+
+
+def _save_openclaw_config_raw(config):
+    with open(OPENCLAW_CONFIG_PATH, 'w', encoding='utf-8') as f:
+        json.dump(config, f, ensure_ascii=False, indent=2)
+
+
+def _get_default_model_id(models_section):
+    if not isinstance(models_section, dict):
+        return None, None
+    for k in ('defaultModelId', 'defaultModel', 'default'):
+        v = models_section.get(k)
+        if isinstance(v, str) and v.strip():
+            return v.strip(), k
+        if isinstance(v, dict):
+            vid = v.get('id')
+            if isinstance(vid, str) and vid.strip():
+                return vid.strip(), k
+    return None, None
+
+
+def _iter_models(config):
+    providers = (config.get('models') or {}).get('providers') or {}
+    for provider_name, provider_data in providers.items():
+        models = provider_data.get('models') or []
+        if not isinstance(models, list):
+            continue
+        for m in models:
+            if not isinstance(m, dict):
+                continue
+            yield provider_name, m
+
 
 def _openclaw_install_check():
     env = {}
@@ -167,6 +204,157 @@ def api_openclaw_config():
         return api_error('配置文件解析失败', status=500)
     except Exception as e:
         return api_error(str(e), status=500)
+
+
+@openclaw_bp.route('/api/openclaw/models/list')
+def api_openclaw_models_list():
+    try:
+        config = _load_openclaw_config_raw()
+    except FileNotFoundError as e:
+        return api_error(str(e), status=404)
+    except json.JSONDecodeError:
+        return api_error('配置文件解析失败', status=500)
+
+    models_section = config.get('models') or {}
+    default_id, _ = _get_default_model_id(models_section)
+
+    providers = []
+    models = []
+    providers_map = models_section.get('providers') or {}
+    if isinstance(providers_map, dict):
+        providers = list(providers_map.keys())
+
+    for provider_name, m in _iter_models(config):
+        models.append({
+            'provider': provider_name,
+            'id': m.get('id', ''),
+            'name': m.get('name', m.get('id', '')),
+            'reasoning': bool(m.get('reasoning', False)),
+            'default': bool(default_id and m.get('id') == default_id),
+        })
+
+    return api_ok({'providers': providers, 'defaultModelId': default_id, 'models': models})
+
+
+@openclaw_bp.route('/api/openclaw/models/add', methods=['POST'])
+def api_openclaw_models_add():
+    data = request.get_json(silent=True) or {}
+    provider = (data.get('provider') or '').strip() or 'default'
+    model_id = (data.get('id') or '').strip()
+    name = (data.get('name') or '').strip()
+    reasoning = bool(data.get('reasoning', False))
+
+    if not model_id:
+        return api_error('Missing model id', status=400)
+
+    try:
+        config = _load_openclaw_config_raw()
+    except FileNotFoundError as e:
+        return api_error(str(e), status=404)
+    except json.JSONDecodeError:
+        return api_error('配置文件解析失败', status=500)
+
+    models_section = config.setdefault('models', {})
+    providers_map = models_section.setdefault('providers', {})
+    if not isinstance(providers_map, dict):
+        return api_error('配置文件格式错误', status=500)
+
+    provider_section = providers_map.setdefault(provider, {})
+    models_list = provider_section.setdefault('models', [])
+    if not isinstance(models_list, list):
+        return api_error('配置文件格式错误', status=500)
+
+    for m in models_list:
+        if isinstance(m, dict) and (m.get('id') or '').strip() == model_id:
+            return api_error('Model already exists', status=409)
+
+    models_list.append({
+        'id': model_id,
+        'name': name or model_id,
+        'reasoning': reasoning,
+    })
+
+    _save_openclaw_config_raw(config)
+    return api_ok({'provider': provider, 'id': model_id})
+
+
+@openclaw_bp.route('/api/openclaw/models/remove', methods=['POST'])
+def api_openclaw_models_remove():
+    data = request.get_json(silent=True) or {}
+    provider = (data.get('provider') or '').strip()
+    model_id = (data.get('modelId') or data.get('id') or '').strip()
+
+    if not model_id:
+        return api_error('Missing model id', status=400)
+
+    try:
+        config = _load_openclaw_config_raw()
+    except FileNotFoundError as e:
+        return api_error(str(e), status=404)
+    except json.JSONDecodeError:
+        return api_error('配置文件解析失败', status=500)
+
+    models_section = config.get('models') or {}
+    providers_map = models_section.get('providers') or {}
+    if not isinstance(providers_map, dict):
+        return api_error('配置文件格式错误', status=500)
+
+    removed = 0
+    target_providers = [provider] if provider else list(providers_map.keys())
+    for p in target_providers:
+        provider_section = providers_map.get(p) or {}
+        models_list = provider_section.get('models') or []
+        if not isinstance(models_list, list):
+            continue
+        before = len(models_list)
+        provider_section['models'] = [m for m in models_list if not (isinstance(m, dict) and (m.get('id') or '').strip() == model_id)]
+        providers_map[p] = provider_section
+        removed += max(0, before - len(provider_section['models']))
+
+    if removed > 0:
+        default_id, default_key = _get_default_model_id(models_section)
+        if default_id == model_id and default_key:
+            try:
+                del models_section[default_key]
+            except Exception:
+                models_section[default_key] = ''
+        config['models'] = models_section
+        _save_openclaw_config_raw(config)
+
+    return api_ok({'removed': removed})
+
+
+@openclaw_bp.route('/api/openclaw/models/set_default', methods=['POST'])
+def api_openclaw_models_set_default():
+    data = request.get_json(silent=True) or {}
+    model_id = (data.get('modelId') or data.get('id') or '').strip()
+    if not model_id:
+        return api_error('Missing model id', status=400)
+
+    try:
+        config = _load_openclaw_config_raw()
+    except FileNotFoundError as e:
+        return api_error(str(e), status=404)
+    except json.JSONDecodeError:
+        return api_error('配置文件解析失败', status=500)
+
+    exists = False
+    for _, m in _iter_models(config):
+        if (m.get('id') or '').strip() == model_id:
+            exists = True
+            break
+    if not exists:
+        return api_error('Model not found', status=404)
+
+    models_section = config.setdefault('models', {})
+    _, default_key = _get_default_model_id(models_section)
+    if default_key:
+        models_section[default_key] = model_id
+    else:
+        models_section['defaultModelId'] = model_id
+    config['models'] = models_section
+    _save_openclaw_config_raw(config)
+    return api_ok({'defaultModelId': model_id})
 
 
 @openclaw_bp.route('/api/openclaw/status')
