@@ -54,6 +54,81 @@ def _iter_models(config):
             yield provider_name, m
 
 
+def _openclaw_agents_dir():
+    return os.path.expanduser('~/.openclaw/agents')
+
+
+def _safe_agent_id(agent_id):
+    s = (agent_id or '').strip()
+    if not s:
+        return None
+    bad = ['..', '/', '\\', '\0']
+    if any(x in s for x in bad):
+        return None
+    allowed = set('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._-')
+    if any(ch not in allowed for ch in s):
+        return None
+    return s
+
+
+def _collect_openclaw_agents():
+    agents = []
+    agents_dir = _openclaw_agents_dir()
+    if not os.path.exists(agents_dir):
+        return agents
+
+    for name in os.listdir(agents_dir):
+        agent_path = os.path.join(agents_dir, name)
+        if not os.path.isdir(agent_path):
+            continue
+
+        sessions_file = os.path.join(agent_path, 'sessions', 'sessions.json')
+        active_ago = None
+        sessions_count = 0
+        try:
+            if os.path.exists(sessions_file):
+                with open(sessions_file, 'r', encoding='utf-8') as f:
+                    sessions = json.load(f)
+                sessions_count = len(sessions.get('sessions', []))
+                last_active = sessions.get('last_active')
+                if last_active:
+                    dt = datetime.datetime.fromtimestamp(int(last_active) / 1000)
+                    delta = datetime.datetime.now() - dt
+                    if delta.days > 0:
+                        active_ago = f'{delta.days}天前'
+                    elif delta.seconds > 3600:
+                        active_ago = f'{delta.seconds//3600}小时前'
+                    elif delta.seconds > 60:
+                        active_ago = f'{delta.seconds//60}分钟前'
+                    else:
+                        active_ago = '刚刚'
+        except Exception:
+            pass
+
+        status = 'ok' if sessions_count > 0 else 'pending'
+        agents.append({
+            'id': name,
+            'name': name,
+            'status': status,
+            'sessions': sessions_count,
+            'active_ago': active_ago
+        })
+    return agents
+
+
+def _safe_channel_name(name):
+    s = (name or '').strip()
+    if not s:
+        return None
+    bad = ['..', '/', '\\', '\0']
+    if any(x in s for x in bad):
+        return None
+    allowed = set('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._-')
+    if any(ch not in allowed for ch in s):
+        return None
+    return s
+
+
 def _openclaw_install_check():
     env = {}
     try:
@@ -355,6 +430,197 @@ def api_openclaw_models_set_default():
     config['models'] = models_section
     _save_openclaw_config_raw(config)
     return api_ok({'defaultModelId': model_id})
+
+
+@openclaw_bp.route('/api/openclaw/agents/list')
+def api_openclaw_agents_list():
+    try:
+        agents = _collect_openclaw_agents()
+        agents.sort(key=lambda a: (a.get('id') or '').lower())
+        return api_ok({'agents': agents})
+    except Exception as e:
+        return api_error(str(e), status=500)
+
+
+@openclaw_bp.route('/api/openclaw/agents/add', methods=['POST'])
+def api_openclaw_agents_add():
+    data = request.get_json(silent=True) or {}
+    agent_id = _safe_agent_id(data.get('id') or data.get('name'))
+    if not agent_id:
+        return api_error('Invalid agent id', status=400)
+
+    agents_dir = _openclaw_agents_dir()
+    agent_path = os.path.join(agents_dir, agent_id)
+    if os.path.exists(agent_path):
+        return api_error('Agent already exists', status=409)
+
+    os.makedirs(os.path.join(agent_path, 'sessions'), exist_ok=True)
+    sessions_file = os.path.join(agent_path, 'sessions', 'sessions.json')
+    if not os.path.exists(sessions_file):
+        with open(sessions_file, 'w', encoding='utf-8') as f:
+            json.dump({'sessions': [], 'last_active': None}, f, ensure_ascii=False, indent=2)
+
+    return api_ok({'id': agent_id})
+
+
+@openclaw_bp.route('/api/openclaw/agents/rename', methods=['POST'])
+def api_openclaw_agents_rename():
+    data = request.get_json(silent=True) or {}
+    old_id = _safe_agent_id(data.get('from') or data.get('oldId') or data.get('old') or data.get('id'))
+    new_id = _safe_agent_id(data.get('to') or data.get('newId') or data.get('new'))
+    if not old_id or not new_id:
+        return api_error('Invalid agent id', status=400)
+    if old_id == new_id:
+        return api_ok({'id': new_id})
+
+    agents_dir = _openclaw_agents_dir()
+    old_path = os.path.join(agents_dir, old_id)
+    new_path = os.path.join(agents_dir, new_id)
+    if not os.path.exists(old_path):
+        return api_error('Agent not found', status=404)
+    if os.path.exists(new_path):
+        return api_error('Target agent already exists', status=409)
+
+    os.rename(old_path, new_path)
+    return api_ok({'id': new_id})
+
+
+@openclaw_bp.route('/api/openclaw/agents/remove', methods=['POST'])
+def api_openclaw_agents_remove():
+    data = request.get_json(silent=True) or {}
+    agent_id = _safe_agent_id(data.get('id') or data.get('name'))
+    if not agent_id:
+        return api_error('Invalid agent id', status=400)
+
+    agents_dir = _openclaw_agents_dir()
+    agent_path = os.path.join(agents_dir, agent_id)
+    if not os.path.exists(agent_path):
+        return api_ok({'removed': False})
+
+    shutil.rmtree(agent_path, ignore_errors=True)
+    return api_ok({'removed': True})
+
+
+@openclaw_bp.route('/api/openclaw/channels/list')
+def api_openclaw_channels_list():
+    try:
+        config = _load_openclaw_config_raw()
+    except FileNotFoundError as e:
+        return api_error(str(e), status=404)
+    except json.JSONDecodeError:
+        return api_error('配置文件解析失败', status=500)
+
+    channels_map = config.get('channels') or {}
+    if not isinstance(channels_map, dict):
+        return api_error('配置文件格式错误', status=500)
+
+    channels = []
+    for name, data in channels_map.items():
+        if not isinstance(data, dict):
+            data = {}
+        channels.append({
+            'name': name,
+            'enabled': bool(data.get('enabled', False)),
+            'raw': data,
+        })
+    channels.sort(key=lambda c: (c.get('name') or '').lower())
+    return api_ok({'channels': channels})
+
+
+@openclaw_bp.route('/api/openclaw/channels/add', methods=['POST'])
+def api_openclaw_channels_add():
+    data = request.get_json(silent=True) or {}
+    name = _safe_channel_name(data.get('name') or data.get('id'))
+    enabled = bool(data.get('enabled', False))
+    if not name:
+        return api_error('Invalid channel name', status=400)
+
+    try:
+        config = _load_openclaw_config_raw()
+    except FileNotFoundError as e:
+        return api_error(str(e), status=404)
+    except json.JSONDecodeError:
+        return api_error('配置文件解析失败', status=500)
+
+    channels_map = config.setdefault('channels', {})
+    if not isinstance(channels_map, dict):
+        return api_error('配置文件格式错误', status=500)
+    if name in channels_map:
+        return api_error('Channel already exists', status=409)
+
+    channels_map[name] = {'enabled': enabled}
+    config['channels'] = channels_map
+    _save_openclaw_config_raw(config)
+    return api_ok({'name': name})
+
+
+@openclaw_bp.route('/api/openclaw/channels/update', methods=['POST'])
+def api_openclaw_channels_update():
+    data = request.get_json(silent=True) or {}
+    name = _safe_channel_name(data.get('name') or data.get('id'))
+    new_name = _safe_channel_name(data.get('newName') or data.get('to') or data.get('renameTo')) if (data.get('newName') or data.get('to') or data.get('renameTo')) else None
+    enabled = data.get('enabled', None)
+
+    if not name:
+        return api_error('Invalid channel name', status=400)
+
+    try:
+        config = _load_openclaw_config_raw()
+    except FileNotFoundError as e:
+        return api_error(str(e), status=404)
+    except json.JSONDecodeError:
+        return api_error('配置文件解析失败', status=500)
+
+    channels_map = config.get('channels') or {}
+    if not isinstance(channels_map, dict):
+        return api_error('配置文件格式错误', status=500)
+    if name not in channels_map:
+        return api_error('Channel not found', status=404)
+
+    ch = channels_map.get(name) or {}
+    if not isinstance(ch, dict):
+        ch = {}
+    if enabled is not None:
+        ch['enabled'] = bool(enabled)
+
+    target_name = new_name or name
+    if new_name and new_name != name:
+        if new_name in channels_map:
+            return api_error('Target channel already exists', status=409)
+        del channels_map[name]
+        channels_map[new_name] = ch
+    else:
+        channels_map[name] = ch
+
+    config['channels'] = channels_map
+    _save_openclaw_config_raw(config)
+    return api_ok({'name': target_name})
+
+
+@openclaw_bp.route('/api/openclaw/channels/remove', methods=['POST'])
+def api_openclaw_channels_remove():
+    data = request.get_json(silent=True) or {}
+    name = _safe_channel_name(data.get('name') or data.get('id'))
+    if not name:
+        return api_error('Invalid channel name', status=400)
+
+    try:
+        config = _load_openclaw_config_raw()
+    except FileNotFoundError as e:
+        return api_error(str(e), status=404)
+    except json.JSONDecodeError:
+        return api_error('配置文件解析失败', status=500)
+
+    channels_map = config.get('channels') or {}
+    if not isinstance(channels_map, dict):
+        return api_error('配置文件格式错误', status=500)
+    if name not in channels_map:
+        return api_ok({'removed': False})
+
+    del channels_map[name]
+    config['channels'] = channels_map
+    _save_openclaw_config_raw(config)
+    return api_ok({'removed': True})
 
 
 @openclaw_bp.route('/api/openclaw/status')

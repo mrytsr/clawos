@@ -1165,23 +1165,6 @@ window.loadOpenclawConfig = function() {
             }
             html += '</div></div>';
             
-            // ========== Agents卡片 ==========
-            const agents = payload.agents || [];
-            html += '<div style="margin-bottom:16px;">';
-            html += '<div style="font-size:13px;color:#666;margin-bottom:8px;padding-left:4px;">Agents (' + agents.length + ')</div>';
-            html += '<div style="background:#fff;border:1px solid #d0d7de;border-radius:8px;overflow:hidden;">';
-            agents.forEach(function(agent, idx) {
-                const statusColor = agent.status === 'pending' ? '#cf222e' : '#2da44e';
-                html += '<div style="padding:10px 12px;' + (idx < agents.length - 1 ? 'border-bottom:1px solid #eee;' : '') + '">';
-                html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">';
-                html += '<span style="font-weight:500;font-size:14px;">' + escapeHtml(agent.name || agent.id) + '</span>';
-                html += '<span style="font-size:11px;padding:1px 6px;border-radius:999px;background:#ffebe9;color:#cf222e;">' + (agent.sessions || 0) + ' 会话</span>';
-                html += '</div>';
-                html += '<div style="font-size:12px;color:#57606a;">' + (agent.active_ago || '-') + '</div>';
-                html += '</div>';
-            });
-            html += '</div></div>';
-            
             // ========== 诊断卡片 ==========
             const diag = payload.diagnosis || {};
             const warnings = diag.warnings || [];
@@ -1226,21 +1209,465 @@ window.loadOpenclawConfig = function() {
         });
 };
 
-window.loadOpenclawChannels = function() {
-    let container = document.getElementById('botOpenclawChannelsContainer');
+function renderOpenclawAgentsList(agents) {
+    const list = Array.isArray(agents) ? agents : [];
+    let html = '';
+    html += '<div style="background:#fff;border:1px solid #d0d7de;border-radius:8px;overflow:hidden;">';
+    if (!list.length) {
+        html += '<div style="padding:12px;color:#57606a;font-size:13px;">暂无 Agents</div>';
+        html += '</div>';
+        return html;
+    }
+    list.forEach(function(agent, idx) {
+        const status = agent && agent.status ? agent.status : 'pending';
+        const dot = status === 'ok' ? '#2da44e' : '#cf222e';
+        html += '<div style="padding:10px 12px;' + (idx < list.length - 1 ? 'border-bottom:1px solid #eee;' : '') + 'display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">';
+        html += '<div style="min-width:0;">';
+        html += '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">';
+        html += '<span style="width:8px;height:8px;border-radius:50%;background:' + dot + ';display:inline-block;"></span>';
+        html += '<span style="font-weight:600;font-size:14px;word-break:break-all;">' + escapeHtml((agent && (agent.name || agent.id)) || '-') + '</span>';
+        html += '<span style="font-size:11px;padding:1px 6px;border-radius:999px;background:#f6f8fa;color:#57606a;">' + ((agent && agent.sessions) || 0) + ' 会话</span>';
+        html += '</div>';
+        html += '<div style="font-size:12px;color:#57606a;margin-top:4px;">' + escapeHtml((agent && agent.active_ago) || '-') + '</div>';
+        html += '</div>';
+        html += '<div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">';
+        html += '<button onclick="openOpenclawEditAgentModal(' + JSON.stringify((agent && agent.id) || '') + ')" style="background:#0969da;border:none;border-radius:6px;color:#fff;padding:6px 10px;cursor:pointer;font-size:12px;">编辑</button>';
+        html += '<button onclick="openclawRemoveAgent(' + JSON.stringify((agent && agent.id) || '') + ')" style="background:#cf222e;border:none;border-radius:6px;color:#fff;padding:6px 10px;cursor:pointer;font-size:12px;">删除</button>';
+        html += '</div>';
+        html += '</div>';
+    });
+    html += '</div>';
+    return html;
+}
+
+window.loadOpenclawAgents = function() {
+    let container = document.getElementById('botOpenclawAgentsContainer');
     if (!container) return;
     container.innerHTML = '<div style="text-align:center;padding:40px;color:#666;">🔄 加载中...</div>';
-    fetch('/api/openclaw/status', { headers: authHeaders() })
+    fetch('/api/openclaw/agents/list', { headers: authHeaders() })
         .then(function(r) { return r.json(); })
         .then(function(data) {
             const payload = apiData(data);
             if (!payload || !container) return;
-            container.innerHTML = renderOpenclawChannelsCard(payload.channels || {});
+            container.innerHTML = renderOpenclawAgentsList(payload.agents || []);
         })
         .catch(function(err) {
             console.error(err);
             if (container) container.innerHTML = '<div style="text-align:center;padding:40px;color:#cf222e;">加载失败</div>';
         });
+};
+
+window.openOpenclawAddAgentModal = function() {
+    if (window.SwalGitHub && typeof window.SwalGitHub.fire === 'function') {
+        window.SwalGitHub.fire({
+            title: '添加 Agent',
+            html: '<div style="text-align:left;">' +
+                '<div style="font-size:12px;color:#57606a;margin-bottom:6px;">Agent ID（仅支持字母数字、._-）</div>' +
+                '<input id="openclawAgentIdInput" class="swal2-input" placeholder="agent_id" style="width:100%;box-sizing:border-box;">' +
+                '</div>',
+            focusConfirm: false,
+            showCancelButton: true,
+            confirmButtonText: '添加',
+            cancelButtonText: '取消',
+            preConfirm: function() {
+                const el = document.getElementById('openclawAgentIdInput');
+                const v = (el && el.value ? el.value : '').trim();
+                if (!v) {
+                    window.SwalGitHub.showValidationMessage('请输入 Agent ID');
+                    return false;
+                }
+                return { id: v };
+            }
+        }).then(function(res) {
+            if (!res || !res.isConfirmed || !res.value) return;
+            fetch('/api/openclaw/agents/add', {
+                method: 'POST',
+                headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders()),
+                body: JSON.stringify({ id: res.value.id })
+            })
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (!data || !data.success) {
+                        const msg = (data && data.error && data.error.message) ? data.error.message : '添加失败';
+                        alert(msg);
+                        return;
+                    }
+                    if (typeof window.loadOpenclawAgents === 'function') window.loadOpenclawAgents();
+                })
+                .catch(function(err) {
+                    console.error(err);
+                    alert('添加失败');
+                });
+        });
+        return;
+    }
+    const v = prompt('请输入 Agent ID（仅支持字母数字、._-）');
+    if (!v) return;
+    fetch('/api/openclaw/agents/add', {
+        method: 'POST',
+        headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders()),
+        body: JSON.stringify({ id: v.trim() })
+    })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (!data || !data.success) {
+                const msg = (data && data.error && data.error.message) ? data.error.message : '添加失败';
+                alert(msg);
+                return;
+            }
+            if (typeof window.loadOpenclawAgents === 'function') window.loadOpenclawAgents();
+        })
+        .catch(function(err) {
+            console.error(err);
+            alert('添加失败');
+        });
+};
+
+window.openOpenclawEditAgentModal = function(agentId) {
+    const oldId = (agentId || '').toString().trim();
+    if (!oldId) return;
+    if (window.SwalGitHub && typeof window.SwalGitHub.fire === 'function') {
+        window.SwalGitHub.fire({
+            title: '编辑 Agent',
+            html: '<div style="text-align:left;">' +
+                '<div style="font-size:12px;color:#57606a;margin-bottom:6px;">Agent ID（重命名）</div>' +
+                '<input id="openclawAgentRenameInput" class="swal2-input" placeholder="agent_id" style="width:100%;box-sizing:border-box;" value="' + escapeHtml(oldId) + '">' +
+                '</div>',
+            focusConfirm: false,
+            showCancelButton: true,
+            confirmButtonText: '保存',
+            cancelButtonText: '取消',
+            preConfirm: function() {
+                const el = document.getElementById('openclawAgentRenameInput');
+                const v = (el && el.value ? el.value : '').trim();
+                if (!v) {
+                    window.SwalGitHub.showValidationMessage('请输入 Agent ID');
+                    return false;
+                }
+                return { id: v };
+            }
+        }).then(function(res) {
+            if (!res || !res.isConfirmed || !res.value) return;
+            const newId = (res.value.id || '').trim();
+            fetch('/api/openclaw/agents/rename', {
+                method: 'POST',
+                headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders()),
+                body: JSON.stringify({ from: oldId, to: newId })
+            })
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (!data || !data.success) {
+                        const msg = (data && data.error && data.error.message) ? data.error.message : '保存失败';
+                        alert(msg);
+                        return;
+                    }
+                    if (typeof window.loadOpenclawAgents === 'function') window.loadOpenclawAgents();
+                })
+                .catch(function(err) {
+                    console.error(err);
+                    alert('保存失败');
+                });
+        });
+        return;
+    }
+    const v = prompt('请输入新的 Agent ID', oldId);
+    if (!v) return;
+    fetch('/api/openclaw/agents/rename', {
+        method: 'POST',
+        headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders()),
+        body: JSON.stringify({ from: oldId, to: v.trim() })
+    })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (!data || !data.success) {
+                const msg = (data && data.error && data.error.message) ? data.error.message : '保存失败';
+                alert(msg);
+                return;
+            }
+            if (typeof window.loadOpenclawAgents === 'function') window.loadOpenclawAgents();
+        })
+        .catch(function(err) {
+            console.error(err);
+            alert('保存失败');
+        });
+};
+
+window.openclawRemoveAgent = function(agentId) {
+    const id = (agentId || '').toString().trim();
+    if (!id) return;
+    if (window.SwalGitHub && typeof window.SwalGitHub.fire === 'function') {
+        window.SwalGitHub.fire({
+            title: '删除 Agent？',
+            text: id,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: '删除',
+            cancelButtonText: '取消'
+        }).then(function(res) {
+            if (!res || !res.isConfirmed) return;
+            fetch('/api/openclaw/agents/remove', {
+                method: 'POST',
+                headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders()),
+                body: JSON.stringify({ id: id })
+            })
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (!data || !data.success) {
+                        const msg = (data && data.error && data.error.message) ? data.error.message : '删除失败';
+                        alert(msg);
+                        return;
+                    }
+                    if (typeof window.loadOpenclawAgents === 'function') window.loadOpenclawAgents();
+                })
+                .catch(function(err) {
+                    console.error(err);
+                    alert('删除失败');
+                });
+        });
+        return;
+    }
+    const ok = confirm('确定删除 Agent ' + id + ' 吗？');
+    if (!ok) return;
+    fetch('/api/openclaw/agents/remove', {
+        method: 'POST',
+        headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders()),
+        body: JSON.stringify({ id: id })
+    })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (!data || !data.success) {
+                const msg = (data && data.error && data.error.message) ? data.error.message : '删除失败';
+                alert(msg);
+                return;
+            }
+            if (typeof window.loadOpenclawAgents === 'function') window.loadOpenclawAgents();
+        })
+        .catch(function(err) {
+            console.error(err);
+            alert('删除失败');
+        });
+};
+
+window.loadOpenclawChannels = function() {
+    let container = document.getElementById('botOpenclawChannelsContainer');
+    if (!container) return;
+    container.innerHTML = '<div style="text-align:center;padding:40px;color:#666;">🔄 加载中...</div>';
+    fetch('/api/openclaw/channels/list', { headers: authHeaders() })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            const payload = apiData(data);
+            if (!payload || !container) return;
+            container.innerHTML = renderOpenclawChannelsManageList(payload.channels || []);
+        })
+        .catch(function(err) {
+            console.error(err);
+            if (container) container.innerHTML = '<div style="text-align:center;padding:40px;color:#cf222e;">加载失败</div>';
+        });
+};
+
+function renderOpenclawChannelsManageList(channels) {
+    const list = Array.isArray(channels) ? channels : [];
+    let html = '';
+    html += '<div style="background:#fff;border:1px solid #d0d7de;border-radius:8px;overflow:hidden;">';
+    if (!list.length) {
+        html += '<div style="padding:12px;color:#57606a;font-size:13px;">暂无 Channels</div>';
+        html += '</div>';
+        return html;
+    }
+
+    list.forEach(function(ch, idx) {
+        const name = (ch && ch.name) ? ch.name : '';
+        const enabled = !!(ch && ch.enabled);
+        html += '<div style="padding:10px 12px;' + (idx < list.length - 1 ? 'border-bottom:1px solid #eee;' : '') + 'display:flex;align-items:center;justify-content:space-between;gap:12px;">';
+        html += '<div style="min-width:0;">';
+        html += '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">';
+        html += '<span style="font-weight:600;font-size:14px;text-transform:capitalize;">' + escapeHtml(name || '-') + '</span>';
+        html += enabled
+            ? '<span style="font-size:11px;padding:1px 6px;border-radius:999px;background:#dafbe1;color:#1a7f37;">已启用</span>'
+            : '<span style="font-size:11px;padding:1px 6px;border-radius:999px;background:#ffebe9;color:#cf222e;">已禁用</span>';
+        html += '</div>';
+        html += '<div style="font-family:ui-monospace;font-size:12px;color:#57606a;word-break:break-all;margin-top:4px;">' + escapeHtml(name || '-') + '</div>';
+        html += '</div>';
+        html += '<div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">';
+        html += '<label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#57606a;cursor:pointer;">';
+        html += '<input type="checkbox" ' + (enabled ? 'checked' : '') + ' onchange="openclawToggleChannelEnabled(' + JSON.stringify(name) + ', this.checked)" />';
+        html += '<span>启用</span>';
+        html += '</label>';
+        html += '<button onclick="openOpenclawEditChannelModal(' + JSON.stringify(name) + ',' + (enabled ? 'true' : 'false') + ')" style="background:#0969da;border:none;border-radius:6px;color:#fff;padding:6px 10px;cursor:pointer;font-size:12px;">编辑</button>';
+        html += '<button onclick="openclawRemoveChannel(' + JSON.stringify(name) + ')" style="background:#cf222e;border:none;border-radius:6px;color:#fff;padding:6px 10px;cursor:pointer;font-size:12px;">删除</button>';
+        html += '</div>';
+        html += '</div>';
+    });
+    html += '</div>';
+    return html;
+}
+
+window.openOpenclawAddChannelModal = function() {
+    if (!(window.SwalGitHub && typeof window.SwalGitHub.fire === 'function')) {
+        alert('弹窗组件未加载');
+        return;
+    }
+    window.SwalGitHub.fire({
+        title: '添加 Channel',
+        html: '<div style="text-align:left;">' +
+            '<div style="font-size:12px;color:#57606a;margin-bottom:6px;">名称（仅支持字母数字、._-）</div>' +
+            '<input id="openclawChannelNameInput" class="swal2-input" placeholder="telegram / wechat / discord" style="width:100%;box-sizing:border-box;">' +
+            '<label style="display:flex;align-items:center;gap:8px;margin-top:10px;font-size:13px;color:#24292f;">' +
+            '<input id="openclawChannelEnabledInput" type="checkbox" checked /> 启用' +
+            '</label>' +
+            '</div>',
+        focusConfirm: false,
+        showCancelButton: true,
+        confirmButtonText: '添加',
+        cancelButtonText: '取消',
+        preConfirm: function() {
+            const nameEl = document.getElementById('openclawChannelNameInput');
+            const enabledEl = document.getElementById('openclawChannelEnabledInput');
+            const name = (nameEl && nameEl.value ? nameEl.value : '').trim();
+            const enabled = !!(enabledEl && enabledEl.checked);
+            if (!name) {
+                window.SwalGitHub.showValidationMessage('请输入名称');
+                return false;
+            }
+            return { name: name, enabled: enabled };
+        }
+    }).then(function(res) {
+        if (!res || !res.isConfirmed || !res.value) return;
+        fetch('/api/openclaw/channels/add', {
+            method: 'POST',
+            headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders()),
+            body: JSON.stringify({ name: res.value.name, enabled: res.value.enabled })
+        })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (!data || !data.success) {
+                    const msg = (data && data.error && data.error.message) ? data.error.message : '添加失败';
+                    alert(msg);
+                    return;
+                }
+                if (typeof window.loadOpenclawChannels === 'function') window.loadOpenclawChannels();
+            })
+            .catch(function(err) {
+                console.error(err);
+                alert('添加失败');
+            });
+    });
+};
+
+window.openOpenclawEditChannelModal = function(channelName, enabled) {
+    const name = (channelName || '').toString().trim();
+    if (!name) return;
+    if (!(window.SwalGitHub && typeof window.SwalGitHub.fire === 'function')) {
+        alert('弹窗组件未加载');
+        return;
+    }
+    window.SwalGitHub.fire({
+        title: '编辑 Channel',
+        html: '<div style="text-align:left;">' +
+            '<div style="font-size:12px;color:#57606a;margin-bottom:6px;">名称（重命名）</div>' +
+            '<input id="openclawChannelNewNameInput" class="swal2-input" placeholder="channel_name" style="width:100%;box-sizing:border-box;" value="' + escapeHtml(name) + '">' +
+            '<label style="display:flex;align-items:center;gap:8px;margin-top:10px;font-size:13px;color:#24292f;">' +
+            '<input id="openclawChannelNewEnabledInput" type="checkbox" ' + (enabled ? 'checked' : '') + ' /> 启用' +
+            '</label>' +
+            '</div>',
+        focusConfirm: false,
+        showCancelButton: true,
+        confirmButtonText: '保存',
+        cancelButtonText: '取消',
+        preConfirm: function() {
+            const nameEl = document.getElementById('openclawChannelNewNameInput');
+            const enabledEl = document.getElementById('openclawChannelNewEnabledInput');
+            const newName = (nameEl && nameEl.value ? nameEl.value : '').trim();
+            const newEnabled = !!(enabledEl && enabledEl.checked);
+            if (!newName) {
+                window.SwalGitHub.showValidationMessage('请输入名称');
+                return false;
+            }
+            return { name: name, newName: newName, enabled: newEnabled };
+        }
+    }).then(function(res) {
+        if (!res || !res.isConfirmed || !res.value) return;
+        const payload = { name: res.value.name, enabled: res.value.enabled };
+        if (res.value.newName && res.value.newName !== res.value.name) payload.newName = res.value.newName;
+        fetch('/api/openclaw/channels/update', {
+            method: 'POST',
+            headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders()),
+            body: JSON.stringify(payload)
+        })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (!data || !data.success) {
+                    const msg = (data && data.error && data.error.message) ? data.error.message : '保存失败';
+                    alert(msg);
+                    return;
+                }
+                if (typeof window.loadOpenclawChannels === 'function') window.loadOpenclawChannels();
+            })
+            .catch(function(err) {
+                console.error(err);
+                alert('保存失败');
+            });
+    });
+};
+
+window.openclawToggleChannelEnabled = function(channelName, enabled) {
+    const name = (channelName || '').toString().trim();
+    if (!name) return;
+    fetch('/api/openclaw/channels/update', {
+        method: 'POST',
+        headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders()),
+        body: JSON.stringify({ name: name, enabled: !!enabled })
+    })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (!data || !data.success) {
+                const msg = (data && data.error && data.error.message) ? data.error.message : '更新失败';
+                alert(msg);
+                if (typeof window.loadOpenclawChannels === 'function') window.loadOpenclawChannels();
+            }
+        })
+        .catch(function(err) {
+            console.error(err);
+            alert('更新失败');
+            if (typeof window.loadOpenclawChannels === 'function') window.loadOpenclawChannels();
+        });
+};
+
+window.openclawRemoveChannel = function(channelName) {
+    const name = (channelName || '').toString().trim();
+    if (!name) return;
+    if (!(window.SwalGitHub && typeof window.SwalGitHub.fire === 'function')) {
+        alert('弹窗组件未加载');
+        return;
+    }
+    window.SwalGitHub.fire({
+        title: '删除 Channel？',
+        text: name,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: '删除',
+        cancelButtonText: '取消'
+    }).then(function(res) {
+        if (!res || !res.isConfirmed) return;
+        fetch('/api/openclaw/channels/remove', {
+            method: 'POST',
+            headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders()),
+            body: JSON.stringify({ name: name })
+        })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (!data || !data.success) {
+                    const msg = (data && data.error && data.error.message) ? data.error.message : '删除失败';
+                    alert(msg);
+                    return;
+                }
+                if (typeof window.loadOpenclawChannels === 'function') window.loadOpenclawChannels();
+            })
+            .catch(function(err) {
+                console.error(err);
+                alert('删除失败');
+            });
+    });
 };
 
 window.loadOpenclawModels = function() {
@@ -1273,13 +1700,17 @@ window.loadOpenclawModels = function() {
                     html += '<span style="font-size:11px;padding:1px 6px;border-radius:999px;background:#fff8c5;color:#9a6700;">reasoning</span>';
                 }
                 if (isDefault) {
-                    html += '<span style="font-size:11px;padding:1px 6px;border-radius:999px;background:#dafbe1;color:#1a7f37;">default</span>';
+                    html += '<span style="font-size:11px;padding:1px 6px;border-radius:999px;background:#dafbe1;color:#1a7f37;">默认</span>';
                 }
                 html += '</div>';
                 html += '<div style="font-family:ui-monospace;font-size:12px;color:#57606a;word-break:break-all;">' + escapeHtml(m.id || '-') + '</div>';
                 html += '</div>';
                 html += '<div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">';
-                html += '<button onclick="openclawSetDefaultModel(' + JSON.stringify(m.id || '') + ')" style="background:#2da44e;border:none;border-radius:6px;color:#fff;padding:6px 10px;cursor:pointer;font-size:12px;' + (isDefault ? 'opacity:0.6;cursor:default;' : '') + '" ' + (isDefault ? 'disabled' : '') + '>设为默认</button>';
+                if (isDefault) {
+                    html += '<span style="font-size:12px;padding:6px 10px;border-radius:6px;background:#dafbe1;color:#1a7f37;">默认</span>';
+                } else {
+                    html += '<button onclick="openclawSetDefaultModel(' + JSON.stringify(m.id || '') + ')" style="background:#2da44e;border:none;border-radius:6px;color:#fff;padding:6px 10px;cursor:pointer;font-size:12px;">设为默认</button>';
+                }
                 html += '<button onclick="openclawRemoveModel(' + JSON.stringify(m.provider || '') + ',' + JSON.stringify(m.id || '') + ')" style="background:#cf222e;border:none;border-radius:6px;color:#fff;padding:6px 10px;cursor:pointer;font-size:12px;">删除</button>';
                 html += '</div>';
                 html += '</div>';
@@ -1343,31 +1774,63 @@ window.openclawRemoveModel = function(provider, modelId) {
 };
 
 window.openOpenclawAddModelModal = function() {
-    const provider = prompt('Provider（例如 openai / anthropic / default）', 'default');
-    if (provider === null) return;
-    const modelId = prompt('Model ID（例如 gpt-4.1 / claude-3.5-sonnet）', '');
-    if (modelId === null) return;
-    const name = prompt('显示名称（可留空）', '');
-    if (name === null) return;
-    const reasoning = confirm('是否启用 reasoning？');
-    fetch('/api/openclaw/models/add', {
-        method: 'POST',
-        headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders()),
-        body: JSON.stringify({ provider: provider, id: modelId, name: name, reasoning: reasoning })
-    })
-        .then(function(r) { return r.json(); })
-        .then(function(data) {
-            if (!data || !data.success) {
-                const msg = (data && data.error && data.error.message) ? data.error.message : '添加失败';
-                alert(msg);
-                return;
+    if (!(window.SwalGitHub && typeof window.SwalGitHub.fire === 'function')) {
+        alert('弹窗组件未加载');
+        return;
+    }
+    window.SwalGitHub.fire({
+        title: '添加模型',
+        html: '<div style="text-align:left;">' +
+            '<div style="font-size:12px;color:#57606a;margin-bottom:6px;">Provider</div>' +
+            '<input id="openclawModelProviderInput" class="swal2-input" placeholder="default / openai / anthropic" style="width:100%;box-sizing:border-box;" value="default">' +
+            '<div style="font-size:12px;color:#57606a;margin-bottom:6px;">Model ID</div>' +
+            '<input id="openclawModelIdInput" class="swal2-input" placeholder="gpt-4.1 / claude-3.5-sonnet" style="width:100%;box-sizing:border-box;">' +
+            '<div style="font-size:12px;color:#57606a;margin-bottom:6px;">显示名称（可留空）</div>' +
+            '<input id="openclawModelNameInput" class="swal2-input" placeholder="Display Name" style="width:100%;box-sizing:border-box;">' +
+            '<label style="display:flex;align-items:center;gap:8px;margin-top:10px;font-size:13px;color:#24292f;">' +
+            '<input id="openclawModelReasoningInput" type="checkbox" /> reasoning' +
+            '</label>' +
+            '</div>',
+        focusConfirm: false,
+        showCancelButton: true,
+        confirmButtonText: '添加',
+        cancelButtonText: '取消',
+        preConfirm: function() {
+            const pEl = document.getElementById('openclawModelProviderInput');
+            const idEl = document.getElementById('openclawModelIdInput');
+            const nEl = document.getElementById('openclawModelNameInput');
+            const rEl = document.getElementById('openclawModelReasoningInput');
+            const provider = (pEl && pEl.value ? pEl.value : '').trim() || 'default';
+            const modelId = (idEl && idEl.value ? idEl.value : '').trim();
+            const name = (nEl && nEl.value ? nEl.value : '').trim();
+            const reasoning = !!(rEl && rEl.checked);
+            if (!modelId) {
+                window.SwalGitHub.showValidationMessage('请输入 Model ID');
+                return false;
             }
-            if (typeof window.loadOpenclawModels === 'function') window.loadOpenclawModels();
+            return { provider: provider, id: modelId, name: name, reasoning: reasoning };
+        }
+    }).then(function(res) {
+        if (!res || !res.isConfirmed || !res.value) return;
+        fetch('/api/openclaw/models/add', {
+            method: 'POST',
+            headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders()),
+            body: JSON.stringify(res.value)
         })
-        .catch(function(err) {
-            console.error(err);
-            alert('添加失败');
-        });
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (!data || !data.success) {
+                    const msg = (data && data.error && data.error.message) ? data.error.message : '添加失败';
+                    alert(msg);
+                    return;
+                }
+                if (typeof window.loadOpenclawModels === 'function') window.loadOpenclawModels();
+            })
+            .catch(function(err) {
+                console.error(err);
+                alert('添加失败');
+            });
+    });
 };
 window.openOpenclawModal = function() {
     if (typeof window.openBotModal === 'function') {

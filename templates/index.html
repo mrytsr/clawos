@@ -1338,7 +1338,15 @@
         
         <!-- Header -->
         <div class="drawer-header">
-            <div class="drawer-title">🤖 智能助手</div>
+            <div id="botDrawerHeaderMain" style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex:1;min-width:0;">
+                <div style="font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">⚙️ OpenClaw 配置</div>
+                <div style="display:flex;gap:8px;flex-shrink:0;">
+                    <button id="openclawInstallBtn" style="display:none;background:#2da44e;border:none;border-radius:6px;color:#fff;padding:6px 10px;cursor:pointer;font-size:13px;" onclick="serviceInstallAction('openclaw','install')">安装</button>
+                    <button id="openclawReinstallBtn" style="display:none;background:#0969da;border:none;border-radius:6px;color:#fff;padding:6px 10px;cursor:pointer;font-size:13px;" onclick="serviceInstallAction('openclaw','reinstall')">重新安装</button>
+                    <button id="openclawUninstallBtn" style="display:none;background:#cf222e;border:none;border-radius:6px;color:#fff;padding:6px 10px;cursor:pointer;font-size:13px;" onclick="serviceInstallAction('openclaw','uninstall')">卸载</button>
+                    <button style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px;" onclick="loadOpenclawConfig()" title="刷新">🔄</button>
+                </div>
+            </div>
             <button class="drawer-close-btn" onclick="closeBotModal()">&times;</button>
         </div>
         
@@ -1364,22 +1372,25 @@
 
             <div style="display:flex;border-bottom:1px solid #d0d7de;background:#f6f8fa;">
                 <button class="bot-tab active" data-tab="config" onclick="switchBotTab('config')" style="flex:1;padding:10px;border:none;background:transparent;font-size:13px;color:#57606a;cursor:pointer;border-bottom:2px solid transparent;">配置</button>
+                <button class="bot-tab" data-tab="agents" onclick="switchBotTab('agents')" style="flex:1;padding:10px;border:none;background:transparent;font-size:13px;color:#57606a;cursor:pointer;border-bottom:2px solid transparent;">Agents</button>
                 <button class="bot-tab" data-tab="models" onclick="switchBotTab('models')" style="flex:1;padding:10px;border:none;background:transparent;font-size:13px;color:#57606a;cursor:pointer;border-bottom:2px solid transparent;">Models</button>
                 <button class="bot-tab" data-tab="channels" onclick="switchBotTab('channels')" style="flex:1;padding:10px;border:none;background:transparent;font-size:13px;color:#57606a;cursor:pointer;border-bottom:2px solid transparent;">Channels</button>
                 <button class="bot-tab" data-tab="chat" onclick="switchBotTab('chat')" style="flex:1;padding:10px;border:none;background:transparent;font-size:13px;color:#57606a;cursor:pointer;border-bottom:2px solid transparent;">对话</button>
             </div>
 
             <div id="botConfigPanel" style="display:block;overflow-y:auto;flex:1;padding:16px;">
+                <div id="botOpenclawConfigContainer"></div>
+            </div>
+
+            <div id="botAgentsPanel" style="display:none;overflow-y:auto;flex:1;padding:16px;">
                 <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px;">
-                    <div style="font-weight:600;font-size:14px;">⚙️ OpenClaw 配置</div>
+                    <div style="font-weight:600;font-size:14px;">Agents</div>
                     <div style="display:flex;gap:8px;flex-shrink:0;">
-                        <button id="openclawInstallBtn" style="display:none;background:#2da44e;border:none;border-radius:6px;color:#fff;padding:6px 10px;cursor:pointer;font-size:13px;" onclick="serviceInstallAction('openclaw','install')">安装</button>
-                        <button id="openclawReinstallBtn" style="display:none;background:#0969da;border:none;border-radius:6px;color:#fff;padding:6px 10px;cursor:pointer;font-size:13px;" onclick="serviceInstallAction('openclaw','reinstall')">重新安装</button>
-                        <button id="openclawUninstallBtn" style="display:none;background:#cf222e;border:none;border-radius:6px;color:#fff;padding:6px 10px;cursor:pointer;font-size:13px;" onclick="serviceInstallAction('openclaw','uninstall')">卸载</button>
-                        <button style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px;" onclick="loadOpenclawConfig()" title="刷新">🔄</button>
+                        <button onclick="openOpenclawAddAgentModal()" style="background:#0969da;border:none;border-radius:6px;color:#fff;padding:6px 10px;cursor:pointer;font-size:13px;">+ 添加</button>
+                        <button style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px;" onclick="loadOpenclawAgents()" title="刷新">🔄</button>
                     </div>
                 </div>
-                <div id="botOpenclawConfigContainer"></div>
+                <div id="botOpenclawAgentsContainer"></div>
             </div>
 
             <div id="botModelsPanel" style="display:none;overflow-y:auto;flex:1;padding:16px;">
@@ -1397,6 +1408,7 @@
                 <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px;">
                     <div style="font-weight:600;font-size:14px;">Channels</div>
                     <div style="display:flex;gap:8px;flex-shrink:0;">
+                        <button onclick="openOpenclawAddChannelModal()" style="background:#0969da;border:none;border-radius:6px;color:#fff;padding:6px 10px;cursor:pointer;font-size:13px;">+ 添加</button>
                         <button style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px;" onclick="loadOpenclawChannels()" title="刷新">🔄</button>
                     </div>
                 </div>
