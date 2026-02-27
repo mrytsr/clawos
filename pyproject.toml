@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "clawos"
-version = "1.0.0"
+version = "1.0.4"
 description = "一个基于 Flask + SocketIO 的网页管理器。"
 readme = "README.md"
 requires-python = ">=3.9"
@@ -28,9 +28,17 @@ dependencies = [
   "pyyaml>=6.0",
   "cryptography>=41.0",
   "beautifulsoup4>=4.12",
+  "soupsieve>=2.8.3",
   "click>=8.0",
 ]
 
+[project.scripts]
+clawos = "clawos.cli:cli_main"
+
 [tool.setuptools]
-packages = ["ctrl", "lib"]
-py-modules = ["app", "config", "ai_client", "llm_batch_eval_enhanced"]
+packages = ["clawos", "clawos.ctrl", "clawos.lib"]
+package-dir = { clawos = "." }
+include-package-data = true
+
+[tool.setuptools.package-data]
+clawos = ["templates/**", "static/**", "home.html", "favicon.ico"]

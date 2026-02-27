@@ -31,4 +31,5 @@ websocket-client>=1.6.0
 pyyaml>=6.0
 cryptography>=41.0
 beautifulsoup4>=4.12
+soupsieve>=2.8.3
 click>=8.0
