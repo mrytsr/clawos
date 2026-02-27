@@ -16,6 +16,7 @@ Click to view full size.
 | <img src="screenshots/20260225-110434.jpg" width="320" alt="ClawOS Screenshot 1" /> | <img src="screenshots/20260225-110441.jpg" width="320" alt="ClawOS Screenshot 2" /> | <img src="screenshots/20260225-110446.jpg" width="320" alt="ClawOS Screenshot 3" /> |
 | <img src="screenshots/20260225-110451.jpg" width="320" alt="ClawOS Screenshot 4" /> | <img src="screenshots/20260225-110456.jpg" width="320" alt="ClawOS Screenshot 5" /> | <img src="screenshots/20260225-110500.jpg" width="320" alt="ClawOS Screenshot 6" /> |
 | <img src="screenshots/20260225-110505.jpg" width="320" alt="ClawOS Screenshot 7" /> | <img src="screenshots/20260225-110510.jpg" width="320" alt="ClawOS Screenshot 8" /> | <img src="screenshots/20260225-110514.jpg" width="320" alt="ClawOS Screenshot 9" /> |
+| <img src="screenshots/20260227-123006.jpg" width="320" alt="ClawOS Screenshot 10" /> |  |  |
 
 ---
 
