@@ -523,15 +523,39 @@ function __gitRenderDiffFileTable(container, rows, repoPath, meta) {
             const pathEsc = escapeHtml(path);
             const add = (r && (r.added === null || r.added === undefined)) ? '-' : String(r.added || 0);
             const del = (r && (r.deleted === null || r.deleted === undefined)) ? '-' : String(r.deleted || 0);
-            return '<tr onclick="__gitOpenFileDiff(\'' + escapeHtml(repoPath) + '\', \'' + pathEsc + '\');" style="cursor:pointer;border-bottom:1px solid #eee;">' +
+            const addNum = add === '-' ? 0 : parseInt(add) || 0;
+            const delNum = del === '-' ? 0 : parseInt(del) || 0;
+            // 构建绝对路径：repoPath + path
+            const repo = String(repoPath || '');
+            const fullPath = repo + (repo.endsWith('/') ? '' : '/') + path;
+            // 点击行：打开代码编辑器
+            const rowClick = "__gitOpenFileEditor('" + fullPath + "')";
+            // 点击 +/- 数字：查看 diff
+            const addClick = addNum > 0 ? "__gitOpenFileDiff('" + repo + "', '" + path + "'); event.stopPropagation();" : '';
+            const delClick = delNum > 0 ? "__gitOpenFileDiff('" + repo + "', '" + path + "'); event.stopPropagation();" : '';
+            return '<tr onclick="' + rowClick + '" style="cursor:pointer;border-bottom:1px solid #eee;">' +
                 '<td class="git-diffstat-path" title="' + pathEsc + '" style="color:#0969da;padding:8px 12px;text-align:left;">' + pathEsc + '</td>' +
-                '<td class="git-diffstat-num" style="color:#2da44e;padding:8px 12px;text-align:right;white-space:nowrap;">+' + escapeHtml(add) + '</td>' +
-                '<td class="git-diffstat-num" style="color:#cf222e;padding:8px 12px;text-align:right;white-space:nowrap;">-' + escapeHtml(del) + '</td>' +
+                '<td class="git-diffstat-num" ' + (addClick ? 'onclick="' + addClick + '" style="cursor:pointer;color:#2da44e;padding:8px 12px;text-align:right;white-space:nowrap;text-decoration:underline;text-decoration-style:dotted;" title="点击查看 diff"' : 'style="color:#2da44e;padding:8px 12px;text-align:right;white-space:nowrap;"') + '>+' + escapeHtml(add) + '</td>' +
+                '<td class="git-diffstat-num" ' + (delClick ? 'onclick="' + delClick + '" style="cursor:pointer;color:#cf222e;padding:8px 12px;text-align:right;white-space:nowrap;text-decoration:underline;text-decoration-style:dotted;" title="点击查看 diff"' : 'style="color:#cf222e;padding:8px 12px;text-align:right;white-space:nowrap;"') + '>-' + escapeHtml(del) + '</td>' +
                 '</tr>';
         }).join('') +
         '</table></div>';
 
     container.innerHTML = header + table;
+}
+
+// 设置 home 路径
+window.__gitHomePath = '/root';
+
+// 打开文件到代码编辑器（新窗口）
+function __gitOpenFileEditor(fullPath) {
+    // 提取相对于 /root 的路径
+    let relPath = fullPath;
+    if (fullPath.startsWith('/root/')) {
+        relPath = fullPath.slice(6); // 去掉 /root/
+    }
+    const url = '/edit/' + encodeURIComponent(relPath);
+    window.open(url, '_blank');
 }
 
 // 打开单个文件的 diff
@@ -567,7 +591,9 @@ function __gitLoadDiffFileList(repoPath, meta) {
                 const msg = resp && resp.error && resp.error.message ? resp.error.message : '加载失败';
                 throw new Error(msg);
             }
-            __gitRenderDiffFileTable(el, payload.files || [], repoPath, meta);
+            // 使用 API 返回的绝对路径
+            const absRepoPath = payload.repoPath || repoPath;
+            __gitRenderDiffFileTable(el, payload.files || [], absRepoPath, meta);
         })
         .catch(function() {
             el.innerHTML = '<div style="padding:10px 12px;color:#cf222e;font-size:12px;">加载失败</div>';
@@ -994,10 +1020,12 @@ function __gitRefreshDiffFiles(repoPath) {
             const payload = apiData(resp);
             const el = document.getElementById('gitDiffFilesBox');
             if (!el || !payload) return;
+            // 使用 API 返回的绝对路径
+            const absRepoPath = payload.repoPath || repoPath;
             // 获取当前 meta
             const metaEl = document.getElementById('gitDiffMeta');
             const meta = metaEl ? JSON.parse(metaEl.textContent) : { has_changes: true };
-            __gitRenderDiffFileTable(el, payload.files || [], repoPath, meta);
+            __gitRenderDiffFileTable(el, payload.files || [], absRepoPath, meta);
         })
         .catch(function() {});
 }

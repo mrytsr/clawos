@@ -281,6 +281,7 @@ def get_git_status_detailed(repo_path):
         
         return {
             'is_repo': True,
+            'repoPath': repo_path,
             'branch': branch,
             'commit': commit_hash,
             'added': added,
@@ -359,6 +360,7 @@ def get_git_repo_info(repo_path, max_logs=50):
         
         return {
             'is_repo': True,
+            'repoPath': repo_path,
             'path': repo_path,
             'name': name,
             'branch': branch,
