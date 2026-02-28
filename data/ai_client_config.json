@@ -1,0 +1,14 @@
+{
+  "providers": {
+    "deepseek": {
+      "api_key": "your-api-key",
+      "base_url": "https://api.deepseek.com",
+      "models": ["deepseek-chat", "deepseek-coder"]
+    },
+    "qwen": {
+      "api_key": "",
+      "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+      "models": ["qwen-turbo", "qwen-plus"]
+    }
+  }
+}
