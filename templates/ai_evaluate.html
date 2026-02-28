@@ -88,6 +88,49 @@
             color: #58a6ff;
         }
         
+        /* 模型操作菜单 */
+        .model-menu { position: relative; }
+        .model-menu-btn {
+            background: none;
+            border: none;
+            color: #888;
+            cursor: pointer;
+            padding: 4px 8px;
+            font-size: 18px;
+            line-height: 1;
+        }
+        .model-menu-btn:hover { color: #e0e0e0; }
+        .model-menu-dropdown {
+            display: none;
+            position: absolute;
+            right: 0;
+            top: 100%;
+            background: #1a1a2e;
+            border: 1px solid #0f3460;
+            border-radius: 8px;
+            overflow: hidden;
+            z-index: 100;
+            min-width: 100px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        .model-menu-dropdown.show { display: block; }
+        .model-menu-item {
+            display: block;
+            width: 100%;
+            padding: 10px 14px;
+            text-align: left;
+            background: none;
+            border: none;
+            color: #e0e0e0;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        .model-menu-item:hover { background: #0f3460; }
+        .model-menu-item.danger { color: #f44336; }
+        
+        /* 点击其他地方关闭菜单 */
+        .model-menu.open .model-menu-dropdown { display: block; }
+        
         /* 进度 */
         .progress-bar {
             height: 6px;
@@ -249,11 +292,35 @@
                     <div class="model-name">${m.display_name || m.model}</div>
                     <div class="model-url">${m.base_url}</div>
                 </div>
-                <button class="btn btn-info" style="padding:4px 8px;font-size:11px;" onclick="testModel(${i})">测试</button>
-                <button class="btn btn-secondary" style="padding:4px 8px;font-size:11px;" onclick="editModel(${i})">编辑</button>
-                <button class="btn btn-danger" style="padding:4px 8px;font-size:11px;" onclick="deleteModel(${i})">删除</button>
+                <div class="model-menu" onclick="toggleModelMenu(event, this)">
+                    <button class="model-menu-btn">⋮</button>
+                    <div class="model-menu-dropdown">
+                        <button class="model-menu-item" onclick="testModel(${i})">🧪 测试</button>
+                        <button class="model-menu-item" onclick="editModel(${i})">✏️ 编辑</button>
+                        <button class="model-menu-item danger" onclick="deleteModel(${i})">🗑 删除</button>
+                    </div>
+                </div>
             </div>
         `).join('');
+        
+        // 点击其他地方关闭菜单
+        document.addEventListener('click', function(e) {
+            document.querySelectorAll('.model-menu.open').forEach(menu => {
+                if (!menu.contains(e.target)) {
+                    menu.classList.remove('open');
+                }
+            });
+        });
+    }
+    
+    // 切换菜单显示
+    function toggleModelMenu(event, el) {
+        event.stopPropagation();
+        // 关闭其他菜单
+        document.querySelectorAll('.model-menu.open').forEach(m => {
+            if (m !== el) m.classList.remove('open');
+        });
+        el.classList.toggle('open');
     }
     
     // 打开添加弹窗
