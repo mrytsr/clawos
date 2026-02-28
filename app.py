@@ -17,7 +17,7 @@ from ctrl.batch_ctrl import batch_bp
 from ctrl.browser_ctrl import browser_bp
 from ctrl.edit_ctrl import edit_bp
 from ctrl.file_ctrl import file_bp
-from ctrl.ai_eval_ctrl import ai_eval_bp
+from ctrl.model_config_ctrl import model_config_bp
 from ctrl.git_ctrl import git_bp
 from ctrl.clash_ctrl import clash_bp
 from ctrl.cron_ctrl import cron_bp
@@ -98,7 +98,7 @@ app.register_blueprint(task_bp)
 app.register_blueprint(browser_bp)
 app.register_blueprint(edit_bp)
 app.register_blueprint(file_bp)
-app.register_blueprint(ai_eval_bp)
+app.register_blueprint(model_config_bp)
 register_term_socketio(socketio, terminal_root_dir=config.ROOT_DIR)
 
 

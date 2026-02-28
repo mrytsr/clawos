@@ -16,20 +16,20 @@ from flask import Blueprint, jsonify, request, current_app, send_from_directory,
 
 import config
 
-ai_eval_bp = Blueprint('ai_eval', __name__)
+model_config_bp = Blueprint('model_config', __name__)
 
 
-@ai_eval_bp.route('/ai/evaluate')
-def ai_evaluate():
+@model_config_bp.route('/ai/evaluate')
+def model_config():
     return redirect('/ai/model-config')
 
 
-@ai_eval_bp.route('/ai/model-config')
+@model_config_bp.route('/ai/model-config')
 def ai_model_config():
-    return send_from_directory(current_app.template_folder, 'ai_evaluate.html')
+    return send_from_directory(current_app.template_folder, 'model_config.html')
 
 # 评测状态文件
-EVAL_STATE_FILE = os.path.join(config.DATA_DIR, 'ai_eval_state.json')
+EVAL_STATE_FILE = os.path.join(config.DATA_DIR, 'model_config_state.json')
 
 # 评测题目
 REASONING_QUESTIONS = [
@@ -154,13 +154,13 @@ def save_eval_state(state):
 
 # ========== API 接口 ==========
 
-@ai_eval_bp.route('/api/ai/models', methods=['GET'])
+@model_config_bp.route('/api/ai/models', methods=['GET'])
 def get_models():
     """获取模型列表"""
     models = load_models()
     return jsonify({"success": True, "models": models})
 
-@ai_eval_bp.route('/api/ai/models/add', methods=['POST'])
+@model_config_bp.route('/api/ai/models/add', methods=['POST'])
 def add_model():
     """添加模型"""
     data = request.json
@@ -201,7 +201,7 @@ def add_model():
     save_provider_models(provider_models)
     return jsonify({"success": True})
 
-@ai_eval_bp.route('/api/ai/models/delete', methods=['POST'])
+@model_config_bp.route('/api/ai/models/delete', methods=['POST'])
 def delete_model():
     """删除模型"""
     data = request.json
@@ -239,7 +239,7 @@ def _build_openai_chat_completions_url(base_url: str):
         return url + "/chat/completions"
     return url + "/v1/chat/completions"
 
-@ai_eval_bp.route('/api/ai/models/test', methods=['POST'])
+@model_config_bp.route('/api/ai/models/test', methods=['POST'])
 def test_model():
     data = request.json or {}
     provider = (data.get('provider', '') or '').strip().lower()
@@ -308,12 +308,12 @@ def test_model():
         err = _redact_secret(str(e), api_key)
         return jsonify({"success": False, "error": err, "detail": detail})
 
-@ai_eval_bp.route('/api/ai/config', methods=['GET'])
+@model_config_bp.route('/api/ai/config', methods=['GET'])
 def get_ai_config():
     from lib.ai_client import load_provider_models
     return jsonify({"success": True, "config": {"providers": load_provider_models()}})
 
-@ai_eval_bp.route('/api/ai/config', methods=['POST'])
+@model_config_bp.route('/api/ai/config', methods=['POST'])
 def set_ai_config():
     data = request.json or {}
     providers = data.get("providers") if isinstance(data, dict) else None
@@ -354,13 +354,13 @@ def set_ai_config():
     save_provider_models(merged)
     return jsonify({"success": True})
 
-@ai_eval_bp.route('/api/ai/eval/status', methods=['GET'])
+@model_config_bp.route('/api/ai/eval/status', methods=['GET'])
 def get_eval_status():
     """获取评测状态"""
     state = load_eval_state()
     return jsonify({"success": True, "status": state})
 
-@ai_eval_bp.route('/api/ai/eval/start', methods=['POST'])
+@model_config_bp.route('/api/ai/eval/start', methods=['POST'])
 def start_eval():
     """开始评测"""
     data = request.json
@@ -403,7 +403,7 @@ def start_eval():
     
     return jsonify({"success": True})
 
-@ai_eval_bp.route('/api/ai/eval/stop', methods=['POST'])
+@model_config_bp.route('/api/ai/eval/stop', methods=['POST'])
 def stop_eval():
     """停止评测"""
     state = load_eval_state()
@@ -411,14 +411,14 @@ def stop_eval():
     save_eval_state(state)
     return jsonify({"success": True})
 
-@ai_eval_bp.route('/api/eval/clear', methods=['POST'])
+@model_config_bp.route('/api/eval/clear', methods=['POST'])
 def clear_eval():
     """清除评测结果"""
     state = {"running": False, "results": [], "current": {}, "start_time": None}
     save_eval_state(state)
     return jsonify({"success": True})
 
-@ai_eval_bp.route('/api/eval/delete', methods=['POST'])
+@model_config_bp.route('/api/eval/delete', methods=['POST'])
 def delete_eval():
     """删除单个评测结果"""
     data = request.json
