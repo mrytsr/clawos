@@ -360,18 +360,64 @@ def get_eval_status():
     state = load_eval_state()
     return jsonify({"success": True, "status": state})
 
+# 新增: 兼容前端的状态和结果接口
+@model_config_bp.route('/api/ai/eval/state', methods=['GET'])
+def get_eval_state():
+    """获取评测状态（兼容前端）"""
+    state = load_eval_state()
+    return jsonify({
+        "running": state.get("running", False),
+        "completed": len(state.get("results", [])),
+        "total": state.get("current", {}).get("total_models", 0) * 15,  # 3类别 * 5题
+        "current_model": state.get("current", {}).get("model_name", ""),
+        "results": state.get("results", [])
+    })
+
+@model_config_bp.route('/api/ai/eval/results', methods=['GET'])
+def get_eval_results():
+    """获取评测结果"""
+    state = load_eval_state()
+    results = state.get("results", [])
+    # 转换格式以适配前端
+    flat_results = []
+    for r in results:
+        flat_results.append({
+            "model": r.get("model"),
+            "question_id": "综合",
+            "score": r.get("overall_score", 0),
+            "duration": 0,
+            "timestamp": state.get("start_time", "")
+        })
+    return jsonify({
+        "success": True,
+        "results": flat_results,
+        "total": sum(1 for _ in results)
+    })
+
 @model_config_bp.route('/api/ai/eval/start', methods=['POST'])
 def start_eval():
     """开始评测"""
     data = request.json
-    model_indices = data.get('models', [])
+    model_paths = data.get('models', [])  # 接受 ["deepseek/deepseek-chat", ...]
+    eval_type = data.get('type', 'mixed')
     
-    if not model_indices:
+    if not model_paths:
         return jsonify({"success": False, "error": "请选择模型"})
     
-    # 获取选中的模型
+    # 获取选中的模型（通过 provider/model 匹配）
     all_models = load_models()
-    selected_models = [all_models[i] for i in model_indices if i < len(all_models)]
+    selected_models = []
+    
+    for path in model_paths:
+        # path 格式: "provider/model"
+        parts = path.split('/')
+        provider = parts[0] if len(parts) > 0 else ''
+        model_name = parts[1] if len(parts) > 1 else path
+        
+        for m in all_models:
+            if m.get('provider', '').lower() == provider.lower() and m.get('model', '').lower() == model_name.lower():
+                selected_models.append(m)
+                break
     
     if not selected_models:
         return jsonify({"success": False, "error": "无效的模型选择"})
@@ -386,18 +432,28 @@ def start_eval():
         except:
             pass
     
+    # 根据 eval_type 决定评测类别
+    categories = []
+    if eval_type in ['mixed', 'reasoning']:
+        categories.append(("reasoning", REASONING_QUESTIONS))
+    if eval_type in ['mixed', 'language']:
+        categories.append(("language", LANGUAGE_QUESTIONS))
+    if eval_type in ['mixed', 'code']:
+        categories.append(("code", CODE_QUESTIONS))
+    
     # 初始化状态（保留已有结果）
     state = {
         "running": True,
         "models": selected_models,
-        "results": existing_results,  # 保留之前的结果
+        "results": existing_results,
         "current": {"model_idx": 0, "category": "", "question_idx": 0, "total_models": len(selected_models)},
-        "start_time": time.time()
+        "start_time": time.time(),
+        "categories": categories
     }
     save_eval_state(state)
     
     # 后台启动评测线程
-    thread = threading.Thread(target=run_evaluation_background, args=(selected_models,))
+    thread = threading.Thread(target=run_evaluation_background, args=(selected_models, categories))
     thread.daemon = True
     thread.start()
     
@@ -433,13 +489,14 @@ def delete_eval():
 
 # ========== 后台评测 ==========
 
-def run_evaluation_background(models):
+def run_evaluation_background(models, categories=None):
     """后台评测线程"""
-    all_categories = [
-        ("reasoning", REASONING_QUESTIONS),
-        ("language", LANGUAGE_QUESTIONS),
-        ("code", CODE_QUESTIONS)
-    ]
+    if categories is None:
+        categories = [
+            ("reasoning", REASONING_QUESTIONS),
+            ("language", LANGUAGE_QUESTIONS),
+            ("code", CODE_QUESTIONS)
+        ]
     
     for model_idx, model in enumerate(models):
         # 检查是否停止
@@ -457,7 +514,7 @@ def run_evaluation_background(models):
             "overall_score": 0
         }
         
-        for cat_idx, (cat_name, questions) in enumerate(all_categories):
+        for cat_idx, (cat_name, questions) in enumerate(categories):
             # 更新进度
             state = load_eval_state()
             state["current"] = {
@@ -563,3 +620,51 @@ def evaluate_response(question, response):
         score += 10
     
     return min(score, 100)
+
+@model_config_bp.route('/api/ai/models/batch-test', methods=['POST'])
+def batch_test_model():
+    """批量测试模型"""
+    data = request.json or {}
+    provider = (data.get('provider', '') or '').strip().lower()
+    base_url = (data.get('base_url', '') or '').strip()
+    api_key = (data.get('api_key', '') or '').strip()
+    model = (data.get('model', '') or '').strip()
+    engine = (data.get('engine', '') or '').strip()
+
+    if not model:
+        return jsonify({"success": False, "error": "缺少必要参数: model"})
+
+    # 简单的测试问题
+    test_questions = [
+        "1+1等于几？",
+        "用Python写一个Hello World",
+        "解释什么是机器学习"
+    ]
+    
+    passed = 0
+    total = len(test_questions)
+    
+    try:
+        from lib.ai_client import load_provider_models
+        provider_models = load_provider_models()
+        if provider and provider in provider_models:
+            cfg = provider_models.get(provider) or {}
+            base_url = base_url or (cfg.get("base_url") or "")
+            api_key = api_key or (cfg.get("api_key") or "")
+            engine = engine or (cfg.get("engine") or "")
+        
+        url = _build_openai_chat_completions_url(base_url)
+        headers = {"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"}
+        
+        for q in test_questions:
+            try:
+                payload = {"model": model, "messages": [{"role": "user", "content": q}]}
+                r = requests.post(url, headers=headers, json=payload, timeout=30)
+                if r.status_code == 200:
+                    passed += 1
+            except:
+                pass
+        
+        return jsonify({"success": True, "passed": passed, "total": total})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
