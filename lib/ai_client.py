@@ -103,7 +103,26 @@ def _get_api_key(provider: str) -> str:
     env_key = f"{provider.upper()}_API_KEY"
     return os.getenv(env_key, "")
 
-PROVIDOR_MODELS = {}
+PROVIDOR_MODELS = {
+    "deepseek": {
+        "base_url": "https://api.deepseek.com",
+        "api_key": "",
+        "models": ["deepseek-chat", "deepseek-coder"],
+        "engine": "openai-api",
+    },
+    "zhipu": {
+        "base_url": "https://open.bigmodel.cn/api/paas/v4",
+        "api_key": "",
+        "models": ["glm-4-flash", "glm-4"],
+        "engine": "zhipu-sdk",
+    },
+    "qwen": {
+        "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+        "api_key": "",
+        "models": ["qwen-turbo", "qwen-plus"],
+        "engine": "openai-sdk",
+    },
+}
 
 
 class AiClient:

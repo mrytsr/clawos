@@ -208,8 +208,14 @@ def api_git_push_changes():
 
     commit_msg = None
     try:
-        commit_msg = AiClient().ask(question=question, system_prompt=system_prompt)
-    except Exception:
+        client = AiClient()
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": question}
+        ]
+        commit_msg = client.chat(messages)
+    except Exception as e:
+        print(f"AI 生成 commit message 失败: {e}")
         commit_msg = None
 
     msg = str(commit_msg or '').strip()
