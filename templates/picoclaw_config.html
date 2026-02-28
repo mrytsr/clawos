@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>PicoClaw 配置</title>
+    <link href="/static/lib/toastr/toastr.min.css" rel="stylesheet"/>
+    <link rel="stylesheet" href="/static/lib/github-markdown-light.min.css">
+    <style>
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { 
+            font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; 
+            background: #f6f8ha; 
+            margin: 0; 
+            padding: 12px;
+            min-height: 100vh;
+        }
+        .container { 
+            max-width: 100%; 
+            background: #fff; 
+            border-radius: 12px; 
+            border: 1px solid #d0d7de; 
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+        h1 { 
+            font-size: 18px; 
+            margin: 0 0 16px 0; 
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        h1 a { 
+            color: #0969da; 
+            text-decoration: none;
+            font-size: 14px;
+        }
+        h2 {
+            font-size: 16px;
+            margin: 20px 0 12px 0;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #eee;
+            color: #24292f;
+        }
+        h2:first-child { margin-top: 0; }
+        .form-group { margin-bottom: 14px; }
+        label { 
+            display: block; 
+            font-weight: 600; 
+            margin-bottom: 6px; 
+            color: #24292f; 
+            font-size: 14px;
+        }
+        .label-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .label-row label { margin-bottom: 0; }
+        input, select, textarea { 
+            width: 100%; 
+            padding: 10px 12px; 
+            border: 1px solid #d0d7de; 
+            border-radius: 8px; 
+            font-size: 14px;
+            background: #fff;
+            font-family: inherit;
+        }
+        textarea {
+            font-family: monospace;
+            font-size: 12px;
+            min-height: 60px;
+        }
+        input:focus, select:focus, textarea:focus { 
+            outline: none; 
+            border-color: #0969da; 
+            box-shadow: 0 0 0 3px rgba(9,105,218,0.1); 
+        }
+        .row { display: flex; gap: 12px; }
+        .row .form-group { flex: 1; }
+        .toggle {
+            position: relative;
+            width: 44px;
+            height: 24px;
+        }
+        .toggle input { opacity: 0; width: 0; height: 0; }
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #ccc;
+            transition: 0.3s;
+            border-radius: 24px;
+        }
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: 0.3s;
+            border-radius: 50%;
+        }
+        .toggle input:checked + .toggle-slider { background-color: #07c160; }
+        .toggle input:checked + .toggle-slider:before { transform: translateX(20px); }
+        
+        button { 
+            width: 100%;
+            background: #0969da; 
+            color: #fff; 
+            border: none; 
+            padding: 12px 20px; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            font-size: 14px; 
+            font-weight: 600;
+            touch-action: manipulation;
+            margin-top: 8px;
+        }
+        button:active { opacity: 0.8; }
+        button.danger { background: #cf222e; }
+        button.secondary { background: #f6f8ha; color: #24292f; border: 1px solid #d0d7de; }
+        
+        .channel-card {
+            background: #f6f8ha;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 12px;
+        }
+        .channel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        .channel-name {
+            font-weight: 600;
+            font-size: 14px;
+        }
+        .provider-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 12px;
+        }
+        .provider-card {
+            background: #f6f8ha;
+            border-radius: 8px;
+            padding: 12px;
+        }
+        .provider-name {
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 10px;
+            color: #24292f;
+        }
+        .key-display {
+            font-family: monospace;
+            font-size: 12px;
+            word-break: break-all;
+            background: #fff;
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid #d0d7de;
+            max-height: 80px;
+            overflow-y: auto;
+        }
+        .api-key-input {
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .status-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 6px;
+        }
+        .status-dot.green { background: #07c160; }
+        .status-dot.red { background: #cf222e; }
+        .status-dot.gray { background: #8b949e; }
+        .status-text {
+            font-size: 12px;
+            color: #57606a;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>⚙️ PicoClaw 配置 <a href="/">← 返回</a></h1>
+        
+        <div style="margin-bottom: 12px;">
+            <span id="statusDot" class="status-dot gray"></span>
+            <span id="statusText" class="status-text">加载中...</span>
+            <button onclick="loadConfig()" style="width: auto; padding: 6px 12px; margin-left: 12px; background: #f6f8ha; color: #24292f; border: 1px solid #d0d7de;">🔄 刷新</button>
+        </div>
+
+        <h2>📡 Gateway</h2>
+        <div class="row">
+            <div class="form-group">
+                <label>主机</label>
+                <input type="text" id="gateway_host" value="0.0.0.0">
+            </div>
+            <div class="form-group">
+                <label>端口</label>
+                <input type="number" id="gateway_port" value="18790">
+            </div>
+        </div>
+
+        <h2>💬 Channels</h2>
+        <div id="channelsList"></div>
+
+        <h2>🧠 Providers</h2>
+        <div class="provider-list" id="providersList"></div>
+
+        <h2>🔧 工具配置</h2>
+        <div id="toolsList"></div>
+
+        <h2>⚡ 其他配置</h2>
+        <div class="row">
+            <div class="form-group">
+                <label>心跳间隔 (秒)</label>
+                <input type="number" id="heartbeat_interval" value="30">
+            </div>
+            <div class="form-group">
+                <div class="label-row">
+                    <label>心跳启用</label>
+                    <label class="toggle">
+                        <input type="checkbox" id="heartbeat_enabled" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <button onclick="saveConfig()">💾 保存配置</button>
+        <button class="secondary" onclick="restartService()">🔄 重启服务</button>
+    </div>
+
+    <script src="/static/lib/toastr/toastr.min.js"></script>
+    <script>
+    toastr.options = {
+        positionClass: 'toast-top-center',
+        timeOut: 2000,
+        closeButton: true,
+        debug: false,
+        newestOnTop: true,
+        progressBar: false,
+        preventDuplicates: true,
+        onclick: null
+    };
+
+    let config = {};
+    const channelNames = {
+        'whatsapp': 'WhatsApp',
+        'telegram': 'Telegram',
+        'feishu': '飞书',
+        'discord': 'Discord',
+        'maixcam': 'MaixCam',
+        'qq': 'QQ',
+        'dingtalk': '钉钉',
+        'slack': 'Slack',
+        'line': 'LINE',
+        'onebot': 'OneBot'
+    };
+    const providerNames = {
+        'anthropic': 'Anthropic (Claude)',
+        'openai': 'OpenAI',
+        'openrouter': 'OpenRouter',
+        'groq': 'Groq',
+        'zhipu': '智谱 GLM',
+        'vllm': 'vLLM',
+        'gemini': 'Google Gemini',
+        'nvidia': 'NVIDIA NIM',
+        'ollama': 'Ollama',
+        'moonshot': 'Moonshot (月之暗面)',
+        'shengsuanyun': '升学云',
+        'deepseek': 'DeepSeek',
+        'github_copilot': 'GitHub Copilot'
+    };
+
+    function loadConfig() {
+        fetch('/api/picoclaw/config')
+        .then(r => r.json())
+        .then(d => {
+            if (d.success && d.data) {
+                config = d.data;
+                renderConfig();
+                updateStatus(true);
+            } else {
+                updateStatus(false);
+                toastr.error('加载配置失败');
+            }
+        })
+        .catch(() => updateStatus(false));
+    }
+
+    function updateStatus(ok) {
+        const dot = document.getElementById('statusDot');
+        const text = document.getElementById('statusText');
+        if (ok) {
+            dot.className = 'status-dot green';
+            text.textContent = '服务运行中';
+        } else {
+            dot.className = 'status-dot red';
+            text.textContent = '服务未运行';
+        }
+    }
+
+    function renderConfig() {
+        // Gateway
+        const gw = config.gateway || {};
+        document.getElementById('gateway_host').value = gw.host || '0.0.0.0';
+        document.getElementById('gateway_port').value = gw.port || 18790;
+
+        // Heartbeat
+        const hb = config.heartbeat || {};
+        document.getElementById('heartbeat_enabled').checked = hb.enabled !== false;
+        document.getElementById('heartbeat_interval').value = hb.interval || 30;
+
+        // Channels
+        renderChannels();
+
+        // Providers
+        renderProviders();
+
+        // Tools
+        renderTools();
+    }
+
+    function renderChannels() {
+        const container = document.getElementById('channelsList');
+        const channels = config.channels || {};
+        
+        let html = '';
+        for (const [name, cfg] of Object.entries(channels)) {
+            const displayName = channelNames[name] || name;
+            const enabled = cfg.enabled;
+            
+            html += '<div class="channel-card">';
+            html += '<div class="channel-header">';
+            html += '<span class="channel-name">' + displayName + '</span>';
+            html += '<label class="toggle">';
+            html += '<input type="checkbox" data-channel="' + name + '" ' + (enabled ? 'checked' : '') + '>';
+            html += '<span class="toggle-slider"></span>';
+            html += '</label>';
+            html += '</div>';
+            
+            // 根据不同 channel 显示不同配置字段
+            if (name === 'qq') {
+                html += '<div class="form-group">';
+                html += '<label>App ID</label>';
+                html += '<input type="text" data-channel="' + name + '" data-field="app_id" value="' + (cfg.app_id || '') + '">';
+                html += '</div>';
+                html += '<div class="form-group">';
+                html += '<label>App Secret</label>';
+                html += '<input type="text" data-channel="' + name + '" data-field="app_secret" value="' + (cfg.app_secret || '') + '">';
+                html += '</div>';
+            } else if (name === 'telegram') {
+                html += '<div class="form-group">';
+                html += '<label>Token</label>';
+                html += '<input type="text" data-channel="' + name + '" data-field="token" value="' + (cfg.token || '') + '">';
+                html += '</div>';
+            } else if (name === 'feishu') {
+                html += '<div class="form-group">';
+                html += '<label>App ID</label>';
+                html += '<input type="text" data-channel="' + name + '" data-field="app_id" value="' + (cfg.app_id || '') + '">';
+                html += '</div>';
+                html += '<div class="form-group">';
+                html += '<label>App Secret</label>';
+                html += '<input type="text" data-channel="' + name + '" data-field="app_secret" value="' + (cfg.app_secret || '') + '">';
+                html += '</div>';
+            } else if (name === 'maixcam') {
+                html += '<div class="row">';
+                html += '<div class="form-group"><label>Host</label><input type="text" data-channel="' + name + '" data-field="host" value="' + (cfg.host || '0.0.0.0') + '"></div>';
+                html += '<div class="form-group"><label>Port</label><input type="number" data-channel="' + name + '" data-field="port" value="' + (cfg.port || 18790) + '"></div>';
+                html += '</div>';
+            } else if (name === 'onebot') {
+                html += '<div class="form-group">';
+                html += '<label>WebSocket URL</label>';
+                html += '<input type="text" data-channel="' + name + '" data-field="ws_url" value="' + (cfg.ws_url || 'ws://127.0.0.1:3001') + '">';
+                html += '</div>';
+                html += '<div class="form-group">';
+                html += '<label>Access Token</label>';
+                html += '<input type="text" data-channel="' + name + '" data-field="access_token" value="' + (cfg.access_token || '') + '">';
+                html += '</div>';
+            }
+            
+            html += '</div>';
+        }
+        container.innerHTML = html;
+    }
+
+    function renderProviders() {
+        const container = document.getElementById('providersList');
+        const providers = config.providers || {};
+        
+        let html = '';
+        for (const [name, cfg] of Object.entries(providers)) {
+            const displayName = providerNames[name] || name;
+            const apiKey = cfg.api_key || '';
+            
+            html += '<div class="provider-card">';
+            html += '<div class="provider-name">' + displayName + '</div>';
+            html += '<div class="form-group">';
+            html += '<label>API Key</label>';
+            html += '<input type="text" class="api-key-input" data-provider="' + name + '" data-field="api_key" value="' + escapeHtml(apiKey) + '" placeholder="sk-...">';
+            html += '</div>';
+            html += '<div class="form-group">';
+            html += '<label>API Base URL (可选)</label>';
+            html += '<input type="text" data-provider="' + name + '" data-field="api_base" value="' + escapeHtml(cfg.api_base || '') + '" placeholder="https://api.example.com/v1">';
+            html += '</div>';
+            html += '</div>';
+        }
+        container.innerHTML = html;
+    }
+
+    function renderTools() {
+        const container = document.getElementById('toolsList');
+        const tools = config.tools || {};
+        
+        let html = '';
+        const webTools = tools.web || {};
+        
+        // Brave Search
+        const brave = webTools.brave || {};
+        html += '<div class="channel-card">';
+        html += '<div class="channel-header">';
+        html += '<span class="channel-name">Brave Search</span>';
+        html += '<label class="toggle">';
+        html += '<input type="checkbox" id="tool_brave_enabled" ' + (brave.enabled ? 'checked' : '') + '>';
+        html += '<span class="toggle-slider"></span>';
+        html += '</label>';
+        html += '</div>';
+        html += '<div class="form-group">';
+        html += '<label>API Key</label>';
+        html += '<input type="text" id="tool_brave_api_key" value="' + escapeHtml(brave.api_key || '') + '" placeholder="Brave API Key">';
+        html += '</div>';
+        html += '</div>';
+        
+        // DuckDuckGo
+        const ddg = webTools.duckduckgo || {};
+        html += '<div class="channel-card">';
+        html += '<div class="channel-header">';
+        html += '<span class="channel-name">DuckDuckGo (免 API Key)</span>';
+        html += '<label class="toggle">';
+        html += '<input type="checkbox" id="tool_ddg_enabled" ' + (ddg.enabled ? 'checked' : '') + '>';
+        html += '<span class="toggle-slider"></span>';
+        html += '</label>';
+        html += '</div>';
+        html += '</div>';
+        
+        container.innerHTML = html;
+    }
+
+    function escapeHtml(text) {
+        if (!text) return '';
+        return String(text)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+
+    function collectConfig() {
+        const newConfig = JSON.parse(JSON.stringify(config || {}));
+        
+        // Gateway
+        newConfig.gateway = {
+            host: document.getElementById('gateway_host').value,
+            port: parseInt(document.getElementById('gateway_port').value) || 18790
+        };
+        
+        // Heartbeat
+        newConfig.heartbeat = {
+            enabled: document.getElementById('heartbeat_enabled').checked,
+            interval: parseInt(document.getElementById('heartbeat_interval').value) || 30
+        };
+        
+        // Channels
+        newConfig.channels = newConfig.channels || {};
+        document.querySelectorAll('[data-channel]').forEach(el => {
+            const channel = el.dataset.channel;
+            const field = el.dataset.field;
+            if (!newConfig.channels[channel]) newConfig.channels[channel] = {};
+            newConfig.channels[channel][field] = el.value;
+        });
+        // Checkboxes for enabled
+        document.querySelectorAll('[data-channel]').forEach(el => {
+            if (el.type === 'checkbox') {
+                const channel = el.dataset.channel;
+                if (!newConfig.channels[channel]) newConfig.channels[channel] = {};
+                newConfig.channels[channel].enabled = el.checked;
+            }
+        });
+        
+        // Providers
+        newConfig.providers = newConfig.providers || {};
+        document.querySelectorAll('[data-provider]').forEach(el => {
+            const provider = el.dataset.provider;
+            const field = el.dataset.field;
+            if (!newConfig.providers[provider]) newConfig.providers[provider] = {};
+            newConfig.providers[provider][field] = el.value;
+        });
+        
+        // Tools
+        newConfig.tools = newConfig.tools || {};
+        newConfig.tools.web = newConfig.tools.web || {};
+        newConfig.tools.web.brave = {
+            enabled: document.getElementById('tool_brave_enabled').checked,
+            api_key: document.getElementById('tool_brave_api_key').value,
+            max_results: 5
+        };
+        newConfig.tools.web.duckduckgo = {
+            enabled: document.getElementById('tool_ddg_enabled').checked,
+            max_results: 5
+        };
+        
+        return newConfig;
+    }
+
+    function saveConfig() {
+        const newConfig = collectConfig();
+        
+        fetch('/api/picoclaw/config', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(newConfig)
+        })
+        .then(r => r.json())
+        .then(d => {
+            if (d.success) {
+                toastr.success('配置已保存');
+            } else {
+                toastr.error('保存失败: ' + (d.error || '未知错误'));
+            }
+        })
+        .catch(e => toastr.error('请求失败: ' + e.message));
+    }
+
+    function restartService() {
+        if (!confirm('确定要重启 PicoClaw 服务吗？')) return;
+        
+        fetch('/api/picoclaw/restart', {
+            method: 'POST'
+        })
+        .then(r => r.json())
+        .then(d => {
+            if (d.success) {
+                toastr.success('服务正在重启...');
+                setTimeout(loadConfig, 3000);
+            } else {
+                toastr.error('重启失败');
+            }
+        })
+        .catch(e => toastr.error('请求失败: ' + e.message));
+    }
+
+    // Load on start
+    loadConfig();
+    </script>
+</body>
+</html>

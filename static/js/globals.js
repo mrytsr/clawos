@@ -733,7 +733,8 @@ window.openMainMenuModal = function() {
             { action: 'cron', icon: '⏰', text: 'Cron管理' },
             { action: 'ollama', icon: '🦙', text: 'Ollama' },
             { action: 'clash', icon: '🌐', text: 'Clash代理' },
-            { action: 'frp', icon: '🔗', text: 'FRP内网穿透' }
+            { action: 'frp', icon: '🔗', text: 'FRP内网穿透' },
+            { action: 'picoclaw', icon: '🦞', text: 'PicoClaw配置' }
         ];
         c.innerHTML = items.map(function(item) {
             return '<div class="modal-item menu-item" data-action="' + item.action + '"><span style="margin-right:12px;">' + item.icon + '</span>' + item.text + '</div>';
@@ -837,6 +838,8 @@ window.handleMainMenu = function(action) {
         openConfigModal();
     } else if (action === 'pkg') {
         window.openPkgDrawer();
+    } else if (action === 'picoclaw') {
+        window.open('/picoclaw/config', '_self');
     } else if (window.actionToModalMap && window.actionToModalMap[action]) {
         var config = window.actionToModalMap[action];
         if (config.func && window[config.func]) {

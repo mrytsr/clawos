@@ -26,6 +26,7 @@ from ctrl.frp_ctrl import frp_bp
 from ctrl.log_ctrl import log_bp
 from ctrl.ollama_ctrl import ollama_bp
 from ctrl.openclaw_ctrl import openclaw_bp
+from ctrl.picoclaw_ctrl import picoclaw_bp
 from ctrl.system_ctrl import system_bp
 from ctrl.task_ctrl import task_bp
 from ctrl.term_ctrl import register_term_socketio
@@ -90,6 +91,7 @@ app.register_blueprint(db_bp)
 app.register_blueprint(log_bp)
 app.register_blueprint(ollama_bp)
 app.register_blueprint(openclaw_bp)
+app.register_blueprint(picoclaw_bp)
 app.register_blueprint(task_bp)
 app.register_blueprint(browser_bp)
 app.register_blueprint(edit_bp)
