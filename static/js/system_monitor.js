@@ -1231,8 +1231,8 @@ function renderOpenclawAgentsList(agents) {
         html += '<div style="font-size:12px;color:#57606a;margin-top:4px;">' + escapeHtml((agent && agent.active_ago) || '-') + '</div>';
         html += '</div>';
         html += '<div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">';
-        html += '<button onclick="openOpenclawEditAgentModal(' + JSON.stringify((agent && agent.id) || '') + ')" style="background:#0969da;border:none;border-radius:6px;color:#fff;padding:6px 10px;cursor:pointer;font-size:12px;">编辑</button>';
-        html += '<button onclick="openclawRemoveAgent(' + JSON.stringify((agent && agent.id) || '') + ')" style="background:#cf222e;border:none;border-radius:6px;color:#fff;padding:6px 10px;cursor:pointer;font-size:12px;">删除</button>';
+        html += '<button onclick="openOpenclawEditAgentModal(\'' + ((agent && agent.id) || '') + '\')" style="background:#0969da;border:none;border-radius:6px;color:#fff;padding:6px 10px;cursor:pointer;font-size:12px;">编辑</button>';
+        html += '<button onclick="openclawRemoveAgent(\'' + ((agent && agent.id) || '') + '\')" style="background:#cf222e;border:none;border-radius:6px;color:#fff;padding:6px 10px;cursor:pointer;font-size:12px;">删除</button>';
         html += '</div>';
         html += '</div>';
     });
