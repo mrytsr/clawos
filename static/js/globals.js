@@ -224,9 +224,29 @@ function authHeaders() {
     if (typeof originalFetch !== 'function') return;
 
     window.fetch = function(input, init) {
+        var isAuthCall = false;
         return originalFetch(input, init).then(function(resp) {
             try {
-                if (resp && resp.status === 401) {
+                // 如果是认证相关的 API 调用，跳过检查
+                if (input && (typeof input === 'string') && (input.includes('/api/auth/') || input.includes('/auth/') || input.includes('/login'))) {
+                    isAuthCall = true;
+                }
+                // 如果是 POST/DELETE/PUT 等可能修改状态的操作，允许一次 401 后重试
+                if (resp && resp.status === 401 && !isAuthCall && !window.__clawosAuthRetried) {
+                    window.__clawosAuthRetried = true;
+                    // 重试一次
+                    return originalFetch(input, init).then(function(retryResp) {
+                        if (retryResp && retryResp.status === 401) {
+                            if (!window.__clawosAuthRedirecting && window.location && window.location.pathname !== '/login') {
+                                window.__clawosAuthRedirecting = true;
+                                var here = (window.location.pathname || '/') + (window.location.search || '');
+                                window.location.href = '/login?success_redirect=' + encodeURIComponent(here);
+                            }
+                        }
+                        return retryResp;
+                    });
+                }
+                if (resp && resp.status === 401 && !isAuthCall) {
                     if (!window.__clawosAuthRedirecting && window.location && window.location.pathname !== '/login') {
                         window.__clawosAuthRedirecting = true;
                         var here = (window.location.pathname || '/') + (window.location.search || '');
