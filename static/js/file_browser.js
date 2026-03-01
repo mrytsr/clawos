@@ -1458,7 +1458,9 @@ function openSearchResultMenu(ev, el) {
     var path = decodeURIComponent(el.dataset.path || '');
     var name = decodeURIComponent(el.dataset.name || '');
     var isDir = (el.dataset.isDir || '').toLowerCase() === 'true';
-    if (typeof window.showMenuModal === 'function') {
+    if (typeof window.showFileSmallMenu === 'function') {
+        window.showFileSmallMenu(path, name, isDir, el);
+    } else if (typeof window.showMenuModal === 'function') {
         var rect = null;
         try {
             rect = el.getBoundingClientRect ? el.getBoundingClientRect() : null;
@@ -1764,8 +1766,73 @@ function confirmUrlShortcut() {
         .catch(function() { if (typeof showToast === 'function') showToast('创建失败', 'error'); });
 }
 
+// 使用 SmallMenu 显示文件操作菜单
+function showFileSmallMenu(path, name, isDir, triggerElement) {
+    var menuId = 'file-menu-' + Math.random().toString(36).substr(2, 9);
+    var menuItems = [];
+
+    // 通用操作
+    menuItems.push({ label: '查看详情', icon: '📋', action: function() { handleMenuAction('details'); } });
+    menuItems.push({ label: '编辑', icon: '✏️', action: function() { handleMenuAction('edit'); } });
+
+    if (!isDir) {
+        menuItems.push({ label: '下载文件', icon: '📥', action: function() { handleMenuAction('download'); } });
+    }
+
+    menuItems.push({ label: '复制下载地址', icon: '📋', action: function() { handleMenuAction('copyUrl'); } });
+    menuItems.push({ label: '复制绝对路径', icon: '📋', action: function() { handleMenuAction('copyPath'); } });
+    menuItems.push({ label: '重命名', icon: '✏️', action: function() { handleMenuAction('rename'); } });
+    menuItems.push({ label: '剪切', icon: '✂️', action: function() { handleMenuAction('cut'); } });
+    menuItems.push({ label: '复制', icon: '📋', action: function() { handleMenuAction('copy'); } });
+
+    // 解压/压缩
+    if (!isDir && isArchiveName(name)) {
+        menuItems.push({ label: '解压到此处', icon: '📦', action: function() { handleMenuAction('extract'); } });
+    }
+    menuItems.push({ label: '新建压缩包', icon: '🗜️', action: function() { handleMenuAction('newArchive'); } });
+
+    menuItems.push({ label: '创建软链接', icon: '🔗', action: function() { handleMenuAction('link'); } });
+    menuItems.push({ label: '在终端打开', icon: '📺', action: function() { handleMenuAction('terminal'); } });
+    menuItems.push({ label: '删除', icon: '🗑️', action: function() { handleMenuAction('delete'); }, danger: true });
+
+    // 使用 SmallMenu 渲染
+    var menuHtml = SmallMenu.render({
+        menuId: menuId,
+        triggerText: '⋮',
+        items: menuItems,
+        closeOnClickOutside: true
+    });
+
+    // 将生成的菜单插入到触发元素的位置
+    if (triggerElement) {
+        var wrapper = triggerElement.closest('.file-col-actions');
+        if (wrapper) {
+            // 移除旧的菜单
+            var oldMenu = wrapper.querySelector('.smallmenu-wrapper');
+            if (oldMenu) oldMenu.remove();
+            // 插入新菜单
+            wrapper.innerHTML = menuHtml;
+        }
+    }
+
+    // 延迟打开菜单
+    setTimeout(function() {
+        SmallMenu.open(menuId);
+    }, 10);
+}
+
+// 判断是否为压缩文件
+function isArchiveName(name) {
+    if (!name) return false;
+    var lower = name.toLowerCase();
+    return lower.endsWith('.zip') || lower.endsWith('.rar') || lower.endsWith('.7z') ||
+           lower.endsWith('.tar') || lower.endsWith('.gz') || lower.endsWith('.tar.gz') ||
+           lower.endsWith('.tar.bz2') || lower.endsWith('.tar.xz');
+}
+
 // 导出到 window
 window.showMenuModal = showMenuModal;
+window.showFileSmallMenu = showFileSmallMenu;
 window.openCurrentFolderMenu = openCurrentFolderMenu;
 window.closeMenuModal = closeMenuModal;
 window.closeMenuOnBackdrop = closeMenuOnBackdrop;

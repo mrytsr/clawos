@@ -2280,8 +2280,13 @@
                         return 'http://' + window.location.hostname + ':' + port;
                     },
                     openMenu: function(item) {
-                        if (typeof window.showMenuModal !== 'function') { return; }
-                        window.showMenuModal(item.path || '', item.name || '', !!item.is_dir);
+                        if (typeof window.showFileSmallMenu !== 'function') {
+                            if (typeof window.showMenuModal !== 'function') { return; }
+                            window.showMenuModal(item.path || '', item.name || '', !!item.is_dir);
+                            return;
+                        }
+                        var btn = document.querySelector('#file-item-' + (this.items.indexOf(item) + 1) + ' .menu-btn');
+                        window.showFileSmallMenu(item.path || '', item.name || '', !!item.is_dir, btn);
                     },
                     onToggleItemSelection: function(path, event) {
                         if (typeof window.toggleItemSelection !== 'function') { return; }
