@@ -127,6 +127,7 @@ function openCurrentFolderMenu(ev) {
         triggerText: '⋮',
         items: menuItems,
         center: true,
+        hideTrigger: true,
         closeOnClickOutside: true
     });
 
@@ -210,7 +211,6 @@ function handleMenuAction(action) {
             case 'details': showDetails(window.currentItemPath, window.currentItemName); break;
             case 'extract': extractArchiveHere(window.currentItemPath, window.currentItemName); break;
             case 'newArchive':
-                closeMenuModal();
                 openArchiveCreateDialog([window.currentItemPath], getParentDir(window.currentItemPath));
                 break;
         }
@@ -1493,6 +1493,7 @@ function openCreateMenuDrawer(callbacks) {
         triggerText: '+',
         items: menuItems,
         center: true,
+        hideTrigger: true,
         closeOnClickOutside: true
     });
 
@@ -1685,6 +1686,7 @@ function showFileSmallMenu(path, name, isDir, triggerElement) {
         triggerText: '⋮',
         items: menuItems,
         center: true,
+        hideTrigger: true,
         closeOnClickOutside: true
     });
 

@@ -34,6 +34,7 @@
             var closeOnMask = options.closeOnMask !== false;
             var closeOnClickOutside = options.closeOnClickOutside !== false;
             var center = !!options.center;
+            var hideTrigger = !!options.hideTrigger;
             var menuClass = options.menuClass || '';
 
             // 保存菜单配置
@@ -49,10 +50,16 @@
             var dropdownStyle = center
                 ? 'display:none;position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);background:#fff;'
                 : 'display:none;position:absolute;right:0;top:100%;background:#fff;';
-            var menuHtml = '<div class="smallmenu-wrapper" style="position:relative;display:inline-block;z-index:20050;">'
+            var wrapperStyle = hideTrigger
+                ? 'position:fixed;left:-9999px;top:-9999px;width:0;height:0;overflow:visible;z-index:20050;'
+                : 'position:relative;display:inline-block;z-index:20050;';
+            var triggerStyle = hideTrigger
+                ? 'border:none;background:none;cursor:pointer;padding:4px;font-size:16px;line-height:1;display:none;'
+                : 'border:none;background:none;cursor:pointer;padding:4px;font-size:16px;line-height:1;';
+            var menuHtml = '<div class="smallmenu-wrapper" style="' + wrapperStyle + '">'
                 + '<button type="button" class="smallmenu-trigger ' + triggerClass + '" '
                 + 'onclick="SmallMenu.toggle(\'' + id + '\'); return false;" '
-                + 'style="border:none;background:none;cursor:pointer;padding:4px;font-size:16px;line-height:1;">'
+                + 'style="' + triggerStyle + '">'
                 + triggerText
                 + '</button>'
                 + '<div id="' + id + '" class="smallmenu-dropdown ' + menuClass + '" '
