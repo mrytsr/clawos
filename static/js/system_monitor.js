@@ -744,9 +744,46 @@ window.switchSystemdTab = function(scope) {
         const enabledBadgeColor = enabled ? '#0969da' : '#8b8b8b';
         const enabledBadgeText = enabled ? 'enabled' : 'disabled';
         const scope = window._systemdCurrentScope || 'user';
-        const serviceName = escapeHtml(String(name));
-        const menuId = 'sysd-menu-' + Math.random().toString(36).substr(2, 9);
-        
+
+        // 构建菜单项
+        var menuItems = [
+            { label: serviceName, icon: '', action: 'header', disabled: true }
+        ];
+        if (enabled) {
+            menuItems.push({ label: '禁用开机启动', icon: '🚫', action: 'disable:' + name + '|' + scope });
+        } else {
+            menuItems.push({ label: '启用开机启动', icon: '✅', action: 'enable:' + name + '|' + scope });
+        }
+        menuItems.push({ label: '启动', icon: '▶', action: 'start:' + name + '|' + scope });
+        menuItems.push({ label: '停止', icon: '⏹', action: 'stop:' + name + '|' + scope });
+        menuItems.push({ label: '重启', icon: '🔄', action: 'restart:' + name + '|' + scope });
+        menuItems.push({ label: '查看日志', icon: '📋', action: 'log:' + serviceName });
+        menuItems.push({ label: '编辑配置文件', icon: '✏️', action: 'edit:' + name + '|' + scope });
+        menuItems.push({ label: '删除服务', icon: '🗑', action: 'remove:' + name + '|' + scope, danger: true });
+
+        // 使用 SmallMenu 生成菜单
+        var menuResult = SmallMenu.render({
+            triggerText: '⋮',
+            items: menuItems,
+            onAction: function(action) {
+                var parts = action.split(':');
+                var type = parts[0];
+                var arg1 = parts[1] || '';
+                var arg2 = parts[2] || '';
+                if (type === 'log') {
+                    openServiceLog(arg1);
+                } else if (type === 'header') {
+                    return;
+                } else if (type === 'edit') {
+                    __systemdEditConfig(arg1, arg2);
+                } else if (type === 'remove') {
+                    __systemdRemove(arg1, arg2);
+                } else {
+                    __systemdControl(arg1, type, arg2);
+                }
+            }
+        });
+
         return '<div style="border:1px solid #d0d7de;border-radius:10px;background:#fff;padding:12px 14px;">'
             + '<div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;">'
             + '<div style="min-width:0;">'
@@ -759,63 +796,12 @@ window.switchSystemdTab = function(scope) {
             + '<div style="font-size:12px;color:#57606a;margin-top:2px;">' + escapeHtml(String(active)) + (sub ? ' (' + escapeHtml(String(sub)) + ')' : '') + '</div>'
             + (sinceAgo ? '<div style="font-size:12px;color:#57606a;margin-top:2px;">启动于 ' + escapeHtml(String(sinceAgo)) + '</div>' : '')
             + '</div>'
-            + '<div style="position:relative;flex-shrink:0;">'
-            + '<button type="button" class="systemd-menu-trigger" onclick="window.openSystemdSmallMenu(\'' + menuId + '\')" style="border:none;background:none;cursor:pointer;padding:4px;font-size:16px;line-height:1;">⋮</button>'
-            + '<div id="' + menuId + '" style="display:none;position:absolute;right:0;top:100%;background:#fff;border:1px solid #d0d7de;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);min-width:140px;z-index:1000;overflow:hidden;">'
-            + '<div style="padding:8px 12px;border-bottom:1px solid #eee;font-size:12px;color:#57606a;">' + serviceName + '</div>'
-            + (enabled 
-                ? '<div class="systemd-menu-item" onclick="__systemdControl(\'' + escapeHtml(String(name)) + '\', \'disable\', \'' + scope + '\')" style="padding:8px 12px;cursor:pointer;font-size:13px;">🚫 禁用开机启动</div>'
-                : '<div class="systemd-menu-item" onclick="__systemdControl(\'' + escapeHtml(String(name)) + '\', \'enable\', \'' + scope + '\')" style="padding:8px 12px;cursor:pointer;font-size:13px;">✅ 启用开机启动</div>')
-            + '<div class="systemd-menu-item" onclick="__systemdControl(\'' + escapeHtml(String(name)) + '\', \'start\', \'' + scope + '\')" style="padding:8px 12px;cursor:pointer;font-size:13px;">▶ 启动</div>'
-            + '<div class="systemd-menu-item" onclick="__systemdControl(\'' + escapeHtml(String(name)) + '\', \'stop\', \'' + scope + '\')" style="padding:8px 12px;cursor:pointer;font-size:13px;">⏹ 停止</div>'
-            + '<div class="systemd-menu-item" onclick="__systemdControl(\'' + escapeHtml(String(name)) + '\', \'restart\', \'' + scope + '\')" style="padding:8px 12px;cursor:pointer;font-size:13px;">🔄 重启</div>'
-            + '<div class="systemd-menu-item" onclick="openServiceLog(\'' + serviceName + '\')" style="padding:8px 12px;cursor:pointer;font-size:13px;">📋 查看日志</div>'
-            + '<div class="systemd-menu-item" onclick="__systemdEditConfig(\'' + escapeHtml(String(name)) + '\', \'' + scope + '\')" style="padding:8px 12px;cursor:pointer;font-size:13px;">✏️ 编辑配置文件</div>'
-            + '<div class="systemd-menu-item" onclick="__systemdRemove(\'' + escapeHtml(String(name)) + '\', \'' + scope + '\')" style="padding:8px 12px;cursor:pointer;font-size:13px;color:#cf222e;">🗑 删除服务</div>'
-            + '</div>'
-            + '</div>'
+            + menuResult
             + '</div>'
             + '</div>';
     }).join('') + '</div>';
 
-    // 封装业务函数
-    if (!window.openSystemdSmallMenu) {
-        window.openSystemdSmallMenu = function(menuId) {
-            if (window.toggleSystemdMenu) {
-                window.toggleSystemdMenu(menuId);
-            }
-        };
-    }
-
-    // 添加菜单切换函数（如果还没有）
-    if (!window.toggleSystemdMenu) {
-        window.toggleSystemdMenu = function(menuId) {
-            var allMenus = document.querySelectorAll('[id^="sysd-menu-"]');
-            allMenus.forEach(function(m) {
-                if (m.id !== menuId) m.style.display = 'none';
-            });
-            var menu = document.getElementById(menuId);
-            if (menu) {
-                menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
-            }
-        };
-    }
-
-    // 点击其他地方关闭菜单
-    if (!window._systemdMenuClickListenerAdded) {
-        document.addEventListener('click', function(e) {
-            if (e.target.closest('.systemd-menu-item') ||
-                (!e.target.closest('[id^="sysd-menu-"]') && 
-                !e.target.closest('[onclick*="toggleSystemdMenu"]') &&
-                !e.target.closest('.systemd-menu-trigger'))) {
-                document.querySelectorAll('[id^="sysd-menu-"]').forEach(function(m) {
-                    m.style.display = 'none';
-                });
-            }
-        });
-        window._systemdMenuClickListenerAdded = true;
-    }
-
+    // 绑定其他 systemd 按钮事件
     Array.from(container.querySelectorAll('button[data-action="systemd"]')).forEach(function(btn) {
         btn.addEventListener('click', function(e) {
             e.preventDefault();
