@@ -760,7 +760,7 @@ window.switchSystemdTab = function(scope) {
             + (sinceAgo ? '<div style="font-size:12px;color:#57606a;margin-top:2px;">启动于 ' + escapeHtml(String(sinceAgo)) + '</div>' : '')
             + '</div>'
             + '<div style="position:relative;flex-shrink:0;">'
-            + '<button type="button" onclick="window.toggleSystemdMenu(\'' + menuId + '\')" style="border:none;background:none;cursor:pointer;padding:4px;font-size:16px;line-height:1;">⋮</button>'
+            + '<button type="button" onclick="window.openSystemdSmallMenu(\'' + menuId + '\')" style="border:none;background:none;cursor:pointer;padding:4px;font-size:16px;line-height:1;">⋮</button>'
             + '<div id="' + menuId + '" style="display:none;position:absolute;right:0;top:100%;background:#fff;border:1px solid #d0d7de;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);min-width:140px;z-index:1000;overflow:hidden;">'
             + '<div style="padding:8px 12px;border-bottom:1px solid #eee;font-size:12px;color:#57606a;">' + serviceName + '</div>'
             + (enabled 
@@ -777,6 +777,15 @@ window.switchSystemdTab = function(scope) {
             + '</div>'
             + '</div>';
     }).join('') + '</div>';
+
+    // 封装业务函数
+    if (!window.openSystemdSmallMenu) {
+        window.openSystemdSmallMenu = function(menuId) {
+            if (window.toggleSystemdMenu) {
+                window.toggleSystemdMenu(menuId);
+            }
+        };
+    }
 
     // 添加菜单切换函数（如果还没有）
     if (!window.toggleSystemdMenu) {
