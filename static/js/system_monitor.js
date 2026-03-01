@@ -771,7 +771,7 @@ window.switchSystemdTab = function(scope) {
             + '<div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;">'
             + '<div style="min-width:0;">'
             + '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">'
-            + '<div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + serviceName + '</div>'
+            + '<div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + escapeHtml(String(name)) + '</div>'
             + '<span style="font-size:11px;padding:2px 8px;border-radius:999px;background:' + badgeColor + ';color:#fff;">' + escapeHtml(String(badgeText)) + '</span>'
             + '<span style="font-size:11px;padding:2px 8px;border-radius:999px;background:' + enabledBadgeColor + ';color:#fff;">' + enabledBadgeText + '</span>'
             + '</div>'
