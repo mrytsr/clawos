@@ -420,7 +420,6 @@ function scheduleTerminalDrawerLayoutUpdate() {
 }
 
 function openTerminal(path, isDir) {
-    closeMenuModal();
     isTermOpen = true;
     
     // 计算路径
