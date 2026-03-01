@@ -172,6 +172,8 @@ def get_file_details(path, root_dir):
 
 def search_files(root_dir, keyword, hidden_folders=None):
     """搜索文件"""
+    if not hidden_folders:
+        hidden_folders = []
     if not keyword.strip():
         return {'results': []}
 
