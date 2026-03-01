@@ -1496,14 +1496,6 @@ function openSearchResultMenu(ev, el) {
     var isDir = (el.dataset.isDir || '').toLowerCase() === 'true';
     if (typeof window.showFileSmallMenu === 'function') {
         window.showFileSmallMenu(path, name, isDir, el);
-    } else if (typeof window.showMenuModal === 'function') {
-        var rect = null;
-        try {
-            rect = el.getBoundingClientRect ? el.getBoundingClientRect() : null;
-        } catch (e) {
-            rect = null;
-        }
-        window.showMenuModal(path, name, isDir, { fromSearch: true, anchorRect: rect });
     }
     return false;
 }
