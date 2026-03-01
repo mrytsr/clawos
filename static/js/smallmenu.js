@@ -40,7 +40,7 @@
             var dropdownStyle = center
                 ? 'display:none;position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);background:#fff;'
                 : 'display:none;position:absolute;right:0;top:100%;background:#fff;';
-            var menuHtml = '<div class="smallmenu-wrapper" style="position:relative;display:inline-block;">'
+            var menuHtml = '<div class="smallmenu-wrapper" style="position:relative;display:inline-block;z-index:20050;">'
                 + '<button type="button" class="smallmenu-trigger ' + triggerClass + '" '
                 + 'onclick="SmallMenu.toggle(\'' + id + '\'); return false;" '
                 + 'style="border:none;background:none;cursor:pointer;padding:4px;font-size:16px;line-height:1;">'
@@ -49,7 +49,7 @@
                 + '<div id="' + id + '" class="smallmenu-dropdown ' + menuClass + '" '
                 + 'style="' + dropdownStyle
                 + 'border:1px solid #d0d7de;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);'
-                + 'min-width:140px;z-index:1000;overflow:hidden;">';
+                + 'min-width:140px;z-index:20051;overflow:hidden;">';
 
             items.forEach(function(item, index) {
                 var icon = item.icon || '';
@@ -165,7 +165,7 @@
         _createMask: function() {
             var mask = document.createElement('div');
             mask.className = 'smallmenu-mask';
-            mask.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.3);z-index:999;';
+            mask.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.3);z-index:20000;';
             mask.onclick = function() {
                 SmallMenu.closeAll();
             };
