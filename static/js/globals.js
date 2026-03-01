@@ -624,7 +624,7 @@ window.closeOpenclawModal = function() {
 };
 
 // 通用关闭函数
-window.closeMenuModal = function() { Drawer.close('menuModal'); };
+// closeMenuModal 在 file_browser.js 中定义
 window.closePreviewModal = function() { Drawer.close('previewModal'); };
 window.closeConfirmModal = function() {
     var b = document.getElementById('confirmBackdrop');
@@ -900,15 +900,7 @@ window.handleMainMenu = function(action) {
     /* eslint-enable no-undef */
 };
 
-// 文件操作函数
-window.showMenuModal = function(path, name, isDir) {
-    window.currentItemPath = path;
-    window.currentItemName = name;
-    window.currentItemIsDir = isDir;
-    var t = document.getElementById('menuTitle');
-    if (t) { t.textContent = name; }
-    Drawer.open('menuModal');
-};
+// 文件操作函数（在 file_browser.js 中定义）
 
 // GitHub 风格确认框
 window.__confirmCallback = null;
