@@ -1795,11 +1795,12 @@ function showFileSmallMenu(path, name, isDir, triggerElement) {
     menuItems.push({ label: '在终端打开', icon: '📺', action: function() { handleMenuAction('terminal'); } });
     menuItems.push({ label: '删除', icon: '🗑️', action: function() { handleMenuAction('delete'); }, danger: true });
 
-    // 使用 SmallMenu 渲染
+    // 使用 SmallMenu 渲染（居中显示，带遮罩）
     var menuHtml = SmallMenu.render({
         menuId: menuId,
         triggerText: '⋮',
         items: menuItems,
+        center: true,
         closeOnClickOutside: true
     });
 
