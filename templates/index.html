@@ -1514,48 +1514,6 @@
         </div>
     </div>
 
-    <!-- 菜单抽屉 -->
-    <div id="menuBackdrop" class="drawer-backdrop" onclick="closeMenuModal()"></div>
-    <div id="menuModal" class="drawer">
-        <div class="drawer-handle"></div>
-        <div class="drawer-header">
-            <div style="display:flex;align-items:center;gap:10px;min-width:0;">
-                <div class="drawer-title" id="menuTitle">菜单</div>
-                <button type="button" class="pin-btn" id="menuPinBtn" style="display:none;">置顶</button>
-            </div>
-            <button class="drawer-close-btn" onclick="closeMenuModal()">&times;</button>
-        </div>
-        <div class="drawer-content">
-            <div class="modal-item" onclick="handleMenuAction('details')">📋 查看详情</div>
-            <div class="modal-item" onclick="handleMenuAction('edit')">✏️ 编辑</div>
-            <div class="modal-item" id="menuDownloadItem" onclick="handleMenuAction('download')">下载文件</div>
-            <div class="modal-item" id="menuCopyUrlItem" onclick="handleMenuAction('copyUrl')" style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
-                <span>复制下载地址</span>
-                <span class="menu-action-group">
-                    <button type="button" class="menu-icon-btn" onclick="event.stopPropagation(); handleMenuAction('copyUrl');" title="复制下载地址" aria-label="复制下载地址">📋</button>
-                    <button type="button" class="menu-icon-btn" onclick="event.stopPropagation(); shareMenuDownloadUrl();" title="分享下载地址" aria-label="分享下载地址">🔗</button>
-                </span>
-            </div>
-            <div class="modal-item" id="menuCopyPathItem" onclick="handleMenuAction('copyPath')" style="align-items:center;justify-content:space-between;gap:12px;">
-                <span>复制绝对路径</span>
-                <span class="menu-action-group">
-                    <button type="button" class="menu-icon-btn" onclick="event.stopPropagation(); handleMenuAction('copyPath');" title="复制绝对路径" aria-label="复制绝对路径">📋</button>
-                    <button type="button" class="menu-icon-btn" onclick="event.stopPropagation(); shareMenuPath();" title="分享绝对路径" aria-label="分享绝对路径">🔗</button>
-                </span>
-            </div>
-            <div class="modal-item" onclick="handleMenuAction('rename')">重命名</div>
-            <div class="modal-item" onclick="handleMenuAction('cut')" aria-label="剪切">剪切</div>
-            <div class="modal-item" onclick="handleMenuAction('copy')" aria-label="复制">复制</div>
-            <div class="modal-item" id="menuExtractItem" onclick="handleMenuAction('extract')">📦 解压到此处</div>
-            <div class="modal-item" id="menuNewArchiveItem" onclick="handleMenuAction('newArchive')">🗜️ 新建压缩包</div>
-            <div class="modal-item" id="menuLinkItem" onclick="handleMenuAction('link')">🔗 创建软链接</div>
-            <div class="modal-item" id="menuEmailItem" onclick="handleMenuAction('email')">📧 通过邮件发送</div>
-            <div class="modal-item" onclick="handleMenuAction('chat')">💬 添加到对话</div>
-            <div class="modal-item" onclick="handleMenuAction('terminal')">📺 在终端打开</div>
-            <div class="modal-item delete-item" onclick="handleMenuAction('delete')">删除</div>
-        </div>
-    </div>
-
     <div id="createMenuBackdrop" class="drawer-backdrop" onclick="closeCreateMenuDrawer()"></div>
     <div id="createMenuDrawer" class="drawer">
         <div class="drawer-handle"></div>
@@ -2280,11 +2238,7 @@
                         return 'http://' + window.location.hostname + ':' + port;
                     },
                     openMenu: function(item) {
-                        if (typeof window.showFileSmallMenu !== 'function') {
-                            if (typeof window.showMenuModal !== 'function') { return; }
-                            window.showMenuModal(item.path || '', item.name || '', !!item.is_dir);
-                            return;
-                        }
+                        if (typeof window.showFileSmallMenu !== 'function') { return; }
                         var btn = document.querySelector('#file-item-' + (this.items.indexOf(item) + 1) + ' .menu-btn');
                         window.showFileSmallMenu(item.path || '', item.name || '', !!item.is_dir, btn);
                     },

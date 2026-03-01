@@ -97,105 +97,6 @@ function handleFileByMethod(path, name, method) {
     }
 }
 
-// 文件菜单
-function setSearchModalInteractive(enabled) {
-    var m = document.getElementById('searchModal');
-    var b = document.getElementById('searchBackdrop');
-    var pe = enabled ? '' : 'none';
-    if (m) m.style.pointerEvents = pe;
-    if (b) b.style.pointerEvents = pe;
-}
-
-function setMenuTopLayer(on) {
-    var modal = document.getElementById('menuModal');
-    var backdrop = document.getElementById('menuBackdrop');
-    if (backdrop) backdrop.style.zIndex = on ? '20009' : '';
-    if (modal) modal.style.zIndex = on ? '20010' : '';
-}
-
-function clampNumber(v, min, max) {
-    if (v < min) return min;
-    if (v > max) return max;
-    return v;
-}
-
-function positionMenuPopover(anchorRect) {
-    var modal = document.getElementById('menuModal');
-    if (!modal || !anchorRect) return;
-    var vw = Math.max(1, window.innerWidth || document.documentElement.clientWidth || 1);
-    var vh = Math.max(1, window.innerHeight || document.documentElement.clientHeight || 1);
-    var pad = 12;
-
-    modal.style.left = '0px';
-    modal.style.top = '0px';
-    modal.style.right = '';
-    modal.style.bottom = '';
-
-    var w = modal.offsetWidth || 280;
-    var h = modal.offsetHeight || 360;
-
-    var preferRight = (anchorRect.right || 0) - w;
-    var left = clampNumber(preferRight, pad, Math.max(pad, vw - w - pad));
-
-    var belowTop = (anchorRect.bottom || 0) + 8;
-    var aboveTop = (anchorRect.top || 0) - h - 8;
-    var top = belowTop;
-    if (top + h + pad > vh && aboveTop >= pad) top = aboveTop;
-    top = clampNumber(top, pad, Math.max(pad, vh - h - pad));
-
-    modal.style.left = String(Math.round(left)) + 'px';
-    modal.style.top = String(Math.round(top)) + 'px';
-}
-
-function showMenuModal(path, name, isDir, opts) {
-    var o = opts && typeof opts === 'object' ? opts : null;
-    window.currentItemPath = path;
-    window.currentItemName = name;
-    window.currentItemIsDir = isDir;
-    document.getElementById('menuTitle').textContent = name;
-    if (typeof updateMenuPinButton === 'function') updateMenuPinButton();
-    var editEl = document.getElementById('menuEditItem');
-    if (editEl) {
-        editEl.style.display = isDir ? 'none' : '';
-        editEl.onclick = function() {
-            closeMenuModal();
-            editFile(window.currentItemPath);
-        };
-    }
-    var downloadEl = document.getElementById('menuDownloadItem');
-    if (downloadEl) downloadEl.style.display = isDir ? 'none' : '';
-    var copyUrlEl = document.getElementById('menuCopyUrlItem');
-    if (copyUrlEl) copyUrlEl.style.display = isDir ? 'none' : '';
-    var extractEl = document.getElementById('menuExtractItem');
-    if (extractEl) extractEl.style.display = (!isDir && isArchiveName(name)) ? '' : 'none';
-    var newArchiveEl = document.getElementById('menuNewArchiveItem');
-    if (newArchiveEl) newArchiveEl.style.display = '';
-
-    var menuModal = document.getElementById('menuModal');
-    if (menuModal) {
-        if (o && o.fromSearch) menuModal.classList.add('menu-popover');
-        else menuModal.classList.remove('menu-popover');
-        if (!(o && o.fromSearch)) {
-            menuModal.style.left = '';
-            menuModal.style.top = '';
-            menuModal.style.right = '';
-            menuModal.style.bottom = '';
-        }
-    }
-
-    var fromSearch = !!(o && o.fromSearch);
-    setMenuTopLayer(fromSearch);
-    if (fromSearch) setSearchModalInteractive(false);
-
-    Drawer.open('menuModal');
-
-    if (fromSearch && o && o.anchorRect) {
-        requestAnimationFrame(function() {
-            positionMenuPopover(o.anchorRect);
-        });
-    }
-}
-
 function openCurrentFolderMenu(ev) {
     if (ev && typeof ev.preventDefault === 'function') ev.preventDefault();
     if (ev && typeof ev.stopPropagation === 'function') ev.stopPropagation();
@@ -240,26 +141,6 @@ function openCurrentFolderMenu(ev) {
     }, 10);
 }
 
-function closeMenuModal() {
-    setSearchModalInteractive(true);
-    setMenuTopLayer(false);
-    var menuModal = document.getElementById('menuModal');
-    if (menuModal) {
-        menuModal.classList.remove('menu-popover');
-        menuModal.style.left = '';
-        menuModal.style.top = '';
-        menuModal.style.right = '';
-        menuModal.style.bottom = '';
-    }
-    Drawer.close('menuModal');
-}
-
-function closeMenuOnBackdrop(event) {
-    if (event.target.id === 'menuModal') {
-        closeMenuModal();
-    }
-}
-
 // 拖拽相关变量和函数（使用 window 对象）
 function startDrag(e) {
     window.isDragging = true;
@@ -293,7 +174,6 @@ function endDrag() {
 
 // 文件操作
 function handleMenuAction(action) {
-    closeMenuModal(); // 点击菜单项后关闭菜单
     setTimeout(() => {
         switch(action) {
             case 'download': downloadFile(window.currentItemPath, { name: window.currentItemName }); break;
@@ -431,63 +311,6 @@ function __applyPinsToDom(dirRel) {
     __removeInlinePinButtons();
     __applyPinnedClasses();
     __applyPinOrder();
-}
-
-function updateMenuPinButton() {
-    var btn = document.getElementById('menuPinBtn');
-    if (!btn) return;
-
-    var path = normalizeRelPath(window.currentItemPath || '');
-    var name = String(window.currentItemName || '').trim();
-    var isDir = !!window.currentItemIsDir;
-
-    if (!path || !name || name === '根目录') {
-        btn.style.display = 'none';
-        return;
-    }
-
-    var dirRel = getParentDir(path);
-    if (dirRel === path && isDir) {
-        btn.style.display = 'none';
-        return;
-    }
-    if (normalizeRelPath(dirRel) !== getCurrentBrowsePath()) {
-        btn.style.display = 'none';
-        return;
-    }
-
-    btn.style.display = '';
-    var applyState = function(pinned) {
-        btn.textContent = pinned ? '取消置顶' : '置顶';
-        if (pinned) btn.classList.add('is-pinned');
-        else btn.classList.remove('is-pinned');
-    };
-    applyState(__isPinnedName(name));
-
-    btn.onclick = function(ev) {
-        if (ev && typeof ev.preventDefault === 'function') ev.preventDefault();
-        if (ev && typeof ev.stopPropagation === 'function') ev.stopPropagation();
-        if (btn.disabled) return;
-        btn.disabled = true;
-        __togglePin(dirRel, name)
-            .then(function(data) {
-                if (!data || !data.success || !data.data) {
-                    showToast('置顶操作失败', 'error');
-                    return;
-                }
-                var pins = Array.isArray(data.data.pins) ? data.data.pins : [];
-                __rebuildPinMap(pins);
-                __applyPinsToDom(getCurrentBrowsePath());
-                applyState(!!data.data.pinned);
-                showToast(data.data.pinned ? '已置顶' : '已取消置顶', 'success');
-            })
-            .catch(function() {
-                showToast('置顶操作失败', 'error');
-            })
-            .finally(function() {
-                btn.disabled = false;
-            });
-    };
 }
 
 function initPinsForCurrentDir() {
@@ -1887,11 +1710,8 @@ function isArchiveName(name) {
 }
 
 // 导出到 window
-window.showMenuModal = showMenuModal;
 window.showFileSmallMenu = showFileSmallMenu;
 window.openCurrentFolderMenu = openCurrentFolderMenu;
-window.closeMenuModal = closeMenuModal;
-window.closeMenuOnBackdrop = closeMenuOnBackdrop;
 window.startDrag = startDrag;
 window.handleMenuAction = handleMenuAction;
 window.confirmDelete = confirmDelete;
