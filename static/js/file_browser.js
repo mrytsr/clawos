@@ -1817,17 +1817,11 @@ function showFileSmallMenu(path, name, isDir, triggerElement) {
         closeOnClickOutside: true
     });
 
-    // 将生成的菜单插入到触发元素的位置
-    if (triggerElement) {
-        var wrapper = triggerElement.closest('.file-col-actions');
-        if (wrapper) {
-            // 移除旧的菜单
-            var oldMenu = wrapper.querySelector('.smallmenu-wrapper');
-            if (oldMenu) oldMenu.remove();
-            // 插入新菜单
-            wrapper.innerHTML = menuHtml;
-        }
-    }
+    // 将菜单添加到 body，避免破坏 Vue 的事件监听
+    var tempDiv = document.createElement('div');
+    tempDiv.innerHTML = menuHtml;
+    var menuWrapper = tempDiv.firstChild;
+    document.body.appendChild(menuWrapper);
 
     // 延迟打开菜单
     setTimeout(function() {
