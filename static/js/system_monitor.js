@@ -760,7 +760,7 @@ window.switchSystemdTab = function(scope) {
             + (sinceAgo ? '<div style="font-size:12px;color:#57606a;margin-top:2px;">启动于 ' + escapeHtml(String(sinceAgo)) + '</div>' : '')
             + '</div>'
             + '<div style="position:relative;flex-shrink:0;">'
-            + '<button type="button" onclick="window.openSystemdSmallMenu(\'' + menuId + '\')" style="border:none;background:none;cursor:pointer;padding:4px;font-size:16px;line-height:1;">⋮</button>'
+            + '<button type="button" class="systemd-menu-trigger" onclick="window.openSystemdSmallMenu(\'' + menuId + '\')" style="border:none;background:none;cursor:pointer;padding:4px;font-size:16px;line-height:1;">⋮</button>'
             + '<div id="' + menuId + '" style="display:none;position:absolute;right:0;top:100%;background:#fff;border:1px solid #d0d7de;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);min-width:140px;z-index:1000;overflow:hidden;">'
             + '<div style="padding:8px 12px;border-bottom:1px solid #eee;font-size:12px;color:#57606a;">' + serviceName + '</div>'
             + (enabled 
@@ -802,13 +802,18 @@ window.switchSystemdTab = function(scope) {
     }
 
     // 点击其他地方关闭菜单
-    document.addEventListener('click', function(e) {
-        if (!e.target.closest('[id^="sysd-menu-"]') && !e.target.closest('[onclick*="toggleSystemdMenu"]')) {
-            document.querySelectorAll('[id^="sysd-menu-"]').forEach(function(m) {
-                m.style.display = 'none';
-            });
-        }
-    });
+    if (!window._systemdMenuClickListenerAdded) {
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('[id^="sysd-menu-"]') && 
+                !e.target.closest('[onclick*="toggleSystemdMenu"]') &&
+                !e.target.closest('.systemd-menu-trigger')) {
+                document.querySelectorAll('[id^="sysd-menu-"]').forEach(function(m) {
+                    m.style.display = 'none';
+                });
+            }
+        });
+        window._systemdMenuClickListenerAdded = true;
+    }
 
     Array.from(container.querySelectorAll('button[data-action="systemd"]')).forEach(function(btn) {
         btn.addEventListener('click', function(e) {
