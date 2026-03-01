@@ -25,6 +25,7 @@
             var closeOnMask = options.closeOnMask !== false;
             var closeOnClickOutside = options.closeOnClickOutside !== false;
             var menuClass = options.menuClass || '';
+            var self = this;
 
             // 保存菜单配置
             this._menus[id] = {
@@ -46,16 +47,26 @@
                 + 'border:1px solid #d0d7de;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);'
                 + 'min-width:140px;z-index:1000;overflow:hidden;">';
 
-            items.forEach(function(item) {
+            items.forEach(function(item, index) {
                 var icon = item.icon || '';
                 var label = item.label || '';
-                var action = item.action || '';
+                var action = item.action;
+                var actionParams = item.actionParams;
                 var danger = item.danger ? 'color:#cf222e;' : '';
                 var disabled = item.disabled ? 'opacity:0.5;pointer-events:none;' : '';
+                var itemId = id + '-item-' + index;
+
+                // 保存 action 和 params 到菜单数据中
+                if (!self._menuItems) self._menuItems = {};
+                self._menuItems[itemId] = { action: action, actionParams: actionParams };
+
+                // 如果 action 是 function，HTML 中不需要显示
+                var actionStr = (typeof action === 'function') ? '' : SmallMenu._escapeHtml(String(action || ''));
 
                 menuHtml += '<div class="smallmenu-item" '
-                    + 'data-action="' + SmallMenu._escapeHtml(action) + '" '
-                    + 'onclick="SmallMenu._handleClick(\'' + id + '\', \'' + SmallMenu._escapeHtml(action) + '\')" '
+                    + 'data-item-id="' + itemId + '" '
+                    + (actionStr ? 'data-action="' + actionStr + '" ' : '')
+                    + 'onclick="SmallMenu._handleClick(\'' + id + '\', \'' + itemId + '\')" '
                     + 'style="padding:8px 12px;cursor:pointer;font-size:13px;' + danger + disabled + '">'
                     + (icon ? icon + ' ' : '') + SmallMenu._escapeHtml(label)
                     + '</div>';
@@ -140,10 +151,22 @@
         /**
          * 处理菜单项点击
          */
-        _handleClick: function(menuId, action) {
+        _handleClick: function(menuId, itemId) {
+            var self = this;
             var menuData = this._menus[menuId];
-            if (menuData && menuData.onAction) {
-                menuData.onAction(action, menuData.items);
+            var itemData = this._menuItems ? this._menuItems[itemId] : null;
+
+            if (!itemData) return;
+
+            var action = itemData.action;
+            var actionParams = itemData.actionParams;
+
+            // 如果 action 是 function，直接调用
+            if (typeof action === 'function') {
+                action(actionParams);
+            } else if (menuData && menuData.onAction) {
+                // 否则调用 onAction 回调
+                menuData.onAction(action, actionParams, menuData.items);
             }
             // 点击后关闭菜单
             this.close(menuId);

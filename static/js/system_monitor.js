@@ -745,43 +745,26 @@ window.switchSystemdTab = function(scope) {
         const enabledBadgeText = enabled ? 'enabled' : 'disabled';
         const scope = window._systemdCurrentScope || 'user';
 
-        // 构建菜单项
+        // 构建菜单项 - 使用 function + actionParams
         var menuItems = [
-            { label: serviceName, icon: '', action: 'header', disabled: true }
+            { label: escapeHtml(String(name)), icon: '', action: null, disabled: true }
         ];
         if (enabled) {
-            menuItems.push({ label: '禁用开机启动', icon: '🚫', action: 'disable:' + name + '|' + scope });
+            menuItems.push({ label: '禁用开机启动', icon: '🚫', action: __systemdControl, actionParams: [name, 'disable', scope] });
         } else {
-            menuItems.push({ label: '启用开机启动', icon: '✅', action: 'enable:' + name + '|' + scope });
+            menuItems.push({ label: '启用开机启动', icon: '✅', action: __systemdControl, actionParams: [name, 'enable', scope] });
         }
-        menuItems.push({ label: '启动', icon: '▶', action: 'start:' + name + '|' + scope });
-        menuItems.push({ label: '停止', icon: '⏹', action: 'stop:' + name + '|' + scope });
-        menuItems.push({ label: '重启', icon: '🔄', action: 'restart:' + name + '|' + scope });
-        menuItems.push({ label: '查看日志', icon: '📋', action: 'log:' + serviceName });
-        menuItems.push({ label: '编辑配置文件', icon: '✏️', action: 'edit:' + name + '|' + scope });
-        menuItems.push({ label: '删除服务', icon: '🗑', action: 'remove:' + name + '|' + scope, danger: true });
+        menuItems.push({ label: '启动', icon: '▶', action: __systemdControl, actionParams: [name, 'start', scope] });
+        menuItems.push({ label: '停止', icon: '⏹', action: __systemdControl, actionParams: [name, 'stop', scope] });
+        menuItems.push({ label: '重启', icon: '🔄', action: __systemdControl, actionParams: [name, 'restart', scope] });
+        menuItems.push({ label: '查看日志', icon: '📋', action: openServiceLog, actionParams: escapeHtml(String(name)) });
+        menuItems.push({ label: '编辑配置文件', icon: '✏️', action: __systemdEditConfig, actionParams: [name, scope] });
+        menuItems.push({ label: '删除服务', icon: '🗑', action: __systemdRemove, actionParams: [name, scope], danger: true });
 
         // 使用 SmallMenu 生成菜单
         var menuResult = SmallMenu.render({
             triggerText: '⋮',
-            items: menuItems,
-            onAction: function(action) {
-                var parts = action.split(':');
-                var type = parts[0];
-                var arg1 = parts[1] || '';
-                var arg2 = parts[2] || '';
-                if (type === 'log') {
-                    openServiceLog(arg1);
-                } else if (type === 'header') {
-                    return;
-                } else if (type === 'edit') {
-                    __systemdEditConfig(arg1, arg2);
-                } else if (type === 'remove') {
-                    __systemdRemove(arg1, arg2);
-                } else {
-                    __systemdControl(arg1, type, arg2);
-                }
-            }
+            items: menuItems
         });
 
         return '<div style="border:1px solid #d0d7de;border-radius:10px;background:#fff;padding:12px 14px;">'
