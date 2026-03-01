@@ -42,7 +42,7 @@
                 : 'display:none;position:absolute;right:0;top:100%;background:#fff;';
             var menuHtml = '<div class="smallmenu-wrapper" style="position:relative;display:inline-block;">'
                 + '<button type="button" class="smallmenu-trigger ' + triggerClass + '" '
-                + 'onclick="SmallMenu.toggle(\'' + id + '\')" '
+                + 'onclick="SmallMenu.toggle(\'' + id + '\'); return false;" '
                 + 'style="border:none;background:none;cursor:pointer;padding:4px;font-size:16px;line-height:1;">'
                 + triggerText
                 + '</button>'
@@ -70,7 +70,7 @@
                 menuHtml += '<div class="smallmenu-item" '
                     + 'data-item-id="' + itemId + '" '
                     + (actionStr ? 'data-action="' + actionStr + '" ' : '')
-                    + 'onclick="SmallMenu._handleClick(\'' + id + '\', \'' + itemId + '\')" '
+                    + 'onclick="SmallMenu._handleClick(\'' + id + '\', \'' + itemId + '\'); return false;" '
                     + 'style="padding:8px 12px;cursor:pointer;font-size:13px;' + danger + disabled + '">'
                     + (icon ? icon + ' ' : '') + SmallMenu._escapeHtml(label)
                     + '</div>';
