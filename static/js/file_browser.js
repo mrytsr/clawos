@@ -207,7 +207,37 @@ function openCurrentFolderMenu(ev) {
         var p = (path || '').replace(/\\/g, '/').replace(/\/+$/, '');
         name = p ? p.split('/').pop() : '根目录';
     }
-    showMenuModal(path, name, true);
+
+    // 使用 SmallMenu 显示文件夹菜单
+    var menuId = 'folder-menu-' + Math.random().toString(36).substr(2, 9);
+    window.currentItemPath = path;
+    window.currentItemName = name;
+    window.currentItemIsDir = true;
+
+    var menuItems = [
+        { label: '复制绝对路径', icon: '📋', action: function() { handleMenuAction('copyPath'); }, actionParams: path },
+        { label: '创建软链接', icon: '🔗', action: function() { handleMenuAction('link'); }, actionParams: path },
+        { label: '在终端打开', icon: '📺', action: function() { handleMenuAction('terminal'); }, actionParams: path },
+        { label: '新建压缩包', icon: '🗜️', action: function() { handleMenuAction('newArchive'); }, actionParams: path }
+    ];
+
+    var menuHtml = SmallMenu.render({
+        menuId: menuId,
+        triggerText: '⋮',
+        items: menuItems,
+        center: true,
+        closeOnClickOutside: true
+    });
+
+    // 添加到 body
+    var tempDiv = document.createElement('div');
+    tempDiv.innerHTML = menuHtml;
+    document.body.appendChild(tempDiv.firstChild);
+
+    // 打开菜单
+    setTimeout(function() {
+        SmallMenu.open(menuId);
+    }, 10);
 }
 
 function closeMenuModal() {
@@ -1633,7 +1663,33 @@ function clearTrash() {
 }
 
 function openCreateMenuDrawer(callbacks) {
-    Drawer.open('createMenuDrawer', callbacks);
+    // 使用 SmallMenu 显示创建菜单
+    var menuId = 'create-menu-' + Math.random().toString(36).substr(2, 9);
+
+    var menuItems = [
+        { label: '上传', icon: '📤', action: function() { createMenuUpload(); } },
+        { label: '新建文件夹', icon: '📁', action: function() { createMenuNewFolder(); } },
+        { label: '新建文件', icon: '📄', action: function() { createMenuNewFile(); } },
+        { label: '网页快捷方式', icon: '🔗', action: function() { createMenuNewUrl(); } }
+    ];
+
+    var menuHtml = SmallMenu.render({
+        menuId: menuId,
+        triggerText: '+',
+        items: menuItems,
+        center: true,
+        closeOnClickOutside: true
+    });
+
+    // 添加到 body
+    var tempDiv = document.createElement('div');
+    tempDiv.innerHTML = menuHtml;
+    document.body.appendChild(tempDiv.firstChild);
+
+    // 打开菜单
+    setTimeout(function() {
+        SmallMenu.open(menuId);
+    }, 10);
 }
 
 function closeCreateMenuDrawer(callbacks) {
