@@ -162,13 +162,21 @@
 
             // 如果 action 是 function，直接调用
             if (typeof action === 'function') {
-                action(actionParams);
+                // 如果 actionParams 是数组，展开传递
+                if (Array.isArray(actionParams)) {
+                    action.apply(null, actionParams);
+                } else {
+                    action(actionParams);
+                }
             } else if (menuData && menuData.onAction) {
                 // 否则调用 onAction 回调
                 menuData.onAction(action, actionParams, menuData.items);
             }
-            // 点击后关闭菜单
-            this.close(menuId);
+            // 延迟 0.5s 关闭菜单，确保功能执行
+            var self = this;
+            setTimeout(function() {
+                self.close(menuId);
+            }, 500);
         },
 
         /**
