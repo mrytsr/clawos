@@ -553,6 +553,70 @@ function __systemdControl(service, action, scope) {
         });
 }
 
+// 删除 systemd 服务
+window.__systemdRemove = function(service, scope) {
+    const svc = String(service || '');
+    const scp = scope || 'user';
+    if (!svc) return;
+    if (!confirm('确定要删除服务 ' + svc + ' 吗？此操作不可恢复。')) return;
+    
+    __postJson('/api/systemd/remove', { service: svc, scope: scp })
+        .then(function(data) {
+            if (apiSuccess(data)) {
+                if (typeof window.showToast === 'function') window.showToast('删除成功', 'success');
+                window.loadSystemdList();
+            } else {
+                if (typeof window.showToast === 'function') window.showToast(apiMessage(data) || '删除失败', 'error');
+            }
+        })
+        .catch(function() {
+            if (typeof window.showToast === 'function') window.showToast('删除失败', 'error');
+        });
+};
+
+// 编辑 systemd 服务配置文件
+window.__systemdEditConfig = function(service, scope) {
+    const svc = String(service || '');
+    const scp = scope || window._systemdCurrentScope || 'user';
+    console.log('Edit config:', svc, scp);
+    if (!svc) {
+        if (typeof window.showToast === 'function') window.showToast('服务名无效', 'error');
+        return;
+    }
+    
+    const url = '/api/systemd/config_path?service=' + encodeURIComponent(svc) + '&scope=' + encodeURIComponent(scp);
+    console.log('Fetching:', url);
+    
+    // 先获取配置文件路径
+    fetch(url, { headers: authHeaders() })
+        .then(function(r) { 
+            console.log('Response status:', r.status);
+            return r.json(); 
+        })
+        .then(function(data) {
+            console.log('Response data:', data);
+            if (data.success && data.data && data.data.path) {
+                const configPath = data.data.path;
+                console.log('Config path:', configPath);
+                // 用代码编辑器打开
+                if (typeof window.openEditor === 'function') {
+                    window.openEditor(configPath);
+                } else {
+                    // 备用：打开文件管理器到该目录
+                    window.openFolder(configPath);
+                }
+            } else {
+                if (typeof window.showToast === 'function') {
+                    window.showToast(data.message || '未找到配置文件', 'error');
+                }
+            }
+        })
+        .catch(function(err) {
+            console.error('Fetch error:', err);
+            if (typeof window.showToast === 'function') window.showToast('获取配置文件失败', 'error');
+        });
+};
+
 window.loadSystemdList = function() {
     const container = __setContainerHtml('systemdListContainer', __loadingHtml('加载中...'));
     
@@ -677,27 +741,65 @@ window.switchSystemdTab = function(scope) {
         const isActive = String(active).toLowerCase() === 'active';
         const badgeColor = isActive ? '#2da44e' : '#cf222e';
         const badgeText = isActive ? 'active' : (active || 'inactive');
+        const enabledBadgeColor = enabled ? '#0969da' : '#8b8b8b';
+        const enabledBadgeText = enabled ? 'enabled' : 'disabled';
+        const scope = window._systemdCurrentScope || 'user';
+        const serviceName = escapeHtml(String(name));
+        const menuId = 'sysd-menu-' + Math.random().toString(36).substr(2, 9);
+        
         return '<div style="border:1px solid #d0d7de;border-radius:10px;background:#fff;padding:12px 14px;">'
             + '<div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;">'
             + '<div style="min-width:0;">'
             + '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">'
-            + '<div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + escapeHtml(String(name)) + '</div>'
+            + '<div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + serviceName + '</div>'
             + '<span style="font-size:11px;padding:2px 8px;border-radius:999px;background:' + badgeColor + ';color:#fff;">' + escapeHtml(String(badgeText)) + '</span>'
-            + (enabled ? '<span style="font-size:11px;padding:2px 8px;border-radius:999px;background:#ddf4ff;color:#0969da;">enabled</span>' : '')
+            + '<span style="font-size:11px;padding:2px 8px;border-radius:999px;background:' + enabledBadgeColor + ';color:#fff;">' + enabledBadgeText + '</span>'
             + '</div>'
             + (desc ? '<div style="font-size:12px;color:#57606a;margin-top:2px;word-break:break-word;">' + escapeHtml(String(desc)) + '</div>' : '')
             + '<div style="font-size:12px;color:#57606a;margin-top:2px;">' + escapeHtml(String(active)) + (sub ? ' (' + escapeHtml(String(sub)) + ')' : '') + '</div>'
             + (sinceAgo ? '<div style="font-size:12px;color:#57606a;margin-top:2px;">启动于 ' + escapeHtml(String(sinceAgo)) + '</div>' : '')
             + '</div>'
-            + '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:4px;flex-shrink:0;width:80px;">'
-            + '<button type="button" onclick="openServiceLog(\'' + escapeHtml(String(name)) + '\')" style="border:1px solid #8250df;background:#fff;border-radius:4px;padding:4px;cursor:pointer;color:#8250df;" title="日志">📋</button>'
-            + '<button type="button" data-action="systemd" data-op="restart" data-name="' + escapeHtml(String(name)) + '" style="border:1px solid #0969da;background:#fff;border-radius:4px;padding:4px;cursor:pointer;color:#0969da;" title="重启">🔄</button>'
-            + '<button type="button" data-action="systemd" data-op="start" data-name="' + escapeHtml(String(name)) + '" style="border:1px solid #2da44e;background:#fff;border-radius:4px;padding:4px;cursor:pointer;color:#2da44e;" title="启动">▶</button>'
-            + '<button type="button" data-action="systemd" data-op="stop" data-name="' + escapeHtml(String(name)) + '" style="border:1px solid #cf222e;background:#fff;border-radius:4px;padding:4px;cursor:pointer;color:#cf222e;" title="停止">⏹</button>'
+            + '<div style="position:relative;flex-shrink:0;">'
+            + '<button type="button" onclick="window.toggleSystemdMenu(\'' + menuId + '\')" style="border:none;background:none;cursor:pointer;padding:4px;font-size:16px;line-height:1;">⋮</button>'
+            + '<div id="' + menuId + '" style="display:none;position:absolute;right:0;top:100%;background:#fff;border:1px solid #d0d7de;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);min-width:140px;z-index:1000;overflow:hidden;">'
+            + '<div style="padding:8px 12px;border-bottom:1px solid #eee;font-size:12px;color:#57606a;">' + serviceName + '</div>'
+            + (enabled 
+                ? '<div onclick="__systemdControl(\'' + escapeHtml(String(name)) + '\', \'disable\', \'' + scope + '\')" style="padding:8px 12px;cursor:pointer;font-size:13px;">🚫 禁用开机启动</div>'
+                : '<div onclick="__systemdControl(\'' + escapeHtml(String(name)) + '\', \'enable\', \'' + scope + '\')" style="padding:8px 12px;cursor:pointer;font-size:13px;">✅ 启用开机启动</div>')
+            + '<div onclick="__systemdControl(\'' + escapeHtml(String(name)) + '\', \'start\', \'' + scope + '\')" style="padding:8px 12px;cursor:pointer;font-size:13px;">▶ 启动</div>'
+            + '<div onclick="__systemdControl(\'' + escapeHtml(String(name)) + '\', \'stop\', \'' + scope + '\')" style="padding:8px 12px;cursor:pointer;font-size:13px;">⏹ 停止</div>'
+            + '<div onclick="__systemdControl(\'' + escapeHtml(String(name)) + '\', \'restart\', \'' + scope + '\')" style="padding:8px 12px;cursor:pointer;font-size:13px;">🔄 重启</div>'
+            + '<div onclick="openServiceLog(\'' + serviceName + '\')" style="padding:8px 12px;cursor:pointer;font-size:13px;">📋 查看日志</div>'
+            + '<div onclick="__systemdEditConfig(\'' + escapeHtml(String(name)) + '\', \'' + scope + '\')" style="padding:8px 12px;cursor:pointer;font-size:13px;">✏️ 编辑配置文件</div>'
+            + '<div onclick="__systemdRemove(\'' + escapeHtml(String(name)) + '\', \'' + scope + '\')" style="padding:8px 12px;cursor:pointer;font-size:13px;color:#cf222e;">🗑 删除服务</div>'
+            + '</div>'
             + '</div>'
             + '</div>'
             + '</div>';
     }).join('') + '</div>';
+
+    // 添加菜单切换函数（如果还没有）
+    if (!window.toggleSystemdMenu) {
+        window.toggleSystemdMenu = function(menuId) {
+            var allMenus = document.querySelectorAll('[id^="sysd-menu-"]');
+            allMenus.forEach(function(m) {
+                if (m.id !== menuId) m.style.display = 'none';
+            });
+            var menu = document.getElementById(menuId);
+            if (menu) {
+                menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+            }
+        };
+    }
+
+    // 点击其他地方关闭菜单
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('[id^="sysd-menu-"]') && !e.target.closest('[onclick*="toggleSystemdMenu"]')) {
+            document.querySelectorAll('[id^="sysd-menu-"]').forEach(function(m) {
+                m.style.display = 'none';
+            });
+        }
+    });
 
     Array.from(container.querySelectorAll('button[data-action="systemd"]')).forEach(function(btn) {
         btn.addEventListener('click', function(e) {
@@ -2167,7 +2269,7 @@ window.loadClashConfig = function() {
             const svc = payload.service || {};
 
             const svcAvailable = !!svc.available;
-            const svcName = escapeHtml(String((svc.id || 'clash.service')));
+            const svcName = escapeHtml(String((svc.id || 'mihomo.service')));
             const svcText = svcAvailable
                 ? (svc.running ? '<span style="color:#2da44e;">● 运行中</span>' : '<span style="color:#cf222e;">● 未运行</span>')
                 : '<span style="color:#666;">未知</span>';
@@ -2253,18 +2355,18 @@ window.clashRefreshStatus = function() {
 
 window.clashControl = function(action) {
     const actions = { 'start': '启动', 'stop': '停止', 'restart': '重启' };
-    SwalConfirm('确认操作', '确定要' + actions[action] + ' Clash 服务吗？', function() { toggleClash(action); }, 'warning'); return;
-
-    __postJson('/api/clash/control', { action: action })
-        .then(function(data) {
-            if (data && data.success) {
-                showToast('Clash 服务已' + actions[action], 'success');
-                window.clashRefreshStatus();
-                return;
-            }
-            SwalAlert('操作失败', actions[action] + '失败: ' + ((data && (data.message || data.error)) || '未知错误'), 'error');
-        })
-        .catch(function(err) { showToast('请求失败: ' + err.message, 'error'); });
+    SwalConfirm('确认操作', '确定要' + actions[action] + ' mihomo 服务吗？', function() {
+        __postJson('/api/clash/control', { action: action })
+            .then(function(data) {
+                if (data && data.success) {
+                    showToast('mihomo 服务已' + actions[action], 'success');
+                    window.clashRefreshStatus();
+                    return;
+                }
+                SwalAlert('操作失败', actions[action] + '失败: ' + ((data && (data.message || data.error)) || '未知错误'), 'error');
+            })
+            .catch(function(err) { showToast('请求失败: ' + err.message, 'error'); });
+    }, 'warning');
 };
 
 window.openClashModal = function() { Drawer.open('clashModal'); };
@@ -2536,6 +2638,7 @@ window.loadClashConfigEnhanced = function() {
         const cfg = statePayload.config || {};
         const proxies = proxyPayload.proxies || [];
         const proxyGroups = proxyPayload.proxy_groups || [];
+        const proxyProviders = proxyPayload.proxy_providers || [];
         const currentSelection = proxyPayload.current_selection || {};
         const ports = proxyPayload.ports || {};
         const rulesCount = proxyPayload.rules_count || 0;
@@ -2552,7 +2655,7 @@ window.loadClashConfigEnhanced = function() {
         html += '<div style="font-size:13px;color:#666;margin-bottom:8px;padding-left:4px;">服务状态</div>';
         html += '<div style="background:#fff;border:1px solid #d0d7de;border-radius:8px;overflow:hidden;">';
         html += '<div style="padding:12px;display:flex;justify-content:space-between;align-items:center;">';
-        html += '<span style="font-weight:500;">' + (svc.id || 'clash.service') + '</span>';
+        html += '<span style="font-weight:500;">' + (svc.id || 'mihomo.service') + '</span>';
         html += '<span id="clashServiceStatus" style="font-size:12px;">' + svcText + '</span>';
         html += '</div>';
         html += '<div style="padding:0 12px 12px;display:flex;gap:8px;">';
@@ -2570,14 +2673,36 @@ window.loadClashConfigEnhanced = function() {
         if (ports.http) html += '<div style="padding:10px 12px;display:flex;justify-content:space-between;"><span style="color:#666;">HTTP</span><span style="font-family:monospace;">' + ports.http + '</span></div>';
         html += '</div></div>';
         
-        // 订阅管理
+        // 订阅管理 (proxy-providers)
         html += '<div style="margin-bottom:16px;">';
-        html += '<div style="font-size:13px;color:#666;margin-bottom:8px;padding-left:4px;">📡 订阅</div>';
+        html += '<div style="font-size:13px;color:#666;margin-bottom:8px;padding-left:4px;">📡 订阅 Providers</div>';
         html += '<div style="background:#fff;border:1px solid #d0d7de;border-radius:8px;overflow:hidden;">';
-        html += '<div style="padding:12px;">';
-        html += '<input type="text" id="clashSubUrl" placeholder="输入订阅URL" style="width:100%;padding:8px;border:1px solid #d0d7de;border-radius:6px;font-size:13px;margin-bottom:8px;box-sizing:border-box;">';
+        
+        // 已有的 providers 列表
+        if (proxyProviders.length > 0) {
+            proxyProviders.forEach(function(provider, idx) {
+                html += '<div style="padding:10px 12px;' + (idx < proxyProviders.length - 1 ? 'border-bottom:1px solid #eee;' : '') + '">';
+                html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">';
+                html += '<span style="font-weight:500;font-size:13px;">' + escapeHtml(provider.name || '未命名') + '</span>';
+                html += '<div style="display:flex;gap:4px;">';
+                html += '<button onclick="clashRefreshProvider(\'' + escapeHtml(provider.name).replace(/'/g, "\\'") + '\')" style="padding:4px 8px;border-radius:4px;border:1px solid #d0d7de;background:#fff;cursor:pointer;font-size:11px;">🔄</button>';
+                html += '<button onclick="clashDeleteProvider(\'' + escapeHtml(provider.name).replace(/'/g, "\\'") + '\')" style="padding:4px 8px;border-radius:4px;border:1px solid #cf222e;background:#fff;cursor:pointer;font-size:11px;color:#cf222e;">🗑</button>';
+                html += '</div></div>';
+                if (provider.url) {
+                    html += '<div style="font-size:11px;color:#666;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + escapeHtml(provider.url) + '</div>';
+                }
+                html += '</div>';
+            });
+        } else {
+            html += '<div style="padding:20px;text-align:center;color:#666;font-size:13px;">暂无订阅</div>';
+        }
+        
+        // 添加新订阅表单
+        html += '<div style="padding:12px;border-top:1px solid #eee;">';
+        html += '<input type="text" id="clashProviderUrl" placeholder="输入订阅URL" style="width:100%;padding:8px;border:1px solid #d0d7de;border-radius:6px;font-size:13px;margin-bottom:8px;box-sizing:border-box;">';
+        html += '<input type="text" id="clashProviderName" placeholder="订阅名称（可选）" style="width:100%;padding:8px;border:1px solid #d0d7de;border-radius:6px;font-size:13px;margin-bottom:8px;box-sizing:border-box;">';
         html += '<div style="display:flex;gap:8px;">';
-        html += '<button onclick="clashUpdateSub()" style="flex:1;padding:8px;border-radius:6px;border:1px solid #d0d7de;background:#fff;cursor:pointer;font-size:13px;">🔄 更新订阅</button>';
+        html += '<button onclick="clashAddProvider()" style="flex:1;padding:8px;border-radius:6px;border:1px solid #2da44e;background:#2da44e;color:#fff;cursor:pointer;font-size:13px;">➕ 添加订阅</button>';
         html += '<button onclick="openClashInEditor()" style="flex:1;padding:8px;border-radius:6px;border:1px solid #d0d7de;background:#fff;cursor:pointer;font-size:13px;">📝 编辑配置</button>';
         html += '</div></div></div></div>';
         
@@ -2649,10 +2774,59 @@ window.clashUpdateSub = function() {
     __postJson('/api/clash/subscribe', { url: url })
         .then(function(data) {
             if (data && data.success) {
-                SwalAlert('更新成功', '订阅更新成功！请重启 Clash 服务使配置生效。', 'success');
+                SwalAlert('更新成功', '订阅更新成功！请重启 mihomo 服务使配置生效。', 'success');
                 window.loadClashConfigEnhanced();
             } else {
                 SwalAlert('更新失败', '更新失败: ' + ((data && (data.message || data.error)) || '未知错误'), 'error');
+            }
+        })
+        .catch(function(err) { showToast('请求失败: ' + err.message, 'error'); });
+};
+
+window.clashAddProvider = function() {
+    const urlInput = document.getElementById('clashProviderUrl');
+    const nameInput = document.getElementById('clashProviderName');
+    const url = urlInput ? urlInput.value.trim() : '';
+    const name = nameInput ? nameInput.value.trim() : '';
+    
+    if (!url) { SwalAlert('提示', '请输入订阅URL', 'warning'); return; }
+    
+    __postJson('/api/clash/provider/add', { url: url, name: name })
+        .then(function(data) {
+            if (data && data.success) {
+                SwalAlert('添加成功', '订阅添加成功！请重启 mihomo 服务使配置生效。', 'success');
+                window.loadClashConfigEnhanced();
+            } else {
+                SwalAlert('添加失败', '添加失败: ' + ((data && (data.message || data.error)) || '未知错误'), 'error');
+            }
+        })
+        .catch(function(err) { showToast('请求失败: ' + err.message, 'error'); });
+};
+
+window.clashDeleteProvider = function(name) {
+    SwalConfirm('删除订阅', '确定要删除订阅 "' + name + '" 吗？', function() {
+        __postJson('/api/clash/provider/delete', { name: name })
+            .then(function(data) {
+                if (data && data.success) {
+                    SwalAlert('删除成功', '订阅删除成功！请重启 mihomo 服务使配置生效。', 'success');
+                    window.loadClashConfigEnhanced();
+                } else {
+                    SwalAlert('删除失败', '删除失败: ' + ((data && (data.message || data.error)) || '未知错误'), 'error');
+                }
+            })
+            .catch(function(err) { showToast('请求失败: ' + err.message, 'error'); });
+    }, 'warning');
+};
+
+window.clashRefreshProvider = function(name) {
+    showToast('正在刷新订阅...', 'info');
+    __postJson('/api/clash/provider/refresh', { name: name })
+        .then(function(data) {
+            if (data && data.success) {
+                SwalAlert('刷新成功', '订阅 "' + name + '" 刷新成功！', 'success');
+                window.loadClashConfigEnhanced();
+            } else {
+                SwalAlert('刷新失败', '刷新失败: ' + ((data && (data.message || data.error)) || '未知错误'), 'error');
             }
         })
         .catch(function(err) { showToast('请求失败: ' + err.message, 'error'); });
@@ -2689,7 +2863,7 @@ window.clashSwitchProxy = function(groupName, proxyName) {
     __postJson('/api/clash/switch', { group: groupName, proxy: proxyName })
         .then(function(data) {
             if (data && data.success) {
-                SwalAlert('切换成功', '请重启 Clash 服务使配置生效', 'success');
+                SwalAlert('切换成功', '请重启 mihomo 服务使配置生效', 'success');
                 window.loadClashConfigEnhanced();
             } else {
                 SwalAlert('切换失败', '切换失败: ' + ((data && (data.message || data.error)) || '未知错误'), 'error');

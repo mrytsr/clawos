@@ -275,6 +275,65 @@ def api_systemd_control():
     return api_ok({'taskId': task_id})
 
 
+@system_bp.route('/api/systemd/remove', methods=['POST'])
+def api_systemd_remove():
+    """删除 systemd 服务"""
+    data = request.json
+    if not isinstance(data, dict):
+        return api_error('Invalid JSON', status=400)
+    service = data.get('service', '').strip()
+    scope = data.get('scope', 'user')
+    
+    if not service:
+        return api_error('Missing service name', status=400)
+    
+    # 验证服务名称
+    import re
+    if not re.match(r'^[a-zA-Z0-9_\-\.]+(\.service)?$', service):
+        return api_error('Invalid service name', status=400)
+    
+    # 先停止服务（如果正在运行）
+    try:
+        systemd_utils.control_systemd_service(service, 'stop', scope)
+    except:
+        pass
+    
+    # 删除服务文件
+    try:
+        import os
+        if scope == 'user':
+            unit_file = os.path.expanduser(f'~/.config/systemd/user/{service}')
+        else:
+            unit_file = f'/etc/systemd/system/{service}'
+        
+        if os.path.exists(unit_file):
+            os.remove(unit_file)
+            # 重新加载 systemd
+            subprocess.run(['systemctl', '--user', 'daemon-reload'] if scope == 'user' else ['systemctl', 'daemon-reload'], 
+                          capture_output=True)
+            return api_ok({'success': True, 'message': f'已删除 {service}'})
+        else:
+            return api_error(f'服务文件不存在: {unit_file}', status=404)
+    except Exception as e:
+        return api_error(f'删除失败: {str(e)}', status=500)
+
+
+@system_bp.route('/api/systemd/config_path', methods=['GET'])
+def api_systemd_config_path():
+    """获取服务配置文件路径"""
+    service = request.args.get('service', '').strip()
+    scope = request.args.get('scope', 'user')
+    
+    if not service:
+        return api_error('Missing service name', status=400)
+    
+    result = systemd_utils.get_service_config_path(service, scope)
+    if result.get('success'):
+        return api_ok(result)
+    else:
+        return api_error(result.get('message', '未找到配置文件'), status=404)
+
+
 @system_bp.route('/api/disk/list')
 def api_disk_list():
     result = disk_utils.list_disks()

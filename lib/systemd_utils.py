@@ -1,3 +1,4 @@
+import os
 import re
 import subprocess
 from datetime import datetime
@@ -125,5 +126,49 @@ def control_systemd_service(service, action, scope='user'):
             subprocess.run(cmd, capture_output=True, text=True)
 
         return {'success': True, 'message': f'{service} {action} 成功'}
+    except Exception as e:
+        return {'success': False, 'message': str(e)}
+
+
+def get_service_config_path(service, scope='user'):
+    """获取服务配置文件路径
+    
+    Args:
+        service: 服务名
+        scope: 'user' or 'system'
+    """
+    try:
+        cmd = ['systemctl']
+        if scope == 'user':
+            cmd.append('--user')
+        cmd.extend(['show', '-p', 'FragmentPath', '--value', service])
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=5)
+        path = result.stdout.strip()
+        if path and path != '':
+            # 转换为相对于 ~ 的路径
+            home = os.path.expanduser('~')
+            if path.startswith(home):
+                path = path[len(home):]
+                if path.startswith('/'):
+                    path = path[1:]
+            return {'success': True, 'path': path}
+        
+        # 尝试从常见路径查找
+        if scope == 'user':
+            common_paths = [
+                os.path.expanduser(f'~/.config/systemd/user/{service}'),
+                os.path.expanduser(f'~/.config/systemd/user/{service}.service'),
+            ]
+        else:
+            common_paths = [
+                f'/etc/systemd/system/{service}',
+                f'/etc/systemd/system/{service}.service',
+            ]
+        
+        for p in common_paths:
+            if os.path.exists(p):
+                return {'success': True, 'path': p}
+        
+        return {'success': False, 'message': '未找到配置文件'}
     except Exception as e:
         return {'success': False, 'message': str(e)}

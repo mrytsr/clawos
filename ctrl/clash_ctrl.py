@@ -22,7 +22,7 @@ from lib import systemd_utils
 clash_bp = Blueprint('clash', __name__)
 
 
-DEFAULT_SERVICE = 'clash.service'
+DEFAULT_SERVICE = 'mihomo.service'
 SERVICE_CANDIDATES = ['clash.service', 'clash-meta.service', 'mihomo.service']
 
 
@@ -49,7 +49,8 @@ def _run_shell(task_id, cmd: str, timeout=None):
 
 
 def _mihomo_bin_path():
-    for p in ['/usr/local/mihomo/mihomo', '/usr/local/bin/mihomo', '/usr/bin/mihomo', '/usr/local/bin/clash', '/usr/bin/clash']:
+    home = os.path.expanduser('~')
+    for p in [f'{home}/.local/bin/mihomo', '/usr/local/mihomo/mihomo', '/usr/local/bin/mihomo', '/usr/bin/mihomo', '/usr/local/bin/clash', '/usr/bin/clash']:
         if os.path.exists(p) and os.access(p, os.X_OK):
             return p
     found = shutil.which('mihomo') or shutil.which('clash')
@@ -106,12 +107,17 @@ def _systemctl_user_show(unit: str):
     if not props:
         return {'available': False, 'error': 'systemctl failed'}
 
+    # 服务不存在（not-found）时认为不可用
+    load_state = props.get('LoadState', '')
+    if load_state == 'not-found':
+        return {'available': False, 'error': 'service not found'}
+
     running = props.get('ActiveState') == 'active' and props.get('SubState') == 'running'
     return {
         'available': True,
         'id': props.get('Id') or unit,
         'description': props.get('Description') or '',
-        'load_state': props.get('LoadState') or '',
+        'load_state': load_state,
         'active_state': props.get('ActiveState') or '',
         'sub_state': props.get('SubState') or '',
         'unit_file_state': props.get('UnitFileState') or '',
@@ -196,6 +202,7 @@ def _parse_clash_yaml(content: str):
     out = {
         'proxies': [],
         'proxy_groups': [],
+        'proxy_providers': [],  # 新增
         'rules_count': 0,
         'ports': {},
     }
@@ -204,11 +211,15 @@ def _parse_clash_yaml(content: str):
     in_proxies = False
     in_proxy_providers = False
     in_proxy_groups = False
+    current_provider = None
     
     for i, line in enumerate(lines):
         line_stripped = line.strip()
         
         if line_stripped.startswith('proxies:'):
+            if current_provider:
+                out['proxy_providers'].append(current_provider)
+                current_provider = None
             in_proxies = True
             in_proxy_providers = False
             in_proxy_groups = False
@@ -217,13 +228,20 @@ def _parse_clash_yaml(content: str):
             in_proxies = False
             in_proxy_providers = True
             in_proxy_groups = False
+            current_provider = None
             continue
         if 'proxy-groups:' in line_stripped or 'Groups' in line_stripped:
+            if current_provider:
+                out['proxy_providers'].append(current_provider)
+                current_provider = None
             in_proxies = False
             in_proxy_providers = False
             in_proxy_groups = True
             continue
         if line_stripped.startswith('rules:') or line_stripped.startswith('Rules:'):
+            if current_provider:
+                out['proxy_providers'].append(current_provider)
+                current_provider = None
             in_proxies = False
             in_proxy_providers = False
             in_proxy_groups = False
@@ -231,6 +249,45 @@ def _parse_clash_yaml(content: str):
             remaining = [l.strip() for l in lines[i+1:] if l.strip() and not l.strip().startswith('#')]
             out['rules_count'] = len(remaining)
             continue
+        
+        # 提取 proxy-providers
+        if in_proxy_providers:
+            # 检测退出
+            if line_stripped.startswith('proxies:') or line_stripped.startswith('proxy-groups:') or line_stripped.startswith('rules:'):
+                if current_provider:
+                    out['proxy_providers'].append(current_provider)
+                    current_provider = None
+                in_proxy_providers = False
+                continue
+            
+            if not line_stripped or line_stripped.startswith('#'):
+                continue
+            
+            # 键值对格式
+            key_match = re.match(r'^(\S[^:]*?)\s*:$', line_stripped)
+            if key_match:
+                name = key_match.group(1).strip().strip('"').strip("'")
+                # 排除关键字
+                if name and name not in ['proxy-providers', 'Proxy-providers', 'proxies', 'proxy-groups', 'rules', 'Rules']:
+                    if current_provider:
+                        out['proxy_providers'].append(current_provider)
+                    current_provider = {'name': name, 'url': '', 'type': '', 'path': ''}
+                    continue
+            
+            # 提取属性
+            if current_provider:
+                url_match = re.search(r'url\s*:\s*(.+)', line_stripped)
+                if url_match:
+                    current_provider['url'] = url_match.group(1).strip().strip('"').strip("'")
+                type_match = re.search(r'type\s*:\s*(.+)', line_stripped)
+                if type_match:
+                    current_provider['type'] = type_match.group(1).strip().strip('"').strip("'")
+                path_match = re.search(r'path\s*:\s*(.+)', line_stripped)
+                if path_match:
+                    current_provider['path'] = path_match.group(1).strip().strip('"').strip("'")
+                interval_match = re.search(r'interval\s*:\s*(\d+)', line_stripped)
+                if interval_match:
+                    current_provider['interval'] = interval_match.group(1)
         
         # 提取节点
         if in_proxies and line_stripped.startswith('- '):
@@ -248,6 +305,10 @@ def _parse_clash_yaml(content: str):
             name = line_stripped.replace('- name:', '').strip().strip('"').strip("'")
             if name:
                 out['proxy_groups'].append(name)
+    
+    # 最后一个 provider
+    if current_provider:
+        out['proxy_providers'].append(current_provider)
     
     # 提取端口信息
     port_match = re.search(r'(?:listen|port)\s*:\s*(\d+)', text)
@@ -410,6 +471,183 @@ def api_clash_subscribe():
         return api_error(str(e), status=500)
 
 
+@clash_bp.route('/api/clash/provider/add', methods=['POST'])
+def api_clash_provider_add():
+    """添加订阅 provider"""
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return api_error('Invalid JSON', status=400)
+    
+    url = (data.get('url') or '').strip()
+    name = (data.get('name') or '').strip() or '机场订阅'
+    interval = data.get('interval', 3600)  # 默认1小时
+    
+    if not url:
+        return api_error('Missing URL', status=400)
+    
+    config_path = _find_config()
+    if not config_path or not os.path.exists(config_path):
+        return api_error('Config file not found', status=404)
+    
+    try:
+        # 读取现有配置
+        with open(config_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+        
+        # 备份
+        backup_path = config_path + '.bak.' + datetime.now().strftime('%Y%m%d%H%M%S')
+        with open(backup_path, 'w', encoding='utf-8') as f:
+            f.write(content)
+        
+        # 添加 proxy-providers 区块
+        lines = content.split('\n')
+        new_lines = []
+        has_proxy_providers = False
+        provider_path = os.path.join(os.path.dirname(config_path), 'proxy-providers', f'{name}.yaml')
+        
+        # 确保目录存在
+        os.makedirs(os.path.dirname(provider_path), exist_ok=True)
+        
+        for line in lines:
+            new_lines.append(line)
+            if line.strip().startswith('proxy-providers:') or line.strip().startswith('Proxy-providers:'):
+                has_proxy_providers = True
+                new_lines.append(f'  {name}:')
+                new_lines.append(f'    type: http')
+                new_lines.append(f'    url: "{url}"')
+                new_lines.append(f'    interval: {interval}')
+                new_lines.append(f'    path: ./{os.path.basename(provider_path)}')
+        
+        if not has_proxy_providers:
+            # 在 mode 后面添加 proxy-providers
+            for i, line in enumerate(new_lines):
+                if line.strip().startswith('mode:'):
+                    new_lines.insert(i + 1, '')
+                    new_lines.insert(i + 2, 'proxy-providers:')
+                    new_lines.insert(i + 3, f'  {name}:')
+                    new_lines.insert(i + 4, f'    type: http')
+                    new_lines.insert(i + 5, f'    url: "{url}"')
+                    new_lines.insert(i + 6, f'    interval: {interval}')
+                    new_lines.insert(i + 7, f'    path: ./{os.path.basename(provider_path)}')
+                    break
+        
+        with open(config_path, 'w', encoding='utf-8') as f:
+            f.write('\n'.join(new_lines))
+        
+        return api_ok({
+            'success': True,
+            'path': config_path,
+            'backup': backup_path,
+            'message': f'添加订阅成功: {name}',
+        })
+        
+    except Exception as e:
+        return api_error(str(e), status=500)
+
+
+@clash_bp.route('/api/clash/provider/delete', methods=['POST'])
+def api_clash_provider_delete():
+    """删除订阅 provider"""
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return api_error('Invalid JSON', status=400)
+    
+    name = (data.get('name') or '').strip()
+    if not name:
+        return api_error('Missing provider name', status=400)
+    
+    config_path = _find_config()
+    if not config_path or not os.path.exists(config_path):
+        return api_error('Config file not found', status=404)
+    
+    try:
+        with open(config_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+        
+        # 备份
+        backup_path = config_path + '.bak.' + datetime.now().strftime('%Y%m%d%H%M%S')
+        with open(backup_path, 'w', encoding='utf-8') as f:
+            f.write(content)
+        
+        # 删除 provider
+        lines = content.split('\n')
+        new_lines = []
+        in_provider = False
+        provider_indent = 0
+        
+        for line in lines:
+            line_stripped = line.strip()
+            
+            # 检测是否进入目标 provider (支持两种格式)
+            # 格式1: "- name: xxx"
+            # 格式2: "provider_name:"
+            is_provider_start = False
+            if line_stripped.startswith(f'- name:') and name in line:
+                is_provider_start = True
+            elif line_stripped.endswith(':') and not line_stripped.startswith('-'):
+                # 键值对格式
+                provider_name = line_stripped.rstrip(':').strip()
+                if provider_name == name:
+                    is_provider_start = True
+            
+            if is_provider_start:
+                in_provider = True
+                provider_indent = len(line) - len(line.lstrip())
+                continue
+            
+            # 如果在目标 provider 内
+            if in_provider:
+                current_indent = len(line) - len(line.lstrip())
+                # 如果缩进小于等于 provider 缩进，说明已离开
+                if line.strip() and current_indent <= provider_indent:
+                    in_provider = False
+                    new_lines.append(line)
+                else:
+                    continue  # 跳过 provider 内的行
+            else:
+                new_lines.append(line)
+        
+        with open(config_path, 'w', encoding='utf-8') as f:
+            f.write('\n'.join(new_lines))
+        
+        return api_ok({
+            'success': True,
+            'path': config_path,
+            'backup': backup_path,
+            'message': f'删除订阅成功: {name}',
+        })
+        
+    except Exception as e:
+        return api_error(str(e), status=500)
+
+
+@clash_bp.route('/api/clash/provider/refresh', methods=['POST'])
+def api_clash_provider_refresh():
+    """手动刷新订阅 provider"""
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return api_error('Invalid JSON', status=400)
+    
+    name = (data.get('name') or '').strip()
+    if not name:
+        return api_error('Missing provider name', status=400)
+    
+    # 调用 mihomo API 刷新 (不编码URL)
+    try:
+        import json
+        # 直接使用原始字符串，不进行URL编码
+        response = requests.put(
+            f'http://127.0.0.1:9090/providers/proxies/{name}',
+            timeout=60
+        )
+        if response.status_code in (200, 204):
+            return api_ok({'success': True, 'message': f'刷新成功: {name}'})
+        else:
+            return api_error(f'刷新失败: {response.status_code} {response.text}', status=500)
+    except Exception as e:
+        return api_error(str(e), status=500)
+
+
 @clash_bp.route('/api/clash/proxies', methods=['GET'])
 def api_clash_proxies():
     """获取代理列表和当前选择"""
@@ -448,6 +686,7 @@ def api_clash_proxies():
         return api_ok({
             'proxies': parsed['proxies'],
             'proxy_groups': parsed['proxy_groups'],
+            'proxy_providers': parsed['proxy_providers'],
             'current_selection': current_selection,
             'ports': parsed['ports'],
             'rules_count': parsed['rules_count'],
@@ -600,7 +839,7 @@ def _ensure_mihomo_service(task_id):
         '',
         '[Service]',
         'Type=simple',
-        f'ExecStart=/usr/local/mihomo/mihomo -d {cfg_dir}',
+        f'ExecStart={home}/.local/bin/mihomo -d {cfg_dir}',
         'Restart=on-failure',
         'RestartSec=2',
         '',
@@ -653,8 +892,10 @@ def _download_mihomo_binary(task_id):
                     tf.write(chunk)
             file_path = tf.name
 
-    os.makedirs('/usr/local/mihomo', exist_ok=True)
-    out_path = '/usr/local/mihomo/mihomo'
+    home = os.path.expanduser('~')
+    install_dir = f'{home}/.local/bin'
+    os.makedirs(install_dir, exist_ok=True)
+    out_path = f'{install_dir}/mihomo'
     update_task(task_id, status='running', message='installing mihomo')
     try:
         if filename.endswith('.gz') and not filename.endswith('.tar.gz'):
@@ -717,6 +958,10 @@ def _clash_uninstall(task_id):
     try:
         if os.path.isdir('/usr/local/mihomo'):
             shutil.rmtree('/usr/local/mihomo', ignore_errors=True)
+        home = os.path.expanduser('~')
+        bin_path = f'{home}/.local/bin/mihomo'
+        if os.path.exists(bin_path):
+            os.remove(bin_path)
     except Exception:
         pass
 
