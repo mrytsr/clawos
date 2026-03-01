@@ -25,7 +25,6 @@
             var closeOnMask = options.closeOnMask !== false;
             var closeOnClickOutside = options.closeOnClickOutside !== false;
             var menuClass = options.menuClass || '';
-            var self = this;
 
             // 保存菜单配置
             this._menus[id] = {
@@ -178,12 +177,12 @@
         _setupGlobalClickListener: function() {
             var self = this;
             document.addEventListener('click', function(e) {
-                // 找到点击的菜单
+                // 找到点击的菜单或触发器
                 var clickedMenu = e.target.closest('.smallmenu-dropdown');
                 var clickedTrigger = e.target.closest('.smallmenu-trigger');
 
-                if (clickedMenu) {
-                    // 点击在菜单内，不处理
+                if (clickedMenu || clickedTrigger) {
+                    // 点击在菜单内或触发器上，不处理
                     return;
                 }
 
