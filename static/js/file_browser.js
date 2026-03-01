@@ -110,7 +110,7 @@ function openCurrentFolderMenu(ev) {
     }
 
     // 使用 SmallMenu 显示文件夹菜单
-    var menuId = 'folder-menu-' + Math.random().toString(36).substr(2, 9);
+    var menuId = 'folder-menu';
     window.currentItemPath = path;
     window.currentItemName = name;
     window.currentItemIsDir = true;
@@ -1479,7 +1479,7 @@ function clearTrash() {
 
 function openCreateMenuDrawer(callbacks) {
     // 使用 SmallMenu 显示创建菜单
-    var menuId = 'create-menu-' + Math.random().toString(36).substr(2, 9);
+    var menuId = 'create-menu';
 
     var menuItems = [
         { label: '上传', icon: '📤', action: function() { createMenuUpload(); } },
@@ -1645,7 +1645,7 @@ function confirmUrlShortcut() {
 
 // 使用 SmallMenu 显示文件操作菜单
 function showFileSmallMenu(path, name, isDir, triggerElement) {
-    var menuId = 'file-menu-' + Math.random().toString(36).substr(2, 9);
+    var menuId = 'file-menu';
     var menuItems = [];
     var currentPath = path;
     var currentName = name;

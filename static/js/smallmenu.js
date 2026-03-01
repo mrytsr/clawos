@@ -18,6 +18,15 @@
         init: function(options) {
             var self = this;
             var id = options.menuId || ('smallmenu-' + (++this._instanceId));
+            if (options.menuId) {
+                var existing = document.getElementById(id);
+                if (existing) {
+                    var wrapper = existing.closest('.smallmenu-wrapper');
+                    if (wrapper && wrapper.parentNode) {
+                        wrapper.parentNode.removeChild(wrapper);
+                    }
+                }
+            }
             var triggerText = options.triggerText || '⋮';
             var triggerClass = options.triggerClass || '';
             var items = options.items || [];
