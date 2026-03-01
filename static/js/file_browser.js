@@ -1364,6 +1364,12 @@ function addToChat(path) {
 
 // 详情
 window.showDetails = function(path, name) {
+    // 确保 path 有效（可能是 undefined、空字符串或字符串 'undefined'）
+    if (!path || path === 'undefined' || path === 'null') {
+        console.error('showDetails: invalid path', path);
+        if (typeof showToast === 'function') showToast('无效的文件路径', 'error');
+        return;
+    }
     const modal = document.getElementById('detailsModal');
     const content = document.getElementById('detailsContent');
     if (modal) { Drawer.open('detailsModal'); }
@@ -1770,30 +1776,37 @@ function confirmUrlShortcut() {
 function showFileSmallMenu(path, name, isDir, triggerElement) {
     var menuId = 'file-menu-' + Math.random().toString(36).substr(2, 9);
     var menuItems = [];
+    var currentPath = path;
+    var currentName = name;
 
-    // 通用操作
-    menuItems.push({ label: '查看详情', icon: '📋', action: function() { handleMenuAction('details'); } });
-    menuItems.push({ label: '编辑', icon: '✏️', action: function() { handleMenuAction('edit'); } });
+    // 保存当前文件信息到全局，供 handleMenuAction 使用
+    window.currentItemPath = currentPath;
+    window.currentItemName = currentName;
+    window.currentItemIsDir = isDir;
+
+    // 通用操作 - 传递 path 参数
+    menuItems.push({ label: '查看详情', icon: '📋', action: function() { handleMenuAction('details'); }, actionParams: currentPath });
+    menuItems.push({ label: '编辑', icon: '✏️', action: function() { handleMenuAction('edit'); }, actionParams: currentPath });
 
     if (!isDir) {
-        menuItems.push({ label: '下载文件', icon: '📥', action: function() { handleMenuAction('download'); } });
+        menuItems.push({ label: '下载文件', icon: '📥', action: function() { handleMenuAction('download'); }, actionParams: currentPath });
     }
 
-    menuItems.push({ label: '复制下载地址', icon: '📋', action: function() { handleMenuAction('copyUrl'); } });
-    menuItems.push({ label: '复制绝对路径', icon: '📋', action: function() { handleMenuAction('copyPath'); } });
-    menuItems.push({ label: '重命名', icon: '✏️', action: function() { handleMenuAction('rename'); } });
-    menuItems.push({ label: '剪切', icon: '✂️', action: function() { handleMenuAction('cut'); } });
-    menuItems.push({ label: '复制', icon: '📋', action: function() { handleMenuAction('copy'); } });
+    menuItems.push({ label: '复制下载地址', icon: '📋', action: function() { handleMenuAction('copyUrl'); }, actionParams: currentPath });
+    menuItems.push({ label: '复制绝对路径', icon: '📋', action: function() { handleMenuAction('copyPath'); }, actionParams: currentPath });
+    menuItems.push({ label: '重命名', icon: '✏️', action: function() { handleMenuAction('rename'); }, actionParams: currentPath });
+    menuItems.push({ label: '剪切', icon: '✂️', action: function() { handleMenuAction('cut'); }, actionParams: currentPath });
+    menuItems.push({ label: '复制', icon: '📋', action: function() { handleMenuAction('copy'); }, actionParams: currentPath });
 
     // 解压/压缩
     if (!isDir && isArchiveName(name)) {
-        menuItems.push({ label: '解压到此处', icon: '📦', action: function() { handleMenuAction('extract'); } });
+        menuItems.push({ label: '解压到此处', icon: '📦', action: function() { handleMenuAction('extract'); }, actionParams: currentPath });
     }
-    menuItems.push({ label: '新建压缩包', icon: '🗜️', action: function() { handleMenuAction('newArchive'); } });
+    menuItems.push({ label: '新建压缩包', icon: '🗜️', action: function() { handleMenuAction('newArchive'); }, actionParams: currentPath });
 
-    menuItems.push({ label: '创建软链接', icon: '🔗', action: function() { handleMenuAction('link'); } });
-    menuItems.push({ label: '在终端打开', icon: '📺', action: function() { handleMenuAction('terminal'); } });
-    menuItems.push({ label: '删除', icon: '🗑️', action: function() { handleMenuAction('delete'); }, danger: true });
+    menuItems.push({ label: '创建软链接', icon: '🔗', action: function() { handleMenuAction('link'); }, actionParams: currentPath });
+    menuItems.push({ label: '在终端打开', icon: '📺', action: function() { handleMenuAction('terminal'); }, actionParams: currentPath });
+    menuItems.push({ label: '删除', icon: '🗑️', action: function() { handleMenuAction('delete'); }, actionParams: currentPath, danger: true });
 
     // 使用 SmallMenu 渲染（居中显示，带遮罩）
     var menuHtml = SmallMenu.render({
