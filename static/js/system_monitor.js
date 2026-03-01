@@ -764,14 +764,14 @@ window.switchSystemdTab = function(scope) {
             + '<div id="' + menuId + '" style="display:none;position:absolute;right:0;top:100%;background:#fff;border:1px solid #d0d7de;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);min-width:140px;z-index:1000;overflow:hidden;">'
             + '<div style="padding:8px 12px;border-bottom:1px solid #eee;font-size:12px;color:#57606a;">' + serviceName + '</div>'
             + (enabled 
-                ? '<div onclick="__systemdControl(\'' + escapeHtml(String(name)) + '\', \'disable\', \'' + scope + '\')" style="padding:8px 12px;cursor:pointer;font-size:13px;">🚫 禁用开机启动</div>'
-                : '<div onclick="__systemdControl(\'' + escapeHtml(String(name)) + '\', \'enable\', \'' + scope + '\')" style="padding:8px 12px;cursor:pointer;font-size:13px;">✅ 启用开机启动</div>')
-            + '<div onclick="__systemdControl(\'' + escapeHtml(String(name)) + '\', \'start\', \'' + scope + '\')" style="padding:8px 12px;cursor:pointer;font-size:13px;">▶ 启动</div>'
-            + '<div onclick="__systemdControl(\'' + escapeHtml(String(name)) + '\', \'stop\', \'' + scope + '\')" style="padding:8px 12px;cursor:pointer;font-size:13px;">⏹ 停止</div>'
-            + '<div onclick="__systemdControl(\'' + escapeHtml(String(name)) + '\', \'restart\', \'' + scope + '\')" style="padding:8px 12px;cursor:pointer;font-size:13px;">🔄 重启</div>'
-            + '<div onclick="openServiceLog(\'' + serviceName + '\')" style="padding:8px 12px;cursor:pointer;font-size:13px;">📋 查看日志</div>'
-            + '<div onclick="__systemdEditConfig(\'' + escapeHtml(String(name)) + '\', \'' + scope + '\')" style="padding:8px 12px;cursor:pointer;font-size:13px;">✏️ 编辑配置文件</div>'
-            + '<div onclick="__systemdRemove(\'' + escapeHtml(String(name)) + '\', \'' + scope + '\')" style="padding:8px 12px;cursor:pointer;font-size:13px;color:#cf222e;">🗑 删除服务</div>'
+                ? '<div class="systemd-menu-item" onclick="__systemdControl(\'' + escapeHtml(String(name)) + '\', \'disable\', \'' + scope + '\')" style="padding:8px 12px;cursor:pointer;font-size:13px;">🚫 禁用开机启动</div>'
+                : '<div class="systemd-menu-item" onclick="__systemdControl(\'' + escapeHtml(String(name)) + '\', \'enable\', \'' + scope + '\')" style="padding:8px 12px;cursor:pointer;font-size:13px;">✅ 启用开机启动</div>')
+            + '<div class="systemd-menu-item" onclick="__systemdControl(\'' + escapeHtml(String(name)) + '\', \'start\', \'' + scope + '\')" style="padding:8px 12px;cursor:pointer;font-size:13px;">▶ 启动</div>'
+            + '<div class="systemd-menu-item" onclick="__systemdControl(\'' + escapeHtml(String(name)) + '\', \'stop\', \'' + scope + '\')" style="padding:8px 12px;cursor:pointer;font-size:13px;">⏹ 停止</div>'
+            + '<div class="systemd-menu-item" onclick="__systemdControl(\'' + escapeHtml(String(name)) + '\', \'restart\', \'' + scope + '\')" style="padding:8px 12px;cursor:pointer;font-size:13px;">🔄 重启</div>'
+            + '<div class="systemd-menu-item" onclick="openServiceLog(\'' + serviceName + '\')" style="padding:8px 12px;cursor:pointer;font-size:13px;">📋 查看日志</div>'
+            + '<div class="systemd-menu-item" onclick="__systemdEditConfig(\'' + escapeHtml(String(name)) + '\', \'' + scope + '\')" style="padding:8px 12px;cursor:pointer;font-size:13px;">✏️ 编辑配置文件</div>'
+            + '<div class="systemd-menu-item" onclick="__systemdRemove(\'' + escapeHtml(String(name)) + '\', \'' + scope + '\')" style="padding:8px 12px;cursor:pointer;font-size:13px;color:#cf222e;">🗑 删除服务</div>'
             + '</div>'
             + '</div>'
             + '</div>'
@@ -804,9 +804,10 @@ window.switchSystemdTab = function(scope) {
     // 点击其他地方关闭菜单
     if (!window._systemdMenuClickListenerAdded) {
         document.addEventListener('click', function(e) {
-            if (!e.target.closest('[id^="sysd-menu-"]') && 
+            if (e.target.closest('.systemd-menu-item') ||
+                (!e.target.closest('[id^="sysd-menu-"]') && 
                 !e.target.closest('[onclick*="toggleSystemdMenu"]') &&
-                !e.target.closest('.systemd-menu-trigger')) {
+                !e.target.closest('.systemd-menu-trigger'))) {
                 document.querySelectorAll('[id^="sysd-menu-"]').forEach(function(m) {
                     m.style.display = 'none';
                 });
