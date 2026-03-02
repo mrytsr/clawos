@@ -754,9 +754,10 @@
 
         // 模型列表菜单
         function showModelMenu(idx, btn, e) {
-            const menuId = 'model-menu';
+            console.log('SmallMenu:', typeof SmallMenu !== 'undefined' ? 'available' : 'NOT FOUND');
+            const menuId = 'model-menu-' + Date.now();
             const m = models[idx];
-            const result = SmallMenu.render({
+            const menuHtml = SmallMenu.render({
                 menuId: menuId,
                 triggerText: '⋮',
                 items: [
@@ -770,9 +771,15 @@
                 hideTrigger: true
             });
             const tempDiv = document.createElement('div');
-            tempDiv.innerHTML = result.html;
+            tempDiv.innerHTML = menuHtml;
             document.body.appendChild(tempDiv.firstChild);
-            setTimeout(() => SmallMenu.open(menuId), 10);
+            setTimeout(() => {
+                if (typeof SmallMenu !== 'undefined') {
+                    SmallMenu.open(menuId);
+                } else {
+                    console.error('SmallMenu not found');
+                }
+            }, 50);
         }
 
         // 编辑模型
