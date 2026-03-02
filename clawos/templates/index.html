@@ -98,16 +98,16 @@
         .crumb-btn:hover {
             background: #e8ebee;
         }
-        .crumb-btn[title="创建"] {
+        .crumb-btn[data-i18n-title="breadcrumb.create"] {
             background: #2da44e;
             color: white;
             font-weight: bold;
             font-size: 16px;
         }
-        .crumb-btn[title="创建"]:hover {
+        .crumb-btn[data-i18n-title="breadcrumb.create"]:hover {
             background: #2c974b;
         }
-        .crumb-btn[title="回收站"] {
+        .crumb-btn[data-i18n-title="breadcrumb.trash"] {
             color: #dc3545;
         }
         .breadcrumb-fixed a {
@@ -117,7 +117,7 @@
         .breadcrumb-fixed a:hover {
             text-decoration: underline;
         }
-        .breadcrumb-fixed a[title="回收站"] {
+        .breadcrumb-fixed a[data-i18n-title="breadcrumb.trash"] {
             color: #dc3545;
         }
         .breadcrumb-left {
@@ -1087,10 +1087,10 @@
             <div class="breadcrumb-btn-group">
                 <form method="post" action="#" enctype="multipart/form-data" id="uploadForm" style="margin:0;">
                     <input type="file" name="file" id="fileInputInline" onchange="handleFileSelect(event)" style="display:none;">
-                    <div class="crumb-btn" onclick="openCreateMenuDrawer()" title="创建">+</div>
+                    <div class="crumb-btn" onclick="openCreateMenuDrawer()" title="创建" data-i18n-title="breadcrumb.create">+</div>
                 </form>
-                <a href="#" onclick="openTrashDrawer(); return false;" title="回收站" class="crumb-btn">🗑️</a>
-                <a :href="browseHref('')" @click="onBreadcrumbClick('', $event)" title="根目录" class="crumb-btn">🏠</a>
+                <a href="#" onclick="openTrashDrawer(); return false;" title="回收站" class="crumb-btn" data-i18n-title="breadcrumb.trash">🗑️</a>
+                <a :href="browseHref('')" @click="onBreadcrumbClick('', $event)" title="根目录" class="crumb-btn" data-i18n-title="fileBrowser.rootDirectory">🏠</a>
                 
             </div>
             

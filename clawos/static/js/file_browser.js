@@ -106,7 +106,7 @@ function openCurrentFolderMenu(ev) {
     var name = nameEl ? String(nameEl.value || '') : '';
     if (!name) {
         var p = (path || '').replace(/\\/g, '/').replace(/\/+$/, '');
-        name = p ? p.split('/').pop() : '根目录';
+        name = p ? p.split('/').pop() : (typeof I18n !== 'undefined' ? I18n.t('fileBrowser.rootDirectory') : '根目录');
     }
 
     // 使用 SmallMenu 显示文件夹菜单
@@ -116,10 +116,10 @@ function openCurrentFolderMenu(ev) {
     window.currentItemIsDir = true;
 
     var menuItems = [
-        { label: '复制绝对路径', icon: '📋', action: function() { handleMenuAction('copyPath'); }, actionParams: path },
-        { label: '创建软链接', icon: '🔗', action: function() { handleMenuAction('link'); }, actionParams: path },
-        { label: '在终端打开', icon: '📺', action: function() { handleMenuAction('terminal'); }, actionParams: path },
-        { label: '新建压缩包', icon: '🗜️', action: function() { handleMenuAction('newArchive'); }, actionParams: path }
+        { label: typeof I18n !== 'undefined' ? I18n.t('folder_menu.copy') : '复制绝对路径', icon: '📋', action: function() { handleMenuAction('copyPath'); }, actionParams: path },
+        { label: typeof I18n !== 'undefined' ? I18n.t('folder_menu.link') : '创建软链接', icon: '🔗', action: function() { handleMenuAction('link'); }, actionParams: path },
+        { label: typeof I18n !== 'undefined' ? I18n.t('folder_menu.terminal') : '在终端打开', icon: '📺', action: function() { handleMenuAction('terminal'); }, actionParams: path },
+        { label: typeof I18n !== 'undefined' ? I18n.t('folder_menu.compress') : '新建压缩包', icon: '🗜️', action: function() { handleMenuAction('newArchive'); }, actionParams: path }
     ];
 
     var menuHtml = SmallMenu.render({
@@ -383,20 +383,20 @@ function startArchiveProgressPoll(taskId) {
 function openArchiveCreateDialog(paths, outputDir) {
     var items = Array.isArray(paths) ? paths.filter(function(p) { return typeof p === 'string' && p.trim(); }) : [];
     if (!items.length) {
-        showToast('未选择可压缩项目', 'warning');
+        showToast(typeof I18n !== 'undefined' ? I18n.t('archive.no_selection') : '未选择可压缩项目', 'warning');
         return;
     }
     var outDir = typeof outputDir === 'string' ? normalizeRelPath(outputDir) : '';
-    var defaultName = '新建压缩包.zip';
+    var defaultName = (typeof I18n !== 'undefined' ? I18n.t('archive.default_name') : '新建压缩包') + '.zip';
 
     if (typeof window.openDialogDrawer === 'function') {
         window.openDialogDrawer({
-            title: '新建压缩包',
-            message: '输入压缩包名称并选择格式（生成在同级目录）',
+            title: typeof I18n !== 'undefined' ? I18n.t('archive.create_title') : '新建压缩包',
+            message: typeof I18n !== 'undefined' ? I18n.t('archive.create_message') : '输入压缩包名称并选择格式（生成在同级目录）',
             input: true,
-            placeholder: '例如：backup.zip',
+            placeholder: typeof I18n !== 'undefined' ? I18n.t('archive.name_placeholder') : '例如：backup.zip',
             defaultValue: defaultName,
-            confirmText: '开始压缩',
+            confirmText: typeof I18n !== 'undefined' ? I18n.t('archive.start') : '开始压缩',
             select: {
                 options: [
                     { value: 'zip', label: 'zip' },
@@ -407,7 +407,8 @@ function openArchiveCreateDialog(paths, outputDir) {
             onConfirm: function(result) {
                 var name = result && typeof result.value === 'string' ? result.value.trim() : '';
                 var fmt = result && typeof result.select === 'string' ? result.select.trim() : 'zip';
-                if (!name) name = fmt === 'zip' ? '新建压缩包.zip' : '新建压缩包.tar.gz';
+                var archiveName = typeof I18n !== 'undefined' ? I18n.t('archive.default_name') : '新建压缩包';
+                if (!name) name = fmt === 'zip' ? archiveName + '.zip' : archiveName + '.tar.gz';
                 if (fmt === 'zip' && !name.toLowerCase().endsWith('.zip')) name = name + '.zip';
                 if (fmt === 'tar.gz' && !name.toLowerCase().endsWith('.tar.gz')) {
                     if (name.toLowerCase().endsWith('.tar')) name = name + '.gz';
@@ -428,10 +429,10 @@ function openArchiveCreateDialog(paths, outputDir) {
                         if (d && d.success && d.data && d.data.taskId) {
                             startArchiveProgressPoll(d.data.taskId);
                         } else {
-                            showToast((d && d.error && d.error.message) || '创建任务失败', 'error');
+                            showToast((d && d.error && d.error.message) || (typeof I18n !== 'undefined' ? I18n.t('task.create_failed') : '创建任务失败'), 'error');
                         }
                     })
-                    .catch(function() { showToast('创建任务失败', 'error'); });
+                    .catch(function() { showToast(typeof I18n !== 'undefined' ? I18n.t('task.create_failed') : '创建任务失败', 'error'); });
             }
         });
         return;
@@ -462,7 +463,7 @@ function shareText(text) {
     }
     // 不支持原生分享时，自动复制到剪贴板
     copyToClipboard(t);
-    showToast('链接已复制到剪贴板', 'success');
+    showToast(typeof I18n !== 'undefined' ? I18n.t('share.link_copied') : '链接已复制到剪贴板', 'success');
 }
 
 function shareMenuDownloadUrl() {
@@ -481,7 +482,7 @@ function batchArchive() {
         if (c && c.dataset && c.dataset.path) paths.push(c.dataset.path);
     });
     if (paths.length === 0) {
-        showToast('请选择要压缩的文件', 'warning');
+        showToast(typeof I18n !== 'undefined' ? I18n.t('archive.select_files') : '请选择要压缩的文件', 'warning');
         return;
     }
     openArchiveCreateDialog(paths, getCurrentBrowsePath());
@@ -554,7 +555,8 @@ async function startDragUpload() {
         if (!window.__dragUploadState || !window.__dragUploadState.uploading) return;
         var f = state.files[i];
         var desired = state.renamed[i] || (formatTimestampYYYYMMDDHHMMSS() + (getFileExt(f.name || '') || ''));
-        if (textEl) textEl.textContent = '上传中… ' + String(i + 1) + '/' + String(total);
+        var uploadingText = typeof I18n !== 'undefined' ? I18n.t('upload.uploading') : '上传中…';
+        if (textEl) textEl.textContent = uploadingText + ' ' + String(i + 1) + '/' + String(total);
 
         var fd = new FormData();
         fd.append('file', f, desired);
@@ -566,13 +568,13 @@ async function startDragUpload() {
             var json = null;
             try { json = await resp.json(); } catch (e) { json = null; }
             if (!json || !json.success) {
-                var msg = json && json.error && json.error.message ? json.error.message : '上传失败';
+                var msg = json && json.error && json.error.message ? json.error.message : (typeof I18n !== 'undefined' ? I18n.t('upload.failed') : '上传失败');
                 showToast(msg, 'error');
                 state.uploading = false;
                 return;
             }
         } catch (e) {
-            showToast('上传失败', 'error');
+            showToast(typeof I18n !== 'undefined' ? I18n.t('upload.failed') : '上传失败', 'error');
             state.uploading = false;
             return;
         }
@@ -582,7 +584,7 @@ async function startDragUpload() {
     }
 
     state.uploading = false;
-    showToast('上传完成', 'success');
+    showToast(typeof I18n !== 'undefined' ? I18n.t('common.upload_success') : '上传完成', 'success');
     closeDragUploadDrawer();
     if (typeof refreshFileList === 'function') doRefreshFileList();
 }
@@ -635,7 +637,7 @@ async function savePasteImage() {
     var targetDir = targetEl ? normalizeRelPath(targetEl.value || '') : '';
     var filename = nameEl ? (nameEl.value || '').trim() : '';
     if (!filename) {
-        showToast('请输入文件名', 'warning');
+        showToast(typeof I18n !== 'undefined' ? I18n.t('validation.name_required') : '请输入文件名', 'warning');
         return;
     }
 
@@ -661,11 +663,11 @@ async function savePasteImage() {
             return;
         }
     } catch (e) {
-        showToast('保存失败', 'error');
+        showToast(typeof I18n !== 'undefined' ? I18n.t('common.save_failed') : '保存失败', 'error');
         return;
     }
 
-    showToast('保存成功', 'success');
+    showToast(typeof I18n !== 'undefined' ? I18n.t('common.save_success') : '保存成功', 'success');
     closePasteImageDrawer();
     if (typeof refreshFileList === 'function') doRefreshFileList();
 }
@@ -743,7 +745,7 @@ function extractArchiveHere(path, name) {
         return;
     }
     if (!isArchiveName(name)) {
-        showToast('不是压缩包', 'error');
+        showToast(typeof I18n !== 'undefined' ? I18n.t('archive.not_archive') : '不是压缩包', 'error');
         return;
     }
     var normPath = (path || '').replace(/\\/g, '/');
@@ -761,7 +763,8 @@ function extractArchiveHere(path, name) {
     var rootName = rootNorm ? rootNorm.split('/').pop() : '';
     var displayDir = (rootName ? ('/' + rootName) : '') + (archiveDir ? ('/' + archiveDir) : '');
     if (!displayDir) displayDir = '/';
-    var msg = '输入解压目标目录（相对于当前文件夹）。相对于当前文件夹: ' + displayDir;
+    var extractMsg = typeof I18n !== 'undefined' ? I18n.t('archive.extract_message') : '输入解压目标目录（相对于当前文件夹）';
+    var msg = extractMsg + ': ' + displayDir;
 
     var runExtract = function(targetDir) {
         var t = (targetDir || '').trim();
@@ -781,19 +784,19 @@ function extractArchiveHere(path, name) {
             })
             .then(function(data) {
                 if (data && data.success) {
-                    showToast('解压完成', 'success');
+                    showToast(typeof I18n !== 'undefined' ? I18n.t('archive.extract_success') : '解压完成', 'success');
                     if (typeof refreshFileList === 'function') doRefreshFileList();
                 } else {
-                    showToast((data && data.error && data.error.message) || (data && data.message) || '解压失败', 'error');
+                    showToast((data && data.error && data.error.message) || (data && data.message) || (typeof I18n !== 'undefined' ? I18n.t('archive.extract_failed') : '解压失败'), 'error');
                 }
             })
             .catch(function(err) {
-                showToast('解压失败', 'error');
+                showToast(typeof I18n !== 'undefined' ? I18n.t('archive.extract_failed') : '解压失败', 'error');
             });
     };
 
     if (typeof window.showPromptDrawer === 'function') {
-        window.showPromptDrawer('解压到此处', msg, '例如：downloads/unpacked', defaultTarget, '解压', runExtract, true);
+        window.showPromptDrawer(typeof I18n !== 'undefined' ? I18n.t('archive.extract_here') : '解压到此处', msg, typeof I18n !== 'undefined' ? I18n.t('archive.extract_placeholder') : '例如：downloads/unpacked', defaultTarget, typeof I18n !== 'undefined' ? I18n.t('archive.extract') : '解压', runExtract, true);
         return;
     }
 
@@ -904,9 +907,9 @@ if (document.readyState === 'loading') {
 function confirmDelete(path, name) {
     if (window.showConfirmDrawer) {
         window.showConfirmDrawer(
-            '删除',
-            '确定要删除 "' + (name || '') + '" 吗？',
-            '删除',
+            typeof I18n !== 'undefined' ? I18n.t('common.delete') : '删除',
+            (typeof I18n !== 'undefined' ? I18n.t('confirm.delete_message') : '确定要删除') + ' "' + (name || '') + '" ？',
+            typeof I18n !== 'undefined' ? I18n.t('common.delete') : '删除',
             function() { performDelete(path); },
             true
         );
@@ -926,13 +929,13 @@ function performDelete(path) {
         .then(r => r.json())
         .then(data => {
             if (data.success) {
-                showToast('已移到回收站', 'success');
+                showToast(typeof I18n !== 'undefined' ? I18n.t('delete.moved_to_trash') : '已移到回收站', 'success');
                 doRefreshFileList();
             } else {
-                showToast(data.message || '删除失败', 'error');
+                showToast(data.message || (typeof I18n !== 'undefined' ? I18n.t('common.delete_failed') : '删除失败'), 'error');
             }
         })
-        .catch(() => showToast('删除失败', 'error'));
+        .catch(() => showToast(typeof I18n !== 'undefined' ? I18n.t('common.delete_failed') : '删除失败', 'error'));
     if (document.getElementById('confirmModal') && document.getElementById('confirmModal').classList.contains('open')) {
         closeLegacyConfirmModal();
     }
@@ -967,13 +970,13 @@ function performRename() {
     .then(r => r.json())
     .then(data => {
         if (data.success) {
-            showToast('重命名成功', 'success');
+            showToast(typeof I18n !== 'undefined' ? I18n.t('rename.success') : '重命名成功', 'success');
             doRefreshFileList();
         } else {
-            showToast(data.message || '重命名失败', 'error');
+            showToast(data.message || (typeof I18n !== 'undefined' ? I18n.t('rename.failed') : '重命名失败'), 'error');
         }
     })
-    .catch(() => showToast('重命名失败', 'error'));
+    .catch(() => showToast(typeof I18n !== 'undefined' ? I18n.t('rename.failed') : '重命名失败', 'error'));
     
     closeRenameModal();
 }
@@ -1000,13 +1003,13 @@ function performMove() {
     .then(r => r.json())
     .then(data => {
         if (data.success) {
-            showToast('移动成功', 'success');
+            showToast(typeof I18n !== 'undefined' ? I18n.t('move.success') : '移动成功', 'success');
             doRefreshFileList();
         } else {
-            showToast(data.message || '移动失败', 'error');
+            showToast(data.message || (typeof I18n !== 'undefined' ? I18n.t('move.failed') : '移动失败'), 'error');
         }
     })
-    .catch(() => showToast('移动失败', 'error'));
+    .catch(() => showToast(typeof I18n !== 'undefined' ? I18n.t('move.failed') : '移动失败', 'error'));
     
     closeMoveModal();
 }
@@ -1020,10 +1023,10 @@ function cloneItem() {
                 showToast(data.message, 'success');
                 doRefreshFileList();
             } else {
-                showToast(data.message || '克隆失败', 'error');
+                showToast(data.message || (typeof I18n !== 'undefined' ? I18n.t('clone.failed') : '克隆失败'), 'error');
             }
         })
-        .catch(() => showToast('克隆失败', 'error'));
+        .catch(() => showToast(typeof I18n !== 'undefined' ? I18n.t('clone.failed') : '克隆失败', 'error'));
 }
 
 // 下载
@@ -1064,7 +1067,7 @@ function downloadFile(path, opts) {
         .then(function(data) {
             var info = data && data.success ? data.data : null;
             if (info && info.is_dir) {
-                showToast('不能下载文件夹', 'warning');
+                showToast(typeof I18n !== 'undefined' ? I18n.t('download.no_folder') : '不能下载文件夹', 'warning');
                 return;
             }
 
@@ -1074,11 +1077,11 @@ function downloadFile(path, opts) {
             if (!sizeText) sizeText = getFileSizeTextFromDom(p);
 
             var lines = [];
-            lines.push('确认下载？');
-            if (name) lines.push('名称：' + name);
-            if (sizeText) lines.push('大小：' + sizeText);
-            if (info && (info.mtime || info.modified)) lines.push('修改：' + String(info.mtime || info.modified));
-            lines.push('路径：' + p);
+            lines.push(typeof I18n !== 'undefined' ? I18n.t('download.confirm_title') : '确认下载？');
+            if (name) lines.push((typeof I18n !== 'undefined' ? I18n.t('common.name') : '名称') + '：' + name);
+            if (sizeText) lines.push((typeof I18n !== 'undefined' ? I18n.t('common.size') : '大小') + '：' + sizeText);
+            if (info && (info.mtime || info.modified)) lines.push((typeof I18n !== 'undefined' ? I18n.t('common.modified') : '修改') + '：' + String(info.mtime || info.modified));
+            lines.push((typeof I18n !== 'undefined' ? I18n.t('common.path') : '路径') + '：' + p);
 
             SwalConfirm('批量操作确认', lines.join('\n'), function() { performBatchOp(); }, 'warning');
             if (!ok) return;
@@ -1157,10 +1160,10 @@ function copyToClipboard(text) {
     try {
         const successful = document.execCommand('copy');
         document.body.removeChild(textarea);
-        showToast(successful ? '复制成功' : '复制失败', successful ? 'success' : 'error');
+        showToast(successful ? (typeof I18n !== 'undefined' ? I18n.t('copy.success') : '复制成功') : (typeof I18n !== 'undefined' ? I18n.t('copy.failed') : '复制失败'), successful ? 'success' : 'error');
     } catch (err) {
         document.body.removeChild(textarea);
-        showToast('复制失败', 'error');
+        showToast(typeof I18n !== 'undefined' ? I18n.t('copy.failed') : '复制失败', 'error');
     }
 }
 
@@ -1220,13 +1223,14 @@ window.showDetails = function(path, name) {
     // 确保 path 有效（可能是 undefined、空字符串或字符串 'undefined'）
     if (!path || path === 'undefined' || path === 'null') {
         console.error('showDetails: invalid path', path);
-        if (typeof showToast === 'function') showToast('无效的文件路径', 'error');
+        if (typeof showToast === 'function') showToast(typeof I18n !== 'undefined' ? I18n.t('error.invalid_path') : '无效的文件路径', 'error');
         return;
     }
     const modal = document.getElementById('detailsModal');
     const content = document.getElementById('detailsContent');
     if (modal) { Drawer.open('detailsModal'); }
-    if (content) { content.innerHTML = '<div style="text-align:center;padding:40px;color:#666;">🔄 加载中...</div>'; }
+    var loadingText = typeof I18n !== 'undefined' ? I18n.t('common.loading') : '加载中...';
+    if (content) { content.innerHTML = '<div style="text-align:center;padding:40px;color:#666;">🔄 ' + loadingText + '</div>'; }
     
     fetch('/api/file/info?path=' + encodeURIComponent(path))
         .then(r => r.json())
@@ -1235,41 +1239,57 @@ window.showDetails = function(path, name) {
                 const info = data.data;
                 
                 // 构建类型显示
-                let typeHtml = info.is_dir ? '📁 文件夹' : '📄 文件';
+                var folderText = typeof I18n !== 'undefined' ? I18n.t('fileBrowser.folder') : '文件夹';
+                var fileText = typeof I18n !== 'undefined' ? I18n.t('fileBrowser.file') : '文件';
+                let typeHtml = info.is_dir ? '📁 ' + folderText : '📄 ' + fileText;
                 if (info.is_symlink) {
                     const isBroken = !info.target_exists;
-                    typeHtml += ' → <span style="color:' + (isBroken ? '#ff4444' : '#58a6ff') + ';">软链接' + (isBroken ? ' (破损)' : '') + '</span>';
+                    var symlinkText = typeof I18n !== 'undefined' ? I18n.t('fileBrowser.symlink') : '软链接';
+                    var brokenText = typeof I18n !== 'undefined' ? I18n.t('fileBrowser.broken') : '破损';
+                    typeHtml += ' → <span style="color:' + (isBroken ? '#ff4444' : '#58a6ff') + ';">' + symlinkText + (isBroken ? ' (' + brokenText + ')' : '') + '</span>';
                 }
                 
                 // 构建软链接目标行
                 let linkRowHtml = '';
                 if (info.is_symlink && info.link_target) {
-                    linkRowHtml = `<tr style="border-bottom:1px solid #eee;"><td style="padding:10px;color:#666;">软链接目标</td><td style="padding:10px;font-family:monospace;word-break:break-all;color:#58a6ff;">${escapeHtml(info.link_target)}</td></tr>`;
+                    var symlinkTargetText = typeof I18n !== 'undefined' ? I18n.t('fileBrowser.symlink_target') : '软链接目标';
+                    linkRowHtml = '<tr style="border-bottom:1px solid #eee;"><td style="padding:10px;color:#666;">' + symlinkTargetText + '</td><td style="padding:10px;font-family:monospace;word-break:break-all;color:#58a6ff;">' + escapeHtml(info.link_target) + '</td></tr>';
                 }
+                
+                var pathText = typeof I18n !== 'undefined' ? I18n.t('common.path') : '路径';
+                var typeText = typeof I18n !== 'undefined' ? I18n.t('common.type') : '类型';
+                var sizeText = typeof I18n !== 'undefined' ? I18n.t('common.size') : '大小';
+                var permissionsText = typeof I18n !== 'undefined' ? I18n.t('common.permissions') : '权限';
+                var ownerText = typeof I18n !== 'undefined' ? I18n.t('common.owner') : '所有者';
+                var ctimeText = typeof I18n !== 'undefined' ? I18n.t('fileBrowser.ctime') : '创建时间';
+                var mtimeText = typeof I18n !== 'undefined' ? I18n.t('fileBrowser.mtime') : '修改时间';
+                var atimeText = typeof I18n !== 'undefined' ? I18n.t('fileBrowser.atime') : '访问时间';
+                var unknownText = typeof I18n !== 'undefined' ? I18n.t('common.unknown') : '未知';
                 
                 content.innerHTML = `
                     <div style="padding: 16px 0;">
                         <div style="font-size: 18px; font-weight: bold; margin-bottom: 16px; word-break: break-all;">${escapeHtml(name)}</div>
                         <table style="width:100%;border-collapse:collapse;font-size:14px;">
-                            <tr style="border-bottom:1px solid #eee;"><td style="padding:10px;color:#666;">路径</td><td style="padding:10px;font-family:monospace;word-break:break-all;">${escapeHtml(path)}</td></tr>
-                            <tr style="border-bottom:1px solid #eee;"><td style="padding:10px;color:#666;">类型</td><td style="padding:10px;">${typeHtml}</td></tr>
+                            <tr style="border-bottom:1px solid #eee;"><td style="padding:10px;color:#666;">${pathText}</td><td style="padding:10px;font-family:monospace;word-break:break-all;">${escapeHtml(path)}</td></tr>
+                            <tr style="border-bottom:1px solid #eee;"><td style="padding:10px;color:#666;">${typeText}</td><td style="padding:10px;">${typeHtml}</td></tr>
                             ${linkRowHtml}
-                            <tr style="border-bottom:1px solid #eee;"><td style="padding:10px;color:#666;">大小</td><td style="padding:10px;">${info.size_human || formatSize(info.size)}</td></tr>
-                            <tr style="border-bottom:1px solid #eee;"><td style="padding:10px;color:#666;">权限</td><td style="padding:10px;font-family:monospace;">${info.permissions || '未知'}</td></tr>
-                            <tr style="border-bottom:1px solid #eee;"><td style="padding:10px;color:#666;">所有者</td><td style="padding:10px;">${info.owner || '未知'}</td></tr>
-                            <tr style="border-bottom:1px solid #eee;"><td style="padding:10px;color:#666;">创建时间</td><td style="padding:10px;">${info.ctime || '未知'}</td></tr>
-                            <tr style="border-bottom:1px solid #eee;"><td style="padding:10px;color:#666;">修改时间</td><td style="padding:10px;">${info.mtime || '未知'}</td></tr>
-                            <tr style="border-bottom:1px solid #eee;"><td style="padding:10px;color:#666;">访问时间</td><td style="padding:10px;">${info.atime || '未知'}</td></tr>
+                            <tr style="border-bottom:1px solid #eee;"><td style="padding:10px;color:#666;">${sizeText}</td><td style="padding:10px;">${info.size_human || formatSize(info.size)}</td></tr>
+                            <tr style="border-bottom:1px solid #eee;"><td style="padding:10px;color:#666;">${permissionsText}</td><td style="padding:10px;font-family:monospace;">${info.permissions || unknownText}</td></tr>
+                            <tr style="border-bottom:1px solid #eee;"><td style="padding:10px;color:#666;">${ownerText}</td><td style="padding:10px;">${info.owner || unknownText}</td></tr>
+                            <tr style="border-bottom:1px solid #eee;"><td style="padding:10px;color:#666;">${ctimeText}</td><td style="padding:10px;">${info.ctime || unknownText}</td></tr>
+                            <tr style="border-bottom:1px solid #eee;"><td style="padding:10px;color:#666;">${mtimeText}</td><td style="padding:10px;">${info.mtime || unknownText}</td></tr>
+                            <tr style="border-bottom:1px solid #eee;"><td style="padding:10px;color:#666;">${atimeText}</td><td style="padding:10px;">${info.atime || unknownText}</td></tr>
                         </table>
                     </div>
                 `;
             } else if (content) {
-                const msg = data && data.error && data.error.message ? data.error.message : '❌ 获取详情失败';
+                const msg = data && data.error && data.error.message ? data.error.message : '❌ ' + (typeof I18n !== 'undefined' ? I18n.t('fileBrowser.get_details_failed') : '获取详情失败');
                 content.innerHTML = '<div style="text-align:center;padding:40px;color:#cf222e;">' + escapeHtml(msg) + '</div>';
             }
         })
         .catch(() => {
-            if (content) { content.innerHTML = '<div style="text-align:center;padding:40px;color:#cf222e;">❌ 获取详情失败</div>'; }
+            var detailsFailedText = typeof I18n !== 'undefined' ? I18n.t('fileBrowser.get_details_failed') : '获取详情失败';
+            if (content) { content.innerHTML = '<div style="text-align:center;padding:40px;color:#cf222e;">❌ ' + detailsFailedText + '</div>'; }
         });
 };
 
@@ -1328,7 +1348,8 @@ function doSearch() {
     var keyword = input ? String(input.value || '').trim() : '';
     if (!keyword) return;
     var resultsContainer = document.getElementById('searchResults');
-    if (resultsContainer) resultsContainer.innerHTML = '<div style="text-align:center;padding:20px;color:#666;">搜索中...</div>';
+    var searchingText = typeof I18n !== 'undefined' ? I18n.t('fileBrowser.searching') : '搜索中...';
+    if (resultsContainer) resultsContainer.innerHTML = '<div style="text-align:center;padding:20px;color:#666;">' + searchingText + '</div>';
     fetch('/api/search?q=' + encodeURIComponent(keyword))
         .then(function(r) { return r.json(); })
         .then(function(data) {
@@ -1354,7 +1375,7 @@ function doSearch() {
                                 '<div class="file-details-inline"><span>' + safePath + '</span></div>' +
                             '</div>' +
                             '<div class="file-col-actions" style="gap:8px;">' +
-                                '<a href="#" class="preview-btn" title="所在文件夹" onclick="return openSearchResultFolder(decodeURIComponent(\'' + encPath + '\'), ' + (isDir ? 'true' : 'false') + ');">📁</a>' +
+                                '<a href="#" class="preview-btn" title="' + (typeof I18n !== 'undefined' ? I18n.t('fileBrowser.open_folder') : '所在文件夹') + '" onclick="return openSearchResultFolder(decodeURIComponent(\'' + encPath + '\'), ' + (isDir ? 'true' : 'false') + ');">📁</a>' +
                                 '<div class="menu-btn" data-path="' + encPath + '" data-name="' + encName + '" data-is-dir="' + (isDir ? 'true' : 'false') + '" onclick="return openSearchResultMenu(event, this);">' +
                                     '<span>⋮</span>' +
                                 '</div>' +
@@ -1364,11 +1385,13 @@ function doSearch() {
                 }).join('');
                 attachFileItemDefaultHandlers();
             } else {
-                resultsContainer.innerHTML = '<div style="text-align:center;padding:40px;color:#666;">未找到结果</div>';
+                var noResultsText = typeof I18n !== 'undefined' ? I18n.t('fileBrowser.search_no_results') : '未找到结果';
+                resultsContainer.innerHTML = '<div style="text-align:center;padding:40px;color:#666;">' + noResultsText + '</div>';
             }
         })
         .catch(function() {
-            if (resultsContainer) resultsContainer.innerHTML = '<div style="text-align:center;padding:40px;color:#cf222e;">搜索失败</div>';
+            var searchFailedText = typeof I18n !== 'undefined' ? I18n.t('fileBrowser.search_failed') : '搜索失败';
+            if (resultsContainer) resultsContainer.innerHTML = '<div style="text-align:center;padding:40px;color:#cf222e;">' + searchFailedText + '</div>';
         });
 }
 
@@ -1389,14 +1412,16 @@ function closeTrashDrawer(callbacks) {
 
 function loadTrashList() {
     var container = document.getElementById('trashListContainer');
-    if (container) container.innerHTML = '<div style="text-align:center;padding:40px;color:#666;">🔄 加载中...</div>';
+    var loadingText = typeof I18n !== 'undefined' ? I18n.t('common.loading') : '加载中...';
+    if (container) container.innerHTML = '<div style="text-align:center;padding:40px;color:#666;">🔄 ' + loadingText + '</div>';
     fetch('/api/trash/list', { headers: (typeof authHeaders === 'function') ? authHeaders() : {} })
         .then(function(r) { return r.json(); })
         .then(function(data) {
             var items = data && data.success && data.data ? data.data.items : null;
             if (!container) return;
             if (!items || items.length === 0) {
-                container.innerHTML = '<div style="text-align:center;padding:40px;color:#666;">回收站是空的</div>';
+                var emptyTrashText = typeof I18n !== 'undefined' ? I18n.t('trash.empty') : '回收站是空的';
+                container.innerHTML = '<div style="text-align:center;padding:40px;color:#666;">' + emptyTrashText + '</div>';
                 return;
             }
             container.innerHTML = items.map(function(item) {
@@ -1411,16 +1436,17 @@ function loadTrashList() {
                         '<div style="flex:1;min-width:0;">' +
                             '<div style="font-weight:600;word-break:break-word;white-space:pre-wrap;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">' +
                                 '<span>' + displayName + '</span>' +
-                                '<button class="modal-btn modal-btn-confirm" style="padding:4px 8px;border-radius:999px;font-size:12px;" data-trash-name="' + encodeURIComponent(rawName) + '" data-trash-default="' + encodeURIComponent(rawDisplayName) + '" onclick="restoreTrashItemFromButton(this)">还原</button>' +
+                                '<button class="modal-btn modal-btn-confirm" style="padding:4px 8px;border-radius:999px;font-size:12px;" data-trash-name="' + encodeURIComponent(rawName) + '" data-trash-default="' + encodeURIComponent(rawDisplayName) + '" onclick="restoreTrashItemFromButton(this)">' + (typeof I18n !== 'undefined' ? I18n.t('trash.restore') : '还原') + '</button>' +
                             '</div>' +
-                            '<div style="margin-top:4px;color:#666;font-size:12px;">删除时间: ' + deletedAt + '</div>' +
+                            '<div style="margin-top:4px;color:#666;font-size:12px;">' + (typeof I18n !== 'undefined' ? I18n.t('trash.deleted_at') : '删除时间') + ': ' + deletedAt + '</div>' +
                         '</div>' +
                     '</div>'
                 );
             }).join('');
         })
         .catch(function() {
-            if (container) container.innerHTML = '<div style="text-align:center;padding:40px;color:#cf222e;">加载失败</div>';
+            var loadFailedText = typeof I18n !== 'undefined' ? I18n.t('common.load_failed') : '加载失败';
+            if (container) container.innerHTML = '<div style="text-align:center;padding:40px;color:#cf222e;">' + loadFailedText + '</div>';
         });
 }
 
@@ -1429,11 +1455,11 @@ function restoreTrashItemFromButton(btn) {
     var rawName = decodeURIComponent(btn.dataset.trashName || '');
     var suggested = decodeURIComponent(btn.dataset.trashDefault || '');
     showPromptDrawer(
-        '还原',
-        '输入还原路径（相对于根目录）',
-        '例如：docs/a.txt',
+        typeof I18n !== 'undefined' ? I18n.t('trash.restore') : '还原',
+        typeof I18n !== 'undefined' ? I18n.t('trash.restore_dialog.path_placeholder') : '输入还原路径（相对于根目录）',
+        typeof I18n !== 'undefined' ? I18n.t('trash.restore_example') : '例如：docs/a.txt',
         suggested,
-        '还原',
+        typeof I18n !== 'undefined' ? I18n.t('trash.restore') : '还原',
         function(targetPath) {
             if (!targetPath) return;
             fetch('/api/trash/restore/' + encodeURIComponent(rawName), {
@@ -1444,34 +1470,34 @@ function restoreTrashItemFromButton(btn) {
                 .then(function(r) { return r.json(); })
                 .then(function(data) {
                     if (data && data.success) {
-                        if (typeof showToast === 'function') showToast('还原成功', 'success');
+                        if (typeof showToast === 'function') showToast(typeof I18n !== 'undefined' ? I18n.t('trash.restore_success') : '还原成功', 'success');
                         loadTrashList();
                     } else {
-                        if (typeof showToast === 'function') showToast((data && data.error && data.error.message) || '还原失败', 'error');
+                        if (typeof showToast === 'function') showToast((data && data.error && data.error.message) || (typeof I18n !== 'undefined' ? I18n.t('trash.restore_failed') : '还原失败'), 'error');
                     }
                 })
-                .catch(function() { if (typeof showToast === 'function') showToast('还原失败', 'error'); });
+                .catch(function() { if (typeof showToast === 'function') showToast(typeof I18n !== 'undefined' ? I18n.t('trash.restore_failed') : '还原失败', 'error'); });
         }
     );
 }
 
 function clearTrash() {
     showConfirmDrawer(
-        '清空回收站',
-        '确定要清空回收站吗？此操作不可恢复。',
-        '清空',
+        typeof I18n !== 'undefined' ? I18n.t('trash.clear_dialog.title') : '清空回收站',
+        typeof I18n !== 'undefined' ? I18n.t('trash.clear_dialog.message') : '确定要清空回收站吗？此操作不可恢复。',
+        typeof I18n !== 'undefined' ? I18n.t('trash.clear') : '清空',
         function() {
             fetch('/api/trash/clear', { method: 'POST', headers: (typeof authHeaders === 'function') ? authHeaders() : {} })
                 .then(function(r) { return r.json(); })
                 .then(function(data) {
                     if (data && data.success) {
-                        if (typeof showToast === 'function') showToast('回收站已清空', 'success');
+                        if (typeof showToast === 'function') showToast(typeof I18n !== 'undefined' ? I18n.t('trash.clear_success') : '回收站已清空', 'success');
                         loadTrashList();
                     } else {
-                        if (typeof showToast === 'function') showToast((data && data.error && data.error.message) || '清空失败', 'error');
+                        if (typeof showToast === 'function') showToast((data && data.error && data.error.message) || (typeof I18n !== 'undefined' ? I18n.t('trash.clear_failed') : '清空失败'), 'error');
                     }
                 })
-                .catch(function() { if (typeof showToast === 'function') showToast('清空失败', 'error'); });
+                .catch(function() { if (typeof showToast === 'function') showToast(typeof I18n !== 'undefined' ? I18n.t('trash.clear_failed') : '清空失败', 'error'); });
         },
         true
     );
@@ -1482,10 +1508,10 @@ function openCreateMenuDrawer(callbacks) {
     var menuId = 'create-menu';
 
     var menuItems = [
-        { label: '上传', icon: '📤', action: function() { createMenuUpload(); } },
-        { label: '新建文件夹', icon: '📁', action: function() { createMenuNewFolder(); } },
-        { label: '新建文件', icon: '📄', action: function() { createMenuNewFile(); } },
-        { label: '网页快捷方式', icon: '🔗', action: function() { createMenuNewUrl(); } }
+        { label: typeof I18n !== 'undefined' ? I18n.t('fileBrowser.upload') : '上传', icon: '📤', action: function() { createMenuUpload(); } },
+        { label: typeof I18n !== 'undefined' ? I18n.t('create_menu.new_folder') : '新建文件夹', icon: '📁', action: function() { createMenuNewFolder(); } },
+        { label: typeof I18n !== 'undefined' ? I18n.t('create_menu.new_file') : '新建文件', icon: '📄', action: function() { createMenuNewFile(); } },
+        { label: typeof I18n !== 'undefined' ? I18n.t('create_menu.url_shortcut') : '网页快捷方式', icon: '🔗', action: function() { createMenuNewUrl(); } }
     ];
 
     var menuHtml = SmallMenu.render({
@@ -1521,11 +1547,11 @@ function createMenuUpload() {
 function createMenuNewFolder() {
     closeCreateMenuDrawer();
     showPromptDrawer(
-        '新建文件夹',
-        '请输入文件夹名称',
-        '例如：assets',
+        typeof I18n !== 'undefined' ? I18n.t('create_menu.new_folder') : '新建文件夹',
+        typeof I18n !== 'undefined' ? I18n.t('create_menu.folder_name_placeholder') : '请输入文件夹名称',
+        typeof I18n !== 'undefined' ? I18n.t('create_menu.folder_example') : '例如：assets',
         'new_folder',
-        '创建',
+        typeof I18n !== 'undefined' ? I18n.t('common.create') : '创建',
         function(name) {
             var pickedName = (typeof name === 'string') ? name.trim() : '';
             if (!pickedName) {
@@ -1557,11 +1583,11 @@ function createMenuNewFolder() {
 function createMenuNewFile() {
     closeCreateMenuDrawer();
     showPromptDrawer(
-        '新建文件',
-        '请输入文件名',
-        '例如：README.md',
+        typeof I18n !== 'undefined' ? I18n.t('create_menu.new_file') : '新建文件',
+        typeof I18n !== 'undefined' ? I18n.t('create_menu.file_name_placeholder') : '请输入文件名',
+        typeof I18n !== 'undefined' ? I18n.t('create_menu.file_example') : '例如：README.md',
         'new_file.txt',
-        '创建',
+        typeof I18n !== 'undefined' ? I18n.t('common.create') : '创建',
         function(name) {
             var pickedName = (typeof name === 'string') ? name.trim() : '';
             if (!pickedName) {
@@ -1610,11 +1636,11 @@ function confirmUrlShortcut() {
     var url = document.getElementById('urlShortcutUrl').value.trim();
     
     if (!name) {
-        if (typeof showToast === 'function') showToast('请输入名称', 'warning');
+        if (typeof showToast === 'function') showToast(typeof I18n !== 'undefined' ? I18n.t('validation.name_required') : '请输入名称', 'warning');
         return;
     }
     if (!url) {
-        if (typeof showToast === 'function') showToast('请输入网址', 'warning');
+        if (typeof showToast === 'function') showToast(typeof I18n !== 'undefined' ? I18n.t('validation.url_required') : '请输入网址', 'warning');
         return;
     }
     
@@ -1633,15 +1659,15 @@ function confirmUrlShortcut() {
     })
         .then(function(r) { return r.json(); })
         .then(function(data) {
-            if (data && data.success) {
-                if (typeof showToast === 'function') showToast('创建成功', 'success');
-                doRefreshFileList();
-                closeUrlShortcutDrawer();
-            } else {
-                if (typeof showToast === 'function') showToast((data && (data.message || (data.error && data.error.message))) || '创建失败', 'error');
-            }
-        })
-        .catch(function() { if (typeof showToast === 'function') showToast('创建失败', 'error'); });
+                if (data && data.success) {
+                    if (typeof showToast === 'function') showToast(typeof I18n !== 'undefined' ? I18n.t('common.create_success') : '创建成功', 'success');
+                    doRefreshFileList();
+                    closeUrlShortcutDrawer();
+                } else {
+                    if (typeof showToast === 'function') showToast((data && (data.message || (data.error && data.error.message))) || (typeof I18n !== 'undefined' ? I18n.t('common.create_failed') : '创建失败'), 'error');
+                }
+            })
+            .catch(function() { if (typeof showToast === 'function') showToast(typeof I18n !== 'undefined' ? I18n.t('common.create_failed') : '创建失败', 'error'); });
 }
 
 // 使用 SmallMenu 显示文件操作菜单
@@ -1657,28 +1683,28 @@ function showFileSmallMenu(path, name, isDir, triggerElement) {
     window.currentItemIsDir = isDir;
 
     // 通用操作 - 传递 path 参数
-    menuItems.push({ label: '查看详情', icon: '📋', action: function() { handleMenuAction('details'); }, actionParams: currentPath });
-    menuItems.push({ label: '编辑', icon: '✏️', action: function() { handleMenuAction('edit'); }, actionParams: currentPath });
+    menuItems.push({ label: typeof I18n !== 'undefined' ? I18n.t('file_menu.details') : '查看详情', icon: '📋', action: function() { handleMenuAction('details'); }, actionParams: currentPath });
+    menuItems.push({ label: typeof I18n !== 'undefined' ? I18n.t('file_menu.edit') : '编辑', icon: '✏️', action: function() { handleMenuAction('edit'); }, actionParams: currentPath });
 
     if (!isDir) {
-        menuItems.push({ label: '下载文件', icon: '📥', action: function() { handleMenuAction('download'); }, actionParams: currentPath });
+        menuItems.push({ label: typeof I18n !== 'undefined' ? I18n.t('file_menu.download') : '下载文件', icon: '📥', action: function() { handleMenuAction('download'); }, actionParams: currentPath });
     }
 
-    menuItems.push({ label: '复制下载地址', icon: '📋', action: function() { handleMenuAction('copyUrl'); }, actionParams: currentPath });
-    menuItems.push({ label: '复制绝对路径', icon: '📋', action: function() { handleMenuAction('copyPath'); }, actionParams: currentPath });
-    menuItems.push({ label: '重命名', icon: '✏️', action: function() { handleMenuAction('rename'); }, actionParams: currentPath });
-    menuItems.push({ label: '剪切', icon: '✂️', action: function() { handleMenuAction('cut'); }, actionParams: currentPath });
-    menuItems.push({ label: '复制', icon: '📋', action: function() { handleMenuAction('copy'); }, actionParams: currentPath });
+    menuItems.push({ label: typeof I18n !== 'undefined' ? I18n.t('file_menu.copy_url') : '复制下载地址', icon: '📋', action: function() { handleMenuAction('copyUrl'); }, actionParams: currentPath });
+    menuItems.push({ label: typeof I18n !== 'undefined' ? I18n.t('file_menu.copy_path') : '复制绝对路径', icon: '📋', action: function() { handleMenuAction('copyPath'); }, actionParams: currentPath });
+    menuItems.push({ label: typeof I18n !== 'undefined' ? I18n.t('file_menu.rename') : '重命名', icon: '✏️', action: function() { handleMenuAction('rename'); }, actionParams: currentPath });
+    menuItems.push({ label: typeof I18n !== 'undefined' ? I18n.t('file_menu.cut') : '剪切', icon: '✂️', action: function() { handleMenuAction('cut'); }, actionParams: currentPath });
+    menuItems.push({ label: typeof I18n !== 'undefined' ? I18n.t('file_menu.copy') : '复制', icon: '📋', action: function() { handleMenuAction('copy'); }, actionParams: currentPath });
 
     // 解压/压缩
     if (!isDir && isArchiveName(name)) {
-        menuItems.push({ label: '解压到此处', icon: '📦', action: function() { handleMenuAction('extract'); }, actionParams: currentPath });
+        menuItems.push({ label: typeof I18n !== 'undefined' ? I18n.t('file_menu.extract') : '解压到此处', icon: '📦', action: function() { handleMenuAction('extract'); }, actionParams: currentPath });
     }
-    menuItems.push({ label: '新建压缩包', icon: '🗜️', action: function() { handleMenuAction('newArchive'); }, actionParams: currentPath });
+    menuItems.push({ label: typeof I18n !== 'undefined' ? I18n.t('file_menu.compress') : '新建压缩包', icon: '🗜️', action: function() { handleMenuAction('newArchive'); }, actionParams: currentPath });
 
-    menuItems.push({ label: '创建软链接', icon: '🔗', action: function() { handleMenuAction('link'); }, actionParams: currentPath });
-    menuItems.push({ label: '在终端打开', icon: '📺', action: function() { handleMenuAction('terminal'); }, actionParams: currentPath });
-    menuItems.push({ label: '删除', icon: '🗑️', action: function() { handleMenuAction('delete'); }, actionParams: currentPath, danger: true });
+    menuItems.push({ label: typeof I18n !== 'undefined' ? I18n.t('file_menu.link') : '创建软链接', icon: '🔗', action: function() { handleMenuAction('link'); }, actionParams: currentPath });
+    menuItems.push({ label: typeof I18n !== 'undefined' ? I18n.t('file_menu.terminal') : '在终端打开', icon: '📺', action: function() { handleMenuAction('terminal'); }, actionParams: currentPath });
+    menuItems.push({ label: typeof I18n !== 'undefined' ? I18n.t('file_menu.delete') : '删除', icon: '🗑️', action: function() { handleMenuAction('delete'); }, actionParams: currentPath, danger: true });
 
     // 使用 SmallMenu 渲染（居中显示，带遮罩）
     var menuHtml = SmallMenu.render({
