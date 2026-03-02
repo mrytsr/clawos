@@ -33,7 +33,7 @@ def main() -> None:
     root = Path(__file__).resolve().parent
 
     # 构建 twine 命令参数
-    twine_base = ["twine", "upload", "--config-file", ".pypirc"]
+    twine_base = ["twine", "upload"]
     if not args.release:
         twine_base.insert(1, "--repository")
         twine_base.insert(2, "testpypi")
