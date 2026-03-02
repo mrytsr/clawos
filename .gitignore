@@ -1,5 +1,6 @@
 clawos.egg-info/
 dist/
+build/
 node_modules/
 *.pyc
 __pycache__/
