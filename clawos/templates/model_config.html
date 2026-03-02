@@ -755,6 +755,7 @@
         // 模型列表菜单
         function showModelMenu(idx, btn, e) {
             console.log('SmallMenu:', typeof SmallMenu !== 'undefined' ? 'available' : 'NOT FOUND');
+            console.log('testModel:', typeof testModel);
             const menuId = 'model-menu-' + Date.now();
             const m = models[idx];
             const menuHtml = SmallMenu.render({
@@ -899,7 +900,8 @@
             Swal.close();
             
             if (data.success) {
-                Swal.fire('✅ 测试成功', `响应: ${data.response?.substring(0, 200)}...`, 'success');
+                const responseText = (data.reply || data.response || '').substring(0, 200);
+                Swal.fire('✅ 测试成功', `响应: ${responseText}...`, 'success');
             } else {
                 Swal.fire('❌ 测试失败', data.error || '未知错误', 'error');
             }
