@@ -99,6 +99,9 @@
             padding: 16px;
             border: 1px solid #2a2a4e;
             transition: all 0.2s;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
         }
         .model-item:hover {
             border-color: #4361ee;
@@ -108,10 +111,15 @@
             border-color: #4361ee;
             background: rgba(67, 97, 238, 0.1);
         }
+        .model-content {
+            flex: 1;
+            min-width: 0;
+        }
         .model-name {
             font-weight: 600;
             color: #fff;
             margin-bottom: 4px;
+            word-break: break-all;
         }
         .model-provider {
             font-size: 12px;
@@ -126,11 +134,20 @@
             font-size: 12px;
             color: #666;
             margin-bottom: 8px;
+            word-break: break-all;
         }
         .model-actions {
+            flex-shrink: 0;
+            margin-left: 12px;
+        }
+        .model-actions .btn {
+            width: 36px;
+            height: 36px;
+            padding: 0;
             display: flex;
-            gap: 8px;
-            margin-top: 12px;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
         }
         .btn {
             padding: 8px 16px;
@@ -343,6 +360,53 @@
             display: flex;
             gap: 8px;
             margin-bottom: 16px;
+        }
+
+        /* 移动端适配 */
+        @media (max-width: 768px) {
+            .container {
+                padding: 12px;
+            }
+            .header {
+                padding: 20px 0;
+            }
+            .header h1 {
+                font-size: 22px;
+            }
+            .header p {
+                font-size: 13px;
+            }
+            .tabs {
+                margin-bottom: 16px;
+            }
+            .tab-btn {
+                padding: 10px 12px;
+                font-size: 13px;
+            }
+            .card {
+                padding: 16px;
+                margin-bottom: 12px;
+            }
+            .model-list {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+            .model-item {
+                padding: 12px;
+            }
+            .model-name {
+                font-size: 14px;
+            }
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+            .batch-actions {
+                flex-wrap: wrap;
+            }
+            .batch-actions .btn {
+                flex: 1;
+                min-width: 80px;
+            }
         }
     </style>
 </head>
@@ -561,14 +625,16 @@
             }
             container.innerHTML = models.map((m, i) => `
                 <div class="model-item" data-id="${i}">
-                    <div class="model-name">${m.display_name}</div>
-                    <span class="model-provider">${m.provider}</span>
-                    <div class="model-info">
-                        <div>模型: ${m.model}</div>
-                        <div style="color: #555; font-size: 11px;">${m.base_url}</div>
+                    <div class="model-content">
+                        <div class="model-name">${m.display_name}</div>
+                        <span class="model-provider">${m.provider}</span>
+                        <div class="model-info">
+                            <div>模型: ${m.model}</div>
+                            <div style="color: #555; font-size: 11px;">${m.base_url}</div>
+                        </div>
                     </div>
                     <div class="model-actions">
-                        <button class="btn btn-sm smallmenu-trigger" data-idx="${i}">⋮</button>
+                        <button class="btn btn-sm btn-outline smallmenu-trigger" data-idx="${i}">⋮</button>
                     </div>
                 </div>
             `).join('');
