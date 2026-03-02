@@ -6,6 +6,7 @@
     <title>AI 模型配置</title>
     <link rel="stylesheet" href="/static/lib/sweetalert2.min.css">
     <script src="/static/lib/sweetalert2.min.js"></script>
+    <script src="/static/js/smallmenu.js"></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
@@ -567,12 +568,18 @@
                         <div style="color: #555; font-size: 11px;">${m.base_url}</div>
                     </div>
                     <div class="model-actions">
-                        <button class="btn btn-sm btn-success" onclick="testModel(${i})">测试</button>
-                        <button class="btn btn-sm btn-outline" onclick="testBatch(${i})">批量测</button>
-                        <button class="btn btn-sm btn-danger" onclick="deleteModel(${i})">删除</button>
+                        <button class="btn btn-sm smallmenu-trigger" data-idx="${i}">⋮</button>
                     </div>
                 </div>
             `).join('');
+
+            // 绑定 smallmenu
+            document.querySelectorAll('.smallmenu-trigger').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    const idx = parseInt(this.dataset.idx);
+                    showModelMenu(idx, this, e);
+                });
+            });
         }
         
         // 渲染评测模型选择
@@ -698,6 +705,18 @@
         
         function closeAddModal() {
             document.getElementById('addModal').style.display = 'none';
+            // 重置表单
+            document.getElementById('addDisplayName').value = '';
+            document.getElementById('addProvider').value = '';
+            document.getElementById('addBaseUrl').value = '';
+            document.getElementById('addApiKey').value = '';
+            document.getElementById('addModelInput').value = '';
+            document.getElementById('addModelInput').style.display = 'none';
+            document.getElementById('addModelSelect').style.display = '';
+            document.getElementById('addModelSelect').innerHTML = '<option value="">-- 选择模型 --</option>';
+            document.getElementById('addEngine').value = 'openai-api';
+            window.__editIdx = null;
+            document.querySelector('#addModal > div > div:first-child').textContent = '添加模型';
         }
         
         // Provider 变化
@@ -732,13 +751,61 @@
                 modelInput.focus();
             }
         }
-        
+
+        // 模型列表菜单
+        function showModelMenu(idx, btn, e) {
+            const m = models[idx];
+            SmallMenu.render({
+                triggerElement: btn,
+                items: [
+                    { label: '测试', icon: '▶', action: testModel, actionParams: [idx] },
+                    { label: '批量测', icon: '📊', action: testBatch, actionParams: [idx] },
+                    { label: '编辑', icon: '✏️', action: editModel, actionParams: [idx] },
+                    { label: '克隆', icon: '📋', action: cloneModel, actionParams: [idx] },
+                    { label: '删除', icon: '🗑️', danger: true, action: deleteModel, actionParams: [idx] }
+                ],
+                center: true
+            });
+        }
+
+        // 编辑模型
+        function editModel(idx) {
+            const m = models[idx];
+            document.getElementById('addDisplayName').value = m.display_name;
+            document.getElementById('addProvider').value = m.provider;
+            document.getElementById('addBaseUrl').value = m.base_url;
+            document.getElementById('addApiKey').value = m.api_key || '';
+            document.getElementById('addModelInput').value = m.model;
+            document.getElementById('addModelInput').style.display = 'block';
+            document.getElementById('addModelSelect').style.display = 'none';
+            document.getElementById('addEngine').value = m.engine || 'openai-api';
+            window.__editIdx = idx;
+            document.querySelector('#addModal > div > div:first-child').textContent = '编辑模型';
+            document.getElementById('addModal').style.display = 'flex';
+        }
+
+        // 克隆模型
+        function cloneModel(idx) {
+            const m = models[idx];
+            document.getElementById('addDisplayName').value = m.display_name + ' (克隆)';
+            document.getElementById('addProvider').value = m.provider;
+            document.getElementById('addBaseUrl').value = m.base_url;
+            document.getElementById('addApiKey').value = m.api_key || '';
+            document.getElementById('addModelInput').value = m.model;
+            document.getElementById('addModelInput').style.display = 'block';
+            document.getElementById('addModelSelect').style.display = 'none';
+            document.getElementById('addEngine').value = m.engine || 'openai-api';
+            window.__editIdx = null;
+            document.querySelector('#addModal > div > div:first-child').textContent = '添加模型';
+            document.getElementById('addModal').style.display = 'flex';
+        }
+
         // 添加模型
         async function addModel() {
             const provider = document.getElementById('addProvider').value;
             const base_url = document.getElementById('addBaseUrl').value;
             const modelSelect = document.getElementById('addModelSelect');
-            const model = modelSelect.style.display !== 'none' && modelSelect.value !== '__custom__' 
+            const model = modelSelect.style.display !== 'none' && modelSelect.value !== '__custom__'
                 ? modelSelect.value 
                 : document.getElementById('addModelInput').value;
             const api_key = document.getElementById('addApiKey').value;
@@ -749,20 +816,29 @@
                 Swal.fire('错误', '请填写完整信息', 'error');
                 return;
             }
-            
-            const res = await fetch('/api/ai/models/add', {
+
+            const editIdx = window.__editIdx;
+            let url = '/api/ai/models/add';
+            let body = {provider, base_url, model, api_key, display_name, engine};
+
+            if (editIdx !== null && editIdx !== undefined) {
+                url = '/api/ai/models/update';
+                body.index = editIdx;
+            }
+
+            const res = await fetch(url, {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({provider, base_url, model, api_key, display_name, engine})
+                body: JSON.stringify(body)
             });
-            
+
             const data = await res.json();
             if (data.success) {
-                Swal.fire('成功', '模型添加成功', 'success');
+                Swal.fire('成功', editIdx !== null ? '模型更新成功' : '模型添加成功', 'success');
                 closeAddModal();
                 loadModels();
             } else {
-                Swal.fire('错误', data.error || '添加失败', 'error');
+                Swal.fire('错误', data.error || '操作失败', 'error');
             }
         }
         

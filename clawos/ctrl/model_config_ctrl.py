@@ -201,6 +201,67 @@ def add_model():
     save_provider_models(provider_models)
     return jsonify({"success": True})
 
+@model_config_bp.route('/api/ai/models/update', methods=['POST'])
+def update_model():
+    """更新模型"""
+    data = request.json
+    index = data.get('index')
+    provider = (data.get('provider', '') or '').strip().lower() or 'custom'
+    base_url = (data.get('base_url', '') or '').strip()
+    api_key = (data.get('api_key', '') or '').strip()
+    model = (data.get('model', '') or '').strip()
+    engine = (data.get('engine', '') or '').strip()
+    display_name = (data.get('display_name', '') or '').strip()
+
+    if index is None or not model:
+        return jsonify({"success": False, "error": "缺少必要参数"})
+
+    from lib.ai_client import load_provider_models, save_provider_models
+    provider_models = load_provider_models()
+
+    # 获取原模型信息
+    all_models = load_models()
+    if index < 0 or index >= len(all_models):
+        return jsonify({"success": False, "error": "模型不存在"})
+
+    old_model = all_models[index]
+    old_provider = old_model.get('provider', '')
+    old_model_name = old_model.get('model', '')
+
+    # 如果 provider 改变了
+    if old_provider != provider:
+        # 删除旧的
+        if old_provider in provider_models:
+            old_cfg = provider_models[old_provider]
+            if old_model_name in old_cfg.get("models", []):
+                old_cfg["models"].remove(old_model_name)
+        # 添加新的
+        if provider not in provider_models:
+            provider_models[provider] = {"engine": engine or "openai-api", "base_url": base_url, "api_key": api_key, "models": []}
+        else:
+            provider_models[provider]["base_url"] = base_url
+            provider_models[provider]["api_key"] = api_key
+            provider_models[provider]["engine"] = engine
+            provider_models[provider].setdefault("models", [])
+        if model not in provider_models[provider]["models"]:
+            provider_models[provider]["models"].append(model)
+    else:
+        # 同一 provider，更新 model 名称
+        if old_model_name in provider_models[provider].get("models", []):
+            provider_models[provider]["models"].remove(old_model_name)
+        provider_models[provider].setdefault("models", [])
+        if model not in provider_models[provider]["models"]:
+            provider_models[provider]["models"].append(model)
+        if base_url:
+            provider_models[provider]["base_url"] = base_url
+        if api_key:
+            provider_models[provider]["api_key"] = api_key
+        if engine:
+            provider_models[provider]["engine"] = engine
+
+    save_provider_models(provider_models)
+    return jsonify({"success": True})
+
 @model_config_bp.route('/api/ai/models/delete', methods=['POST'])
 def delete_model():
     """删除模型"""
