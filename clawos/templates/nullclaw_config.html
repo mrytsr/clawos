@@ -1,0 +1,1261 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NullClaw 配置</title>
+    <link rel="stylesheet" href="/static/lib/sweetalert2.min.css">
+    <script src="/static/lib/sweetalert2.min.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: #eee;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 0;
+            border-bottom: 1px solid #2a2a4e;
+            margin-bottom: 24px;
+        }
+        .header h1 {
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .header-actions {
+            display: flex;
+            gap: 12px;
+        }
+        .btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .btn-primary {
+            background: #4361ee;
+            color: #fff;
+        }
+        .btn-primary:hover { background: #3451d1; }
+        .btn-success {
+            background: #2ea043;
+            color: #fff;
+        }
+        .btn-success:hover { background: #238636; }
+        .btn-danger {
+            background: #cf222e;
+            color: #fff;
+        }
+        .btn-danger:hover { background: #a40e26; }
+        .btn-secondary {
+            background: #21262d;
+            color: #c9d1d9;
+            border: 1px solid #30363d;
+        }
+        .btn-secondary:hover { background: #30363d; }
+        
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            background: #21262d;
+        }
+        .status-badge.active { background: rgba(46, 160, 67, 0.2); color: #3fb950; }
+        .status-badge.inactive { background: rgba(207, 34, 46, 0.2); color: #f85149; }
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+        
+        .tabs {
+            display: flex;
+            gap: 4px;
+            background: #0f0f23;
+            padding: 6px;
+            border-radius: 12px;
+            margin-bottom: 24px;
+        }
+        .tab-btn {
+            flex: 1;
+            padding: 12px 20px;
+            background: transparent;
+            border: none;
+            color: #888;
+            font-size: 15px;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+        .tab-btn:hover {
+            background: #1a1a3e;
+            color: #aaa;
+        }
+        .tab-btn.active {
+            background: #4361ee;
+            color: #fff;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        
+        .card {
+            background: #1a1a2e;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 16px;
+            border: 1px solid #2a2a4e;
+        }
+        .card-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .card-subtitle {
+            font-size: 12px;
+            color: #666;
+            margin-top: -8px;
+            margin-bottom: 16px;
+        }
+        
+        .form-group {
+            margin-bottom: 16px;
+        }
+        .form-label {
+            display: block;
+            font-size: 13px;
+            color: #8b949e;
+            margin-bottom: 6px;
+        }
+        .form-input, .form-select {
+            width: 100%;
+            padding: 10px 14px;
+            background: #0f0f23;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            color: #e6edf3;
+            font-size: 14px;
+        }
+        .form-input:focus, .form-select:focus {
+            outline: none;
+            border-color: #4361ee;
+        }
+        .form-input:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .config-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 16px;
+        }
+        .config-item {
+            background: #0f0f23;
+            border-radius: 10px;
+            padding: 16px;
+            border: 1px solid #2a2a4e;
+        }
+        .config-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        .config-item-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #e6edf3;
+        }
+        .config-item-badge {
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            background: #30363d;
+            color: #8b949e;
+        }
+        
+        .key-value-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .key-value-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .key-value-key {
+            min-width: 120px;
+            font-size: 12px;
+            color: #8b949e;
+        }
+        .key-value-value {
+            flex: 1;
+            font-size: 13px;
+            color: #e6edf3;
+            word-break: break-all;
+        }
+        
+        .toggle {
+            position: relative;
+            width: 44px;
+            height: 24px;
+            background: #21262d;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .toggle.active {
+            background: #4361ee;
+        }
+        .toggle::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 20px;
+            height: 20px;
+            background: #fff;
+            border-radius: 50%;
+            transition: transform 0.2s;
+        }
+        .toggle.active::after {
+            transform: translateX(20px);
+        }
+        
+        .json-editor {
+            width: 100%;
+            min-height: 400px;
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            color: #e6edf3;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 13px;
+            padding: 16px;
+            resize: vertical;
+        }
+        
+        .section-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #e6edf3;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #2a2a4e;
+        }
+        
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: #8b949e;
+            text-decoration: none;
+            font-size: 14px;
+            margin-bottom: 16px;
+            transition: color 0.2s;
+        }
+        .back-link:hover {
+            color: #e6edf3;
+        }
+        
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 40px;
+            color: #8b949e;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/" class="back-link">← 返回桌面</a>
+        
+        <div class="header">
+            <h1>⚡ NullClaw 配置</h1>
+            <div class="header-actions">
+                <div id="statusBadge" class="status-badge">
+                    <span class="status-dot"></span>
+                    <span>检查中...</span>
+                </div>
+                <button class="btn btn-success" onclick="restartNullclaw()">🔄 重启服务</button>
+                <button class="btn btn-primary" onclick="saveConfig()">💾 保存配置</button>
+            </div>
+        </div>
+        
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="basic" onclick="switchTab('basic')">基础配置</button>
+            <button class="tab-btn" data-tab="models" onclick="switchTab('models')">Models</button>
+            <button class="tab-btn" data-tab="channels" onclick="switchTab('channels')">Channels</button>
+            <button class="tab-btn" data-tab="agent" onclick="switchTab('agent')">Agent</button>
+            <button class="tab-btn" data-tab="autonomy" onclick="switchTab('autonomy')">自主性</button>
+            <button class="tab-btn" data-tab="runtime" onclick="switchTab('runtime')">运行时</button>
+            <button class="tab-btn" data-tab="advanced" onclick="switchTab('advanced')">高级</button>
+            <button class="tab-btn" data-tab="json" onclick="switchTab('json')">JSON</button>
+        </div>
+        
+        <div id="tab-basic" class="tab-content active">
+            <div class="card">
+                <div class="card-title">🤖 模型配置</div>
+                <div class="form-group">
+                    <label class="form-label">默认模型</label>
+                    <input type="text" id="defaultModel" class="form-input" placeholder="如: openrouter/anthropic/claude-sonnet-4.6">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Temperature (0-2)</label>
+                    <input type="number" id="temperature" class="form-input" min="0" max="2" step="0.1" value="0.7">
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-title">🔧 可靠性</div>
+                <div class="config-grid">
+                    <div class="config-item">
+                        <div class="config-item-header">
+                            <span class="config-item-title">Provider 重试次数</span>
+                        </div>
+                        <input type="number" id="providerRetries" class="form-input" min="0" max="10" value="2">
+                    </div>
+                    <div class="config-item">
+                        <div class="config-item-header">
+                            <span class="config-item-title">Provider 退避 (ms)</span>
+                        </div>
+                        <input type="number" id="providerBackoff" class="form-input" min="0" step="100" value="500">
+                    </div>
+                    <div class="config-item">
+                        <div class="config-item-header">
+                            <span class="config-item-title">任务超时 (秒)</span>
+                        </div>
+                        <input type="number" id="agentTimeout" class="form-input" min="0" value="0">
+                    </div>
+                    <div class="config-item">
+                        <div class="config-item-header">
+                            <span class="config-item-title">最大任务数</span>
+                        </div>
+                        <input type="number" id="maxTasks" class="form-input" min="1" value="64">
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Models Tab -->
+        <div id="tab-models" class="tab-content">
+            <div class="card">
+                <div class="card-title">📦 模型 Providers
+                    <button class="btn btn-primary" onclick="showAddModelModal()" style="margin-left:auto;padding:6px 12px;font-size:13px;">+ 添加 Provider</button>
+                </div>
+                <div id="modelsList" class="config-grid"></div>
+            </div>
+        </div>
+        
+        <!-- Channels Tab -->
+        <div id="tab-channels" class="tab-content">
+            <div class="card">
+                <div class="card-title">📱 Channels
+                    <button class="btn btn-primary" onclick="showAddChannelModal()" style="margin-left:auto;padding:6px 12px;font-size:13px;">+ 添加 Channel</button>
+                </div>
+                <div id="channelsList" class="config-grid"></div>
+            </div>
+        </div>
+        
+        <div id="tab-agent" class="tab-content">
+            <div class="card">
+                <div class="card-title">⚙️ Agent 设置</div>
+                <div class="config-grid">
+                    <div class="config-item">
+                        <div class="config-item-header">
+                            <span class="config-item-title">压缩上下文</span>
+                            <div class="toggle" id="toggleCompact" onclick="toggleConfig('agent.compact_context')"></div>
+                        </div>
+                    </div>
+                    <div class="config-item">
+                        <div class="config-item-header">
+                            <span class="config-item-title">并行工具</span>
+                            <div class="toggle" id="toggleParallel" onclick="toggleConfig('agent.parallel_tools')"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">最大工具迭代次数</label>
+                    <input type="number" id="maxToolIterations" class="form-input" min="1" value="1000">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">最大历史消息数</label>
+                    <input type="number" id="maxHistoryMessages" class="form-input" min="1" value="100">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">会话空闲超时 (秒)</label>
+                    <input type="number" id="sessionIdleTimeout" class="form-input" min="0" value="1800">
+                </div>
+            </div>
+        </div>
+        
+        <div id="tab-autonomy" class="tab-content">
+            <div class="card">
+                <div class="card-title">🤖 自主性级别</div>
+                <div class="form-group">
+                    <label class="form-label"> autonomy.level</label>
+                    <select id="autonomyLevel" class="form-select">
+                        <option value="supervised">supervised (监督)</option>
+                        <option value="autonomous">autonomous (自主)</option>
+                        <option value="manual">manual (手动)</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-title">⏱️ 限制</div>
+                <div class="form-group">
+                    <label class="form-label">每小时最大操作数</label>
+                    <input type="number" id="maxActionsPerHour" class="form-input" min="1" value="20">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">消息超时 (秒)</label>
+                    <input type="number" id="messageTimeout" class="form-input" min="0" value="600">
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-title">🛡️ 安全</div>
+                <div class="config-grid">
+                    <div class="config-item">
+                        <div class="config-item-header">
+                            <span class="config-item-title">中等风险需审批</span>
+                            <div class="toggle" id="toggleMediumRisk" onclick="toggleConfig('autonomy.require_approval_for_medium_risk')"></div>
+                        </div>
+                    </div>
+                    <div class="config-item">
+                        <div class="config-item-header">
+                            <span class="config-item-title">阻止高风险命令</span>
+                            <div class="toggle" id="toggleHighRisk" onclick="toggleConfig('autonomy.block_high_risk_commands')"></div>
+                        </div>
+                    </div>
+                    <div class="config-item">
+                        <div class="config-item-header">
+                            <span class="config-item-title">仅工作区</span>
+                            <div class="toggle" id="toggleWorkspaceOnly" onclick="toggleConfig('autonomy.workspace_only')"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div id="tab-runtime" class="tab-content">
+            <div class="card">
+                <div class="card-title">🐳 运行时类型</div>
+                <div class="form-group">
+                    <label class="form-label">kind</label>
+                    <select id="runtimeKind" class="form-select">
+                        <option value="native">native (原生)</option>
+                        <option value="docker">docker (容器)</option>
+                        <option value="auto">auto (自动)</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-title">🐋 Docker 设置</div>
+                <div class="form-group">
+                    <label class="form-label">镜像</label>
+                    <input type="text" id="dockerImage" class="form-input" value="alpine:3.20">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">网络</label>
+                    <select id="dockerNetwork" class="form-select">
+                        <option value="none">none (无网络)</option>
+                        <option value="bridge">bridge (桥接)</option>
+                        <option value="host">host (主机)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">内存限制 (MB)</label>
+                    <input type="number" id="dockerMemory" class="form-input" min="64" value="512">
+                </div>
+                <div class="config-grid">
+                    <div class="config-item">
+                        <div class="config-item-header">
+                            <span class="config-item-title">只读根文件系统</span>
+                            <div class="toggle" id="toggleReadOnly" onclick="toggleConfig('runtime.docker.read_only_rootfs')"></div>
+                        </div>
+                    </div>
+                    <div class="config-item">
+                        <div class="config-item-header">
+                            <span class="config-item-title">挂载工作区</span>
+                            <div class="toggle" id="toggleMountWs" onclick="toggleConfig('runtime.docker.mount_workspace')"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div id="tab-advanced" class="tab-content">
+            <div class="card">
+                <div class="card-title">💾 内存设置</div>
+                <div class="form-group">
+                    <label class="form-label">profile</label>
+                    <select id="memProfile" class="form-select">
+                        <option value="markdown_only">markdown_only</option>
+                        <option value="hybrid">hybrid</option>
+                        <option value="auto">auto</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">backend</label>
+                    <select id="memBackend" class="form-select">
+                        <option value="markdown">markdown</option>
+                        <option value="postgres">postgres</option>
+                        <option value="redis">redis</option>
+                        <option value="auto">auto</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-title">🔧 工具设置</div>
+                <div class="form-group">
+                    <label class="form-label">Shell 超时 (秒)</label>
+                    <input type="number" id="shellTimeout" class="form-input" min="1" value="60">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Shell 最大输出 (字节)</label>
+                    <input type="number" id="shellMaxOutput" class="form-input" min="1024" value="1048576">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">最大文件大小 (字节)</label>
+                    <input type="number" id="maxFileSize" class="form-input" min="1024" value="10485760">
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-title">🌐 网关</div>
+                <div class="form-group">
+                    <label class="form-label">端口</label>
+                    <input type="number" id="gatewayPort" class="form-input" min="1" max="65535" value="3000">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">主机</label>
+                    <input type="text" id="gatewayHost" class="form-input" value="127.0.0.1">
+                </div>
+                <div class="config-grid">
+                    <div class="config-item">
+                        <div class="config-item-header">
+                            <span class="config-item-title">需要配对</span>
+                            <div class="toggle" id="toggleRequirePairing" onclick="toggleConfig('gateway.require_pairing')"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div id="tab-json" class="tab-content">
+            <div class="card">
+                <div class="card-title">📝 JSON 配置</div>
+                <div class="card-subtitle">直接编辑 JSON 配置文件</div>
+                <textarea id="jsonEditor" class="json-editor"></textarea>
+                <div style="margin-top: 12px; display: flex; gap: 12px;">
+                    <button class="btn btn-secondary" onclick="formatJson()">✨ 格式化</button>
+                    <button class="btn btn-primary" onclick="applyJson()">✓ 应用 JSON</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let nullclawConfig = {};
+        
+        // 页面加载
+        document.addEventListener('DOMContentLoaded', function() {
+            loadConfig();
+            checkStatus();
+        });
+        
+        // 加载配置
+        async function loadConfig() {
+            try {
+                const res = await fetch('/api/nullclaw/config');
+                const data = await res.json();
+                if (data.success) {
+                    nullclawConfig = data.config || {};
+                    fillForm();
+                    document.getElementById('jsonEditor').value = JSON.stringify(nullclawConfig, null, 2);
+                }
+                // 加载 Models 和 Channels
+                loadModels();
+                loadChannels();
+            } catch (e) {
+                console.error('加载配置失败:', e);
+            }
+        }
+        
+        // ========== Models Functions ==========
+        let modelsData = {};
+        
+        async function loadModels() {
+            try {
+                const res = await fetch('/api/nullclaw/models');
+                const data = await res.json();
+                if (data.success) {
+                    modelsData = data.providers || {};
+                    renderModels();
+                }
+            } catch (e) {
+                console.error('加载模型失败:', e);
+            }
+        }
+        
+        function renderModels() {
+            const container = document.getElementById('modelsList');
+            if (Object.keys(modelsData).length === 0) {
+                container.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:#666;padding:40px;">暂无配置模型 Provider</div>';
+                return;
+            }
+            container.innerHTML = Object.entries(modelsData).map(([name, config]) => `
+                <div class="config-item">
+                    <div class="config-item-header">
+                        <span class="config-item-title">${name}</span>
+                        <button class="btn btn-secondary" onclick="editModel('${name}')" style="padding:4px 8px;font-size:12px;">编辑</button>
+                    </div>
+                    <div class="key-value-list">
+                        ${Object.entries(config).map(([k, v]) => `
+                            <div class="key-value-item">
+                                <span class="key-value-key">${k}</span>
+                                <span class="key-value-value">${k === 'api_key' ? '****' + (v ? v.slice(-4) : '') : v}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <button class="btn btn-danger" onclick="deleteModel('${name}')" style="margin-top:12px;width:100%;padding:8px;">删除</button>
+                </div>
+            `).join('');
+        }
+        
+        function showAddModelModal() {
+            const html = `
+                <div style="display:flex;flex-direction:column;gap:12px;">
+                    <input type="text" id="modelProvider" class="form-input" placeholder="Provider 名称 (如: openrouter, anthropic, openai)">
+                    <input type="password" id="modelApiKey" class="form-input" placeholder="API Key">
+                    <input type="text" id="modelBaseUrl" class="form-input" placeholder="Base URL (可选)">
+                </div>
+            `;
+            Swal.fire({
+                title: '添加 Model Provider',
+                html: html,
+                showCancelButton: true,
+                confirmButtonText: '添加',
+                cancelButtonText: '取消',
+                preConfirm: async () => {
+                    const provider = document.getElementById('modelProvider').value.trim();
+                    const api_key = document.getElementById('modelApiKey').value.trim();
+                    const base_url = document.getElementById('modelBaseUrl').value.trim();
+                    if (!provider || !api_key) {
+                        Swal.showValidationMessage('请填写 Provider 名称和 API Key');
+                        return false;
+                    }
+                    const config = { api_key };
+                    if (base_url) config.base_url = base_url;
+                    const res = await fetch(`/api/nullclaw/models/${provider}`, {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify(config)
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                        loadModels();
+                        return true;
+                    }
+                    Swal.showValidationMessage(data.message || '添加失败');
+                    return false;
+                }
+            });
+        }
+        
+        async function editModel(provider) {
+            const config = modelsData[provider] || {};
+            const html = `
+                <div style="display:flex;flex-direction:column;gap:12px;">
+                    <input type="text" id="editModelProvider" class="form-input" value="${provider}" disabled>
+                    <input type="password" id="editModelApiKey" class="form-input" placeholder="API Key (留空保持不变)" value="${config.api_key || ''}">
+                    <input type="text" id="editModelBaseUrl" class="form-input" placeholder="Base URL" value="${config.base_url || ''}">
+                </div>
+            `;
+            Swal.fire({
+                title: '编辑 Model Provider',
+                html: html,
+                showCancelButton: true,
+                confirmButtonText: '保存',
+                cancelButtonText: '取消',
+                preConfirm: async () => {
+                    const api_key = document.getElementById('editModelApiKey').value.trim();
+                    const base_url = document.getElementById('editModelBaseUrl').value.trim();
+                    const updateData = {};
+                    if (api_key) updateData.api_key = api_key;
+                    if (base_url) updateData.base_url = base_url;
+                    const res = await fetch(`/api/nullclaw/models/${provider}`, {
+                        method: 'PUT',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify(updateData)
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                        loadModels();
+                        return true;
+                    }
+                    Swal.showValidationMessage(data.message || '更新失败');
+                    return false;
+                }
+            });
+        }
+        
+        async function deleteModel(provider) {
+            const result = await Swal.fire({
+                title: '确认删除',
+                text: `确定要删除 Provider "${provider}" 吗?`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: '删除',
+                cancelButtonText: '取消'
+            });
+            if (result.isConfirmed) {
+                const res = await fetch(`/api/nullclaw/models/${provider}`, {method: 'DELETE'});
+                const data = await res.json();
+                if (data.success) {
+                    loadModels();
+                    Swal.fire({icon: 'success', title: '已删除', timer: 1500});
+                } else {
+                    Swal.fire({icon: 'error', title: '删除失败'});
+                }
+            }
+        }
+        
+        // ========== Channels Functions ==========
+        let channelsData = {};
+        
+        async function loadChannels() {
+            try {
+                const res = await fetch('/api/nullclaw/channels');
+                const data = await res.json();
+                if (data.success) {
+                    channelsData = data.channels || {};
+                    renderChannels();
+                }
+            } catch (e) {
+                console.error('加载Channels失败:', e);
+            }
+        }
+        
+        function renderChannels() {
+            const container = document.getElementById('channelsList');
+            const channelTypes = Object.keys(channelsData);
+            if (channelTypes.length === 0) {
+                container.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:#666;padding:40px;">暂无配置 Channels</div>';
+                return;
+            }
+            container.innerHTML = channelTypes.map(type => {
+                const config = channelsData[type];
+                const accountCount = config.accounts ? Object.keys(config.accounts).length : 0;
+                return `
+                    <div class="config-item">
+                        <div class="config-item-header">
+                            <span class="config-item-title">${type}</span>
+                            <span class="config-item-badge">${accountCount} 账户</span>
+                        </div>
+                        <div class="key-value-list">
+                            ${Object.entries(config).filter(([k]) => k !== 'accounts').map(([k, v]) => `
+                                <div class="key-value-item">
+                                    <span class="key-value-key">${k}</span>
+                                    <span class="key-value-value">${typeof v === 'object' ? JSON.stringify(v) : v}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                        ${config.accounts ? `
+                            <div style="margin-top:12px;padding-top:12px;border-top:1px solid #2a2a4e;">
+                                <div style="font-size:12px;color:#8b949e;margin-bottom:8px;">账户列表</div>
+                                ${Object.keys(config.accounts).map(acc => `
+                                    <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;">
+                                        <span style="font-size:13px;">${acc}</span>
+                                        <div>
+                                            <button class="btn btn-secondary" onclick="editChannelAccount('${type}','${acc}')" style="padding:2px 6px;font-size:11px;">编辑</button>
+                                            <button class="btn btn-danger" onclick="deleteChannelAccount('${type}','${acc}')" style="padding:2px 6px;font-size:11px;">删除</button>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                                <button class="btn btn-primary" onclick="addChannelAccount('${type}')" style="margin-top:8px;width:100%;padding:6px;font-size:12px;">+ 添加账户</button>
+                            </div>
+                        ` : ''}
+                        <div style="display:flex;gap:8px;margin-top:12px;">
+                            <button class="btn btn-secondary" onclick="editChannel('${type}')" style="flex:1;padding:8px;">编辑</button>
+                            <button class="btn btn-danger" onclick="deleteChannel('${type}')" style="flex:1;padding:8px;">删除</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        const CHANNEL_PRESETS = {
+            telegram: { bot_token: '', allow_from: [], reply_in_private: true },
+            discord: { token: '', guild_id: '', allow_from: [] },
+            slack: { bot_token: '', app_token: '', allow_from: [] },
+            whatsapp: { phone_number_id: '', access_token: '', verify_token: '' },
+            nostr: { private_key: '', owner_pubkey: '', relays: [], dm_allowed_pubkeys: [] },
+            irc: { host: '', port: 6697, nick: '', channel: '', tls: true },
+            onebot: { ws_url: '', api_key: '' },
+            lark: { app_id: '', app_secret: '' },
+            matrix: { homeserver: '', access_token: '', room_id: '' },
+            line: { channel_access_token: '', channel_secret: '' },
+            signal: { phone_number: '', signal_cli_path: 'signal-cli' },
+            qq: { bot_id: '', password: '', api_url: '' },
+            webhook: { url: '', method: 'POST', auth_type: 'bearer' }
+        };
+        
+        function showAddChannelModal() {
+            const presetOptions = Object.keys(CHANNEL_PRESETS).map(p => `<option value="${p}">${p}</option>`).join('');
+            const html = `
+                <div style="display:flex;flex-direction:column;gap:12px;">
+                    <select id="channelType" class="form-select" onchange="updateChannelPreset()">
+                        <option value="">-- 选择 Channel 类型 --</option>
+                        ${presetOptions}
+                    </select>
+                    <textarea id="channelConfig" class="form-input" rows="6" placeholder="JSON 配置"></textarea>
+                    <div style="font-size:11px;color:#666;">示例: {"accounts": {"main": {"bot_token": "xxx"}}}</div>
+                </div>
+            `;
+            Swal.fire({
+                title: '添加 Channel',
+                html: html,
+                showCancelButton: true,
+                confirmButtonText: '添加',
+                cancelButtonText: '取消',
+                preConfirm: async () => {
+                    const type = document.getElementById('channelType').value.trim();
+                    const configStr = document.getElementById('channelConfig').value.trim();
+                    if (!type) {
+                        Swal.showValidationMessage('请选择 Channel 类型');
+                        return false;
+                    }
+                    let config = {};
+                    if (configStr) {
+                        try { config = JSON.parse(configStr); } catch(e) {
+                            Swal.showValidationMessage('JSON 格式错误');
+                            return false;
+                        }
+                    } else {
+                        config = { accounts: { main: CHANNEL_PRESETS[type] || {} } };
+                    }
+                    const res = await fetch(`/api/nullclaw/channels/${type}`, {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify(config)
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                        loadChannels();
+                        return true;
+                    }
+                    Swal.showValidationMessage(data.message || '添加失败');
+                    return false;
+                }
+            });
+        }
+        
+        function updateChannelPreset() {
+            const type = document.getElementById('channelType').value;
+            if (CHANNEL_PRESETS[type]) {
+                document.getElementById('channelConfig').value = JSON.stringify({ accounts: { main: CHANNEL_PRESETS[type] } }, null, 2);
+            }
+        }
+        
+        async function editChannel(type) {
+            const config = channelsData[type] || {};
+            const html = `
+                <div style="display:flex;flex-direction:column;gap:12px;">
+                    <textarea id="editChannelConfig" class="form-input" rows="8">${JSON.stringify(config, null, 2)}</textarea>
+                </div>
+            `;
+            Swal.fire({
+                title: `编辑 Channel: ${type}`,
+                html: html,
+                showCancelButton: true,
+                confirmButtonText: '保存',
+                cancelButtonText: '取消',
+                preConfirm: async () => {
+                    try {
+                        const newConfig = JSON.parse(document.getElementById('editChannelConfig').value);
+                        const res = await fetch(`/api/nullclaw/channels/${type}`, {
+                            method: 'PUT',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify(newConfig)
+                        });
+                        const data = await res.json();
+                        if (data.success) {
+                            loadChannels();
+                            return true;
+                        }
+                        Swal.showValidationMessage(data.message || '更新失败');
+                        return false;
+                    } catch(e) {
+                        Swal.showValidationMessage('JSON 格式错误');
+                        return false;
+                    }
+                }
+            });
+        }
+        
+        async function deleteChannel(type) {
+            const result = await Swal.fire({
+                title: '确认删除',
+                text: `确定要删除 Channel "${type}" 吗?`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: '删除',
+                cancelButtonText: '取消'
+            });
+            if (result.isConfirmed) {
+                const res = await fetch(`/api/nullclaw/channels/${type}`, {method: 'DELETE'});
+                const data = await res.json();
+                if (data.success) {
+                    loadChannels();
+                    Swal.fire({icon: 'success', title: '已删除', timer: 1500});
+                } else {
+                    Swal.fire({icon: 'error', title: '删除失败'});
+                }
+            }
+        }
+        
+        // Channel Account Functions
+        async function addChannelAccount(channelType) {
+            const html = `
+                <div style="display:flex;flex-direction:column;gap:12px;">
+                    <input type="text" id="accountName" class="form-input" placeholder="账户名称 (如: main, test)">
+                    <textarea id="accountConfig" class="form-input" rows="6" placeholder="JSON 配置"></textarea>
+                </div>
+            `;
+            Swal.fire({
+                title: `添加 ${channelType} 账户`,
+                html: html,
+                showCancelButton: true,
+                confirmButtonText: '添加',
+                cancelButtonText: '取消',
+                preConfirm: async () => {
+                    const name = document.getElementById('accountName').value.trim();
+                    const configStr = document.getElementById('accountConfig').value.trim();
+                    if (!name) {
+                        Swal.showValidationMessage('请填写账户名称');
+                        return false;
+                    }
+                    let config = {};
+                    if (configStr) {
+                        try { config = JSON.parse(configStr); } catch(e) {
+                            Swal.showValidationMessage('JSON 格式错误');
+                            return false;
+                        }
+                    }
+                    const res = await fetch(`/api/nullclaw/channels/${channelType}/accounts/${name}`, {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify(config)
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                        loadChannels();
+                        return true;
+                    }
+                    Swal.showValidationMessage(data.message || '添加失败');
+                    return false;
+                }
+            });
+        }
+        
+        async function editChannelAccount(channelType, accountName) {
+            const config = channelsData[channelType]?.accounts?.[accountName] || {};
+            const html = `
+                <div style="display:flex;flex-direction:column;gap:12px;">
+                    <input type="text" id="editAccountName" class="form-input" value="${accountName}" disabled>
+                    <textarea id="editAccountConfig" class="form-input" rows="8">${JSON.stringify(config, null, 2)}</textarea>
+                </div>
+            `;
+            Swal.fire({
+                title: `编辑账户: ${accountName}`,
+                html: html,
+                showCancelButton: true,
+                confirmButtonText: '保存',
+                cancelButtonText: '取消',
+                preConfirm: async () => {
+                    try {
+                        const newConfig = JSON.parse(document.getElementById('editAccountConfig').value);
+                        const res = await fetch(`/api/nullclaw/channels/${channelType}/accounts/${accountName}`, {
+                            method: 'PUT',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify(newConfig)
+                        });
+                        const data = await res.json();
+                        if (data.success) {
+                            loadChannels();
+                            return true;
+                        }
+                        Swal.showValidationMessage(data.message || '更新失败');
+                        return false;
+                    } catch(e) {
+                        Swal.showValidationMessage('JSON 格式错误');
+                        return false;
+                    }
+                }
+            });
+        }
+        
+        async function deleteChannelAccount(channelType, accountName) {
+            const result = await Swal.fire({
+                title: '确认删除',
+                text: `确定要删除账户 "${accountName}" 吗?`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: '删除',
+                cancelButtonText: '取消'
+            });
+            if (result.isConfirmed) {
+                const res = await fetch(`/api/nullclaw/channels/${channelType}/accounts/${accountName}`, {method: 'DELETE'});
+                const data = await res.json();
+                if (data.success) {
+                    loadChannels();
+                    Swal.fire({icon: 'success', title: '已删除', timer: 1500});
+                } else {
+                    Swal.fire({icon: 'error', title: '删除失败'});
+                }
+            }
+        }
+        
+        // 检查服务状态
+        async function checkStatus() {
+            try {
+                const res = await fetch('/api/nullclaw/status');
+                const data = await res.json();
+                const badge = document.getElementById('statusBadge');
+                if (data.status === 'active') {
+                    badge.className = 'status-badge active';
+                    badge.innerHTML = '<span class="status-dot"></span><span>运行中</span>';
+                } else {
+                    badge.className = 'status-badge inactive';
+                    badge.innerHTML = '<span class="status-dot"></span><span>已停止</span>';
+                }
+            } catch (e) {
+                const badge = document.getElementById('statusBadge');
+                badge.className = 'status-badge inactive';
+                badge.innerHTML = '<span class="status-dot"></span><span>未知</span>';
+            }
+        }
+        
+        // 填充表单
+        function fillForm() {
+            // 基础
+            setValue('defaultModel', getNested(nullclawConfig, 'agents.defaults.model.primary'));
+            setValue('temperature', nullclawConfig.default_temperature || 0.7);
+            setValue('providerRetries', getNested(nullclawConfig, 'reliability.provider_retries') || 2);
+            setValue('providerBackoff', getNested(nullclawConfig, 'reliability.provider_backoff_ms') || 500);
+            setValue('agentTimeout', getNested(nullclawConfig, 'scheduler.agent_timeout_secs') || 0);
+            setValue('maxTasks', getNested(nullclawConfig, 'scheduler.max_tasks') || 64);
+            
+            // Agent
+            setValue('maxToolIterations', getNested(nullclawConfig, 'agent.max_tool_iterations') || 1000);
+            setValue('maxHistoryMessages', getNested(nullclawConfig, 'agent.max_history_messages') || 100);
+            setValue('sessionIdleTimeout', getNested(nullclawConfig, 'agent.session_idle_timeout_secs') || 1800);
+            setToggle('toggleCompact', getNested(nullclawConfig, 'agent.compact_context'));
+            setToggle('toggleParallel', getNested(nullclawConfig, 'agent.parallel_tools'));
+            
+            // 自主性
+            setValue('autonomyLevel', getNested(nullclawConfig, 'autonomy.level') || 'supervised');
+            setValue('maxActionsPerHour', getNested(nullclawConfig, 'autonomy.max_actions_per_hour') || 20);
+            setValue('messageTimeout', getNested(nullclawConfig, 'agent.message_timeout_secs') || 600);
+            setToggle('toggleMediumRisk', getNested(nullclawConfig, 'autonomy.require_approval_for_medium_risk'));
+            setToggle('toggleHighRisk', getNested(nullclawConfig, 'autonomy.block_high_risk_commands'));
+            setToggle('toggleWorkspaceOnly', getNested(nullclawConfig, 'autonomy.workspace_only'));
+            
+            // 运行时
+            setValue('runtimeKind', getNested(nullclawConfig, 'runtime.kind') || 'native');
+            setValue('dockerImage', getNested(nullclawConfig, 'runtime.docker.image') || 'alpine:3.20');
+            setValue('dockerNetwork', getNested(nullclawConfig, 'runtime.docker.network') || 'none');
+            setValue('dockerMemory', getNested(nullclawConfig, 'runtime.docker.memory_limit_mb') || 512);
+            setToggle('toggleReadOnly', getNested(nullclawConfig, 'runtime.docker.read_only_rootfs'));
+            setToggle('toggleMountWs', getNested(nullclawConfig, 'runtime.docker.mount_workspace'));
+            
+            // 高级
+            setValue('memProfile', getNested(nullclawConfig, 'memory.profile') || 'markdown_only');
+            setValue('memBackend', getNested(nullclawConfig, 'memory.backend') || 'markdown');
+            setValue('shellTimeout', getNested(nullclawConfig, 'tools.shell_timeout_secs') || 60);
+            setValue('shellMaxOutput', getNested(nullclawConfig, 'tools.shell_max_output_bytes') || 1048576);
+            setValue('maxFileSize', getNested(nullclawConfig, 'tools.max_file_size_bytes') || 10485760);
+            setValue('gatewayPort', getNested(nullclawConfig, 'gateway.port') || 3000);
+            setValue('gatewayHost', getNested(nullclawConfig, 'gateway.host') || '127.0.0.1');
+            setToggle('toggleRequirePairing', getNested(nullclawConfig, 'gateway.require_pairing'));
+        }
+        
+        // 获取嵌套值
+        function getNested(obj, path) {
+            return path.split('.').reduce((o, k) => o && o[k], obj);
+        }
+        
+        // 设置值
+        function setValue(id, value) {
+            const el = document.getElementById(id);
+            if (el && value !== undefined) el.value = value;
+        }
+        
+        // 设置开关
+        function setToggle(id, value) {
+            const el = document.getElementById(id);
+            if (el) el.classList.toggle('active', value === true);
+        }
+        
+        // 切换标签页
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
+            document.getElementById('tab-' + tab).classList.add('active');
+        }
+        
+        // 切换配置项
+        function toggleConfig(key) {
+            const newValue = !getNested(nullclawConfig, key);
+            setNested(nullclawConfig, key, newValue);
+            setToggle('toggle' + key.split('.').pop().charAt(0).toUpperCase() + key.split('.').pop().slice(1), newValue);
+        }
+        
+        // 设置嵌套值
+        function setNested(obj, path, value) {
+            const keys = path.split('.');
+            let current = obj;
+            for (let i = 0; i < keys.length - 1; i++) {
+                if (!current[keys[i]]) current[keys[i]] = {};
+                current = current[keys[i]];
+            }
+            current[keys[keys.length - 1]] = value;
+        }
+        
+        // 从表单收集配置
+        function collectForm() {
+            // 基础
+            setNested(nullclawConfig, 'agents.defaults.model.primary', document.getElementById('defaultModel').value);
+            nullclawConfig.default_temperature = parseFloat(document.getElementById('temperature').value) || 0.7;
+            setNested(nullclawConfig, 'reliability.provider_retries', parseInt(document.getElementById('providerRetries').value) || 2);
+            setNested(nullclawConfig, 'reliability.provider_backoff_ms', parseInt(document.getElementById('providerBackoff').value) || 500);
+            setNested(nullclawConfig, 'scheduler.agent_timeout_secs', parseInt(document.getElementById('agentTimeout').value) || 0);
+            setNested(nullclawConfig, 'scheduler.max_tasks', parseInt(document.getElementById('maxTasks').value) || 64);
+            
+            // Agent
+            setNested(nullclawConfig, 'agent.max_tool_iterations', parseInt(document.getElementById('maxToolIterations').value) || 1000);
+            setNested(nullclawConfig, 'agent.max_history_messages', parseInt(document.getElementById('maxHistoryMessages').value) || 100);
+            setNested(nullclawConfig, 'agent.session_idle_timeout_secs', parseInt(document.getElementById('sessionIdleTimeout').value) || 1800);
+            
+            // 自主性
+            setNested(nullclawConfig, 'autonomy.level', document.getElementById('autonomyLevel').value);
+            setNested(nullclawConfig, 'autonomy.max_actions_per_hour', parseInt(document.getElementById('maxActionsPerHour').value) || 20);
+            setNested(nullclawConfig, 'agent.message_timeout_secs', parseInt(document.getElementById('messageTimeout').value) || 600);
+            
+            // 运行时
+            setNested(nullclawConfig, 'runtime.kind', document.getElementById('runtimeKind').value);
+            setNested(nullclawConfig, 'runtime.docker.image', document.getElementById('dockerImage').value);
+            setNested(nullclawConfig, 'runtime.docker.network', document.getElementById('dockerNetwork').value);
+            setNested(nullclawConfig, 'runtime.docker.memory_limit_mb', parseInt(document.getElementById('dockerMemory').value) || 512);
+            
+            // 高级
+            setNested(nullclawConfig, 'memory.profile', document.getElementById('memProfile').value);
+            setNested(nullclawConfig, 'memory.backend', document.getElementById('memBackend').value);
+            setNested(nullclawConfig, 'tools.shell_timeout_secs', parseInt(document.getElementById('shellTimeout').value) || 60);
+            setNested(nullclawConfig, 'tools.shell_max_output_bytes', parseInt(document.getElementById('shellMaxOutput').value) || 1048576);
+            setNested(nullclawConfig, 'tools.max_file_size_bytes', parseInt(document.getElementById('maxFileSize').value) || 10485760);
+            setNested(nullclawConfig, 'gateway.port', parseInt(document.getElementById('gatewayPort').value) || 3000);
+            setNested(nullclawConfig, 'gateway.host', document.getElementById('gatewayHost').value);
+        }
+        
+        // 保存配置
+        async function saveConfig() {
+            collectForm();
+            try {
+                const res = await fetch('/api/nullclaw/config', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({config: nullclawConfig})
+                });
+                const data = await res.json();
+                if (data.success) {
+                    Swal.fire({icon: 'success', title: '保存成功', timer: 1500});
+                } else {
+                    Swal.fire({icon: 'error', title: '保存失败'});
+                }
+            } catch (e) {
+                Swal.fire({icon: 'error', title: '保存失败: ' + e.message});
+            }
+        }
+        
+        // 格式化 JSON
+        function formatJson() {
+            try {
+                const json = JSON.parse(document.getElementById('jsonEditor').value);
+                document.getElementById('jsonEditor').value = JSON.stringify(json, null, 2);
+            } catch (e) {
+                Swal.fire({icon: 'error', title: 'JSON 格式错误'});
+            }
+        }
+        
+        // 应用 JSON
+        function applyJson() {
+            try {
+                nullclawConfig = JSON.parse(document.getElementById('jsonEditor').value);
+                fillForm();
+                Swal.fire({icon: 'success', title: '已应用', timer: 1500});
+            } catch (e) {
+                Swal.fire({icon: 'error', title: 'JSON 格式错误'});
+            }
+        }
+        
+        // 重启服务
+        async function restartNullclaw() {
+            const result = await Swal.fire({
+                icon: 'question',
+                title: '确认重启',
+                text: '是否重启 NullClaw 服务？',
+                showCancelButton: true,
+                confirmButtonText: '重启',
+                cancelButtonText: '取消'
+            });
+            if (result.isConfirmed) {
+                try {
+                    await fetch('/api/nullclaw/restart', {method: 'POST'});
+                    Swal.fire({icon: 'success', title: '已发送重启指令', timer: 2000});
+                    setTimeout(checkStatus, 3000);
+                } catch (e) {
+                    Swal.fire({icon: 'error', title: '重启失败'});
+                }
+            }
+        }
+    </script>
+</body>
+</html>

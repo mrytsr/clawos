@@ -554,7 +554,11 @@
             </div>
             <div class="form-group">
                 <label class="form-label">API Key</label>
-                <input type="password" id="addApiKey" class="form-input" placeholder="sk-...">
+                <div style="display:flex;gap:8px;align-items:center;">
+                    <input type="text" id="addApiKey" class="form-input" placeholder="sk-..." style="flex:1;">
+                    <button type="button" onclick="toggleApiKeyVisibility()" style="padding:8px 12px;cursor:pointer;background:#2a2a4e;border:1px solid #3a3a5e;border-radius:4px;color:#fff;" title="显示/隐藏">👁️</button>
+                    <button type="button" onclick="copyApiKey()" style="padding:8px 12px;cursor:pointer;background:#2a2a4e;border:1px solid #3a3a5e;border-radius:4px;color:#fff;" title="复制">📋</button>
+                </div>
             </div>
             <div class="form-group">
                 <label class="form-label">Engine</label>
@@ -876,6 +880,23 @@
         }
 
         // 克隆模型
+        let __apiKeyVisible = false;
+        function toggleApiKeyVisibility() {
+            const input = document.getElementById('addApiKey');
+            __apiKeyVisible = !__apiKeyVisible;
+            input.type = __apiKeyVisible ? 'text' : 'text';
+            input.setAttribute('data-masked', !__apiKeyVisible);
+        }
+        
+        function copyApiKey() {
+            const input = document.getElementById('addApiKey');
+            navigator.clipboard.writeText(input.value).then(() => {
+                Swal.fire('已复制', 'API Key 已复制到剪贴板', 'success');
+            }).catch(() => {
+                Swal.fire('复制失败', '无法复制到剪贴板', 'error');
+            });
+        }
+        
         function cloneModel(idx) {
             const m = models[idx];
             document.getElementById('addDisplayName').value = m.display_name + ' (克隆)';
