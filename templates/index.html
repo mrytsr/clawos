@@ -964,6 +964,57 @@
             padding: 15px; background: #f6f8fa; border-radius: 6px; text-align: center; 
             margin-bottom: 15px; font-size: var(--global-font-size, 14px); 
         }
+        
+        /* 配置卡片样式 */
+        .config-card {
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            padding: 14px;
+            margin-bottom: 12px;
+        }
+        .config-card-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #f3f4f6;
+        }
+        .config-card-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+        }
+        .config-card-row + .config-card-row {
+            border-top: 1px solid #f3f4f6;
+        }
+        .config-card-label {
+            font-size: 13px;
+            color: #4b5563;
+        }
+        .config-card-btn {
+            padding: 5px 12px;
+            font-size: 12px;
+            background: #f3f4f6;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            cursor: pointer;
+            color: #374151;
+            transition: all 0.2s;
+        }
+        .config-card-btn:hover {
+            background: #e5e7eb;
+        }
+        .config-card-btn-danger {
+            background: #fef2f2;
+            border-color: #fecaca;
+            color: #dc2626;
+        }
+        .config-card-btn-danger:hover {
+            background: #fee2e2;
+        }
 
         /* 移动端适配 */
         @media (max-width: 768px) {
@@ -1744,42 +1795,58 @@
             <button class="drawer-close-btn" onclick="closeConfigModal()">&times;</button>
         </div>
         <div class="drawer-content" style="padding: 16px;">
-            <div class="config-section">
-                <label class="config-label">全局字体大小</label>
-                <input type="range" id="fontSizeSlider" class="font-size-slider" min="12" max="24" value="14" onchange="updateFontSize(this.value)">
-                <div id="fontPreview" class="font-preview" style="font-size: var(--global-font-size, 14px);">
+            <!-- 界面卡片 -->
+            <div class="config-card">
+                <div class="config-card-title">🎨 界面</div>
+                <div class="config-card-row">
+                    <span class="config-card-label">字体大小</span>
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <input type="range" id="fontSizeSlider" class="font-size-slider" min="12" max="24" value="14" onchange="updateFontSize(this.value)" style="width: 120px;">
+                        <span id="fontSizeValue" style="font-size: 13px; color: #666; min-width: 36px;">14px</span>
+                    </div>
+                </div>
+                <div id="fontPreview" class="font-preview" style="font-size: var(--global-font-size, 14px); margin-top: 8px;">
                     预览文字 abc ABC 123
                 </div>
-                <div style="display: flex; justify-content: space-between; font-size: var(--global-font-size, 12px); color: #666;">
-                    <span>小</span>
-                    <span>大</span>
+            </div>
+            
+            <!-- 文件管理卡片 -->
+            <div class="config-card">
+                <div class="config-card-title">📂 文件管理</div>
+                <div class="config-card-row">
+                    <span class="config-card-label">文件打开方式</span>
+                    <button class="config-card-btn" onclick="window.open('/file-open-config', '_blank')">管理</button>
+                </div>
+                <div class="config-card-row">
+                    <span class="config-card-label">当前路径</span>
+                    <span id="configCurrentPath" style="font-size: 12px; color: #666; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">/root</span>
                 </div>
             </div>
             
-            <div class="config-section" style="margin-top: 20px;">
-                <label class="config-label">📂 文件打开方式</label>
-                <div id="fileOpenConfigList" style="margin-top: 8px;">
-                    <div style="color: #666; font-size: 13px;">加载中...</div>
+            <!-- 工具卡片 -->
+            <div class="config-card">
+                <div class="config-card-title">🔧 工具</div>
+                <div class="config-card-row">
+                    <span class="config-card-label">Clash 代理</span>
+                    <button class="config-card-btn" onclick="closeConfigModal(); setTimeout(openClashModal, 300);">设置</button>
                 </div>
-                <button class="modal-btn modal-btn-confirm" style="margin-top: 12px; width: 100%;" onclick="window.open('/file-open-config', '_blank')">管理文件打开方式</button>
+                <div class="config-card-row">
+                    <span class="config-card-label">邮件配置</span>
+                    <button class="config-card-btn" onclick="window.open('/email-config', '_blank')">管理</button>
+                </div>
+                <div class="config-card-row">
+                    <span class="config-card-label">AI 模型配置</span>
+                    <button class="config-card-btn" onclick="window.open('/ai/model-config', '_blank')">配置</button>
+                </div>
             </div>
             
-            <div class="config-section" style="margin-top: 20px;">
-                <label class="config-label">📧 邮件配置</label>
-                <div id="emailConfigStatus" style="margin-top: 8px;">
-                    <div style="color: #666; font-size: 13px;">加载中...</div>
+            <!-- 账户卡片 -->
+            <div class="config-card">
+                <div class="config-card-title">👤 账户</div>
+                <div class="config-card-row">
+                    <span class="config-card-label">退出登录</span>
+                    <button class="config-card-btn config-card-btn-danger" onclick="logoutAuth()">退出</button>
                 </div>
-                <button class="modal-btn modal-btn-confirm" style="margin-top: 12px; width: 100%;" onclick="window.open('/email-config', '_blank')">管理邮件配置</button>
-            </div>
-
-            <div class="config-section" style="margin-top: 20px;">
-                <label class="config-label">✨ model-config</label>
-                <div style="margin-top: 8px; color: #666; font-size: 13px;">配置 provider、模型与评测</div>
-                <button class="modal-btn modal-btn-confirm" style="margin-top: 12px; width: 100%;" onclick="window.open('/ai/model-config', '_blank')">打开 model-config</button>
-            </div>
-            
-            <div class="config-section" style="margin-top: 20px;">
-                <button class="dialog-btn dialog-btn-danger" style="width:100%;padding:10px;" onclick="logoutAuth()">退出登录</button>
             </div>
         </div>
     </div>

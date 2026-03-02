@@ -823,7 +823,18 @@ window.resetSearch = function() {
     if (results) results.innerHTML = '';
     if (input) { input.value = ''; input.focus(); }
 };
-window.openConfigModal = function() { var m = document.getElementById('configModal'); var b = document.getElementById('configBackdrop'); if (m) m.classList.add('open'); if (b) b.classList.add('open'); };
+window.openConfigModal = function() { 
+    var m = document.getElementById('configModal'); 
+    var b = document.getElementById('configBackdrop'); 
+    if (m) m.classList.add('open'); 
+    if (b) b.classList.add('open');
+    // 更新当前路径显示
+    var pathEl = document.getElementById('configCurrentPath');
+    if (pathEl) {
+        var currentPath = window.currentPath || '/root';
+        pathEl.textContent = currentPath.replace(/^\/root/, '~');
+    }
+};
 window.logoutAuth = function() { window.location.href = '/logout'; };
 
 window.actionToModalMap = {
@@ -1221,7 +1232,13 @@ window.handleFileSelect = function(event) {
     event.target.value = '';
 };
 
-window.updateFontSize = function(size) { document.documentElement.style.setProperty('--global-font-size', size + 'px'); localStorage.setItem('global_font_size', size); showToast('字体大小已更新', 'success'); };
+window.updateFontSize = function(size) { 
+    document.documentElement.style.setProperty('--global-font-size', size + 'px'); 
+    localStorage.setItem('global_font_size', size);
+    var fontSizeValue = document.getElementById('fontSizeValue');
+    if (fontSizeValue) fontSizeValue.textContent = size + 'px';
+    showToast('字体大小已更新', 'success'); 
+};
 window.handleSearchKeyup = function(e) { if (e.key === 'Enter' && typeof doSearch === 'function') { doSearch(); } };
 window.refreshFileList = function() {
     // 防止重复刷新的标志
