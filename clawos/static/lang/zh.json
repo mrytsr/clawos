@@ -1,8 +1,11 @@
 {
   "nav": {
+    "menu": "菜单",
+    "chat": "对话",
     "files": "文件管理",
     "terminal": "终端",
     "system": "系统监控",
+    "database": "数据库管理",
     "editor": "代码编辑",
     "ai": "AI 助手",
     "settings": "设置"
@@ -25,7 +28,9 @@
     "modified": "修改时间",
     "permissions": "权限",
     "owner": "所有者",
-    "actions": "操作"
+    "actions": "操作",
+    "openWith": "文件打开方式",
+    "currentPath": "当前路径"
   },
   "terminal": {
     "title": "终端",
@@ -66,13 +71,16 @@
     "info": "提示",
     "yes": "是",
     "no": "否",
-    "ok": "确定"
+    "ok": "确定",
+    "manage": "管理"
   },
   "settings": {
     "title": "设置",
+    "appearance": "界面",
     "language": "语言",
     "theme": "主题",
     "fontSize": "字体大小",
+    "fontPreview": "预览文字 abc ABC 123",
     "autoSave": "自动保存",
     "notifications": "通知",
     "keyboardShortcuts": "快捷键"

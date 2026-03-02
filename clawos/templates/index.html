@@ -1798,7 +1798,7 @@
         <div class="drawer-content" style="padding: 16px;">
             <!-- 界面卡片 -->
             <div class="config-card">
-                <div class="config-card-title">🎨 界面</div>
+                <div class="config-card-title" data-i18n="settings.appearance">🎨 界面</div>
                 <div class="config-card-row">
                     <span class="config-card-label" data-i18n="settings.language">语言</span>
                     <select id="langSelect" onchange="changeLanguage(this.value)" style="padding: 6px 12px; border-radius: 6px; border: 1px solid #d0d7de; font-size: 13px; cursor: pointer;">
@@ -1808,26 +1808,26 @@
                     </select>
                 </div>
                 <div class="config-card-row">
-                    <span class="config-card-label">字体大小</span>
+                    <span class="config-card-label" data-i18n="settings.fontSize">字体大小</span>
                     <div style="display: flex; align-items: center; gap: 12px;">
                         <input type="range" id="fontSizeSlider" class="font-size-slider" min="12" max="24" value="14" onchange="updateFontSize(this.value)" style="width: 120px;">
                         <span id="fontSizeValue" style="font-size: 13px; color: #666; min-width: 36px;">14px</span>
                     </div>
                 </div>
-                <div id="fontPreview" class="font-preview" style="font-size: var(--global-font-size, 14px); margin-top: 8px;">
+                <div id="fontPreview" class="font-preview" style="font-size: var(--global-font-size, 14px); margin-top: 8px;" data-i18n="settings.fontPreview">
                     预览文字 abc ABC 123
                 </div>
             </div>
             
             <!-- 文件管理卡片 -->
             <div class="config-card">
-                <div class="config-card-title">📂 文件管理</div>
+                <div class="config-card-title" data-i18n="nav.files">📂 文件管理</div>
                 <div class="config-card-row">
-                    <span class="config-card-label">文件打开方式</span>
-                    <button class="config-card-btn" onclick="window.open('/file-open-config', '_blank')">管理</button>
+                    <span class="config-card-label" data-i18n="fileBrowser.openWith">文件打开方式</span>
+                    <button class="config-card-btn" onclick="window.open('/file-open-config', '_blank')" data-i18n="common.manage">管理</button>
                 </div>
                 <div class="config-card-row">
-                    <span class="config-card-label">当前路径</span>
+                    <span class="config-card-label" data-i18n="fileBrowser.currentPath">当前路径</span>
                     <span id="configCurrentPath" style="font-size: 12px; color: #666; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">/root</span>
                 </div>
             </div>
@@ -2627,11 +2627,11 @@
 
     <!-- 底部 Dock -->
     <div class="dock">
-        <button class="dock-btn" onclick="openMainMenuModal()" title="菜单" style="font-size:20px;">☰</button>
-        <button class="dock-btn" onclick="handleMainMenu('bot')" title="对话">🤖</button>
-        <button class="dock-btn" onclick="handleMainMenu('terminal')" title="终端">🖥️</button>
-        <button class="dock-btn" onclick="window.open('/db/manager', '_blank')" title="数据库管理">🗄️</button>
-        <button class="dock-btn" onclick="handleMainMenu('system')" title="clawOS配置">⚙️</button>
+        <button class="dock-btn" onclick="openMainMenuModal()" title="菜单" style="font-size:20px;" data-i18n-title="nav.menu">☰</button>
+        <button class="dock-btn" onclick="handleMainMenu('bot')" title="对话" data-i18n-title="nav.chat">🤖</button>
+        <button class="dock-btn" onclick="handleMainMenu('terminal')" title="终端" data-i18n-title="nav.terminal">🖥️</button>
+        <button class="dock-btn" onclick="window.open('/db/manager', '_blank')" title="数据库管理" data-i18n-title="nav.database">🗄️</button>
+        <button class="dock-btn" onclick="handleMainMenu('system')" title="clawOS配置" data-i18n-title="nav.settings">⚙️</button>
     </div>
     
     <style>

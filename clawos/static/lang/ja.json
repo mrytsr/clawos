@@ -1,8 +1,11 @@
 {
   "nav": {
+    "menu": "メニュー",
+    "chat": "チャット",
     "files": "ファイル管理",
     "terminal": "ターミナル",
     "system": "システム監視",
+    "database": "データベース",
     "editor": "コードエディタ",
     "ai": "AI アシスタント",
     "settings": "設定"
@@ -25,7 +28,9 @@
     "modified": "更新日時",
     "permissions": "権限",
     "owner": "所有者",
-    "actions": "操作"
+    "actions": "操作",
+    "openWith": "開く方法",
+    "currentPath": "現在のパス"
   },
   "terminal": {
     "title": "ターミナル",
@@ -66,13 +71,16 @@
     "info": "情報",
     "yes": "はい",
     "no": "いいえ",
-    "ok": "OK"
+    "ok": "OK",
+    "manage": "管理"
   },
   "settings": {
     "title": "設定",
+    "appearance": "外観",
     "language": "言語",
     "theme": "テーマ",
     "fontSize": "フォントサイズ",
+    "fontPreview": "プレビュー abc ABC 123",
     "autoSave": "自動保存",
     "notifications": "通知",
     "keyboardShortcuts": "キーボードショートカット"

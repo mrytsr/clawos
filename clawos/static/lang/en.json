@@ -1,8 +1,11 @@
 {
   "nav": {
+    "menu": "Menu",
+    "chat": "Chat",
     "files": "File Manager",
     "terminal": "Terminal",
     "system": "System Monitor",
+    "database": "Database",
     "editor": "Code Editor",
     "ai": "AI Assistant",
     "settings": "Settings"
@@ -25,7 +28,9 @@
     "modified": "Modified",
     "permissions": "Permissions",
     "owner": "Owner",
-    "actions": "Actions"
+    "actions": "Actions",
+    "openWith": "Open With",
+    "currentPath": "Current Path"
   },
   "terminal": {
     "title": "Terminal",
@@ -66,13 +71,16 @@
     "info": "Info",
     "yes": "Yes",
     "no": "No",
-    "ok": "OK"
+    "ok": "OK",
+    "manage": "Manage"
   },
   "settings": {
     "title": "Settings",
+    "appearance": "Appearance",
     "language": "Language",
     "theme": "Theme",
     "fontSize": "Font Size",
+    "fontPreview": "Preview abc ABC 123",
     "autoSave": "Auto Save",
     "notifications": "Notifications",
     "keyboardShortcuts": "Keyboard Shortcuts"

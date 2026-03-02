@@ -72,12 +72,31 @@
          * 更新页面上的所有翻译文本
          */
         updatePage: function() {
+            // 更新 textContent
             var elements = document.querySelectorAll('[data-i18n]');
             for (var i = 0; i < elements.length; i++) {
                 var el = elements[i];
                 var key = el.getAttribute('data-i18n');
                 if (key) {
                     el.textContent = this.t(key);
+                }
+            }
+            // 更新 title 属性
+            var titleElements = document.querySelectorAll('[data-i18n-title]');
+            for (var j = 0; j < titleElements.length; j++) {
+                var elTitle = titleElements[j];
+                var titleKey = elTitle.getAttribute('data-i18n-title');
+                if (titleKey) {
+                    elTitle.title = this.t(titleKey);
+                }
+            }
+            // 更新 placeholder 属性
+            var placeholderElements = document.querySelectorAll('[data-i18n-placeholder]');
+            for (var k = 0; k < placeholderElements.length; k++) {
+                var elPlaceholder = placeholderElements[k];
+                var placeholderKey = elPlaceholder.getAttribute('data-i18n-placeholder');
+                if (placeholderKey) {
+                    elPlaceholder.placeholder = this.t(placeholderKey);
                 }
             }
             // 触发语言变更事件
