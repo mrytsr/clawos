@@ -4,157 +4,308 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ZeroClaw 配置</title>
-    <link rel="stylesheet" href="/static/lib/sweetalert2.min.css">
-    <script src="/static/lib/sweetalert2.min.js"></script>
+    <link rel="stylesheet" href="/static/css/zeroclaw.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0a0a14;
+            color: #e0e0e0;
             min-height: 100vh;
-            color: #eee;
         }
-        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
         .header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 20px 0;
-            border-bottom: 1px solid #2a2a4e;
-            margin-bottom: 24px;
-            flex-wrap: wrap;
-            gap: 12px;
+            padding: 20px;
+            background: #12121f;
+            border-radius: 12px;
+            margin-bottom: 20px;
         }
-        .header h1 { font-size: 24px; display: flex; align-items: center; gap: 10px; }
-        .header-actions { display: flex; gap: 12px; flex-wrap: wrap; }
-        .btn {
-            padding: 10px 20px;
-            border-radius: 8px;
-            border: none;
-            cursor: pointer;
-            font-size: 14px;
-            transition: all 0.2s;
+        .header h1 {
+            font-size: 24px;
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 10px;
         }
-        .btn-primary { background: #4361ee; color: #fff; }
-        .btn-primary:hover { background: #3451db; }
-        .btn-success { background: #2ea043; color: #fff; }
-        .btn-success:hover { background: #238636; }
-        .btn-danger { background: #da3633; color: #fff; }
-        .btn-danger:hover { background: #b62324; }
-        .btn-warning { background: #d29922; color: #fff; }
-        
+        .header-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
         .status-badge {
             display: flex;
             align-items: center;
             gap: 8px;
             padding: 8px 16px;
+            background: #1a1a2e;
             border-radius: 20px;
             font-size: 14px;
-            background: rgba(255,255,255,0.1);
         }
         .status-dot {
             width: 10px;
             height: 10px;
             border-radius: 50%;
-            background: #6e7681;
+            background: #666;
         }
-        .status-dot.active { background: #3fb950; box-shadow: 0 0 8px #3fb950; }
-        .status-dot.inactive { background: #f85149; }
+        .status-dot.active { background: #4ade80; box-shadow: 0 0 8px #4ade80; }
+        .status-dot.inactive { background: #ef4444; }
         
-        .card {
-            background: #1a1a2e;
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 20px;
-            border: 1px solid #2a2a4e;
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
         }
-        .card-title {
-            font-size: 18px;
-            font-weight: 600;
-            margin-bottom: 16px;
+        .btn-primary { background: #6366f1; color: white; }
+        .btn-primary:hover { background: #4f46e5; }
+        .btn-success { background: #10b981; color: white; }
+        .btn-success:hover { background: #059669; }
+        .btn-warning { background: #f59e0b; color: white; }
+        .btn-danger { background: #ef4444; color: white; }
+        
+        .layout {
+            display: grid;
+            grid-template-columns: 240px 1fr;
+            gap: 20px;
+        }
+        
+        /* 侧边栏 */
+        .sidebar {
+            background: #12121f;
+            border-radius: 12px;
+            padding: 16px;
+            height: fit-content;
+            position: sticky;
+            top: 20px;
+        }
+        .sidebar-title {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+            letter-spacing: 1px;
+        }
+        .nav-item {
             display: flex;
             align-items: center;
-            gap: 8px;
-        }
-        
-        .form-group { margin-bottom: 16px; }
-        .form-label {
-            display: block;
-            font-size: 14px;
-            color: #aaa;
-            margin-bottom: 6px;
-        }
-        .form-input, .form-select, .form-textarea {
-            width: 100%;
-            padding: 10px 14px;
+            gap: 10px;
+            padding: 12px 14px;
             border-radius: 8px;
-            border: 1px solid #3a3a5e;
-            background: #0f0f23;
-            color: #eee;
-            font-size: 14px;
-            transition: border-color 0.2s;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 4px;
+            color: #aaa;
         }
-        .form-input:focus, .form-select:focus, .form-textarea:focus {
-            outline: none;
-            border-color: #4361ee;
-        }
-        .form-textarea { 
-            min-height: 300px; 
-            font-family: 'Monaco', 'Menlo', monospace;
-            font-size: 13px;
-            line-height: 1.5;
-        }
+        .nav-item:hover { background: #1a1a2e; color: #fff; }
+        .nav-item.active { background: #6366f1; color: white; }
+        .nav-item span.icon { font-size: 18px; }
         
-        .config-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 16px;
+        /* 主内容区 */
+        .main-content {
+            background: #12121f;
+            border-radius: 12px;
+            padding: 24px;
+            min-height: 600px;
         }
-        .config-item {
-            background: #0f0f23;
-            border-radius: 10px;
-            padding: 16px;
-            border: 1px solid #2a2a4e;
-        }
-        .config-item-header {
+        .section-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 8px;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid #2a2a4e;
         }
-        .config-item-title { font-size: 14px; color: #aaa; }
+        .section-title { font-size: 20px; font-weight: 600; }
         
+        /* 表单项 */
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .form-group.full-width { grid-column: 1 / -1; }
+        .form-label {
+            font-size: 13px;
+            color: #888;
+            font-weight: 500;
+        }
+        .form-input, .form-select {
+            padding: 10px 14px;
+            background: #0a0a14;
+            border: 1px solid #2a2a4e;
+            border-radius: 8px;
+            color: #e0e0e0;
+            font-size: 14px;
+            transition: border-color 0.2s;
+        }
+        .form-input:focus, .form-select:focus {
+            outline: none;
+            border-color: #6366f1;
+        }
+        .form-textarea {
+            padding: 10px 14px;
+            background: #0a0a14;
+            border: 1px solid #2a2a4e;
+            border-radius: 8px;
+            color: #e0e0e0;
+            font-size: 13px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            min-height: 120px;
+            resize: vertical;
+        }
+        
+        /* 开关 */
+        .toggle-group {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid #1a1a2e;
+        }
+        .toggle-label { display: flex; flex-direction: column; gap: 4px; }
+        .toggle-label .title { font-size: 14px; color: #e0e0e0; }
+        .toggle-label .desc { font-size: 12px; color: #666; }
         .toggle {
+            position: relative;
             width: 44px;
             height: 24px;
-            background: #3a3a5e;
-            border-radius: 12px;
-            cursor: pointer;
-            position: relative;
-            transition: background 0.2s;
         }
-        .toggle::after {
+        .toggle input { opacity: 0; width: 0; height: 0; }
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            inset: 0;
+            background: #2a2a4e;
+            border-radius: 24px;
+            transition: 0.3s;
+        }
+        .toggle-slider:before {
             content: '';
             position: absolute;
-            width: 20px;
-            height: 20px;
-            background: #fff;
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background: white;
             border-radius: 50%;
-            top: 2px;
-            left: 2px;
-            transition: transform 0.2s;
+            transition: 0.3s;
         }
-        .toggle.active { background: #4361ee; }
-        .toggle.active::after { transform: translateX(20px); }
+        .toggle input:checked + .toggle-slider { background: #6366f1; }
+        .toggle input:checked + .toggle-slider:before { transform: translateX(20px); }
         
-        @media (max-width: 600px) {
-            .config-grid { grid-template-columns: 1fr; }
-            .header { flex-direction: column; align-items: flex-start; }
-            .header h1 { font-size: 20px; }
-            .card { padding: 14px; }
+        /* 数组编辑 */
+        .array-editor {
+            background: #0a0a14;
+            border: 1px solid #2a2a4e;
+            border-radius: 8px;
+            padding: 12px;
+        }
+        .array-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        .array-item input {
+            flex: 1;
+            padding: 8px 12px;
+            background: #12121f;
+            border: 1px solid #2a2a4e;
+            border-radius: 6px;
+            color: #e0e0e0;
+        }
+        .array-item .btn-remove {
+            padding: 6px 10px;
+            background: #2a2a4e;
+            border: none;
+            border-radius: 6px;
+            color: #ef4444;
+            cursor: pointer;
+        }
+        .btn-add {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 14px;
+            background: #1a1a2e;
+            border: 1px dashed #3a3a5e;
+            border-radius: 6px;
+            color: #888;
+            cursor: pointer;
+            font-size: 13px;
+            margin-top: 8px;
+        }
+        .btn-add:hover { border-color: #6366f1; color: #6366f1; }
+        
+        /* 折叠面板 */
+        .collapse-item {
+            border: 1px solid #2a2a4e;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            overflow: hidden;
+        }
+        .collapse-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 16px;
+            background: #0a0a14;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        .collapse-header:hover { background: #12121f; }
+        .collapse-content {
+            padding: 16px;
+            display: none;
+            border-top: 1px solid #2a2a4e;
+        }
+        .collapse-item.open .collapse-content { display: block; }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+        .empty-state .icon { font-size: 48px; margin-bottom: 16px; }
+        
+        /* 加载状态 */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            color: #666;
+        }
+        .spinner {
+            width: 24px;
+            height: 24px;
+            border: 2px solid #2a2a4e;
+            border-top-color: #6366f1;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-right: 10px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        
+        @media (max-width: 768px) {
+            .layout { grid-template-columns: 1fr; }
+            .sidebar { position: static; }
+            .form-grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -163,72 +314,565 @@
         <div class="header">
             <h1>⚡ ZeroClaw 配置</h1>
             <div class="header-actions">
-                <div id="statusBadge" class="status-badge">
-                    <span class="status-dot"></span>
-                    <span>检查中...</span>
+                <div class="status-badge">
+                    <span class="status-dot" id="statusDot"></span>
+                    <span id="statusText">检查中...</span>
                 </div>
-                <button class="btn btn-success" onclick="restartZeroclaw()">🔄 重启服务</button>
-                <button class="btn btn-primary" onclick="saveConfig()">💾 保存配置</button>
+                <button class="btn btn-success" onclick="restartService()">🔄 重启服务</button>
+                <button class="btn btn-primary" onclick="saveCurrentSection()">💾 保存</button>
             </div>
         </div>
         
-        <div class="card">
-            <div class="card-title">📝 配置文件 (TOML)</div>
-            <textarea id="configEditor" class="form-textarea" spellcheck="false"></textarea>
+        <div class="layout">
+            <div class="sidebar">
+                <div class="sidebar-title">配置分类</div>
+                <div id="navList"></div>
+            </div>
+            
+            <div class="main-content" id="mainContent">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <span>加载中...</span>
+                </div>
+            </div>
         </div>
     </div>
-    
+
     <script>
         const CONFIG_PATH = '/root/.zeroclaw/config.toml';
-        const SERVICE_NAME = 'zeroclaw.service';
+        let currentSection = 'basic';
+        let sections = [];
         
-        // 加载配置
-        async function loadConfig() {
+        // 加载sections
+        async function loadSections() {
             try {
-                const resp = await fetch('/api/zeroclaw/config');
+                const resp = await fetch('/api/zeroclaw/sections');
                 const data = await resp.json();
-                if (data.success && data.config) {
-                    // TOML需要手动解析，使用后端API读取文件
-                    const fileResp = await fetch('/api/file/read?path=' + encodeURIComponent(CONFIG_PATH));
-                    const fileData = await fileResp.json();
-                    if (fileData.success) {
-                        document.getElementById('configEditor').value = fileData.content;
-                    } else {
-                        // 回退到JSON格式
-                        document.getElementById('configEditor').value = JSON.stringify(data.config, null, 2);
-                    }
+                if (data.success) {
+                    sections = data.sections;
+                    renderNav();
+                    loadSection('basic');
                 }
             } catch(e) {
-                // 尝试直接读取文件
-                try {
-                    const fileResp = await fetch('/api/file/read?path=' + encodeURIComponent(CONFIG_PATH));
-                    const fileData = await fileResp.json();
-                    if (fileData.success) {
-                        document.getElementById('configEditor').value = fileData.content;
-                    }
-                } catch(e2) {
-                    Swal.fire('错误', '加载配置失败', 'error');
-                }
+                console.error(e);
             }
         }
         
-        // 保存配置
-        async function saveConfig() {
-            const content = document.getElementById('configEditor').value;
+        // 渲染导航
+        function renderNav() {
+            const navList = document.getElementById('navList');
+            navList.innerHTML = sections.map(s => `
+                <div class="nav-item ${s.id === currentSection ? 'active' : ''}" 
+                     data-id="${s.id}" onclick="loadSection('${s.id}')">
+                    <span class="icon">${s.icon}</span>
+                    <span>${s.name}</span>
+                </div>
+            `).join('');
+        }
+        
+        // 加载section配置
+        async function loadSection(sectionId) {
+            currentSection = sectionId;
+            renderNav();
+            
+            document.getElementById('mainContent').innerHTML = `
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <span>加载中...</span>
+                </div>
+            `;
+            
             try {
-                const resp = await fetch('/api/file/write', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({path: CONFIG_PATH, content: content})
-                });
+                const resp = await fetch('/api/zeroclaw/section/' + sectionId);
                 const data = await resp.json();
                 if (data.success) {
-                    Swal.fire('成功', '配置已保存', 'success');
-                } else {
-                    Swal.fire('错误', '保存失败: ' + data.error, 'error');
+                    renderSection(sectionId, data.data);
                 }
             } catch(e) {
-                Swal.fire('错误', '保存失败', 'error');
+                document.getElementById('mainContent').innerHTML = `
+                    <div class="empty-state">
+                        <div class="icon">❌</div>
+                        <div>加载失败</div>
+                    </div>
+                `;
+            }
+        }
+        
+        // 渲染section内容
+        function renderSection(sectionId, data) {
+            const container = document.getElementById('mainContent');
+            const section = sections.find(s => s.id === sectionId);
+            let html = `
+                <div class="section-header">
+                    <div class="section-title">${section ? section.icon + ' ' + section.name : sectionId}</div>
+                </div>
+                <div class="form-grid">
+            `;
+            
+            if (sectionId === 'basic') {
+                html += `
+                    <div class="form-group">
+                        <label class="form-label">默认供应商</label>
+                        <input type="text" class="form-input" id="field-default_provider" 
+                               value="${data.default_provider || ''}" placeholder="openrouter">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">默认模型</label>
+                        <input type="text" class="form-input" id="field-default_model" 
+                               value="${data.default_model || ''}" placeholder="anthropic/claude-sonnet-4.6">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Temperature</label>
+                        <input type="number" class="form-input" id="field-default_temperature" 
+                               value="${data.default_temperature || 0.7}" step="0.1" min="0" max="2">
+                    </div>
+                `;
+            }
+            else if (sectionId === 'providers') {
+                html += `
+                    <div class="form-group full-width">
+                        <label class="form-label">模型供应商配置 (JSON格式)</label>
+                        <textarea class="form-textarea" id="field-model_providers">${JSON.stringify(data, null, 2)}</textarea>
+                    </div>
+                `;
+            }
+            else if (sectionId === 'autonomy') {
+                html += renderAutonomyFields(data);
+            }
+            else if (sectionId === 'security') {
+                html += renderSecurityFields(data);
+            }
+            else if (sectionId === 'runtime') {
+                html += `
+                    <div class="form-group">
+                        <label class="form-label">运行时类型</label>
+                        <select class="form-select" id="field-runtime-kind">
+                            <option value="native" ${data.runtime?.kind === 'native' ? 'selected' : ''}>Native</option>
+                            <option value="docker" ${data.runtime?.kind === 'docker' ? 'selected' : ''}>Docker</option>
+                        </select>
+                    </div>
+                    <div class="form-group full-width">
+                        <label class="form-label">Docker 配置</label>
+                        <textarea class="form-textarea" id="field-runtime-docker">${JSON.stringify(data.runtime?.docker || {}, null, 2)}</textarea>
+                    </div>
+                `;
+            }
+            else if (sectionId === 'gateway') {
+                html += `
+                    <div class="form-group">
+                        <label class="form-label">端口</label>
+                        <input type="number" class="form-input" id="field-gateway-port" 
+                               value="${data.port || ''}">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">主机</label>
+                        <input type="text" class="form-input" id="field-gateway-host" 
+                               value="${data.host || ''}">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">需要配对</label>
+                        <label class="toggle">
+                            <input type="checkbox" id="field-gateway-require_pairing" 
+                                   ${data.require_pairing ? 'checked' : ''}>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                `;
+            }
+            else if (sectionId === 'memory') {
+                html += `
+                    <div class="form-group">
+                        <label class="form-label">后端类型</label>
+                        <select class="form-select" id="field-memory-backend">
+                            <option value="sqlite" ${data.backend === 'sqlite' ? 'selected' : ''}>SQLite</option>
+                            <option value="none" ${data.backend === 'none' ? 'selected' : ''}>None</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">自动保存</label>
+                        <label class="toggle">
+                            <input type="checkbox" id="field-memory-auto_save" 
+                                   ${data.auto_save !== false ? 'checked' : ''}>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">记忆保留天数</label>
+                        <input type="number" class="form-input" id="field-memory-conversation_retention_days" 
+                               value="${data.conversation_retention_days || 30}">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">最大历史消息</label>
+                        <input type="number" class="form-input" id="field-memory-max_history_messages" 
+                               value="${data.max_history_messages || 50}">
+                    </div>
+                `;
+            }
+            else if (sectionId === 'agent') {
+                html += `
+                    <div class="form-group">
+                        <label class="form-label">最大工具迭代次数</label>
+                        <input type="number" class="form-input" id="field-agent-max_tool_iterations" 
+                               value="${data.max_tool_iterations || 10}">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">最大历史消息</label>
+                        <input type="number" class="form-input" id="field-agent-max_history_messages" 
+                               value="${data.max_history_messages || 50}">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">压缩上下文</label>
+                        <label class="toggle">
+                            <input type="checkbox" id="field-agent-compact_context" 
+                                   ${data.compact_context ? 'checked' : ''}>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                `;
+            }
+            else if (sectionId === 'scheduler') {
+                html += `
+                    <div class="form-group">
+                        <label class="form-label">启用调度器</label>
+                        <label class="toggle">
+                            <input type="checkbox" id="field-scheduler-enabled" 
+                                   ${data.enabled !== false ? 'checked' : ''}>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">最大任务数</label>
+                        <input type="number" class="form-input" id="field-scheduler-max_tasks" 
+                               value="${data.max_tasks || 64}">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">最大并发数</label>
+                        <input type="number" class="form-input" id="field-scheduler-max_concurrent" 
+                               value="${data.max_concurrent || 4}">
+                    </div>
+                `;
+            }
+            else if (sectionId === 'reliability') {
+                html += `
+                    <div class="form-group">
+                        <label class="form-label">供应商重试次数</label>
+                        <input type="number" class="form-input" id="field-reliability-provider_retries" 
+                               value="${data.provider_retries || 2}">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">供应商退避时间(ms)</label>
+                        <input type="number" class="form-input" id="field-reliability-provider_backoff_ms" 
+                               value="${data.provider_backoff_ms || 500}">
+                    </div>
+                `;
+            }
+            else if (sectionId === 'cron') {
+                html += `
+                    <div class="form-group">
+                        <label class="form-label">启用定时任务</label>
+                        <label class="toggle">
+                            <input type="checkbox" id="field-cron-enabled" 
+                                   ${data.enabled !== false ? 'checked' : ''}>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">最大运行历史</label>
+                        <input type="number" class="form-input" id="field-cron-max_run_history" 
+                               value="${data.max_run_history || 50}">
+                    </div>
+                `;
+            }
+            else if (sectionId === 'browser') {
+                html += `
+                    <div class="form-group">
+                        <label class="form-label">启用浏览器</label>
+                        <label class="toggle">
+                            <input type="checkbox" id="field-browser-enabled" 
+                                   ${data.enabled ? 'checked' : ''}>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">后端</label>
+                        <select class="form-select" id="field-browser-backend">
+                            <option value="agent_browser" ${data.backend === 'agent_browser' ? 'selected' : ''}>Agent Browser</option>
+                            <option value="native" ${data.backend === 'native' ? 'selected' : ''}>Native</option>
+                        </select>
+                    </div>
+                `;
+            }
+            else if (sectionId === 'observability') {
+                html += `
+                    <div class="form-group">
+                        <label class="form-label">后端</label>
+                        <select class="form-select" id="field-observability-backend">
+                            <option value="none" ${data.backend === 'none' ? 'selected' : ''}>None</option>
+                        </select>
+                    </div>
+                `;
+            }
+            else {
+                // 默认渲染JSON
+                html += `
+                    <div class="form-group full-width">
+                        <label class="form-label">配置内容 (JSON)</label>
+                        <textarea class="form-textarea" id="field-json">${JSON.stringify(data, null, 2)}</textarea>
+                    </div>
+                `;
+            }
+            
+            html += '</div>';
+            container.innerHTML = html;
+        }
+        
+        // 渲染自主权限字段
+        function renderAutonomyFields(data) {
+            let html = '';
+            
+            // 级别选择
+            html += `
+                <div class="form-group">
+                    <label class="form-label">自主级别</label>
+                    <select class="form-select" id="field-autonomy-level">
+                        <option value="supervised" ${data.level === 'supervised' ? 'selected' : ''}>Supervised (监督)</option>
+                        <option value="auto" ${data.level === 'auto' ? 'selected' : ''}>Auto (自动)</option>
+                    </select>
+                </div>
+            `;
+            
+            // 布尔开关
+            const boolFields = [
+                ['workspace_only', '仅工作区'],
+                ['require_approval_for_medium_risk', '中等风险需审批'],
+                ['block_high_risk_commands', '阻止高风险命令'],
+            ];
+            
+            boolFields.forEach(([key, label]) => {
+                html += `
+                    <div class="form-group">
+                        <label class="form-label">${label}</label>
+                        <label class="toggle">
+                            <input type="checkbox" id="field-autonomy-${key}" ${data[key] ? 'checked' : ''}>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                `;
+            });
+            
+            // 数组字段
+            const arrayFields = [
+                ['allowed_commands', '允许的命令'],
+                ['forbidden_paths', '禁止的路径'],
+                ['auto_approve', '自动批准的操作'],
+            ];
+            
+            arrayFields.forEach(([key, label]) => {
+                const arr = data[key] || [];
+                html += `
+                    <div class="form-group full-width">
+                        <label class="form-label">${label}</label>
+                        <div class="array-editor" id="array-${key}">
+                            ${arr.map(v => `
+                                <div class="array-item">
+                                    <input type="text" value="${v}">
+                                    <button class="btn-remove" onclick="this.parentElement.remove()">✕</button>
+                                </div>
+                            `).join('')}
+                        </div>
+                        <button class="btn-add" onclick="addArrayItem('${key}')">+ 添加</button>
+                    </div>
+                `;
+            });
+            
+            return html;
+        }
+        
+        // 渲染安全设置字段
+        function renderSecurityFields(data) {
+            let html = '';
+            
+            // 沙箱
+            if (data.sandbox) {
+                html += `
+                    <div class="form-group">
+                        <label class="form-label">沙箱后端</label>
+                        <select class="form-select" id="field-security-sandbox-backend">
+                            <option value="auto" ${data.sandbox.backend === 'auto' ? 'selected' : ''}>Auto</option>
+                            <option value="none" ${data.sandbox.backend === 'none' ? 'selected' : ''}>None</option>
+                        </select>
+                    </div>
+                `;
+            }
+            
+            // 资源限制
+            if (data.resources) {
+                html += `
+                    <div class="form-group">
+                        <label class="form-label">最大内存 (MB)</label>
+                        <input type="number" class="form-input" id="field-security-resources-max_memory_mb" 
+                               value="${data.resources.max_memory_mb || 512}">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">最大CPU时间 (秒)</label>
+                        <input type="number" class="form-input" id="field-security-resources-max_cpu_time_seconds" 
+                               value="${data.resources.max_cpu_time_seconds || 60}">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">最大子进程数</label>
+                        <input type="number" class="form-input" id="field-security-resources-max_subprocesses" 
+                               value="${data.resources.max_subprocesses || 10}">
+                    </div>
+                `;
+            }
+            
+            // OTP
+            if (data.otp) {
+                html += `
+                    <div class="form-group">
+                        <label class="form-label">启用OTP</label>
+                        <label class="toggle">
+                            <input type="checkbox" id="field-security-otp-enabled" ${data.otp.enabled ? 'checked' : ''}>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="form-group full-width">
+                        <label class="form-label">受保护的操作</label>
+                        <div class="array-editor" id="array-security-otp-gated_actions">
+                            ${(data.otp.gated_actions || []).map(v => `
+                                <div class="array-item">
+                                    <input type="text" value="${v}">
+                                    <button class="btn-remove" onclick="this.parentElement.remove()">✕</button>
+                                </div>
+                            `).join('')}
+                        </div>
+                        <button class="btn-add" onclick="addArrayItem('security-otp-gated_actions')">+ 添加</button>
+                    </div>
+                `;
+            }
+            
+            return html;
+        }
+        
+        // 添加数组项
+        function addArrayItem(key) {
+            const container = document.getElementById('array-' + key);
+            if (container) {
+                const div = document.createElement('div');
+                div.className = 'array-item';
+                div.innerHTML = '<input type="text" value=""><button class="btn-remove" onclick="this.parentElement.remove()">✕</button>';
+                container.appendChild(div);
+            }
+        }
+        
+        // 保存当前section
+        async function saveCurrentSection() {
+            const data = {};
+            
+            // 收集所有输入字段
+            document.querySelectorAll('.form-input, .form-select, .form-textarea').forEach(el => {
+                const id = el.id.replace('field-', '');
+                if (id.startsWith('field-')) return;
+                
+                // 跳过JSON字段（单独处理）
+                if (id === 'json' || id === 'model_providers' || id.startsWith('runtime-') || id.startsWith('security-')) return;
+                
+                if (el.type === 'checkbox') {
+                    data[id] = el.checked;
+                } else if (el.type === 'number') {
+                    data[id] = parseFloat(el.value) || 0;
+                } else {
+                    data[id] = el.value;
+                }
+            });
+            
+            // 处理嵌套对象
+            if (currentSection === 'runtime') {
+                data.runtime = { kind: document.getElementById('field-runtime-kind')?.value || 'native' };
+                try {
+                    const dockerTxt = document.getElementById('field-runtime-docker')?.value || '{}';
+                    data.runtime.docker = JSON.parse(dockerTxt);
+                } catch(e) {}
+            }
+            
+            if (currentSection === 'gateway') {
+                data.port = parseInt(document.getElementById('field-gateway-port')?.value) || 42617;
+                data.host = document.getElementById('field-gateway-host')?.value || '127.0.0.1';
+                data.require_pairing = document.getElementById('field-gateway-require_pairing')?.checked || false;
+            }
+            
+            if (currentSection === 'memory') {
+                data.backend = document.getElementById('field-memory-backend')?.value || 'sqlite';
+                data.auto_save = document.getElementById('field-memory-auto_save')?.checked !== false;
+                data.conversation_retention_days = parseInt(document.getElementById('field-memory-conversation_retention_days')?.value) || 30;
+                data.max_history_messages = parseInt(document.getElementById('field-memory-max_history_messages')?.value) || 50;
+            }
+            
+            if (currentSection === 'agent') {
+                data.max_tool_iterations = parseInt(document.getElementById('field-agent-max_tool_iterations')?.value) || 10;
+                data.max_history_messages = parseInt(document.getElementById('field-agent-max_history_messages')?.value) || 50;
+                data.compact_context = document.getElementById('field-agent-compact_context')?.checked || false;
+            }
+            
+            if (currentSection === 'scheduler') {
+                data.enabled = document.getElementById('field-scheduler-enabled')?.checked !== false;
+                data.max_tasks = parseInt(document.getElementById('field-scheduler-max_tasks')?.value) || 64;
+                data.max_concurrent = parseInt(document.getElementById('field-scheduler-max_concurrent')?.value) || 4;
+            }
+            
+            if (currentSection === 'reliability') {
+                data.provider_retries = parseInt(document.getElementById('field-reliability-provider_retries')?.value) || 2;
+                data.provider_backoff_ms = parseInt(document.getElementById('field-reliability-provider_backoff_ms')?.value) || 500;
+            }
+            
+            if (currentSection === 'cron') {
+                data.enabled = document.getElementById('field-cron-enabled')?.checked !== false;
+                data.max_run_history = parseInt(document.getElementById('field-cron-max_run_history')?.value) || 50;
+            }
+            
+            if (currentSection === 'browser') {
+                data.enabled = document.getElementById('field-browser-enabled')?.checked || false;
+                data.backend = document.getElementById('field-browser-backend')?.value || 'agent_browser';
+            }
+            
+            // 处理数组字段
+            ['allowed_commands', 'forbidden_paths', 'auto_approve'].forEach(key => {
+                const container = document.getElementById('array-autonomy-' + key);
+                if (container) {
+                    data[key] = Array.from(container.querySelectorAll('input')).map(i => i.value).filter(v => v);
+                }
+            });
+            
+            try {
+                const resp = await fetch('/api/zeroclaw/section/' + currentSection, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({data: data})
+                });
+                const result = await resp.json();
+                if (result.success) {
+                    Swal.fire('✅ 成功', result.message, 'success');
+                } else {
+                    Swal.fire('❌ 错误', result.message, 'error');
+                }
+            } catch(e) {
+                Swal.fire('❌ 错误', '保存失败', 'error');
+            }
+        }
+        
+        // 重启服务
+        async function restartService() {
+            try {
+                const resp = await fetch('/api/zeroclaw/restart', {method: 'POST'});
+                const data = await resp.json();
+                if (data.success) {
+                    Swal.fire('✅ 已发送', '服务重启指令已发送', 'success');
+                    setTimeout(checkServiceStatus, 2000);
+                } else {
+                    Swal.fire('❌ 错误', data.message, 'error');
+                }
+            } catch(e) {
+                Swal.fire('❌ 错误', '重启失败', 'error');
             }
         }
         
@@ -237,42 +881,24 @@
             try {
                 const resp = await fetch('/api/zeroclaw/status');
                 const data = await resp.json();
-                const badge = document.getElementById('statusBadge');
+                const dot = document.getElementById('statusDot');
+                const text = document.getElementById('statusText');
                 if (data.active) {
-                    badge.innerHTML = '<span class="status-dot active"></span><span>运行中</span>';
+                    dot.className = 'status-dot active';
+                    text.textContent = '运行中';
                 } else {
-                    badge.innerHTML = '<span class="status-dot inactive"></span><span>已停止</span>';
+                    dot.className = 'status-dot inactive';
+                    text.textContent = '已停止';
                 }
             } catch(e) {
-                document.getElementById('statusBadge').innerHTML = 
-                    '<span class="status-dot inactive"></span><span>未知</span>';
-            }
-        }
-        
-        // 重启服务
-        async function restartZeroclaw() {
-            try {
-                const resp = await fetch('/api/systemd/restart', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({service: SERVICE_NAME})
-                });
-                const data = await resp.json();
-                if (data.success) {
-                    Swal.fire('成功', '服务已重启', 'success');
-                } else {
-                    Swal.fire('错误', '重启失败: ' + data.error, 'error');
-                }
-                setTimeout(checkServiceStatus, 1500);
-            } catch(e) {
-                Swal.fire('错误', '重启失败', 'error');
+                document.getElementById('statusText').textContent = '未知';
             }
         }
         
         // 初始化
-        loadConfig();
+        loadSections();
         checkServiceStatus();
-        setInterval(checkServiceStatus, 5000);
+        setInterval(checkServiceStatus, 10000);
     </script>
 </body>
 </html>
