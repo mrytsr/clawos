@@ -348,11 +348,21 @@
             align-items: center;
             gap: 8px;
             cursor: pointer;
+            padding: 8px 0;
+            border-bottom: 1px solid #2a2a4e;
+        }
+        .checkbox-wrapper:last-child {
+            border-bottom: none;
         }
         .checkbox-wrapper input {
             width: 18px;
             height: 18px;
             accent-color: #4361ee;
+            flex-shrink: 0;
+        }
+        #evalModels {
+            display: flex;
+            flex-direction: column;
         }
         
         /* 批量操作 */
