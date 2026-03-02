@@ -117,10 +117,11 @@
         }
         
         .tab-content {
-            display: none;
-        }
-        .tab-content.active {
             display: block;
+            margin-bottom: 24px;
+        }
+        .tab-content.collapsed {
+            display: none;
         }
         
         .card {
@@ -177,6 +178,17 @@
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
             gap: 16px;
+        }
+        @media (max-width: 600px) {
+            .config-grid {
+                grid-template-columns: 1fr;
+            }
+            .config-item {
+                padding: 12px;
+            }
+            .config-item-title {
+                font-size: 13px;
+            }
         }
         .config-item {
             background: #0f0f23;
@@ -627,9 +639,12 @@
                 if (data.success) {
                     modelsData = data.providers || {};
                     renderModels();
+                } else {
+                    Swal.fire('加载失败', data.error || '无法加载模型配置', 'error');
                 }
             } catch (e) {
                 console.error('加载模型失败:', e);
+                Swal.fire('加载失败', '无法加载模型配置: ' + e.message, 'error');
             }
         }
         
@@ -766,9 +781,12 @@
                 if (data.success) {
                     channelsData = data.channels || {};
                     renderChannels();
+                } else {
+                    Swal.fire('加载失败', data.error || '无法加载 Channels 配置', 'error');
                 }
             } catch (e) {
                 console.error('加载Channels失败:', e);
+                Swal.fire('加载失败', '无法加载 Channels 配置: ' + e.message, 'error');
             }
         }
         
@@ -781,42 +799,45 @@
             }
             container.innerHTML = channelTypes.map(type => {
                 const config = channelsData[type];
-                const accountCount = config.accounts ? Object.keys(config.accounts).length : 0;
-                return `
-                    <div class="config-item">
-                        <div class="config-item-header">
-                            <span class="config-item-title">${type}</span>
-                            <span class="config-item-badge">${accountCount} 账户</span>
-                        </div>
-                        <div class="key-value-list">
-                            ${Object.entries(config).filter(([k]) => k !== 'accounts').map(([k, v]) => `
-                                <div class="key-value-item">
-                                    <span class="key-value-key">${k}</span>
-                                    <span class="key-value-value">${typeof v === 'object' ? JSON.stringify(v) : v}</span>
-                                </div>
-                            `).join('')}
-                        </div>
-                        ${config.accounts ? `
-                            <div style="margin-top:12px;padding-top:12px;border-top:1px solid #2a2a4e;">
-                                <div style="font-size:12px;color:#8b949e;margin-bottom:8px;">账户列表</div>
-                                ${Object.keys(config.accounts).map(acc => `
-                                    <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;">
-                                        <span style="font-size:13px;">${acc}</span>
-                                        <div>
-                                            <button class="btn btn-secondary" onclick="editChannelAccount('${type}','${acc}')" style="padding:2px 6px;font-size:11px;">编辑</button>
-                                            <button class="btn btn-danger" onclick="deleteChannelAccount('${type}','${acc}')" style="padding:2px 6px;font-size:11px;">删除</button>
-                                        </div>
-                                    </div>
-                                `).join('')}
-                                <button class="btn btn-primary" onclick="addChannelAccount('${type}')" style="margin-top:8px;width:100%;padding:6px;font-size:12px;">+ 添加账户</button>
+                const accounts = config.accounts || {};
+                const accountNames = Object.keys(accounts);
+                
+                // 生成账户列表HTML
+                let accountsHtml = '';
+                if (accountNames.length > 0) {
+                    accountNames.forEach(accName => {
+                        const acc = accounts[accName];
+                        const keys = Object.keys(acc).filter(k => k !== 'allow_from');
+                        let keyValuesHtml = '';
+                        keys.forEach(k => {
+                            const isSecret = k.includes('secret') || k.includes('token');
+                            keyValuesHtml += `<span style="color:#8b949e;">${k}:</span><span style="color:#c9d1d9;word-break:break-all;">${isSecret ? '••••••••' : acc[k]}</span>`;
+                        });
+                        accountsHtml += `<div style="background:#1a1a2e;padding:10px;border-radius:6px;margin-bottom:8px;">
+                            <div style="font-size:13px;font-weight:600;color:#58a6ff;margin-bottom:6px;">📱 ${accName}</div>
+                            <div style="display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:12px;">${keyValuesHtml}</div>
+                            <div style="display:flex;gap:8px;margin-top:8px;">
+                                <button class="btn btn-secondary" onclick="editChannelAccount('${type}','${accName}')" style="padding:4px 10px;font-size:11px;">编辑</button>
+                                <button class="btn btn-danger" onclick="deleteChannelAccount('${type}','${accName}')" style="padding:4px 10px;font-size:11px;">删除</button>
                             </div>
-                        ` : ''}
-                        <div style="display:flex;gap:8px;margin-top:12px;">
-                            <button class="btn btn-secondary" onclick="editChannel('${type}')" style="flex:1;padding:8px;">编辑</button>
-                            <button class="btn btn-danger" onclick="deleteChannel('${type}')" style="flex:1;padding:8px;">删除</button>
-                        </div>
+                        </div>`;
+                    });
+                } else {
+                    accountsHtml = '<div style="color:#666;font-size:12px;">无账户配置</div>';
+                }
+                
+                return `<div class="config-item">
+                    <div class="config-item-header">
+                        <span class="config-item-title">${type}</span>
+                        <span class="config-item-badge">${accountNames.length} 账户</span>
                     </div>
-                `;
+                    <div style="font-size:12px;color:#8b949e;margin-bottom:8px;">账户配置</div>
+                    ${accountsHtml}
+                    <button class="btn btn-primary" onclick="addChannelAccount('${type}')" style="margin-top:8px;width:100%;padding:8px;font-size:12px;">+ 添加账户</button>
+                    <div style="display:flex;gap:8px;margin-top:8px;">
+                        <button class="btn btn-danger" onclick="deleteChannel('${type}')" style="flex:1;padding:8px;">删除 Channel</button>
+                    </div>
+                </div>`;
             }).join('');
         }
         
