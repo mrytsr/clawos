@@ -756,7 +756,8 @@ window.openMainMenuModal = function() {
             { action: 'frp', icon: '🔗', key: 'menu.frp' },
             { action: 'picoclaw', icon: '🦞', key: 'menu.picoclaw' },
             { action: 'nanobot', icon: '🐱', key: 'menu.nanobot' },
-            { action: 'nullclaw', icon: '⚡', key: 'menu.nullclaw' }
+            { action: 'nullclaw', icon: '⚡', key: 'menu.nullclaw' },
+            { action: 'zeroclaw', icon: '💎', key: 'menu.zeroclaw' }
         ];
         c.innerHTML = items.map(function(item) {
             var text = (typeof I18n !== 'undefined' && I18n.t) ? I18n.t(item.key) : item.key;
@@ -878,6 +879,8 @@ window.handleMainMenu = function(action) {
         window.open('/nanobot/config', '_self');
     } else if (action === 'nullclaw') {
         window.open('/nullclaw-config', '_self');
+    } else if (action === 'zeroclaw') {
+        window.open('/zeroclaw-config', '_self');
     } else if (window.actionToModalMap && window.actionToModalMap[action]) {
         var config = window.actionToModalMap[action];
         if (config.func && window[config.func]) {

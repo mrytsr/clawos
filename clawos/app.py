@@ -29,6 +29,7 @@ from ctrl.openclaw_ctrl import openclaw_bp
 from ctrl.picoclaw_ctrl import picoclaw_bp
 from ctrl.nanobot_ctrl import nanobot_bp
 from ctrl.nullclaw_ctrl import nullclaw_bp
+from ctrl.zeroclaw_ctrl import zeroclaw_bp
 from ctrl.system_ctrl import system_bp
 from ctrl.task_ctrl import task_bp
 from ctrl.term_ctrl import register_term_socketio
@@ -97,6 +98,7 @@ app.register_blueprint(picoclaw_bp)
 app.register_blueprint(nanobot_bp)
 app.register_blueprint(task_bp)
 app.register_blueprint(nullclaw_bp)
+app.register_blueprint(zeroclaw_bp)
 app.register_blueprint(browser_bp)
 app.register_blueprint(edit_bp)
 app.register_blueprint(file_bp)

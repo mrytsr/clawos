@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZeroClaw 配置</title>
+    <link rel="stylesheet" href="/static/lib/sweetalert2.min.css">
+    <script src="/static/lib/sweetalert2.min.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: #eee;
+        }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 0;
+            border-bottom: 1px solid #2a2a4e;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .header h1 { font-size: 24px; display: flex; align-items: center; gap: 10px; }
+        .header-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+        .btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .btn-primary { background: #4361ee; color: #fff; }
+        .btn-primary:hover { background: #3451db; }
+        .btn-success { background: #2ea043; color: #fff; }
+        .btn-success:hover { background: #238636; }
+        .btn-danger { background: #da3633; color: #fff; }
+        .btn-danger:hover { background: #b62324; }
+        .btn-warning { background: #d29922; color: #fff; }
+        
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            background: rgba(255,255,255,0.1);
+        }
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #6e7681;
+        }
+        .status-dot.active { background: #3fb950; box-shadow: 0 0 8px #3fb950; }
+        .status-dot.inactive { background: #f85149; }
+        
+        .card {
+            background: #1a1a2e;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid #2a2a4e;
+        }
+        .card-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .form-group { margin-bottom: 16px; }
+        .form-label {
+            display: block;
+            font-size: 14px;
+            color: #aaa;
+            margin-bottom: 6px;
+        }
+        .form-input, .form-select, .form-textarea {
+            width: 100%;
+            padding: 10px 14px;
+            border-radius: 8px;
+            border: 1px solid #3a3a5e;
+            background: #0f0f23;
+            color: #eee;
+            font-size: 14px;
+            transition: border-color 0.2s;
+        }
+        .form-input:focus, .form-select:focus, .form-textarea:focus {
+            outline: none;
+            border-color: #4361ee;
+        }
+        .form-textarea { 
+            min-height: 300px; 
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+        
+        .config-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 16px;
+        }
+        .config-item {
+            background: #0f0f23;
+            border-radius: 10px;
+            padding: 16px;
+            border: 1px solid #2a2a4e;
+        }
+        .config-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .config-item-title { font-size: 14px; color: #aaa; }
+        
+        .toggle {
+            width: 44px;
+            height: 24px;
+            background: #3a3a5e;
+            border-radius: 12px;
+            cursor: pointer;
+            position: relative;
+            transition: background 0.2s;
+        }
+        .toggle::after {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: #fff;
+            border-radius: 50%;
+            top: 2px;
+            left: 2px;
+            transition: transform 0.2s;
+        }
+        .toggle.active { background: #4361ee; }
+        .toggle.active::after { transform: translateX(20px); }
+        
+        @media (max-width: 600px) {
+            .config-grid { grid-template-columns: 1fr; }
+            .header { flex-direction: column; align-items: flex-start; }
+            .header h1 { font-size: 20px; }
+            .card { padding: 14px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>⚡ ZeroClaw 配置</h1>
+            <div class="header-actions">
+                <div id="statusBadge" class="status-badge">
+                    <span class="status-dot"></span>
+                    <span>检查中...</span>
+                </div>
+                <button class="btn btn-success" onclick="restartZeroclaw()">🔄 重启服务</button>
+                <button class="btn btn-primary" onclick="saveConfig()">💾 保存配置</button>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-title">📝 配置文件 (TOML)</div>
+            <textarea id="configEditor" class="form-textarea" spellcheck="false"></textarea>
+        </div>
+    </div>
+    
+    <script>
+        const CONFIG_PATH = '/root/.zeroclaw/config.toml';
+        const SERVICE_NAME = 'zeroclaw.service';
+        
+        // 加载配置
+        async function loadConfig() {
+            try {
+                const resp = await fetch('/api/zeroclaw/config');
+                const data = await resp.json();
+                if (data.success && data.config) {
+                    // TOML需要手动解析，使用后端API读取文件
+                    const fileResp = await fetch('/api/file/read?path=' + encodeURIComponent(CONFIG_PATH));
+                    const fileData = await fileResp.json();
+                    if (fileData.success) {
+                        document.getElementById('configEditor').value = fileData.content;
+                    } else {
+                        // 回退到JSON格式
+                        document.getElementById('configEditor').value = JSON.stringify(data.config, null, 2);
+                    }
+                }
+            } catch(e) {
+                // 尝试直接读取文件
+                try {
+                    const fileResp = await fetch('/api/file/read?path=' + encodeURIComponent(CONFIG_PATH));
+                    const fileData = await fileResp.json();
+                    if (fileData.success) {
+                        document.getElementById('configEditor').value = fileData.content;
+                    }
+                } catch(e2) {
+                    Swal.fire('错误', '加载配置失败', 'error');
+                }
+            }
+        }
+        
+        // 保存配置
+        async function saveConfig() {
+            const content = document.getElementById('configEditor').value;
+            try {
+                const resp = await fetch('/api/file/write', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({path: CONFIG_PATH, content: content})
+                });
+                const data = await resp.json();
+                if (data.success) {
+                    Swal.fire('成功', '配置已保存', 'success');
+                } else {
+                    Swal.fire('错误', '保存失败: ' + data.error, 'error');
+                }
+            } catch(e) {
+                Swal.fire('错误', '保存失败', 'error');
+            }
+        }
+        
+        // 检查服务状态
+        async function checkServiceStatus() {
+            try {
+                const resp = await fetch('/api/zeroclaw/status');
+                const data = await resp.json();
+                const badge = document.getElementById('statusBadge');
+                if (data.active) {
+                    badge.innerHTML = '<span class="status-dot active"></span><span>运行中</span>';
+                } else {
+                    badge.innerHTML = '<span class="status-dot inactive"></span><span>已停止</span>';
+                }
+            } catch(e) {
+                document.getElementById('statusBadge').innerHTML = 
+                    '<span class="status-dot inactive"></span><span>未知</span>';
+            }
+        }
+        
+        // 重启服务
+        async function restartZeroclaw() {
+            try {
+                const resp = await fetch('/api/systemd/restart', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({service: SERVICE_NAME})
+                });
+                const data = await resp.json();
+                if (data.success) {
+                    Swal.fire('成功', '服务已重启', 'success');
+                } else {
+                    Swal.fire('错误', '重启失败: ' + data.error, 'error');
+                }
+                setTimeout(checkServiceStatus, 1500);
+            } catch(e) {
+                Swal.fire('错误', '重启失败', 'error');
+            }
+        }
+        
+        // 初始化
+        loadConfig();
+        checkServiceStatus();
+        setInterval(checkServiceStatus, 5000);
+    </script>
+</body>
+</html>
