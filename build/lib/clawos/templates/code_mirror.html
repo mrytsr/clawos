@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ filename }} - 查看器</title>
+    <link rel="stylesheet" href="/static/lib/codemirror/codemirror.min.css">
+    <link rel="stylesheet" href="/static/lib/codemirror/theme/dracula.min.css">
+    <style>
+        /* 覆盖 CDN 字体大小 - 强制最高优先级 */
+        .CodeMirror,
+        .CodeMirror-scroll,
+        .CodeMirror-sizer,
+        .CodeMirror-gutters,
+        .CodeMirror-linenumbers,
+        .CodeMirror-linenumber,
+        .CodeMirror-lines,
+        .CodeMirror pre,
+        .CodeMirror pre.CodeMirror-line,
+        .CodeMirror pre.CodeMirror-line-like,
+        .cm-content,
+        .cm-content > pre,
+        .cm-content > textarea,
+        .cm-string,
+        .cm-keyword,
+        .cm-comment,
+        .cm-number,
+        .cm-variable,
+        .cm-property,
+        .cm-operator,
+        .CodeMirror-gutter,
+        .CodeMirror-gutter-outer {
+            font-size: 7px !important;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace !important;
+            line-height: 1.4 !important;
+        }
+        .CodeMirror-linenumber {
+            font-size: 6px !important;
+            padding: 0 4px 0 2px !important;
+        }
+        body {
+            font-size: 7px !important;
+        }
+    </style>
+    <link rel="stylesheet" href="/static/lib/codemirror/addon/dialog/dialog.min.css">
+    <link rel="stylesheet" href="/static/lib/codemirror/addon/fold/foldgutter.min.css">
+    <style>
+        body { margin: 0; padding: 0; background: #282a36; }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white; padding: 0.4rem 0.5rem; position: sticky; top: 0; z-index: 100;
+            display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.3rem;
+            min-height: 50px;
+            align-content: flex-start;
+        }
+        .header-buttons { display: flex; gap: 0.3rem; flex-wrap: wrap; }
+        .back-btn, .btn {
+            padding: 0.3rem 0.5rem; background-color: rgba(255,255,255,0.2); color: white;
+            text-decoration: none; border-radius: 4px; font-size: 7px; border: none; cursor: pointer;
+        }
+        .back-btn:hover, .btn:hover { background-color: rgba(255,255,255,0.3); }
+        #editor { height: calc(100vh - 50px); }
+        .CodeMirror { height: 100%; font-size: 7px !important; line-height: 1.4 !important; }
+        .CodeMirror .CodeMirror-gutters { font-size: 6px !important; }
+        .CodeMirror .CodeMirror-linenumber { font-size: 6px !important; }
+        .CodeMirror .cm-content { font-size: 7px !important; font-family: 'Consolas', 'Monaco', monospace !important; }
+        .CodeMirror-readonly { background: #282a36; }
+        .CodeMirror-readonly .cm-content { font-size: 7px !important; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <a href="#" class="back-btn" onclick="history.back(); return false;">←</a>
+        <h1 style="margin: 0; font-size: 7px; flex-grow: 1; text-align: center; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ filename }}</h1>
+        <div class="header-buttons">
+            <a href="{{ url_for('edit.edit_file', path=file_path) }}" class="btn">✏️ 编辑</a>
+            <a href="{{ url_for('file.download_file', path=file_path) }}" class="btn">📥 下载</a>
+        </div>
+    </div>
+    {% if truncated %}
+    <div style="padding: 8px 12px; background: #fff3cd; color: #664d03; font-size: 7px;">
+        内容过大，仅加载前 1MB（文件大小 {{ total_size }} bytes）
+    </div>
+    {% endif %}
+    <textarea id="code">{{ content }}</textarea>
+
+    <script src="/static/lib/codemirror/codemirror.min.js"></script>
+    <script src="/static/lib/codemirror/addon/mode/loadmode.min.js"></script>
+    <script src="/static/lib/codemirror/addon/dialog/dialog.min.js"></script>
+    <script src="/static/lib/codemirror/addon/search/searchcursor.min.js"></script>
+    <script src="/static/lib/codemirror/addon/search/search.min.js"></script>
+    <script src="/static/lib/codemirror/addon/fold/foldcode.min.js"></script>
+    <script src="/static/lib/codemirror/addon/fold/foldgutter.min.js"></script>
+    <script src="/static/lib/codemirror/addon/fold/brace-fold.min.js"></script>
+    <script src="/static/lib/codemirror/addon/fold/comment-fold.min.js"></script>
+    <script src="/static/lib/codemirror/addon/fold/xml-fold.min.js"></script>
+    <script src="/static/lib/codemirror/addon/fold/markdown-fold.min.js"></script>
+    <script>
+        const filePath = '{{ file_path }}';
+        const extension = '{{ extension }}'.toLowerCase();
+        
+        // 根据扩展名获取模式
+        function getMode(ext) {
+            const modes = {
+                '.py': 'python',
+                '.js': 'javascript',
+                '.ts': 'javascript',
+                '.html': 'htmlmixed',
+                '.htm': 'htmlmixed',
+                '.css': 'css',
+                '.xml': 'xml',
+                '.yaml': 'yaml',
+                '.yml': 'yaml',
+                '.md': 'markdown',
+                '.sh': 'shell',
+                '.json': { name: 'javascript', json: true },
+                '.ini': 'properties',
+                '.conf': 'properties',
+                '.env': 'shell',
+                '.Dockerfile': 'dockerfile',
+                '.txt': null
+            };
+            return modes[ext] || null;
+        }
+        
+        // 初始化 CodeMirror
+        CodeMirror.modeURL = '/static/lib/codemirror/mode/%N/%N.min.js';
+        const mode = getMode(extension);
+        
+        // 强制设置编辑器字体大小
+        function setEditorFontSize(cm) {
+            cm.getWrapperElement().style.fontSize = '7px';
+            cm.getScrollerElement().style.fontSize = '7px';
+            cm.display.lineDiv.style.fontSize = '7px';
+            cm.display.lineGutter.style.fontSize = '6px';
+        }
+        
+        if (mode) {
+            CodeMirror.requireMode(mode, function() {
+                const editor = CodeMirror.fromTextArea(document.getElementById('code'), {
+                    mode: mode,
+                    theme: 'dracula',
+                    lineNumbers: true,
+                    lineWrapping: true,
+                    readOnly: true,
+                    cursorBlinkRate: -1,
+                    indentUnit: 4,
+                    tabSize: 4,
+                    foldGutter: true,
+                    gutters: ["CodeMirror-linenumbers", "CodeMirror-foldgutter"],
+                    extraKeys: {
+                        "Ctrl-F": "findPersistent",
+                        "Cmd-F": "findPersistent",
+                        "Ctrl-G": "findNext",
+                        "Shift-Ctrl-G": "findPrev",
+                        "Shift-Cmd-G": "findPrev",
+                        "Ctrl-Alt-F": "replace",
+                        "Shift-Ctrl-F": "replace",
+                        "Cmd-Alt-F": "replace",
+                        "Shift-Cmd-Alt-F": "replace",
+                        "Ctrl-Space": false
+                    }
+                });
+                setEditorFontSize(editor);
+                
+                // 点击行号复制
+                editor.on('gutterClick', function(cm, line) {
+                    const textToCopy = filePath + ':' + line;
+                    navigator.clipboard.writeText(textToCopy).then(function() {
+                        // 视觉反馈
+                        const lineElement = cm.getLineHandle(line).guttersEl || 
+                                            cm.display.gutters.children[1].children[line - 1];
+                        if (lineElement) {
+                            lineElement.style.background = '#ddf4ff';
+                            setTimeout(function() {
+                                lineElement.style.background = '';
+                            }, 200);
+                        }
+                    });
+                });
+            });
+        } else {
+            // 无语法高亮，只读模式
+            const editor = CodeMirror.fromTextArea(document.getElementById('code'), {
+                mode: null,
+                theme: 'dracula',
+                lineNumbers: true,
+                lineWrapping: true,
+                readOnly: true,
+                cursorBlinkRate: -1,
+                foldGutter: true,
+                gutters: ["CodeMirror-linenumbers", "CodeMirror-foldgutter"],
+                extraKeys: {
+                    "Ctrl-F": "findPersistent",
+                    "Cmd-F": "findPersistent"
+                }
+            });
+            setEditorFontSize(editor);
+            
+            editor.on('gutterClick', function(cm, line) {
+                const textToCopy = filePath + ':' + line;
+                navigator.clipboard.writeText(textToCopy).then(function() {
+                    const lineElement = cm.display.gutters.children[1].children[line - 1];
+                    if (lineElement) {
+                        lineElement.style.background = '#ddf4ff';
+                        setTimeout(function() {
+                            lineElement.style.background = '';
+                        }, 200);
+                    }
+                });
+            });
+        }
+        
+        // 强制设置所有 CodeMirror 元素字体大小 - 兼容性写法
+        function forceCodeMirrorFontSize() {
+            var elements = document.querySelectorAll('.CodeMirror, .CodeMirror-scroll, .CodeMirror-sizer, .CodeMirror-gutters, .CodeMirror-lines, .CodeMirror-line, .CodeMirror-line > pre, .cm-content, .cm-content > pre, .cm-string, .cm-keyword, .cm-comment, .cm-number, .cm-variable, .cm-property, .cm-operator, .CodeMirror-gutter, .CodeMirror-gutter-outer, .CodeMirror-linenumber');
+            for (var i = 0; i < elements.length; i++) {
+                elements[i].style.setProperty('font-size', '7px', 'important');
+                elements[i].style.setProperty('font-family', 'Consolas, Monaco, Courier New, monospace', 'important');
+            }
+            var lineNumbers = document.querySelectorAll('.CodeMirror-linenumber');
+            for (var j = 0; j < lineNumbers.length; j++) {
+                lineNumbers[j].style.setProperty('font-size', '6px', 'important');
+            }
+        }
+        
+        // 立即执行一次
+        forceCodeMirrorFontSize();
+        // 延迟再次执行，确保 DOM 完全加载
+        setTimeout(forceCodeMirrorFontSize, 100);
+        setTimeout(forceCodeMirrorFontSize, 500);
+    </script>
+</body>
+</html>

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "clawos"
-version = "263.2.1316"
+version = "263.2.1339"
 description = "一个基于 Flask + SocketIO 的网页管理器。"
 readme = "README.md"
 requires-python = ">=3.9"

@@ -1,0 +1,2216 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>数据库管理</title>
+    <!-- Tabulator 样式 - 匹配数据库页面 -->
+    <link href="/static/lib/tabulator.min.css" rel="stylesheet">
+    <style>
+        #resultsTable {
+            width: 100%;
+            min-width: 0;
+        }
+        .tabulator {
+            background: #16213e !important;
+            border: 1px solid #0f3460 !important;
+            color: #e0e0e0 !important;
+            font-size: 13px !important;
+        }
+        .tabulator-tableholder {
+            background: #16213e;
+        }
+        .tabulator-header {
+            background: #1a1a2e !important;
+            border-bottom: 1px solid #0f3460 !important;
+            color: #e0e0e0 !important;
+        }
+        .tabulator-header .tabulator-col {
+            background: #1a1a2e !important;
+            border-right: 1px solid #0f3460 !important;
+        }
+        .tabulator-header .tabulator-col:hover {
+            background: #0f3460 !important;
+        }
+        .tabulator-row {
+            background: #16213e !important;
+            border-bottom: 1px solid #0f3460 !important;
+            color: #e0e0e0 !important;
+        }
+        .tabulator-row:hover {
+            background: #0f3460 !important;
+        }
+        .tabulator-row.tabulator-selected {
+            background: #e94560 !important;
+        }
+        .tabulator-cell {
+            border-right: 1px solid #0f3460 !important;
+            padding: 6px 8px !important;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 200px;
+        }
+        /* 单元格编辑样式 */
+        .tabulator-cell.tabulator-editing {
+            background: #1a1a2e !important;
+            box-shadow: inset 0 0 0 2px #e94560 !important;
+            padding: 0 !important;
+        }
+        .tabulator-cell.tabulator-editing input {
+            width: 100%;
+            height: 100%;
+            background: #1a1a2e !important;
+            color: #fff !important;
+            border: none;
+            padding: 6px 8px;
+            font-size: 13px;
+        }
+        /* 表头固定 */
+        .tabulator-header {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        /* 分页固定 */
+        .tabulator-footer {
+            position: sticky;
+            bottom: 0;
+            z-index: 10;
+        }
+        .tabulator-footer {
+            background: #1a1a2e !important;
+            border-top: 1px solid #0f3460 !important;
+            color: #e0e0e0 !important;
+        }
+        .tabulator-paginator {
+            color: #e0e0e0 !important;
+        }
+        .tabulator-page {
+            color: #e0e0e0 !important;
+            background: #0f3460 !important;
+            border: 1px solid #16213e !important;
+        }
+        .tabulator-page.active {
+            background: #e94560 !important;
+        }
+        .tabulator-page:hover {
+            background: #16213e !important;
+        }
+    </style>
+    <script src="/static/lib/tabulator.min.js"></script>
+    <script src="/static/js/clipboard.min.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body { height: 100%; overflow: auto; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1a1a2e; color: #e0e0e0;
+        }
+        #app { display: flex; flex-direction: column; height: 100vh; }
+        
+        /* 悬浮按钮 */
+        .float-btn {
+            position: fixed; left: 16px; bottom: 40px; z-index: 100;
+            width: 44px; height: 44px; border-radius: 12px;
+            background: linear-gradient(135deg, #e94560, #ff6b6b);
+            border: none; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 4px 20px rgba(233, 69, 96, 0.4);
+        }
+        .float-btn:hover { transform: scale(1.05); }
+        .float-btn svg { width: 22px; height: 22px; fill: #fff; }
+        
+        /* 抽屉侧边栏 */
+        .drawer {
+            position: fixed; left: -100%; top: 0; bottom: 0;
+            width: 60%; max-width: 320px; z-index: 200;
+            background: #16213e; border-right: 1px solid #0f3460;
+            display: flex; flex-direction: column;
+            transition: left 0.3s ease;
+        }
+        .drawer.open { left: 0; }
+        .drawer-backdrop {
+            position: fixed; inset: 0; z-index: 150;
+            background: rgba(0,0,0,0.6);
+            opacity: 0; visibility: hidden;
+        }
+        .drawer-backdrop.show { opacity: 1; visibility: visible; }
+        .drawer-header {
+            padding: 14px; border-bottom: 1px solid #0f3460;
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .drawer-header h2 { font-size: 15px; font-weight: 500; color: #fff; }
+        .drawer-header-actions { display: flex; align-items: center; gap: 6px; }
+        .drawer-mini-btn {
+            padding: 6px 10px; border-radius: 8px;
+            background: #0f3460; border: none; color: #ccc;
+            cursor: pointer; font-size: 12px;
+        }
+        .drawer-mini-btn:hover { color: #fff; }
+        .drawer-close {
+            width: 32px; height: 32px; border-radius: 8px;
+            background: #0f3460; border: none; color: #888;
+            cursor: pointer; font-size: 20px;
+        }
+        .drawer-content { flex: 1; overflow-y: auto; padding: 12px; }
+        
+        /* 树组件 */
+        .tree { font-size: 13px; }
+        .tree-node { }
+        .tree-node-content {
+            padding: 8px 10px; border-radius: 6px; cursor: pointer;
+            display: flex; align-items: center; gap: 8px;
+            transition: background 0.15s;
+        }
+        .tree-node-content:hover { background: #0f3460; }
+        .tree-node-content.active { background: #0f3460; color: #e94560; }
+        .tree-toggle {
+            width: 18px; height: 18px; display: flex; align-items: center; justify-content: center;
+            font-size: 10px; color: #666; flex-shrink: 0;
+        }
+        .tree-toggle.expanded { transform: rotate(90deg); }
+        .tree-icon { width: 18px; text-align: center; flex-shrink: 0; }
+        .tree-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .tree-actions { display: flex; gap: 4px; opacity: 0; transition: opacity 0.15s; }
+        .tree-node-content:hover .tree-actions { opacity: 1; }
+        .tree-actions button {
+            padding: 2px 6px; border-radius: 4px; border: none;
+            background: rgba(255,255,255,0.1); color: #888; cursor: pointer; font-size: 10px;
+        }
+        .tree-actions button:hover { background: #e94560; color: #fff; }
+        .tree-children { padding-left: 20px; overflow: hidden; }
+        .tree-children.collapsed { display: none; }
+        .tree-loading { padding: 10px; text-align: center; color: #666; font-size: 12px; }
+        
+        /* 新建按钮 */
+        .add-btn {
+            width: 100%; padding: 10px; border-radius: 8px;
+            background: #0f3460; border: none; color: #ccc;
+            cursor: pointer; font-size: 13px; margin-bottom: 12px;
+        }
+        
+        /* 主内容区 */
+        .main-content {
+            flex: 1; display: flex; flex-direction: column;
+            padding: 5px 16px 16px 16px; overflow: hidden;
+        }
+        .top-bar {
+            flex-shrink: 0; display: flex; align-items: center; gap: 8px;
+            margin-bottom: 4px; flex-wrap: wrap;
+        }
+        .top-bar h1 { font-size: 18px; font-weight: 500; color: #fff; }
+        .breadcrumb {
+            display: flex; align-items: center; gap: 6px; font-size: 12px; color: #888;
+            flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .breadcrumb span { color: #e94560; }
+        
+        /* SQL 编辑器 */
+        .sql-toggle {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 10px 12px; background: #0f3460; border-radius: 10px;
+            cursor: pointer; margin-bottom: 2px;
+        }
+        .sql-toggle span { font-size: 13px; color: #ccc; }
+        .sql-toggle .arrow { transition: transform 0.3s; font-size: 12px; color: #888; }
+        .sql-toggle.open .arrow { transform: rotate(180deg); }
+        .sql-editor {
+            display: none; flex-direction: column;
+            background: #16213e; border-radius: 10px; padding: 12px;
+        }
+        .sql-editor.open { display: flex; }
+        .sql-editor-wrapper { position: relative; }
+        .sql-editor textarea {
+            width: 100%; height: 80px; background: #1a1a2e; border: none;
+            padding: 12px; resize: none; outline: none;
+            color: #fff; font-family: 'SF Mono', monospace; font-size: 12px;
+            border-radius: 6px;
+        }
+        .sql-autocomplete {
+            position: absolute; top: 100%; left: 0; right: 0;
+            background: #1a1a2e; border: 1px solid #0f3460;
+            border-radius: 6px; max-height: 150px; overflow-y: auto;
+            z-index: 100;
+        }
+        .sql-autocomplete-item {
+            padding: 8px 12px; cursor: pointer; color: #ccc;
+            font-family: 'SF Mono', monospace; font-size: 12px;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .sql-autocomplete-item:hover, .sql-autocomplete-item.selected {
+            background: #0f3460; color: #fff;
+        }
+        .sql-autocomplete-item .type-tag {
+            font-size: 10px; padding: 2px 6px; border-radius: 4px;
+            background: #2d2d2d; color: #888;
+        }
+        .sql-autocomplete-item .type-tag.key { background: #1e3a5f; color: #58a6ff; }
+        .sql-autocomplete-item .type-tag.func { background: #3d5a3d; color: #7ee787; }
+        .sql-autocomplete-item .type-tag.col { background: #5a3d2d; color: #f0883e; }
+        .sql-autocomplete-item .type-tag.tbl { background: #3d3d5a; color: #a371f7; }
+        .sql-autocomplete-item .type-tag.his { background: #5a3d5a; color: #db61a2; }
+        .sql-toolbar { display: flex; gap: 8px; padding: 10px 0; flex-wrap: wrap; align-items: center; }
+        .sql-toolbar button {
+            padding: 8px 14px; border-radius: 6px; border: none;
+            background: #e94560; color: #fff; cursor: pointer; font-size: 12px;
+        }
+        .sql-toolbar button.secondary { background: #0f3460; }
+        .quick-btns { display: flex; gap: 6px; flex-wrap: wrap; margin-left: auto; }
+        .quick-btns button {
+            background: #0f3460; border: none; padding: 6px 10px; font-size: 11px;
+            border-radius: 5px; color: #ccc; cursor: pointer;
+        }
+        .sql-history-list { display: flex; flex-direction: column; gap: 4px; }
+        .sql-history-item {
+            padding: 10px 12px; border-radius: 6px; background: #1a1a2e;
+            cursor: pointer; font-size: 12px; color: #ccc;
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .sql-history-item:hover { background: #0f3460; }
+        .sql-history-item .sql-text { font-family: 'SF Mono', monospace; font-size: 11px; }
+        .sql-history-item .sql-time { font-size: 10px; color: #666; margin-top: 4px; }
+        .history-divider { height: 1px; background: #0f3460; margin: 12px 0; }
+        .history-section-title {
+            font-size: 11px; color: #888; padding: 8px 0 4px; margin-bottom: 4px;
+        }
+        
+        /* AI SQL 生成器 */
+        .ai-prompt-row {
+            display: flex; gap: 8px; padding: 10px 0 0; align-items: center;
+        }
+        .ai-prompt-combo {
+            position: relative;
+            flex: 1;
+            min-width: 0;
+        }
+        .ai-prompt-input {
+            flex: 1; padding: 10px 12px; background: #1a1a2e; border: 1px solid #0f3460;
+            border-radius: 6px; color: #fff; font-size: 13px; outline: none;
+            transition: border-color 0.2s;
+        }
+        .ai-prompt-combo .ai-prompt-input {
+            width: 100%;
+            padding-right: 46px;
+        }
+        .ai-prompt-input:focus { border-color: #667eea; }
+        .ai-prompt-input::placeholder { color: #666; }
+        .ai-combo-toggle {
+            position: absolute;
+            right: 7px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            border: 1px solid #0f3460;
+            background: #0f3460;
+            color: #ccc;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s, transform 0.2s, opacity 0.2s;
+        }
+        .ai-combo-toggle:hover { opacity: 0.95; }
+        .ai-combo-toggle:active { transform: translateY(-50%) scale(0.98); }
+        .ai-combo-toggle:focus-visible { outline: 2px solid rgba(102, 126, 234, 0.9); outline-offset: 2px; }
+        .btn-ai-generate {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            padding: 10px 20px; border-radius: 6px; border: none;
+            color: #fff; cursor: pointer; font-size: 13px; font-weight: 500;
+            white-space: nowrap; transition: transform 0.2s, opacity 0.2s;
+        }
+        .btn-ai-generate.icon {
+            width: 44px;
+            height: 44px;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .btn-ai-generate.icon svg { width: 18px; height: 18px; }
+        .btn-ai-generate:hover { transform: scale(1.02); opacity: 0.95; }
+        .btn-ai-generate:active { transform: scale(0.98); }
+        .btn-ai-generate:disabled {
+            opacity: 0.6; cursor: not-allowed; transform: none;
+        }
+        
+        /* AI 历史下拉 */
+        .ai-history-dropdown {
+            position: absolute; left: 0; top: 100%; margin-top: 4px;
+            background: #1a1a2e; border: 1px solid #0f3460; border-radius: 8px;
+            width: 100%; max-height: 400px; overflow-y: auto; z-index: 100;
+            display: none; box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+        }
+        .ai-history-dropdown.show { display: block; }
+        .ai-history-item {
+            padding: 12px; border-bottom: 1px solid #0f3460; cursor: pointer;
+        }
+        .ai-history-item:hover { background: #0f3460; }
+        .ai-history-item:last-child { border-bottom: none; }
+        .ai-history-item .prompt {
+            font-size: 12px; color: #ccc; margin-bottom: 6px;
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .ai-history-item .sql {
+            font-size: 11px; color: #888; font-family: 'SF Mono', monospace;
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .ai-history-item .time {
+            font-size: 10px; color: #666; margin-top: 4px;
+        }
+        .ai-loading {
+            display: inline-block; width: 14px; height: 14px;
+            border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff;
+            border-radius: 50%; animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        
+        /* 导出和分页 */
+        .results-toolbar {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 8px 0; gap: 16px;
+        }
+        .export-btns { display: flex; gap: 6px; }
+        .export-btn {
+            padding: 4px 10px; font-size: 11px; border-radius: 4px;
+            background: #0f3460; border: none; color: #ccc; cursor: pointer;
+        }
+        .pagination { display: flex; align-items: center; gap: 8px; }
+        .page-btn {
+            padding: 4px 8px; font-size: 11px; border-radius: 4px;
+            background: #0f3460; border: none; color: #ccc; cursor: pointer;
+        }
+        .page-info { font-size: 11px; color: #888; min-width: 60px; text-align: center; }
+        
+        /* 结果区 */
+        .results-tabs { display: flex; gap: 4px; padding: 8px 0; }
+        .results-tab {
+            padding: 6px 12px; border-radius: 6px; border: none;
+            background: transparent; color: #888; cursor: pointer; font-size: 12px;
+        }
+        .results-tab.active { background: #0f3460; color: #e94560; }
+        .results {
+            flex: 1; overflow: auto; background: #16213e; border-radius: 12px;
+            border: 1px solid #0f3460;
+        }
+        .results-empty { text-align: center; color: #666; padding: 30px; }
+        .loading { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 20px; color: #666; }
+        .spinner {
+            width: 18px; height: 18px; border: 2px solid #0f3460;
+            border-top-color: #e94560; border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        
+        /* 数据表格 */
+        .data-table-wrapper { overflow: auto; max-height: 100%; }
+        .data-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        .data-table th, .data-table td {
+            padding: 10px 12px; text-align: left; border-bottom: 1px solid #0f3460;
+            white-space: nowrap; max-width: 150px; overflow: hidden; text-overflow: ellipsis;
+        }
+        .data-table th {
+            background: #1a1a2e; color: #e94560; font-weight: 500;
+            position: sticky; top: 0; z-index: 10;
+        }
+        .data-table td { color: #ccc; font-family: 'SF Mono', monospace; font-size: 11px; cursor: pointer; }
+        .data-table td:hover { background: #1a2a4a; }
+        
+        /* 状态栏 */
+        .status-bar {
+            flex-shrink: 0;
+            display: flex; align-items: center; gap: 12px; padding: 10px 14px;
+            background: #16213e; border-radius: 8px; margin-top: 10px;
+            font-size: 11px; color: #888;
+        }
+        .status-bar .success { color: #4ade80; }
+        .status-bar .error { color: #ef4444; }
+        
+        /* Toast 通知 */
+        #toast {
+            position: fixed; bottom: calc(16px + env(safe-area-inset-bottom)); top: auto; left: 50%; transform: translateX(-50%);
+            background: rgba(0,0,0,0.9); color: #fff; padding: 12px 24px;
+            border-radius: 8px; font-size: 14px; z-index: 9999;
+            opacity: 0; transition: opacity 0.3s;
+            pointer-events: none;
+            max-width: calc(100vw - 24px);
+            text-align: center;
+        }
+        #toast.show { opacity: 1; }
+        #toast.error { border-left: 4px solid #ef4444; }
+        #toast.success { border-left: 4px solid #4ade80; }
+        
+        /* 弹窗 */
+        .modal {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+            display: none; align-items: center; justify-content: center; z-index: 300;
+            padding: 20px;
+        }
+        .modal.show { display: flex; }
+        .modal-content { background: #16213e; border-radius: 12px; padding: 20px; max-width: 360px; width: 100%; }
+        .modal-title { font-size: 16px; font-weight: 500; margin-bottom: 16px; }
+        .form-grid { display: grid; grid-template-columns: 60px 1fr; gap: 8px 8px; }
+        .form-grid .field-row { display: contents; }
+        .form-grid label { font-size: 12px; color: #888; text-align: right; padding-right: 8px; line-height: 32px; }
+        .form-grid .input-wrap { position: relative; }
+        .form-grid input, .form-grid select { width: 100%; padding: 6px 28px 6px 8px; background: #1a1a2e; border: 1px solid #0f3460; border-radius: 4px; color: #fff; font-size: 12px; height: 32px; }
+        .form-grid .copy-btn { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #666; cursor: pointer; font-size: 11px; }
+        .form-grid .copy-btn:hover { color: #fff; }
+        .form-grid .full-width { grid-column: 1 / -1; }
+        .modal-actions { display: flex; gap: 12px; margin-top: 20px; }
+        .modal-actions button {
+            flex: 1; padding: 12px; border-radius: 8px; border: none;
+            cursor: pointer; font-size: 14px;
+        }
+        .modal-actions .cancel { background: #0f3460; color: #ccc; }
+        .modal-actions .confirm { background: #e94560; color: #fff; }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <!-- 悬浮按钮 -->
+        <button class="float-btn" onclick="toggleDrawer()">
+            <svg viewBox="0 0 24 24"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg>
+        </button>
+        
+        <!-- 抽屉遮罩 -->
+        <div class="drawer-backdrop" id="drawerBackdrop" onclick="closeDrawer()"></div>
+        
+        <!-- 抽屉 -->
+        <div class="drawer" id="drawer">
+            <div class="drawer-header">
+                <h2>📊 数据库</h2>
+                <div class="drawer-header-actions">
+                    <input id="dbConnImportFile" type="file" accept="application/json" style="display:none;" onchange="onImportDbConnectionsFileChange(event)">
+                    <button class="drawer-mini-btn" onclick="triggerImportDbConnections()">导入</button>
+                    <button class="drawer-mini-btn" onclick="exportDbConnections()">导出</button>
+                    <button class="drawer-close" onclick="closeDrawer()">×</button>
+                </div>
+            </div>
+            <div class="drawer-content">
+                <button class="add-btn" onclick="openAddModal()">+ 新建连接</button>
+                <div class="tree" id="dbTree"></div>
+            </div>
+        </div>
+        
+        <!-- 主内容区 -->
+        <div class="main-content">
+            <div class="top-bar">
+                <h1>数据库</h1>
+                <div class="breadcrumb" id="breadcrumb"><span>未选择</span></div>
+            </div>
+            
+            <!-- SQL 编辑器 -->
+            <div class="sql-toggle" id="sqlToggle" onclick="toggleSqlEditor()">
+                <span>📝 SQL 查询</span>
+                <span class="arrow">▼</span>
+            </div>
+            <div class="sql-editor" id="sqlEditorPanel">
+                <div class="sql-editor-wrapper">
+                    <textarea id="sqlEditor" placeholder="输入 SQL... (Ctrl+Enter 执行)"></textarea>
+                    <div class="sql-autocomplete" id="sqlAutocomplete" style="display:none;"></div>
+                </div>
+                <div class="sql-toolbar">
+                    <button onclick="executeQuery()" title="执行 (Ctrl+Enter)">▶</button>
+                    <button class="secondary" onclick="clearEditor()" title="清空">🗑️</button>
+                    <button class="secondary" onclick="openSqlHistory()" title="历史">📜</button>
+                    <button class="secondary" onclick="sqlHistoryPrev()" title="上一条">⏮</button>
+                    <button class="secondary" onclick="sqlHistoryNext()" title="下一条">⏭</button>
+                </div>
+                <div class="ai-prompt-row">
+                    <div class="ai-prompt-combo" id="aiPromptCombo">
+                        <input type="text" id="aiPromptInput" class="ai-prompt-input"
+                               placeholder="✨ 输入自然语言，让 AI 生成/修改 SQL...">
+                        <button id="btnAiHistory" type="button" class="ai-combo-toggle" onclick="toggleAiHistory()" aria-label="历史">▾</button>
+                        <div class="ai-history-dropdown" id="aiHistoryDropdown"></div>
+                    </div>
+                    <button id="btnAiGenerate" class="btn-ai-generate icon" onclick="generateSqlFromPrompt()" title="AI 生成 SQL" aria-label="AI 生成 SQL">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M12 2l1.6 5.4L19 9l-5.4 1.6L12 16l-1.6-5.4L5 9l5.4-1.6L12 2z"></path>
+                            <path d="M19 13l.8 2.7 2.2.7-2.2.7L19 20l-.8-2.6-2.2-.7 2.2-.7L19 13z"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- SQL 历史侧边栏 -->
+            <div class="drawer-backdrop" id="historyBackdrop" onclick="closeSqlHistory()"></div>
+            <div class="drawer" id="historyDrawer" style="width:50%;max-width:280px;">
+                <div class="drawer-header">
+                    <h2>📜 SQL 历史</h2>
+                    <button class="drawer-close" onclick="closeSqlHistory()">×</button>
+                </div>
+                <div class="drawer-content">
+                    <div style="font-size:11px;color:#888;margin-bottom:8px;">常用</div>
+                    <div class="sql-history-list" id="sqlHistoryList"></div>
+                </div>
+            </div>
+            
+            <!-- 工具栏 -->
+            <div class="results-toolbar" id="resultsToolbar" style="display:none;">
+                <div class="export-btns">
+                    <button class="export-btn" onclick="exportData('csv')">CSV</button>
+                    <button class="export-btn" onclick="exportData('xls')">XLS</button>
+                    <button class="export-btn" onclick="exportData('sql')">SQL</button>
+                </div>
+                <div class="pagination" id="paginationControls">
+                    <button class="page-btn" onclick="goToPage(1)">«</button>
+                    <button class="page-btn" onclick="goToPage(currentPage-1)">‹</button>
+                    <span class="page-info" id="pageInfo">1 / 1</span>
+                    <button class="page-btn" onclick="goToPage(currentPage+1)">›</button>
+                    <button class="page-btn" onclick="goToPage(totalPages)">»</button>
+                </div>
+            </div>
+            
+            <!-- 结果 -->
+            <div class="results-tabs">
+                <button class="results-tab active" id="tabResults" onclick="switchResultsTab('results')">数据</button>
+                <button class="results-tab" id="tabSchema" onclick="switchResultsTab('schema')">结构</button>
+            </div>
+            <div class="results" id="resultsContent">
+                <div class="results-empty">选择表后自动查询</div>
+            </div>
+            <div class="results" id="schemaPanel" style="display:none;">
+                <div class="results-empty">选择表查看结构</div>
+            </div>
+            
+            <!-- 状态栏 -->
+            <div id="toast"></div>
+        <div class="status-bar" id="statusBar"><span>就绪</span></div>
+        </div>
+    </div>
+    
+    <!-- 添加连接弹窗 -->
+    <div id="addModal" class="modal">
+        <div class="modal-content" style="max-width:420px;">
+            <div class="modal-title">新建连接</div>
+            <div class="form-grid stacked">
+                <div class="field-row"><label>引擎</label><select id="dbEngine"><option value="mysql">MySQL</option><option value="postgresql">PostgreSQL</option><option value="sqlite">SQLite</option><option value="mariadb">MariaDB</option><option value="oracle">Oracle</option><option value="mssql">SQL Server</option></select></div>
+                <div class="field-row"><label>名称</label><div class="input-wrap"><input type="text" id="dbName" placeholder="例如: 生产库"><button class="copy-btn" onclick="copyToClipboard($$('dbName').value)">📋</button></div></div>
+                <div class="field-row full-width">
+                    <label>URL</label>
+                    <div class="input-wrap">
+                        <input type="text" id="dbUrl" placeholder="mysql+pymysql://user:pass@host:3306/db">
+                        <button class="copy-btn" onclick="applyDbUrl(true)" style="right:60px;">⚡</button>
+                        <button class="copy-btn" onclick="copyToClipboard($$('dbUrl').value)">📋</button>
+                    </div>
+                </div>
+                <div class="field-row"><label>主机</label><div class="input-wrap"><input type="text" id="dbHost" placeholder="localhost"><button class="copy-btn" onclick="copyToClipboard($$('dbHost').value)">📋</button></div></div>
+                <div class="field-row"><label>端口</label><div class="input-wrap"><input type="number" id="dbPort" value="3306"><button class="copy-btn" onclick="copyToClipboard($$('dbPort').value)">📋</button></div></div>
+                <div class="field-row"><label>用户名</label><div class="input-wrap"><input type="text" id="dbUser" placeholder="root"><button class="copy-btn" onclick="copyToClipboard($$('dbUser').value)">📋</button></div></div>
+                <div class="field-row"><label>密码</label><div class="input-wrap"><input type="password" id="dbPass" placeholder="密码"><button class="copy-btn" onclick="copyToClipboard($$('dbPass').value)">📋</button></div></div>
+                <div class="field-row"><label>数据库</label><div class="input-wrap"><input type="text" id="dbDatabase" placeholder="数据库名"><button class="copy-btn" onclick="copyToClipboard($$('dbDatabase').value)">📋</button></div></div>
+                <div class="field-row sqlite-field" style="display:none;"><label>文件路径</label><div class="input-wrap"><input type="text" id="dbSqlitePath" placeholder="/path/to/db.sqlite"><button class="copy-btn" onclick="copyToClipboard($$('dbSqlitePath').value)">📋</button></div></div>
+            </div>
+            <div class="modal-actions">
+                <button class="cancel" onclick="closeAddModal()">取消</button>
+                <button class="secondary" onclick="testConnection()" style="background:#0f3460;">测试</button>
+                <button class="confirm" onclick="testAndSave()">保存</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 编辑连接弹窗 -->
+    <div id="editModal" class="modal">
+        <div class="modal-content" style="max-width:420px;">
+            <div class="modal-title">编辑连接</div>
+            <input type="hidden" id="editConnId">
+            <div class="form-grid stacked">
+                <div class="form-group full-width url-field">
+                    <label>URL</label>
+                    <div class="input-wrap">
+                        <input type="text" id="editDbUrl" readonly style="background:#0f3460;color:#4ade80;font-size:11px;">
+                        <button class="copy-btn" onclick="copyToClipboard($$('editDbUrl').value)">📋</button>
+                    </div>
+                </div>
+                <div class="field-row"><label>名称</label><div class="input-wrap"><input type="text" id="editDbName"><button class="copy-btn" onclick="copyToClipboard($$('editDbName').value)">📋</button></div></div>
+                <div class="field-row"><label>主机</label><div class="input-wrap"><input type="text" id="editDbHost"><button class="copy-btn" onclick="copyToClipboard($$('editDbHost').value)">📋</button></div></div>
+                <div class="field-row"><label>端口</label><div class="input-wrap"><input type="number" id="editDbPort"><button class="copy-btn" onclick="copyToClipboard($$('editDbPort').value)">📋</button></div></div>
+                <div class="field-row"><label>用户名</label><div class="input-wrap"><input type="text" id="editDbUser"><button class="copy-btn" onclick="copyToClipboard($$('editDbUser').value)">📋</button></div></div>
+                <div class="field-row"><label>密码</label><div class="input-wrap"><input type="password" id="editDbPass" placeholder="留空保持原密码"><button class="copy-btn" onclick="copyToClipboard($$('editDbPass').value)">📋</button></div></div>
+                <div class="field-row"><label>数据库</label><div class="input-wrap"><input type="text" id="editDbDatabase"><button class="copy-btn" onclick="copyToClipboard($$('editDbDatabase').value)">📋</button></div></div>
+                <div class="field-row" style="display:none;"><label>文件路径</label><div class="input-wrap"><input type="text" id="editDbSqlitePath"><button class="copy-btn" onclick="copyToClipboard($$('editDbSqlitePath').value)">📋</button></div></div>
+            </div>
+            <div class="modal-actions">
+                <button class="cancel" onclick="closeEditModal()">取消</button>
+                <button class="secondary" onclick="testEditConnection()" style="background:#0f3460;">测试</button>
+                <button class="confirm" onclick="saveEditConnection()">保存</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Confirm 弹窗 -->
+    <div id="confirmBackdrop" class="modal" onclick="closeConfirmModal()" style="display:none;background:rgba(0,0,0,0.5);">
+        <div class="modal-content" onclick="event.stopPropagation()" style="max-width:320px;">
+            <div class="modal-title" id="confirmTitle">确认</div>
+            <div id="confirmMessage" style="color:#888;margin-bottom:20px;"></div>
+            <div style="display:flex;gap:12px;justify-content:flex-end;">
+                <button onclick="closeConfirmModal()" style="padding:10px 16px;background:#0f3460;border:none;border-radius:8px;color:#ccc;cursor:pointer;">取消</button>
+                <button id="confirmBtn" onclick="performConfirm()" style="padding:10px 16px;border:none;border-radius:8px;color:#fff;cursor:pointer;">确认</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const $$ = id => document.getElementById(id);
+        let connections = [], currentConn = null, currentDb = null, currentTable = null;
+        let allResults = [], currentPage = 1, totalPages = 1, pageSize = 200;
+        let __confirmCallback = null;
+        let currentResultsTab = 'results';
+        let __dbUiState = null;
+        let __dbUiStateSaveTimer = null;
+        
+        const ENGINE_CONFIG = {
+            mysql: { port: 3306, icon: '🐬' }, postgresql: { port: 5432, icon: '🐘' },
+            sqlite: { port: 0, icon: '📄' }, mariadb: { port: 3306, icon: '🐬' },
+            oracle: { port: 1521, icon: '🔴' }, mssql: { port: 1433, icon: '🪟' }
+        };
+
+        async function loadDbUiState() {
+            try {
+                const r = await fetch('/api/db/ui-state');
+                const data = await r.json();
+                if (data && data.success) __dbUiState = data.data || {};
+                else __dbUiState = {};
+            } catch (e) {
+                __dbUiState = {};
+            }
+        }
+
+        function __mergeDbUiState(partial) {
+            if (!__dbUiState || typeof __dbUiState !== 'object') __dbUiState = {};
+            if (!partial || typeof partial !== 'object') return __dbUiState;
+            Object.keys(partial).forEach(function(k) {
+                __dbUiState[k] = partial[k];
+            });
+            return __dbUiState;
+        }
+
+        function saveDbUiState(partial, immediate) {
+            const next = __mergeDbUiState(partial);
+            if (__dbUiStateSaveTimer) {
+                clearTimeout(__dbUiStateSaveTimer);
+                __dbUiStateSaveTimer = null;
+            }
+            const doSave = function() {
+                const payload = Object.assign({}, next);
+                fetch('/api/db/ui-state', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                    keepalive: true
+                }).catch(function() {});
+            };
+            if (immediate) doSave();
+            else __dbUiStateSaveTimer = setTimeout(doSave, 400);
+        }
+
+        function __setSqlEditorOpen(open) {
+            const panel = $$('sqlEditorPanel');
+            const toggle = $$('sqlToggle');
+            if (!panel || !toggle) return;
+            const want = !!open;
+            panel.classList.toggle('open', want);
+            toggle.classList.toggle('open', want);
+        }
+
+        function __expandTreeTo(nodeEl) {
+            let el = nodeEl;
+            while (el) {
+                if (el.classList && el.classList.contains('tree-children')) {
+                    el.classList.remove('collapsed');
+                    const parentNode = el.parentElement;
+                    const toggle = parentNode && parentNode.querySelector ? parentNode.querySelector('.tree-toggle') : null;
+                    if (toggle) toggle.classList.add('expanded');
+                }
+                el = el.parentElement;
+            }
+        }
+
+        function __activateTreeNode(type, connId, id) {
+            const nodes = Array.from(document.querySelectorAll('.tree-node'));
+            let found = null;
+            for (let i = 0; i < nodes.length; i++) {
+                const n = nodes[i];
+                if (!n || n.dataset.type !== type) continue;
+                if (typeof connId === 'string' && connId && n.dataset.connid !== connId) continue;
+                if (typeof id === 'string' && id && n.dataset.id !== id) continue;
+                found = n;
+                break;
+            }
+            if (!found) return false;
+            __expandTreeTo(found.parentElement);
+            document.querySelectorAll('.tree-node-content').forEach(n => n.classList.remove('active'));
+            const content = found.querySelector('.tree-node-content');
+            if (content) content.classList.add('active');
+            return true;
+        }
+
+        function applyDbUiState() {
+            const st = __dbUiState || {};
+            const connId = typeof st.conn_id === 'string' ? st.conn_id : '';
+            const db = typeof st.db === 'string' ? st.db : '';
+            const table = typeof st.table === 'string' ? st.table : '';
+            const sql = typeof st.sql === 'string' ? st.sql : '';
+            const aiPrompt = typeof st.ai_prompt === 'string' ? st.ai_prompt : '';
+            const tab = typeof st.tab === 'string' ? st.tab : '';
+
+            if (sql && $$('sqlEditor')) $$('sqlEditor').value = sql;
+            if (aiPrompt && $$('aiPromptInput')) $$('aiPromptInput').value = aiPrompt;
+            if (typeof st.sql_open === 'boolean') __setSqlEditorOpen(st.sql_open);
+            if (tab === 'results' || tab === 'schema') switchResultsTab(tab);
+
+            if (connId) {
+                const conn = connections.find(c => c.id === connId);
+                if (conn) currentConn = conn;
+                currentDb = db || null;
+                currentTable = table || null;
+                updateBreadcrumb();
+
+                if (table) __activateTreeNode('table', connId, table);
+                else if (db) __activateTreeNode('db', connId, db);
+                else __activateTreeNode('conn', connId, connId);
+
+                if (currentConn && sql) executeQuery();
+            }
+        }
+        
+        // 加载树数据
+        async function loadTree() {
+            $$('dbTree').innerHTML = '<div class="tree-loading"><div class="spinner"></div>加载中...</div>';
+            try {
+                const r = await fetch('/api/db/tree');
+                const data = await r.json();
+                if (data.success) {
+                    renderTree(data.data || []);
+                } else {
+                    $$('dbTree').innerHTML = '<div class="results-empty">加载失败</div>';
+                }
+            } catch (e) {
+                $$('dbTree').innerHTML = '<div class="results-empty">加载失败</div>';
+            }
+        }
+        
+        // 渲染树
+        function renderTree(treeData) {
+            window.dbTreeData = treeData; // 保存供自动补全使用
+            updateAutocompleteData(); // 更新表列表
+            let html = '<div class="tree">';
+            treeData.forEach(conn => {
+                html += renderTreeNode(conn, 'conn', null);
+            });
+            html += '</div>';
+            $$('dbTree').innerHTML = html || '<div class="results-empty">暂无连接</div>';
+        }
+        
+        function renderTreeNode(node, type, parentConnId) {
+            const id = type === 'conn' ? node.id : node.name;
+            const connId = type === 'conn' ? node.id : parentConnId;
+            const label = type === 'conn' ? node.name : node.name;
+            const icon = type === 'conn' ? (ENGINE_CONFIG[node.engine || 'mysql']?.icon || '🗄️') : (type === 'db' ? '📁' : '📋');
+            const hasChildren = node.children && node.children.length > 0 && type !== 'table';
+            const expanded = type === 'conn';
+            const isToggleable = hasChildren;
+            
+            let html = `<div class="tree-node" data-type="${type}" data-id="${id}" data-connid="${connId}" data-db="${type === 'conn' ? node.database : (type === 'db' ? node.name : parentConnId)}">
+                <div class="tree-node-content" onclick="onNodeClick(this, '${type}', '${id}', '${type === 'db' ? node.name : (type === 'table' ? parentConnId : node.database)}')">
+                    ${type === 'table' ? '' : `<span class="tree-toggle ${expanded ? 'expanded' : ''}" onclick="event.stopPropagation();toggleNode(this)">▶</span>`}
+                    <span class="tree-icon">${icon}</span>
+                    <span class="tree-label">${label}</span>
+                    ${type === 'conn' ? `<div class="tree-actions">
+                        <button onclick="event.stopPropagation();openEditModal('${id}')">编辑</button>
+                        <button onclick="event.stopPropagation();deleteConnection('${id}')">删除</button>
+                    </div>` : ''}
+                </div>`;
+            
+            if (hasChildren) {
+                html += `<div class="tree-children ${expanded ? '' : 'collapsed'}">`;
+                node.children.forEach(child => {
+                    const childType = type === 'conn' ? 'db' : (child.children && child.children.length > 0 ? 'db' : 'table');
+                    html += renderTreeNode(child, childType, connId);
+                });
+                html += '</div>';
+            }
+            html += '</div>';
+            return html;
+        }
+        
+        function toggleNode(el) {
+            el.classList.toggle('expanded');
+            const children = el.parentElement.nextElementSibling;
+            if (children && children.classList.contains('tree-children')) {
+                children.classList.toggle('collapsed');
+            }
+        }
+        
+        async function onNodeClick(el, type, id, dbName) {
+            // 点击可展开的节点时，toggle展开/折叠
+            const nodeEl = el.closest('.tree-node');
+            const hasChildren = nodeEl.querySelector('.tree-children');
+            if (hasChildren && type !== 'table') {
+                const toggle = nodeEl.querySelector('.tree-toggle');
+                if (toggle) {
+                    toggleNode(toggle);
+                }
+            }
+            
+            // 更新选中状态
+            document.querySelectorAll('.tree-node-content').forEach(n => n.classList.remove('active'));
+            el.classList.add('active');
+            
+            const connId = nodeEl.dataset.connid;
+            const conn = connections.find(c => c.id === connId);
+            if (!conn) { console.error('Connection not found:', connId); return; }
+
+            if (type === 'conn') {
+                currentConn = conn;
+                currentDb = null;
+                currentTable = null;
+                updateBreadcrumb();
+                saveDbUiState({ conn_id: connId, db: '', table: '' });
+            } else if (type === 'db') {
+                currentConn = conn;
+                currentDb = id;
+                currentTable = null;
+                updateBreadcrumb();
+                saveDbUiState({ conn_id: connId, db: String(id || ''), table: '' });
+            } else if (type === 'table') {
+                currentConn = conn;
+                currentDb = dbName;
+                currentTable = id;
+                updateBreadcrumb();
+                updateAutocompleteData();
+                saveDbUiState({ conn_id: connId, db: String(dbName || ''), table: String(id || '') });
+
+                closeDrawer();
+
+                const sql = `SELECT * FROM \`${id}\` LIMIT 200`;
+                $$('sqlEditor').value = sql;
+                saveDbUiState({ sql: sql }, false);
+                executeQuery();
+            }
+        }
+        
+        function updateBreadcrumb() {
+            let html = '';
+            if (currentConn) html += `<span>${currentConn.name}</span>`;
+            if (currentDb) html += ` / <span>${currentDb}</span>`;
+            if (currentTable) html += ` / <span>${currentTable}</span>`;
+            $$('breadcrumb').innerHTML = html || '<span>未选择</span>';
+        }
+        
+        window.toggleDrawer = function() { $$('drawer').classList.toggle('open'); $$('drawerBackdrop').classList.toggle('show'); };
+        window.closeDrawer = function() { $$('drawer').classList.remove('open'); $$('drawerBackdrop').classList.remove('show'); };
+        
+        // SQL历史
+        const FIXED_SQLS = [
+            { sql: 'SHOW TABLES', label: 'Tables' },
+            { sql: 'SHOW PROCESSLIST', label: 'Process' },
+            { sql: 'DESCRIBE `table_name`', label: 'Desc' },
+            { sql: 'SELECT COUNT(*) FROM `table_name`', label: 'Count' },
+            { sql: 'SHOW STATUS', label: 'Status' }
+        ];
+        
+        function openSqlHistory() {
+            renderSqlHistory();
+            $$('historyDrawer').classList.add('open');
+            $$('historyBackdrop').classList.add('show');
+        }
+        
+        function closeSqlHistory() {
+            $$('historyDrawer').classList.remove('open');
+            $$('historyBackdrop').classList.remove('show');
+        }
+        
+        function renderSqlHistory() {
+            const fixedHtml = FIXED_SQLS.map(s => 
+                `<div class="sql-history-item" onclick="useHistorySql('${s.sql.replace(/`/g, '\\`')}')">
+                    <div class="sql-text">${s.sql}</div>
+                </div>`
+            ).join('');
+            
+            const rawHistory = localStorage.getItem('db_sql_history') || '[]';
+            let history = [];
+            try {
+                history = JSON.parse(rawHistory);
+            } catch (e) {}
+            
+            const historyHtml = history.length ? history.map(s => {
+                if (!s || !s.sql) return '';
+                return `<div class="sql-history-item" onclick="useHistorySql('${s.sql.replace(/'/g, "\\'").replace(/\n/g, ' ')}')">
+                    <div class="sql-text">${s.sql.length > 50 ? s.sql.substring(0, 50) + '...' : s.sql}</div>
+                    <div class="sql-time">${new Date(s.time).toLocaleString()}</div>
+                </div>`;
+            }).join('') : '<div style="padding:20px;text-align:center;color:#666;font-size:12px;">暂无历史记录</div>';
+            
+            $$('sqlHistoryList').innerHTML = `
+                <div class="history-section-title">常用 SQL</div>
+                ${fixedHtml}
+                ${history.length ? '<div class="history-divider"></div><div class="history-section-title">历史记录</div>' : ''}
+                ${historyHtml}
+            `;
+        }
+        
+        function useHistorySql(sql) {
+            $$('sqlEditor').value = sql;
+            closeSqlHistory();
+            toggleSqlEditor();
+            saveDbUiState({ sql: String(sql || ''), sql_open: $$('sqlEditorPanel').classList.contains('open') });
+            executeQuery();
+        }
+
+        let __sqlHistoryNavIndex = -1;
+
+        function __getSqlHistoryNavList() {
+            const rawHistory = localStorage.getItem('db_sql_history') || '[]';
+            let history = [];
+            try {
+                history = JSON.parse(rawHistory);
+            } catch (e) {
+                history = [];
+            }
+            return (Array.isArray(history) ? history : [])
+                .map(h => (h && h.sql) || '')
+                .filter(s => typeof s === 'string' && s.trim());
+        }
+
+        function __ensureSqlEditorOpen() {
+            const panel = $$('sqlEditorPanel');
+            if (panel && !panel.classList.contains('open')) toggleSqlEditor();
+        }
+
+        function __setSqlEditorValue(sql) {
+            __ensureSqlEditorOpen();
+            const ta = $$('sqlEditor');
+            if (!ta) return;
+            ta.value = sql || '';
+            saveDbUiState({ sql: String(ta.value || ''), sql_open: $$('sqlEditorPanel').classList.contains('open') });
+            try {
+                ta.selectionStart = ta.selectionEnd = ta.value.length;
+            } catch (e) {}
+            if (typeof closeAutocomplete === 'function') closeAutocomplete();
+            ta.focus();
+        }
+
+        function sqlHistoryPrev() {
+            const list = __getSqlHistoryNavList();
+            if (!list.length) {
+                showStatus('暂无历史记录', true);
+                return;
+            }
+
+            const current = String($$('sqlEditor')?.value || '').trim();
+            const found = current ? list.indexOf(current) : -1;
+            if (found >= 0) __sqlHistoryNavIndex = found;
+
+            if (__sqlHistoryNavIndex < 0) __sqlHistoryNavIndex = 0;
+            else if (__sqlHistoryNavIndex < list.length - 1) __sqlHistoryNavIndex += 1;
+
+            __setSqlEditorValue(list[__sqlHistoryNavIndex] || '');
+        }
+
+        function sqlHistoryNext() {
+            const list = __getSqlHistoryNavList();
+            if (!list.length) {
+                showStatus('暂无历史记录', true);
+                return;
+            }
+
+            const current = String($$('sqlEditor')?.value || '').trim();
+            const found = current ? list.indexOf(current) : -1;
+            if (found >= 0) __sqlHistoryNavIndex = found;
+
+            if (__sqlHistoryNavIndex < 0) __sqlHistoryNavIndex = 0;
+            else if (__sqlHistoryNavIndex > 0) __sqlHistoryNavIndex -= 1;
+
+            __setSqlEditorValue(list[__sqlHistoryNavIndex] || '');
+        }
+        
+        function toggleSqlEditor() {
+            $$('sqlEditorPanel').classList.toggle('open');
+            $$('sqlToggle').classList.toggle('open');
+            saveDbUiState({ sql_open: $$('sqlEditorPanel').classList.contains('open') });
+        }
+        function clearEditor() {
+            $$('sqlEditor').value = '';
+            closeAutocomplete();
+            saveDbUiState({ sql: '' });
+        }
+        
+        // ========== SQL 自动补全 ==========
+        const SQL_KEYWORDS = [
+            'SELECT', 'FROM', 'WHERE', 'AND', 'OR', 'NOT', 'IN', 'LIKE', 'BETWEEN',
+            'JOIN', 'LEFT JOIN', 'RIGHT JOIN', 'INNER JOIN', 'OUTER JOIN', 'ON',
+            'ORDER BY', 'ASC', 'DESC', 'LIMIT', 'OFFSET',
+            'GROUP BY', 'HAVING', 'DISTINCT', 'COUNT', 'SUM', 'AVG', 'MIN', 'MAX',
+            'INSERT INTO', 'VALUES', 'UPDATE', 'SET', 'DELETE FROM',
+            'CREATE TABLE', 'DROP TABLE', 'ALTER TABLE', 'ADD COLUMN', 'MODIFY COLUMN',
+            'INDEX', 'UNIQUE', 'PRIMARY KEY', 'FOREIGN KEY',
+            'AS', 'NULL', 'IS NULL', 'IS NOT NULL', 'EXISTS', 'ALL', 'ANY',
+            'UNION', 'UNION ALL', 'INTERSECT', 'EXCEPT',
+            'CASE', 'WHEN', 'THEN', 'ELSE', 'END', 'AS', 'CAST', 'COALESCE', 'IFNULL', 'NULLIF'
+        ];
+        const SQL_FUNCTIONS = [
+            'NOW()', 'CURDATE()', 'CURTIME()', 'DATE()', 'TIME()', 'YEAR()', 'MONTH()', 'DAY()', 'HOUR()', 'MINUTE()', 'SECOND()',
+            'DATE_FORMAT()', 'DATE_ADD()', 'DATE_SUB()', 'DATEDIFF()', 'TIMESTAMPDIFF()',
+            'CONCAT()', 'CONCAT_WS()', 'SUBSTRING()', 'LEFT()', 'RIGHT()', 'LENGTH()', 'TRIM()', 'UPPER()', 'LOWER()',
+            'REPLACE()', 'INSERT()', 'INSTR()', 'LOCATE()',
+            'ROUND()', 'FLOOR()', 'CEIL()', 'ABS()', 'SQRT()', 'POW()', 'MOD()',
+            'IFNULL()', 'COALESCE()', 'NULLIF()', 'IF()', 'CASE WHEN()',
+            'RAND()', 'UUID()', 'LAST_INSERT_ID()', 'ROW_COUNT()',
+            'COUNT()', 'SUM()', 'AVG()', 'MIN()', 'MAX()', 'GROUP_CONCAT()'
+        ];
+        let _acTableNames = [], _acColumns = {};
+        let _acHistory = JSON.parse(localStorage.getItem('db_sql_history') || '[]').map(h => (h && h.sql) || h).filter(h => h && typeof h === 'string').filter((v, i, a) => a.indexOf(v) === i);
+        let _acSelected = -1, _acItems = [];
+        let _acReplaceStart = 0, _acReplaceEnd = 0, _acReqSeq = 0;
+        
+        function updateAutocompleteData() {
+            // 更新表名列表
+            if (window.dbTreeData) {
+                _acTableNames = [];
+                const findTables = nodes => {
+                    nodes.children?.forEach(c => {
+                        if (c.children) findTables(c);
+                        else _acTableNames.push(c.name);
+                    });
+                };
+                dbTreeData.forEach(findTables);
+            }
+        }
+        
+        async function loadTableColumns(tableName) {
+            if (!currentConn || !tableName) return Promise.resolve([]);
+            if (_acColumns[tableName]) return Promise.resolve(_acColumns[tableName]);
+            try {
+                const r = await fetch(`/api/db/${currentConn.id}/table/${encodeURIComponent(tableName)}/columns`);
+                const d = await r.json();
+                _acColumns[tableName] = d.data?.columns || [];
+                return Promise.resolve(_acColumns[tableName]);
+            } catch(e) { _acColumns[tableName] = []; return Promise.resolve([]); }
+        }
+
+        function getLastPartTableName(raw) {
+            var s = String(raw || '').trim();
+            if (!s) return '';
+            s = s.replace(/`/g, '');
+            var parts = s.split('.');
+            return parts[parts.length - 1] || '';
+        }
+
+        function extractTableRefs(sqlBeforeCursor) {
+            var text = String(sqlBeforeCursor || '');
+            var refs = [];
+            var re = /\b(from|join)\s+`?([\w.]+)`?(?:\s+(?:as\s+)?`?(\w+)`?)?/ig;
+            var m;
+            while ((m = re.exec(text))) {
+                var tableRaw = m[2] || '';
+                var alias = m[3] || '';
+                var tableName = getLastPartTableName(tableRaw);
+                if (!tableName) continue;
+                refs.push({ table: tableName, alias: alias });
+            }
+            return refs;
+        }
+
+        function getAliasMap(sqlBeforeCursor) {
+            var refs = extractTableRefs(sqlBeforeCursor);
+            var map = {};
+            refs.forEach(function(r) {
+                map[r.table] = r.table;
+                if (r.alias) map[r.alias] = r.table;
+            });
+            return map;
+        }
+
+        function getPreferredTable(sqlBeforeCursor) {
+            var refs = extractTableRefs(sqlBeforeCursor);
+            if (!refs.length) return '';
+            return refs[refs.length - 1].table || '';
+        }
+
+        function __isWordChar(ch) {
+            return !!ch && /[A-Za-z0-9_`]/.test(ch);
+        }
+
+        function __makeItem(label, type, insertText) {
+            return { label: label, type: type, insertText: (typeof insertText === 'string' ? insertText : label) };
+        }
+
+        function __contextWantsTables(beforeNoToken) {
+            return /\b(from|join)\s*$/i.test(String(beforeNoToken || ''));
+        }
+
+        function __contextWantsColumns(beforeNoToken) {
+            const s = String(beforeNoToken || '');
+            if (/\b(select|where|on|and|or|having)\s*$/i.test(s)) return true;
+            if (/\b(order\s+by|group\s+by)\s*$/i.test(s)) return true;
+            if (/[,(]\s*$/.test(s)) return true;
+            return false;
+        }
+
+        function __dedupeItems(items) {
+            const seen = new Set();
+            const out = [];
+            for (let i = 0; i < items.length; i++) {
+                const it = items[i];
+                const key = (it && (it.insertText || it.label)) || '';
+                if (!key || seen.has(key)) continue;
+                seen.add(key);
+                out.push(it);
+            }
+            return out;
+        }
+        
+        function showAutocomplete(text, cursorPos) {
+            const reqId = ++_acReqSeq;
+            const before = text.substring(0, cursorPos);
+            const match = before.match(/[\w`*.]+$/);
+            const rawToken = match ? String(match[0] || '').replace(/`/g, '') : '';
+            const tokenUpper = rawToken.toUpperCase();
+            const tokenStart = match ? (cursorPos - match[0].length) : cursorPos;
+            const beforeNoToken = before.substring(0, tokenStart);
+            const aliasMap = getAliasMap(before);
+            const endsWithDot = rawToken.endsWith('.');
+            const isQualified = rawToken.indexOf('.') >= 0;
+            const wantsTables = __contextWantsTables(beforeNoToken);
+            const wantsColumns = __contextWantsColumns(beforeNoToken);
+            
+            _acReplaceStart = tokenStart;
+            _acReplaceEnd = cursorPos;
+
+            const items = [];
+
+            if (isQualified) {
+                const lastDot = rawToken.lastIndexOf('.');
+                const qualifier = rawToken.slice(0, lastDot);
+                const prefix = endsWithDot ? '' : rawToken.slice(lastDot + 1);
+                const prefixUpper = prefix.toUpperCase();
+                const tableForCols = aliasMap[qualifier] || getLastPartTableName(qualifier);
+                if (!tableForCols) { closeAutocomplete(); return; }
+
+                _acReplaceStart = cursorPos - prefix.length;
+                _acReplaceEnd = cursorPos;
+
+                const cols = _acColumns[tableForCols] || [];
+                const renderCols = function(colList) {
+                    if (reqId !== _acReqSeq) return;
+                    const list = (colList || []).filter(function(c) {
+                        const u = (c || '').toUpperCase();
+                        return prefixUpper ? u.startsWith(prefixUpper) : true;
+                    });
+                    list.slice(0, 20).forEach(function(c) { items.push(__makeItem(c, 'col', c)); });
+                    if (!items.length) { closeAutocomplete(); return; }
+                    _acItems = __dedupeItems(items);
+                    _acSelected = 0;
+                    renderAutocomplete();
+                };
+
+                if (!cols.length) {
+                    loadTableColumns(tableForCols).then(function(loaded) { renderCols(loaded); });
+                    return;
+                }
+                renderCols(cols);
+                return;
+            }
+
+            if (wantsTables) {
+                const prefixUpper = tokenUpper;
+                _acTableNames
+                    .filter(function(t) {
+                        const u = (t || '').toUpperCase();
+                        return prefixUpper ? u.startsWith(prefixUpper) : true;
+                    })
+                    .slice(0, 30)
+                    .forEach(function(t) { items.push(__makeItem(t, 'tbl', t + ' ')); });
+            }
+
+            if (wantsColumns) {
+                const refs = extractTableRefs(beforeNoToken);
+                const preferredTbl = getPreferredTable(beforeNoToken);
+                const prefixUpper = tokenUpper;
+                const addColsFor = function(tableName, qualifierText, maxCount) {
+                    const cols = _acColumns[tableName] || [];
+                    const renderCols = function(colList) {
+                        if (reqId !== _acReqSeq) return;
+                        (colList || []).filter(function(c) {
+                            const u = (c || '').toUpperCase();
+                            return prefixUpper ? u.startsWith(prefixUpper) : true;
+                        }).slice(0, maxCount).forEach(function(c) {
+                            const label = qualifierText ? (qualifierText + '.' + c) : c;
+                            const insertText = qualifierText ? (qualifierText + '.' + c) : c;
+                            items.push(__makeItem(label, 'col', insertText));
+                        });
+                        _acItems = __dedupeItems(items).slice(0, 30);
+                        if (!_acItems.length) { closeAutocomplete(); return; }
+                        _acSelected = 0;
+                        renderAutocomplete();
+                    };
+                    if (!cols.length) {
+                        loadTableColumns(tableName).then(function(loaded) { renderCols(loaded); });
+                        return false;
+                    }
+                    renderCols(cols);
+                    return true;
+                };
+
+                if (!prefixUpper) items.push(__makeItem('*', 'col', '*'));
+
+                if (preferredTbl) addColsFor(preferredTbl, '', 20);
+
+                const extras = refs.filter(function(r) { return r && r.table && r.table !== preferredTbl; });
+                extras.slice(0, 3).forEach(function(r) {
+                    const q = r.alias || r.table;
+                    if (q) items.push(__makeItem(q + '.', 'tbl', q + '.'));
+                });
+
+                extras.slice(0, 2).forEach(function(r) {
+                    const q = r.alias || r.table;
+                    if (r.table) addColsFor(r.table, q || '', 8);
+                });
+            }
+
+            if (!wantsTables && !wantsColumns) {
+                if (!rawToken || rawToken.length < 1) { closeAutocomplete(); return; }
+            }
+
+            SQL_KEYWORDS
+                .filter(function(k) {
+                    const u = (k || '').toUpperCase();
+                    return tokenUpper ? (u.startsWith(tokenUpper) && u !== tokenUpper) : false;
+                })
+                .slice(0, 20)
+                .forEach(function(k) { items.push(__makeItem(k, 'key', k + ' ')); });
+
+            SQL_FUNCTIONS
+                .filter(function(f) {
+                    const u = (f || '').toUpperCase();
+                    return tokenUpper ? (u.startsWith(tokenUpper) && u !== tokenUpper) : false;
+                })
+                .slice(0, 20)
+                .forEach(function(f) { items.push(__makeItem(f, 'func', f)); });
+
+            if (!wantsTables) {
+                _acTableNames
+                    .filter(function(t) {
+                        const u = (t || '').toUpperCase();
+                        return tokenUpper ? (u.startsWith(tokenUpper) && u !== tokenUpper) : false;
+                    })
+                    .slice(0, 20)
+                    .forEach(function(t) { items.push(__makeItem(t, 'tbl', t)); });
+            }
+
+            if (!wantsColumns) {
+                const preferredTbl = getPreferredTable(beforeNoToken);
+                if (preferredTbl && rawToken) {
+                    const cols2 = _acColumns[preferredTbl] || [];
+                    const renderCols = function(colList) {
+                        if (reqId !== _acReqSeq) return;
+                        (colList || []).filter(function(c) { return c && c.toUpperCase().startsWith(tokenUpper); })
+                            .slice(0, 12)
+                            .forEach(function(c) { items.push(__makeItem(c, 'col', c)); });
+                        _acItems = __dedupeItems(items).slice(0, 30);
+                        if (!_acItems.length) { closeAutocomplete(); return; }
+                        _acSelected = 0;
+                        renderAutocomplete();
+                    };
+                    if (!cols2.length) {
+                        loadTableColumns(preferredTbl).then(function(loaded) { renderCols(loaded); });
+                        return;
+                    }
+                    renderCols(cols2);
+                    return;
+                }
+            }
+
+            if (rawToken) {
+                _acHistory.filter(function(h) { return h && h.toUpperCase().startsWith(tokenUpper); }).slice(0, 5)
+                    .forEach(function(h) { items.push(__makeItem(h, 'his', h)); });
+            }
+
+            const finalItems = __dedupeItems(items).slice(0, 30);
+            if (!finalItems.length) { closeAutocomplete(); return; }
+            _acItems = finalItems;
+            _acSelected = 0;
+            renderAutocomplete();
+        }
+        
+        function renderAutocomplete() {
+            const el = $$('sqlAutocomplete');
+            if (!_acItems.length) { el.style.display = 'none'; return; }
+            el.innerHTML = _acItems.map((item, i) => 
+                `<div class="sql-autocomplete-item ${i === _acSelected ? 'selected' : ''}" data-index="${i}">
+                    <span class="type-tag ${item.type}">${item.type.toUpperCase()}</span>
+                    <span>${item.label}</span>
+                </div>`
+            ).join('');
+            el.style.display = 'block';
+            
+            // 点击选择
+            el.querySelectorAll('.sql-autocomplete-item').forEach((div, i) => {
+                div.onclick = () => selectAutocomplete(i);
+            });
+        }
+        
+        function selectAutocomplete(index) {
+            const item = _acItems[index];
+            if (!item) return;
+            const textarea = $$('sqlEditor');
+            const text = textarea.value;
+            const start = Math.max(0, Math.min(text.length, _acReplaceStart || 0));
+            const end = Math.max(0, Math.min(text.length, _acReplaceEnd || start));
+            const insert = String(item.insertText || item.label || '');
+            textarea.value = text.substring(0, start) + insert + text.substring(end);
+            const newPos = start + insert.length;
+            textarea.selectionStart = textarea.selectionEnd = newPos;
+            closeAutocomplete();
+            textarea.focus();
+        }
+        
+        function closeAutocomplete() {
+            $$('sqlAutocomplete').style.display = 'none';
+            _acItems = [];
+            _acSelected = -1;
+        }
+        
+        function initAutocomplete() {
+            const textarea = $$('sqlEditor');
+            textarea.addEventListener('input', e => {
+                showAutocomplete(e.target.value, e.target.selectionStart);
+            });
+            textarea.addEventListener('keydown', e => {
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    if (_acItems.length) {
+                        _acSelected = (_acSelected + 1) % _acItems.length;
+                        renderAutocomplete();
+                    }
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    if (_acItems.length) {
+                        _acSelected = (_acSelected - 1 + _acItems.length) % _acItems.length;
+                        renderAutocomplete();
+                    }
+                } else if (e.key === 'Enter' || e.key === 'Tab') {
+                    if (_acItems.length && $$('sqlAutocomplete').style.display !== 'none') {
+                        e.preventDefault();
+                        selectAutocomplete(_acSelected);
+                    }
+                } else if (e.key === 'Escape') {
+                    closeAutocomplete();
+                }
+            });
+            textarea.addEventListener('blur', () => {
+                setTimeout(closeAutocomplete, 200);
+            });
+        }
+        
+        async function executeQuery() {
+            const sql = $$('sqlEditor').value.trim();
+            if (!sql) return;
+            $$('resultsContent').innerHTML = '<div class="loading"><div class="spinner"></div>执行中...</div>';
+            
+            try {
+                const r = await fetch('/api/db/execute', {
+                    method: 'POST', headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ connection: currentConn.id, query: sql })
+                });
+                const data = await r.json();
+                if (data.success) {
+                    allResults = data.data?.rows || [];
+                    currentPage = 1;
+                    totalPages = Math.ceil(allResults.length / pageSize);
+                    renderResults(data.data.headers || [], getPageData());
+                    showStatus(`成功 ${allResults.length} 行`, false);
+                    $$('resultsToolbar').style.display = allResults.length > pageSize ? 'flex' : 'none';
+                    
+                    // 保存到历史
+                    if (sql.toLowerCase().startsWith('select') || sql.toLowerCase().startsWith('show') || sql.toLowerCase().startsWith('describe')) {
+                        const history = JSON.parse(localStorage.getItem('db_sql_history') || '[]');
+                        const filtered = history.filter(h => h.sql !== sql);
+                        filtered.unshift({ sql: sql, time: Date.now() });
+                        localStorage.setItem('db_sql_history', JSON.stringify(filtered.slice(0, 50)));
+                    }
+                } else {
+                    showStatus('失败: ' + data.message, true);
+                    $$('resultsContent').innerHTML = `<div class="results-empty" style="color:#ef4444;">${data.message}</div>`;
+                    $$('resultsToolbar').style.display = 'none';
+                }
+            } catch (e) {
+                showStatus('失败: ' + e.message, true);
+                $$('resultsContent').innerHTML = `<div class="results-empty" style="color:#ef4444;">${e.message}</div>`;
+            }
+        }
+        
+        // AI SQL 生成
+        let aiHistoryCache = null;
+
+async function loadAiHistory() {
+    if (aiHistoryCache) return aiHistoryCache;
+    try {
+        const res = await fetch('/db/ai-history');
+        const data = await res.json();
+        aiHistoryCache = (data.data && data.data.history) || [];
+        return aiHistoryCache;
+    } catch(e) { return []; }
+}
+
+async function toggleAiHistory() {
+    const dropdown = document.getElementById('aiHistoryDropdown');
+    if (dropdown.classList.contains('show')) {
+        dropdown.classList.remove('show');
+        return;
+    }
+    const history = await loadAiHistory();
+    if (history.length === 0) {
+        dropdown.innerHTML = '<div style="padding:20px;text-align:center;color:#666;font-size:12px;">暂无历史记录</div>';
+    } else {
+        dropdown.innerHTML = history.slice(0, 10).map(item => `
+            <div class="ai-history-item" onclick="selectAiHistory('${item.prompt.replace(/'/g, "\'")}', '${item.sql.replace(/'/g, "\'").replace(/\n/g, " ")}')">
+                <div class="prompt">${item.prompt}</div>
+                <div class="sql">${item.sql}</div>
+                <div class="time">${item.time || ''}</div>
+            </div>
+        `).join('');
+    }
+    dropdown.classList.add('show');
+}
+
+function selectAiHistory(prompt, sql) {
+    document.getElementById('aiPromptInput').value = prompt;
+    document.getElementById('aiHistoryDropdown').classList.remove('show');
+    // 如果需要同时设置SQL
+    if (sql) {
+        const sqlInput = document.getElementById('sqlInput');
+        if (sqlInput) sqlInput.value = sql;
+    }
+}
+
+// 点击其他地方关闭下拉
+document.addEventListener('click', function(e) {
+    const dropdown = document.getElementById('aiHistoryDropdown');
+    const combo = document.getElementById('aiPromptCombo');
+    if (dropdown && combo && !combo.contains(e.target)) {
+        dropdown.classList.remove('show');
+    }
+});
+
+async function generateSqlFromPrompt() {
+            const prompt = $$('aiPromptInput').value.trim();
+            const currentSql = $$('sqlEditor').value.trim();
+            
+            if (!prompt) {
+                showStatus('请输入 AI Prompt', true);
+                return;
+            }
+            
+            const btn = $$('btnAiGenerate');
+            const originalText = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<span class="ai-loading"></span>';
+            
+            try {
+                // 获取当前连接的数据库信息
+                const connId = currentConn?.id;
+                if (!connId) {
+                    showStatus('请先选择数据库连接', true);
+                    return;
+                }
+                
+                // 构建请求数据
+                const requestData = {
+                    prompt: prompt,
+                    current_sql: currentSql,
+                    connection: {
+                        id: connId,
+                        engine: currentConn.engine || 'mysql',
+                        database: currentConn.database || ''
+                    },
+                    table: currentTable || '',
+                    schema: []
+                };
+                
+                // 如果有选中的表，获取表结构
+                if (currentTable) {
+                    try {
+                        const schemaResp = await fetch('/api/db/schema', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ connection: connId, table: currentTable })
+                        });
+                        const schemaData = await schemaResp.json();
+                        if (schemaData.success) {
+                            requestData.schema = schemaData.data || [];
+                        }
+                    } catch (e) {
+                        console.warn('获取表结构失败:', e);
+                    }
+                }
+                
+                const r = await fetch('/db/ai-generate-sql', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(requestData)
+                });
+                
+                const data = await r.json();
+                
+                if (data.success && data.sql) {
+                    $$('sqlEditor').value = data.sql;
+                    $$('aiPromptInput').value = '';
+                    showStatus('SQL 生成成功 ✓', false);
+                } else {
+                    const errMsg = data.error?.message || data.message || data.error || '未知错误';
+                    showStatus('生成失败: ' + errMsg, true);
+                }
+            } catch (e) {
+                showStatus('生成失败: ' + e.message, true);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
+        }
+        
+        // Ctrl+Enter 执行 SQL
+        $$('sqlEditor').addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.key === 'Enter') {
+                e.preventDefault();
+                executeQuery();
+            }
+            // Ctrl+Up/Down 历史导航
+            if (e.ctrlKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
+                e.preventDefault();
+                if (e.key === 'ArrowUp') sqlHistoryPrev();
+                else sqlHistoryNext();
+            }
+        });
+        
+        // Enter 生成 AI SQL
+        $$('aiPromptInput').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                generateSqlFromPrompt();
+            }
+        });
+        
+        // AI Prompt 输入时保存
+        $$('aiPromptInput').addEventListener('input', function(e) {
+            saveDbUiState({ ai_prompt: e.target.value || '' }, false);
+        });
+        
+        function getPageData() {
+            const start = (currentPage - 1) * pageSize;
+            return allResults.slice(start, start + pageSize);
+        }
+        
+        function goToPage(page) {
+            if (page < 1 || page > totalPages) return;
+            currentPage = page;
+            const headers = $$('resultsContent').querySelectorAll('thead th');
+            const headerArr = Array.from(headers).map(th => th.textContent);
+            renderResults(headerArr, getPageData());
+        }
+        
+        function renderResults(headers, rows) {
+            if (rows.length === 0) {
+                $$('resultsContent').innerHTML = '<div class="results-empty">无数据</div>';
+                $$('pageInfo').textContent = '0 / 0';
+                return;
+            }
+            
+            // 保存原始数据用于编辑
+            window._tableHeaders = headers;
+            window._tableRows = rows;
+            
+            // 检查 Tabulator 是否加载
+            if (typeof Tabulator === 'undefined') {
+                // 回退到原生表格
+                renderResultsNative(headers, rows);
+                return;
+            }
+            
+            // 销毁旧的 Tabulator 实例
+            if (window._resultsTable) {
+                window._resultsTable.destroy();
+            }
+            
+            // 准备 Tabulator 数据（将数组转换为对象数组）
+            const tableData = rows.map((row, ri) => {
+                const obj = { _rowIndex: ri };
+                headers.forEach((h, ci) => {
+                    obj[h] = row[ci];
+                });
+                return obj;
+            });
+            
+            // 构建列定义
+            const columns = headers.map(h => ({
+                title: h,
+                field: h,
+                editor: "input",
+                editable: true,
+                headerFilter: "input",
+                headerFilterPlaceholder: "筛选...",
+                minWidth: 100,
+                cellDblClick: function(e, cell) {
+                    cell.edit();
+                }
+            }));
+            
+            $$('resultsContent').innerHTML = '<div id="resultsTable" style="width:100%;height:100%;"></div>';
+            
+            console.log('Initializing Tabulator with', tableData.length, 'rows');
+            
+            // 初始化 Tabulator
+            window._resultsTable = new Tabulator("#resultsTable", {
+                data: tableData,
+                columns: columns,
+                height: "100%",
+                layout: "fitColumns",
+                virtualDom: true,
+                pagination: "local",
+                paginationSize: 50,
+                movableColumns: false,
+                langs: {
+                    "zh-cn": {
+                        "pagination": {
+                            "first": "首页",
+                            "prev": "上一页",
+                            "next": "下一页",
+                            "last": "末页",
+                            "page_size": "每页条数"
+                        },
+                        "headerfilters": {
+                            "default": "筛选..."
+                        }
+                    }
+                },
+                locale: "zh-cn",
+                cellEditStarted: function(cell) {
+                    // 编辑时高亮边框
+                    cell.getElement().style.background = "#1a1a2e";
+                    cell.getElement().style.boxShadow = "inset 0 0 0 2px #e94560";
+                },
+                cellEditCancelled: function(cell) {
+                    cell.getElement().style.background = "";
+                    cell.getElement().style.boxShadow = "";
+                },
+                cellEdited: function(cell) {
+                    console.log('Tabulator cellEdited triggered!');
+                    
+                    cell.getElement().style.background = "";
+                    cell.getElement().style.boxShadow = "";
+                    
+                    // 获取行索引和列名
+                    var rowData = cell.getData();
+                    var rowIndex = rowData._rowIndex;
+                    var colName = cell.getColumn().getField();
+                    var newValue = cell.getValue();
+                    
+                    // 获取列索引
+                    var headerList = window._tableHeaders || [];
+                    var colIndex = headerList.indexOf(colName);
+                    
+                    console.log('Cell edited:', rowIndex, colName, newValue, colIndex);
+                    
+                    if (colIndex >= 0 && rowIndex !== undefined) {
+                        // 更新本地数据
+                        if (window._tableRows && window._tableRows[rowIndex]) {
+                            window._tableRows[rowIndex][colIndex] = newValue;
+                        }
+                        // 提交更新 - 使用 Tabulator 的行数据
+                        console.log('Submitting edit:', rowIndex, colIndex, colName, newValue);
+                        // 直接构建更新 SQL
+                        var sql = "UPDATE `" + currentTable + "` SET `" + colName + "` = " + (newValue === '' ? 'NULL' : typeof newValue === 'number' ? newValue : "'" + newValue.replace(/'/g, "''") + "'") + " WHERE ";
+                        
+                        // 获取原始行数据用于 WHERE 条件
+                        var originalRow = window._tableRows && window._tableRows[rowIndex];
+                        if (!originalRow) {
+                            console.error('Original row not found:', rowIndex);
+                            return;
+                        }
+                        
+                        var pkParts = [];
+                        var headerList = window._tableHeaders || [];
+                        headerList.forEach(function(h, i) {
+                            var val = originalRow[i];
+                            if (typeof val === 'number') {
+                                pkParts.push("`" + h + "` = " + val);
+                            } else {
+                                pkParts.push("`" + h + "` = '" + String(val || '').replace(/'/g, "''") + "'");
+                            }
+                        });
+                        sql += pkParts.join(' AND ');
+                        
+                        console.log('SQL:', sql);
+                        
+                        // 发送更新请求
+                        fetch('/api/db/execute', {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({ connection: currentConn.id, query: sql })
+                        }).then(function(r) { return r.json(); }).then(function(data) {
+                            console.log('Update result:', data);
+                            if (data.success) {
+                                showStatus('✅ 更新成功', false);
+                            } else {
+                                showStatus('❌ 更新失败: ' + (data.message || data.error), true);
+                            }
+                        }).catch(function(e) { 
+                            console.error('Update error:', e);
+                            showStatus('❌ 更新失败: ' + e.message, true); 
+                        });
+                    }
+                }
+            });
+            
+            $$('pageInfo').textContent = `共 ${rows.length} 条`;
+        }
+        
+        // 回退到原生表格实现
+        function renderResultsNative(headers, rows) {
+            $$('resultsContent').innerHTML = `<table class="data-table" style="width:100%"><thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>${rows.map((row, ri) => `<tr>${row.map((cell, ci) => `<td onclick="editCell(this, ${ri}, ${ci})">${cell||''}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+            $$('pageInfo').textContent = `共 ${rows.length} 条 (Tabulator 未加载)`;
+        }
+        
+        // 单元格编辑
+        function editCell(td, rowIdx, colIdx) {
+            if (td.querySelector('input')) return; // 已在编辑
+            const value = td.textContent;
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.value = value;
+            input.style.cssText = 'width:100%;border:none;background:#fff;color:#333;padding:2px 4px;border-radius:3px;';
+            input.onblur = () => submitCellEdit(td, rowIdx, colIdx, input.value);
+            input.onkeydown = e => { if (e.key === 'Enter') input.blur(); if (e.key === 'Escape') { td.textContent = value; } };
+            td.textContent = '';
+            td.appendChild(input);
+            input.focus();
+            input.select();
+        }
+        
+        function submitCellEdit(td, rowIdx, colIdx, newValue) {
+            const oldValue = allResults[rowIdx][colIdx];
+            if (oldValue === newValue) { 
+                if (td) td.textContent = oldValue; 
+                return; 
+            }
+            
+            if (!currentTable) { showStatus('无法更新：未选择表', true); return; }
+            
+            // 使用保存的表头
+            const headerList = window._tableHeaders || [];
+            const colName = headerList[colIdx];
+            if (!colName) { showStatus('无法更新：未知列', true); return; }
+            
+            const sql = "UPDATE `" + currentTable + "` SET `" + colName + "` = " + (newValue === '' ? 'NULL' : typeof newValue === 'number' ? newValue : "'" + newValue.replace(/'/g, "''") + "'") + " WHERE ";
+            
+            // 通过主键定位
+            const pkParts = [];
+            headerList.forEach(function(h, i) {
+                var val = allResults[rowIdx][i];
+                if (typeof val === 'number') {
+                    pkParts.push("`" + h + "` = " + val);
+                } else {
+                    pkParts.push("`" + h + "` = '" + String(val || '').replace(/'/g, "''") + "'");
+                }
+            });
+            
+            fetch('/api/db/execute', {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ connection: currentConn.id, query: sql + pkParts.join(' AND ') })
+            }).then(r => r.json()).then(data => {
+                if (data.success) {
+                    allResults[rowIdx][colIdx] = newValue;
+                    if (td) td.textContent = newValue;
+                    showStatus('更新成功', false);
+                } else {
+                    // 回滚数据
+                    if (window._resultsTable) {
+                        const rowData = window._resultsTable.getData();
+                        rowData[rowIdx][colName] = oldValue;
+                        window._resultsTable.setData(rowData);
+                    }
+                    showStatus('更新失败: ' + (data.message || data.error), true);
+                }
+            }).catch(e => { 
+                showStatus('更新失败: ' + e.message, true); 
+            });
+        }
+        
+        
+        function quickQuery(sql) {
+            if (!currentConn) { showStatus('请先选择表', true); return; }
+            $$('sqlEditor').value = sql;
+            $$('sqlEditorPanel').classList.add('open');
+            $$('sqlToggle').classList.add('open');
+            saveDbUiState({ sql_open: true, sql: String(sql || '') });
+            executeQuery();
+        }
+        
+        function exportData(format) {
+            if (allResults.length === 0) { showStatus('无可导出数据', true); return; }
+            const headers = $$('resultsContent').querySelectorAll('thead th');
+            const headerArr = Array.from(headers).map(th => th.textContent);
+            let content = '', filename = `export_${Date.now()}`;
+            
+            if (format === 'csv') {
+                content = headerArr.map(h => `"${h}"`).join(',') + '\n';
+                allResults.forEach(row => content += row.map(cell => `"${(cell||'').replace(/"/g, '""')}"`).join(',') + '\n');
+                filename += '.csv';
+            } else if (format === 'xls') {
+                content = '<html><meta charset="utf-8"><table border="1"><tr>' + headerArr.map(h => `<th style="background:#eee;padding:4px;">${h}</th>`).join('') + '</tr>' + allResults.map(row => '<tr>' + row.map(cell => `<td style="padding:4px;">${cell||''}</td>`).join('') + '</tr>').join('') + '</table></html>';
+                filename += '.xls';
+            } else if (format === 'sql') {
+                const table = currentTable || 'table_name';
+                content = `-- ${table}\n`;
+                allResults.forEach(row => {
+                    const vals = row.map(cell => cell === null ? 'NULL' : typeof cell === 'number' ? cell : `'${String(cell).replace(/'/g, "''")}'`).join(', ');
+                    content += `INSERT INTO \`${table}\` VALUES (${vals});\n`;
+                });
+                filename += '.sql';
+            }
+            const blob = new Blob([content], {type: format === 'csv' ? 'text/csv' : 'application/vnd.ms-excel'});
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(blob);
+            showStatus(`已导出 ${allResults.length} 行`, false);
+        }
+        
+        function switchResultsTab(tab) {
+            document.querySelectorAll('.results-tab').forEach(t => t.classList.remove('active'));
+            $$('tab' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('active');
+            $$('resultsContent').style.display = tab === 'results' ? 'block' : 'none';
+            $$('schemaPanel').style.display = tab === 'schema' ? 'block' : 'none';
+            if (tab === 'schema' && currentTable) loadTableSchema();
+            currentResultsTab = tab;
+            saveDbUiState({ tab: tab });
+        }
+        
+        async function loadTableSchema() {
+            if (!currentConn || !currentTable) return;
+            $$('schemaPanel').innerHTML = '<div class="loading"><div class="spinner"></div>加载中...</div>';
+            try {
+                const r = await fetch(`/api/db/${currentConn.id}/table/${currentTable}/schema`);
+                const data = await r.json();
+                if (data.success) {
+                    const cols = data.data?.columns || [];
+                    $$('schemaPanel').innerHTML = cols.length ? `<table class="data-table"><thead><tr><th>列名</th><th>类型</th><th>可空</th><th>键</th></tr></thead><tbody>` + 
+                        cols.map(c => `<tr><td>${c.field}</td><td>${c.type}</td><td>${c.null === 'YES' ? '✓' : '✗'}</td><td>${c.key || ''}</td></tr>`).join('') + '</tbody></table>' : '<div class="results-empty">无结构</div>';
+                }
+            } catch (e) { $$('schemaPanel').innerHTML = '<div class="results-empty">加载失败</div>'; }
+        }
+        
+        function showStatus(msg, error) { 
+            $$('statusBar').innerHTML = `<span class="${error ? 'error' : 'success'}">${msg}</span>`;
+            // 同时显示顶部toast
+            const toast = $$('toast');
+            toast.textContent = msg;
+            toast.className = 'show ' + (error ? 'error' : 'success');
+            setTimeout(() => { toast.className = ''; }, 2500);
+        }
+        
+        function showConfirm(title, msg, onConfirm, danger) {
+            $$('confirmTitle').textContent = title;
+            $$('confirmMessage').textContent = msg;
+            __confirmCallback = onConfirm;
+            $$('confirmBtn').className = danger ? 'confirm' : '';
+            $$('confirmBtn').textContent = danger ? '删除' : '确认';
+            $$('confirmBackdrop').style.display = 'flex';
+        }
+        function performConfirm() { if (__confirmCallback) __confirmCallback(); closeConfirmModal(); }
+        function closeConfirmModal() { $$('confirmBackdrop').style.display = 'none'; }
+        
+        function copyToClipboard(text) {
+            if (typeof clipboard !== 'undefined' && clipboard.copy) clipboard.copy(text).then(() => showStatus('已复制', false)).catch(() => fallbackCopy(text));
+            else fallbackCopy(text);
+        }
+        function fallbackCopy(text) {
+            const ta = document.createElement('textarea');
+            ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+            document.body.appendChild(ta);
+            ta.select();
+            try { document.execCommand('copy'); showStatus('已复制', false); } catch (e) { showStatus('复制失败', true); }
+            document.body.removeChild(ta);
+        }
+        
+        // 添加连接
+        function openAddModal() {
+            $$('dbEngine').value = 'mysql'; $$('dbName').value = ''; $$('dbHost').value = ''; $$('dbPort').value = '3306';
+            $$('dbUser').value = ''; $$('dbPass').value = ''; $$('dbDatabase').value = ''; $$('dbSqlitePath').value = '';
+            $$('dbUrl').value = '';
+            updateEngineFields();
+            $$('addModal').classList.add('show');
+        }
+        function closeAddModal() { $$('addModal').classList.remove('show'); }
+        function updateEngineFields() {
+            const eng = $$('dbEngine').value;
+            document.querySelectorAll('.host-field').forEach(el => el.style.display = eng === 'sqlite' ? 'none' : 'block');
+            document.querySelectorAll('.sqlite-field').forEach(el => el.style.display = eng === 'sqlite' ? 'block' : 'none');
+        }
+
+        function normalizeEngineFromScheme(scheme) {
+            var s = String(scheme || '').toLowerCase();
+            if (!s) return '';
+            var base = s.split('+')[0];
+            if (base === 'postgres') base = 'postgresql';
+            if (base === 'sqlserver') base = 'mssql';
+            if (base === 'mssql') base = 'mssql';
+            if (base === 'mysql') base = 'mysql';
+            if (base === 'mariadb') base = 'mariadb';
+            if (base === 'sqlite') base = 'sqlite';
+            if (base === 'oracle') base = 'oracle';
+            return base;
+        }
+
+        function parseDbUrl(raw) {
+            var input = String(raw || '').trim();
+            if (!input) return null;
+            if (input.toLowerCase().startsWith('sqlite:')) {
+                var m4 = input.match(/^sqlite:(\/\/\/\/)(.+)$/i);
+                var m3 = input.match(/^sqlite:(\/\/\/)(.+)$/i);
+                var m2 = input.match(/^sqlite:(\/\/)(.+)$/i);
+                var rest = m4 ? ('/' + m4[2]) : (m3 ? m3[2] : (m2 ? m2[2] : input.replace(/^sqlite:/i, '')));
+                var path = '';
+                try { path = decodeURIComponent(rest); } catch (e) { path = rest; }
+                return { engine: 'sqlite', sqlitePath: path };
+            }
+
+            var u = null;
+            try { u = new URL(input); } catch (e) { return null; }
+            var engine = normalizeEngineFromScheme((u && u.protocol ? u.protocol.replace(':', '') : ''));
+            if (!engine) return null;
+            var database = '';
+            try { database = decodeURIComponent(String(u.pathname || '').replace(/^\/+/, '')); } catch (e) { database = String(u.pathname || '').replace(/^\/+/, ''); }
+            var port = u.port ? String(u.port) : '';
+            return {
+                engine: engine,
+                host: u.hostname || '',
+                port: port,
+                user: u.username || '',
+                password: u.password || '',
+                database: database
+            };
+        }
+
+        function applyDbUrl(showErr) {
+            var url = $$('dbUrl') ? $$('dbUrl').value : '';
+            var parsed = parseDbUrl(url);
+            if (!parsed) {
+                if (showErr) showStatus('URL 解析失败', true);
+                return;
+            }
+
+            var eng = parsed.engine || '';
+            if (eng && $$('dbEngine')) $$('dbEngine').value = eng;
+            updateEngineFields();
+
+            if (eng === 'sqlite') {
+                if ($$('dbSqlitePath')) $$('dbSqlitePath').value = parsed.sqlitePath || '';
+                if ($$('dbPort')) $$('dbPort').value = '0';
+                return;
+            }
+
+            if ($$('dbHost')) $$('dbHost').value = parsed.host || $$('dbHost').value;
+            if ($$('dbUser')) $$('dbUser').value = parsed.user || $$('dbUser').value;
+            if ($$('dbPass')) $$('dbPass').value = parsed.password || $$('dbPass').value;
+            if ($$('dbDatabase')) $$('dbDatabase').value = parsed.database || $$('dbDatabase').value;
+            if ($$('dbPort')) $$('dbPort').value = parsed.port || String(ENGINE_CONFIG[eng]?.port || $$('dbPort').value || '');
+        }
+        
+        async function testConnection() {
+            const eng = $$('dbEngine').value;
+            const data = {name:$$('dbName').value || 'test', engine:eng, host:eng==='sqlite'?'':$$('dbHost').value, port:String($$('dbPort').value||ENGINE_CONFIG[eng]?.port||3306), 
+                user:eng==='sqlite'?'':$$('dbUser').value, password:eng==='sqlite'?'':$$('dbPass').value, database:eng==='sqlite'?$$('dbSqlitePath').value:$$('dbDatabase').value};
+            if (eng !== 'sqlite' && (!data.host || !data.user)) { showStatus('请填写必要信息', true); return; }
+            showStatus('测试连接中...', false);
+            try {
+                
+                const r = await fetch('/api/db/test', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)});
+                
+                const result = await r.json();
+                if (!r.ok || !result.success) { 
+                    const errMsg = result.error?.message || result.error || '连接失败';
+                    showStatus(errMsg.substring(0, 100), true); return; 
+                }
+                showStatus('连接成功!', false);
+            } catch (e) { showStatus('连接失败: ' + e.message, true); }
+        }
+        async function testAndSave() {
+            const eng = $$('dbEngine').value;
+            const data = {name:$$('dbName').value, engine:eng, host:eng==='sqlite'?'':$$('dbHost').value, port:String($$('dbPort').value||ENGINE_CONFIG[eng]?.port||3306), 
+                user:eng==='sqlite'?'':$$('dbUser').value, password:eng==='sqlite'?'':$$('dbPass').value, database:eng==='sqlite'?$$('dbSqlitePath').value:$$('dbDatabase').value};
+            if (!data.name) { showStatus('请填写名称', true); return; }
+            if (eng !== 'sqlite' && (!data.host || !data.user)) { showStatus('请填写必要信息', true); return; }
+            try {
+                const r = await fetch('/api/db/connect', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)});
+                const result = await r.json();
+                if (!r.ok || !result.success) { showStatus(result.error || '保存失败', true); return; }
+                closeAddModal(); loadTree(); loadConnections(); showStatus('已保存', false);
+            } catch (e) { showStatus('保存失败: ' + e.message, true); }
+        }
+        
+        // 编辑连接
+        async function openEditModal(id) {
+            const conn = connections.find(c => c.id === id);
+            if (!conn) return;
+            $$('editConnId').value = id; $$('editDbName').value = conn.name || '';
+            $$('editDbHost').value = conn.host || ''; $$('editDbPort').value = conn.port || '';
+            $$('editDbUser').value = conn.user || ''; $$('editDbPass').value = '';
+            $$('editDbDatabase').value = conn.database || ''; $$('editDbSqlitePath').value = conn.engine === 'sqlite' ? conn.database : '';
+            const url = `${conn.engine || 'mysql'}://${conn.user||''}:***@${conn.host||''}:${conn.port||3306}/${conn.database||''}`;
+            $$('editDbUrl').value = url;
+            $$('editModal').classList.add('show');
+        }
+        function closeEditModal() { $$('editModal').classList.remove('show'); }
+        
+        async function saveEditConnection() {
+            const id = $$('editConnId').value;
+            const eng = connections.find(c => c.id === id)?.engine || 'mysql';
+            const data = {name:$$('editDbName').value, engine:eng, host:$$('editDbHost').value, port:String($$('editDbPort').value), user:$$('editDbUser').value, password:$$('editDbPass').value, database:$$('editDbDatabase').value};
+            try {
+                const r = await fetch(`/api/db/connection/${id}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)});
+                const result = await r.json();
+                if (!r.ok || !result.success) { showStatus(result.error || '保存失败', true); return; }
+                closeEditModal(); loadTree(); loadConnections(); showStatus('已更新', false);
+            } catch (e) { showStatus('保存失败', true); }
+        }
+        
+        async function testEditConnection() {
+            const id = $$('editConnId').value;
+            const conn = connections.find(c => c.id === id);
+            const eng = conn?.engine || 'mysql';
+            const isSqlite = eng === 'sqlite';
+            // Use input password, or fallback to saved password
+            const inputPwd = $$('editDbPass').value;
+            const savedPwd = conn?.password || '';
+            const password = inputPwd || savedPwd;
+            const data = {
+                conn_id: id,
+                name:$$('editDbName').value || 'test', 
+                engine:eng, 
+                host:isSqlite?'':$$('editDbHost').value, 
+                port:String($$('editDbPort').value||3306),
+                user:isSqlite?'':$$('editDbUser').value, 
+                password:password, 
+                database:isSqlite?$$('editDbSqlitePath').value:$$('editDbDatabase').value
+            };
+            showStatus('测试连接中...', false);
+            try {
+                
+                const r = await fetch('/api/db/test', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)});
+                
+                const result = await r.json();
+                if (!r.ok || !result.success) { 
+                    const errMsg = result.error?.message || result.error || '连接失败';
+                    showStatus(errMsg.substring(0, 100), true); return; 
+                }
+                showStatus('连接成功!', false);
+            } catch (e) { showStatus('连接失败: ' + e.message, true); }
+        }
+        
+        function deleteConnection(id) {
+            showConfirm('删除连接', '确定要删除此连接吗？', async () => {
+                try {
+                    await fetch(`/api/db/connections/${id}`, {method:'DELETE'});
+                    currentConn = null; currentDb = null; currentTable = null;
+                    loadTree(); loadConnections(); updateBreadcrumb(); showStatus('已删除', false);
+                } catch (e) { showStatus('删除失败', true); }
+            }, true);
+        }
+        
+        async function loadConnections() {
+            const r = await fetch('/api/db/connections');
+            const data = await r.json();
+            if (data.success) connections = data.data?.connections || [];
+        }
+
+        function __downloadJson(filename, obj) {
+            const blob = new Blob([JSON.stringify(obj, null, 2)], { type: 'application/json;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        async function exportDbConnections() {
+            showStatus('导出中...', false);
+            try {
+                const r = await fetch('/api/db/connections/export');
+                const data = await r.json();
+                if (!r.ok || !data.success) {
+                    const errMsg = data.error?.message || data.error || '导出失败';
+                    showStatus(errMsg, true);
+                    return;
+                }
+                __downloadJson('db_connections.json', data.data || {});
+                showStatus('已导出', false);
+            } catch (e) {
+                showStatus('导出失败: ' + (e && e.message ? e.message : 'Error'), true);
+            }
+        }
+
+        function triggerImportDbConnections() {
+            const input = $$('dbConnImportFile');
+            if (!input) return;
+            input.value = '';
+            input.click();
+        }
+
+        async function onImportDbConnectionsFileChange(ev) {
+            const file = ev && ev.target && ev.target.files ? ev.target.files[0] : null;
+            if (!file) return;
+            try {
+                const text = await file.text();
+                const json = JSON.parse(text);
+                showStatus('导入中...', false);
+                const r = await fetch('/api/db/connections/import', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(json)
+                });
+                const data = await r.json();
+                if (!r.ok || !data.success) {
+                    const errMsg = data.error?.message || data.error || '导入失败';
+                    showStatus(errMsg, true);
+                    return;
+                }
+                await loadConnections();
+                await loadTree();
+                showStatus(`已导入 ${data.data?.imported || 0} 条`, false);
+            } catch (e) {
+                showStatus('导入失败: ' + (e && e.message ? e.message : 'Error'), true);
+            }
+        }
+
+        if ($$('dbEngine')) $$('dbEngine').addEventListener('change', function() { updateEngineFields(); });
+        if ($$('dbUrl')) {
+            $$('dbUrl').addEventListener('change', function() { applyDbUrl(false); });
+            $$('dbUrl').addEventListener('keydown', function(e) { if (e && e.key === 'Enter') { e.preventDefault(); applyDbUrl(false); } });
+            $$('dbUrl').addEventListener('paste', function() { setTimeout(function() { applyDbUrl(false); }, 0); });
+        }
+        
+        document.addEventListener('keydown', e => { if ((e.ctrlKey||e.metaKey) && e.key==='Enter') executeQuery(); });
+        if ($$('sqlEditor')) {
+            $$('sqlEditor').addEventListener('input', function() {
+                saveDbUiState({ sql: String($$('sqlEditor').value || '') }, false);
+            });
+            $$('sqlEditor').addEventListener('blur', function() {
+                saveDbUiState({ sql: String($$('sqlEditor').value || '') }, true);
+            });
+        }
+        Promise.all([loadDbUiState(), loadConnections()])
+            .then(loadTree)
+            .then(() => { updateAutocompleteData(); initAutocomplete(); })
+            .then(() => { applyDbUiState(); });
+    </script>
+</body>
+</html>

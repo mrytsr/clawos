@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SweetAlert2 GitHub 主题 Demo</title>
+    <script src="/static/lib/sweetalert2.min.js"></script>
+    <link rel="stylesheet" href="/static/lib/sweetalert2.min.css">
+    <style>
+        * { box-sizing: border-box; }
+        body { 
+            font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif; 
+            background: #0d1117;
+            margin: 0; 
+            padding: 20px;
+            color: #c9d1d9;
+        }
+        .container { max-width: 800px; margin: 0 auto; }
+        h1 { 
+            font-size: 24px; 
+            color: #f0f6fc;
+            margin-bottom: 8px;
+        }
+        p.desc { color: #8b949e; margin-bottom: 32px; }
+        
+        .section { 
+            background: #161b22; 
+            border: 1px solid #30363d; 
+            border-radius: 6px; 
+            padding: 24px; 
+            margin-bottom: 24px; 
+        }
+        .section h2 { 
+            font-size: 16px; 
+            color: #f0f6fc;
+            margin: 0 0 16px 0;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #30363d;
+        }
+        
+        .btn-group { display: flex; flex-wrap: wrap; gap: 10px; }
+        button { 
+            padding: 8px 16px; 
+            border: 1px solid rgba(240,246,252,0.1);
+            border-radius: 6px; 
+            cursor: pointer; 
+            font-size: 14px;
+            font-weight: 500;
+            transition: 0.2s;
+        }
+        
+        /* GitHub 按钮风格 */
+        .btn-primary { background: #238636; color: #fff; border-color: rgba(240,246,252,0.1); }
+        .btn-primary:hover { background: #2ea043; }
+        
+        .btn-danger { background: #da3633; color: #fff; border-color: rgba(240,246,252,0.1); }
+        .btn-danger:hover { background: #f85149; }
+        
+        .btn-outline { background: #21262d; color: #c9d1d9; }
+        .btn-outline:hover { background: #30363d; }
+        
+        .btn-sm { background: #21262d; color: #58a6ff; border: 1px solid #30363d; }
+        .btn-sm:hover { background: #30363d; }
+        
+        .btn-warning { background: #9e6a03; color: #fff; }
+        .btn-warning:hover { background: #bb8009; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>SweetAlert2 GitHub 风格 Demo</h1>
+        <p class="desc">基于 GitHub UI 风格的对话框组件演示</p>
+        
+        <div class="section">
+            <h2>💬 基础提示</h2>
+            <div class="btn-group">
+                <button class="btn-primary" onclick="demoBasic()">Basic</button>
+                <button class="btn-primary" onclick="demoSuccess()">Success</button>
+                <button class="btn-danger" onclick="demoError()">Error</button>
+                <button class="btn-warning" onclick="demoWarning()">Warning</button>
+                <button class="btn-outline" onclick="demoInfo()">Info</button>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>⚠️ Confirm 确认框</h2>
+            <div class="btn-group">
+                <button class="btn-danger" onclick="demoConfirm()">删除确认</button>
+                <button class="btn-outline" onclick="demoConfirmIcon()">带图标</button>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>📝 Input 输入</h2>
+            <div class="btn-group">
+                <button class="btn-primary" onclick="demoInput()">文本输入</button>
+                <button class="btn-outline" onclick="demoInputEmail()">邮箱验证</button>
+                <button class="btn-outline" onclick="demoInputSelect()">下拉选择</button>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>🔄 异步操作</h2>
+            <div class="btn-group">
+                <button class="btn-primary" onclick="demoAsync()">加载中...</button>
+                <button class="btn-outline" onclick="demoAsyncSuccess()">异步成功</button>
+                <button class="btn-outline" onclick="demoAsyncError()">异步失败</button>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>🎨 自定义</h2>
+            <div class="btn-group">
+                <button class="btn-outline" onclick="demoCustomImage()">自定义图片</button>
+                <button class="btn-outline" onclick="demoCustomHtml()">HTML 内容</button>
+                <button class="btn-outline" onclick="demoAutoClose()">自动关闭</button>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>📋 表单示例</h2>
+            <div class="btn-group">
+                <button class="btn-primary" onclick="demoLogin()">登录表单</button>
+                <button class="btn-primary" onclick="demoForm()">多字段表单</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // GitHub 风格主题配置
+        const SwalGitHub = Swal.mixin({
+            background: '#161b22',
+            color: '#c9d1d9',
+            confirmButtonColor: '#238636',
+            cancelButtonColor: '#21262d',
+            confirmButtonText: 'Confirm',
+            cancelButtonText: 'Cancel',
+            showCancelButton: true,
+            focusConfirm: false,
+            buttonsStyling: true,
+            customClass: {
+                popup: 'swal2-popup-github',
+                confirmButton: 'swal2-confirm-github',
+                cancelButton: 'swal2-cancel-github'
+            }
+        });
+        
+        // 添加自定义样式
+        const style = document.createElement('style');
+        style.textContent = `
+            .swal2-popup-github {
+                border: 1px solid #30363d;
+                border-radius: 6px;
+                box-shadow: 0 16px 32px rgba(0,0,0,0.5);
+            }
+            .swal2-confirm-github {
+                background: #238636 !important;
+                color: #fff !important;
+                border: 1px solid rgba(240,246,252,0.1) !important;
+                border-radius: 6px !important;
+            }
+            .swal2-confirm-github:hover {
+                background: #2ea043 !important;
+            }
+            .swal2-cancel-github {
+                background: #21262d !important;
+                color: #c9d1d9 !important;
+                border: 1px solid #30363d !important;
+                border-radius: 6px !important;
+            }
+            .swal2-cancel-github:hover {
+                background: #30363d !important;
+            }
+            .swal2-title-github { color: #f0f6fc !important; }
+            .swal2-html-container-github { color: #c9d1d9 !important; }
+            .swal2-input-github {
+                background: #0d1117 !important;
+                border: 1px solid #30363d !important;
+                color: #c9d1d9 !important;
+                border-radius: 6px !important;
+            }
+            .swal2-validation-message-github {
+                background: #da3633 !important;
+                color: #fff !important;
+            }
+        `;
+        document.head.appendChild(style);
+        
+        // ========== 基础提示 ==========
+        
+        function demoBasic() {
+            SwalGitHub.fire('操作已完成');
+        }
+        
+        function demoSuccess() {
+            SwalGitHub.fire({
+                icon: 'success',
+                title: '成功!',
+                text: '你的更改已保存',
+                timer: 2000
+            });
+        }
+        
+        function demoError() {
+            SwalGitHub.fire({
+                icon: 'error',
+                title: '错误',
+                text: '操作失败，请重试'
+            });
+        }
+        
+        function demoWarning() {
+            SwalGitHub.fire({
+                icon: 'warning',
+                title: '警告',
+                text: '此操作不可撤销'
+            });
+        }
+        
+        function demoInfo() {
+            SwalGitHub.fire({
+                icon: 'info',
+                title: '提示',
+                text: '新版本可用'
+            });
+        }
+        
+        // ========== Confirm ==========
+        
+        function demoConfirm() {
+            SwalGitHub.fire({
+                title: '确定删除?',
+                text: '此操作不可撤销',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: '删除',
+                cancelButtonText: '取消'
+            }).then(result => {
+                if (result.isConfirmed) {
+                    SwalGitHub.fire('已删除', '文件已被永久删除', 'success');
+                }
+            });
+        }
+        
+        function demoConfirmIcon() {
+            SwalGitHub.fire({
+                title: '继续操作?',
+                text: '此操作需要你的确认',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: '继续',
+                cancelButtonText: '取消'
+            });
+        }
+        
+        // ========== Input ==========
+        
+        function demoInput() {
+            SwalGitHub.fire({
+                title: '输入文件名',
+                input: 'text',
+                inputPlaceholder: '例如: document.txt',
+                showCancelButton: true,
+                confirmButtonText: '创建',
+                cancelButtonText: '取消'
+            }).then(result => {
+                if (result.value) {
+                    SwalGitHub.fire('文件名: ' + result.value);
+                }
+            });
+        }
+        
+        function demoInputEmail() {
+            SwalGitHub.fire({
+                title: '输入邮箱',
+                input: 'email',
+                inputPlaceholder: 'user@example.com',
+                showCancelButton: true,
+                confirmButtonText: '提交',
+                cancelButtonText: '取消',
+                inputValidator: value => {
+                    if (!value) return '请输入邮箱地址';
+                    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return '请输入有效的邮箱地址';
+                }
+            });
+        }
+        
+        function demoInputSelect() {
+            SwalGitHub.fire({
+                title: '选择权限',
+                input: 'select',
+                inputOptions: {
+                    'read': '只读',
+                    'write': '读写',
+                    'admin': '管理员'
+                },
+                inputPlaceholder: '选择权限',
+                showCancelButton: true
+            }).then(result => {
+                if (result.value) {
+                    SwalGitHub.fire('已选择: ' + result.value);
+                }
+            });
+        }
+        
+        // ========== 异步 ==========
+        
+        function demoAsync() {
+            SwalGitHub.fire({
+                title: '加载中...',
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+            
+            setTimeout(() => {
+                Swal.fire('完成');
+            }, 2000);
+        }
+        
+        function demoAsyncSuccess() {
+            SwalGitHub.fire({
+                title: '提交中...',
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+            
+            // 模拟异步
+            setTimeout(() => {
+                Swal.fire({
+                    icon: 'success',
+                    title: '提交成功',
+                    text: '数据已保存'
+                });
+            }, 2000);
+        }
+        
+        function demoAsyncError() {
+            SwalGitHub.fire({
+                title: '请求中...',
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+            
+            setTimeout(() => {
+                Swal.fire({
+                    icon: 'error',
+                    title: '请求失败',
+                    text: '网络错误'
+                });
+            }, 2000);
+        }
+        
+        // ========== 自定义 ==========
+        
+        function demoCustomImage() {
+            SwalGitHub.fire({
+                title: 'SweetAlert2',
+                text: 'GitHub 风格主题',
+                imageUrl: '/static/lib/github-mark.png',
+                imageWidth: 100,
+                imageHeight: 100,
+                confirmButtonText: '好的'
+            });
+        }
+        
+        function demoCustomHtml() {
+            SwalGitHub.fire({
+                title: '<span style="color:#58a6ff">自定义 HTML</span>',
+                html: '<ul style="text-align:left;padding-left:20px;"><li>✓ 支持 HTML</li><li>✓ 支持样式</li><li>✓ 灵活定制</li></ul>',
+                confirmButtonText: '明白'
+            });
+        }
+        
+        function demoAutoClose() {
+            SwalGitHub.fire({
+                title: '自动关闭',
+                text: '3秒后自动关闭',
+                timer: 3000,
+                timerProgressBar: true,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+        }
+        
+        // ========== 表单 ==========
+        
+        function demoLogin() {
+            SwalGitHub.fire({
+                title: '登录',
+                html: `
+                    <input type="text" id="username" class="swal2-input" placeholder="用户名">
+                    <input type="password" id="password" class="swal2-input" placeholder="密码">
+                `,
+                confirmButtonText: '登录',
+                cancelButtonText: '取消',
+                showCancelButton: true,
+                focusConfirm: false,
+                preConfirm: () => {
+                    const username = document.getElementById('username').value;
+                    const password = document.getElementById('password').value;
+                    if (!username || !password) {
+                        Swal.showValidationMessage('请填写所有字段');
+                        return false;
+                    }
+                    return { username, password };
+                }
+            }).then(result => {
+                if (result.value) {
+                    SwalGitHub.fire(`欢迎, ${result.value.username}!`);
+                }
+            });
+        }
+        
+        function demoForm() {
+            SwalGitHub.fire({
+                title: '创建新文件',
+                html: `
+                    <input type="text" id="filename" class="swal2-input" placeholder="文件名" value="untitled">
+                    <select id="filetype" class="swal2-input">
+                        <option value="txt">文本文件</option>
+                        <option value="md">Markdown</option>
+                        <option value="js">JavaScript</option>
+                        <option value="py">Python</option>
+                    </select>
+                    <textarea id="content" class="swal2-textarea" placeholder="文件内容"></textarea>
+                `,
+                confirmButtonText: '创建',
+                cancelButtonText: '取消',
+                showCancelButton: true,
+                focusConfirm: false,
+                preConfirm: () => {
+                    return {
+                        filename: document.getElementById('filename').value,
+                        filetype: document.getElementById('filetype').value,
+                        content: document.getElementById('content').value
+                    };
+                }
+            }).then(result => {
+                if (result.value) {
+                    const f = result.value;
+                    SwalGitHub.fire(`文件已创建: ${f.filename}.${f.filetype}`);
+                }
+            });
+        }
+    </script>
+</body>
+</html>

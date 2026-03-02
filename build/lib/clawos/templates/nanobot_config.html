@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>NanoBot 配置</title>
+    <link href="/static/lib/toastr/toastr.min.css" rel="stylesheet"/>
+    <link rel="stylesheet" href="/static/lib/github-markdown-light.min.css">
+    <style>
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { 
+            font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; 
+            background: #f6f8ha; 
+            margin: 0; 
+            padding: 12px;
+            min-height: 100vh;
+        }
+        .container { 
+            max-width: 100%; 
+            background: #fff; 
+            border-radius: 12px; 
+            border: 1px solid #d0d7de; 
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+        h1 { 
+            font-size: 18px; 
+            margin: 0 0 16px 0; 
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        h1 a { 
+            color: #0969da; 
+            text-decoration: none;
+            font-size: 14px;
+        }
+        h2 {
+            font-size: 16px;
+            margin: 20px 0 12px 0;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #eee;
+            color: #24292f;
+        }
+        h2:first-child { margin-top: 0; }
+        .form-group { margin-bottom: 14px; }
+        label { 
+            display: block; 
+            font-weight: 600; 
+            margin-bottom: 6px; 
+            color: #24292f; 
+            font-size: 14px;
+        }
+        .label-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .label-row label { margin-bottom: 0; }
+        input, select, textarea { 
+            width: 100%; 
+            padding: 10px 12px; 
+            border: 1px solid #d0d7de; 
+            border-radius: 8px; 
+            font-size: 14px;
+            background: #fff;
+            font-family: inherit;
+        }
+        textarea {
+            font-family: monospace;
+            font-size: 12px;
+            min-height: 60px;
+        }
+        input:focus, select:focus, textarea:focus { 
+            outline: none; 
+            border-color: #0969da; 
+            box-shadow: 0 0 0 3px rgba(9,105,218,0.1); 
+        }
+        .row { display: flex; gap: 12px; }
+        .row .form-group { flex: 1; }
+        .toggle {
+            position: relative;
+            width: 44px;
+            height: 24px;
+        }
+        .toggle input { opacity: 0; width: 0; height: 0; }
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #ccc;
+            transition: 0.3s;
+            border-radius: 24px;
+        }
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: 0.3s;
+            border-radius: 50%;
+        }
+        .toggle input:checked + .toggle-slider { background-color: #07c160; }
+        .toggle input:checked + .toggle-slider:before { transform: translateX(20px); }
+        
+        button { 
+            width: 100%;
+            background: #0969da; 
+            color: #fff; 
+            border: none; 
+            padding: 12px 20px; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            font-size: 14px; 
+            font-weight: 600;
+            touch-action: manipulation;
+            margin-top: 8px;
+        }
+        button:active { opacity: 0.8; }
+        button.danger { background: #cf222e; }
+        button.secondary { background: #f6f8ha; color: #24292f; border: 1px solid #d0d7de; }
+        
+        .channel-card {
+            background: #f6f8ha;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 12px;
+        }
+        .channel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        .channel-name {
+            font-weight: 600;
+            font-size: 14px;
+        }
+        .provider-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 12px;
+        }
+        .provider-card {
+            background: #f6f8ha;
+            border-radius: 8px;
+            padding: 12px;
+        }
+        .provider-name {
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 10px;
+            color: #24292f;
+        }
+        .key-display {
+            font-family: monospace;
+            font-size: 12px;
+            word-break: break-all;
+            background: #fff;
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid #d0d7de;
+            max-height: 80px;
+            overflow-y: auto;
+        }
+        .api-key-input {
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .status-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 6px;
+        }
+        .status-dot.green { background: #07c160; }
+        .status-dot.red { background: #cf222e; }
+        .status-dot.gray { background: #8b949e; }
+        .status-text {
+            font-size: 12px;
+            color: #57606a;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>⚙️ NanoBot 配置 <a href="/">← 返回</a></h1>
+        
+        <div style="margin-bottom: 12px;">
+            <span id="statusDot" class="status-dot gray"></span>
+            <span id="statusText" class="status-text">加载中...</span>
+            <button onclick="loadConfig()" style="width: auto; padding: 6px 12px; margin-left: 12px; background: #f6f8ha; color: #24292f; border: 1px solid #d0d7de;">🔄 刷新</button>
+        </div>
+
+        <h2>📡 Gateway</h2>
+        <div class="row">
+            <div class="form-group">
+                <label>主机</label>
+                <input type="text" id="gateway_host" value="0.0.0.0">
+            </div>
+            <div class="form-group">
+                <label>端口</label>
+                <input type="number" id="gateway_port" value="18790">
+            </div>
+        </div>
+        <div class="row">
+            <div class="form-group">
+                <label>心跳间隔 (秒)</label>
+                <input type="number" id="heartbeat_interval" value="1800">
+            </div>
+            <div class="form-group">
+                <div class="label-row">
+                    <label>心跳启用</label>
+                    <label class="toggle">
+                        <input type="checkbox" id="heartbeat_enabled" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <h2>🧠 Agents 默认配置</h2>
+        <div id="agentsList"></div>
+
+        <h2>💬 Channels</h2>
+        <div style="background:#f6f8fa;border-radius:8px;padding:12px;margin-bottom:12px;">
+            <div class="form-group" style="display:flex;align-items:center;gap:8px;">
+                <label class="toggle">
+                    <input type="checkbox" id="channel_sendProgress" checked>
+                    <span class="toggle-slider"></span>
+                </label>
+                <span>发送进度</span>
+            </div>
+            <div class="form-group" style="display:flex;align-items:center;gap:8px;">
+                <label class="toggle">
+                    <input type="checkbox" id="channel_sendToolHints">
+                    <span class="toggle-slider"></span>
+                </label>
+                <span>发送工具提示</span>
+            </div>
+        </div>
+        <div class="tabs-horizontal">
+            <div class="tabs-scroll" id="channelsTabs"></div>
+        </div>
+        <div id="channelsContent"></div>
+
+        <h2>🧠 Providers</h2>
+        <div class="tabs-horizontal">
+            <div class="tabs-scroll" id="providersTabs"></div>
+        </div>
+        <div id="providersContent"></div>
+
+        <style>
+        .tabs-horizontal { margin-bottom: 12px; }
+        .tabs-scroll { 
+            display: flex; 
+            gap: 4px; 
+            overflow-x: auto; 
+            padding-bottom: 4px;
+            scrollbar-width: thin;
+        }
+        .tabs-scroll::-webkit-scrollbar { height: 4px; }
+        .tabs-scroll::-webkit-scrollbar-thumb { background: #d0d7de; border-radius: 2px; }
+        .tab-chip { 
+            padding: 2px 8px; 
+            background: #f6f8ha; 
+            border: 1px solid #d0d7de; 
+            border-radius: 10px; 
+            cursor: pointer; 
+            font-size: 11px; 
+            white-space: nowrap;
+            flex-shrink: 0;
+            min-width: max-content;
+        }
+        .tab-chip:hover { background: #eee; }
+        .tab-chip.active { 
+            background: #0969da; 
+            color: #fff; 
+            border-color: #0969da; 
+        }
+        </style>
+
+        <h2>🔧 工具配置</h2>
+        <div id="toolsList"></div>
+
+        <button onclick="saveConfig()">💾 保存配置</button>
+        <button class="secondary" onclick="restartService()">🔄 重启服务</button>
+    </div>
+
+    <script src="/static/lib/toastr/toastr.min.js"></script>
+    <script>
+    toastr.options = {
+        positionClass: 'toast-top-center',
+        timeOut: 2000,
+        closeButton: true,
+        debug: false,
+        newestOnTop: true,
+        progressBar: false,
+        preventDuplicates: true,
+        onclick: null
+    };
+
+    let config = {};
+    const channelNames = {
+        'whatsapp': 'WhatsApp',
+        'telegram': 'Telegram',
+        'feishu': '飞书',
+        'discord': 'Discord',
+        'mochat': 'MoChat',
+        'dingtalk': '钉钉',
+        'email': 'Email',
+        'slack': 'Slack',
+        'qq': 'QQ'
+    };
+    const providerNames = {
+        'custom': '自定义',
+        'anthropic': 'Anthropic (Claude)',
+        'openai': 'OpenAI',
+        'openrouter': 'OpenRouter',
+        'deepseek': 'DeepSeek',
+        'groq': 'Groq',
+        'zhipu': '智谱 GLM',
+        'dashscope': '阿里云 DashScope',
+        'vllm': 'vLLM',
+        'gemini': 'Google Gemini',
+        'moonshot': 'Moonshot (月之暗面)',
+        'minimax': 'MiniMax',
+        'aihubmix': 'AIHubMix',
+        'siliconflow': 'SiliconFlow',
+        'volcengine': '火山引擎',
+        'openaiCodex': 'OpenAI Codex',
+        'githubCopilot': 'GitHub Copilot'
+    };
+
+    function loadConfig() {
+        fetch('/api/nanobot/config')
+        .then(r => r.json())
+        .then(d => {
+            if (d.success && d.data) {
+                config = d.data;
+                renderConfig();
+                updateStatus(true);
+            } else {
+                updateStatus(false);
+            }
+        })
+        .catch(() => updateStatus(false));
+    }
+
+    // Tab switching function
+    window.switchPicoclawTab = function(tabName) {
+        document.querySelectorAll('.tab-btn').forEach(function(btn) {
+            btn.classList.toggle('active', btn.dataset.tab === tabName);
+        });
+        document.querySelectorAll('.tab-pane').forEach(function(pane) {
+            pane.classList.toggle('active', pane.id === tabName + 'Tab');
+        });
+    };
+
+    function updateStatus(ok) {
+        const dot = document.getElementById('statusDot');
+        const text = document.getElementById('statusText');
+        if (ok) {
+            dot.className = 'status-dot green';
+            text.textContent = '服务运行中';
+        } else {
+            dot.className = 'status-dot red';
+            text.textContent = '服务未运行';
+        }
+    }
+
+    function renderConfig() {
+        // Gateway
+        const gw = config.gateway || {};
+        document.getElementById('gateway_host').value = gw.host || '0.0.0.0';
+        document.getElementById('gateway_port').value = gw.port || 18790;
+
+        // Heartbeat (inside gateway)
+        const hb = (gw.heartbeat) || {};
+        document.getElementById('heartbeat_enabled').checked = hb.enabled !== false;
+        document.getElementById('heartbeat_interval').value = hb.intervalS || 1800;
+
+        // Channel settings
+        const channelSettings = config.channels || {};
+        document.getElementById('channel_sendProgress').checked = channelSettings.sendProgress !== false;
+        document.getElementById('channel_sendToolHints').checked = !!channelSettings.sendToolHints;
+
+        // Agents
+        renderAgents();
+
+        // Channels
+        renderChannels();
+
+        // Providers
+        renderProviders();
+
+        // Tools
+        renderTools();
+    }
+
+    function renderAgents() {
+        const container = document.getElementById('agentsList');
+        const agents = config.agents || {};
+        const defaults = agents.defaults || {};
+        
+        let html = '<div style="background:#f6f8fa;border-radius:8px;padding:12px;">';
+        
+        // Workspace
+        html += '<div class="form-group">';
+        html += '<label>工作目录</label>';
+        html += '<input type="text" id="agent_workspace" value="' + escapeHtml(defaults.workspace || '~/.nanobot/workspace') + '">';
+        html += '</div>';
+        
+        // Restrict to workspace
+        html += '<div class="form-group" style="display:flex;align-items:center;gap:8px;">';
+        html += '<label class="toggle">';
+        html += '<input type="checkbox" id="agent_restrict" ' + (defaults.restrictToWorkspace !== false ? 'checked' : '') + '>';
+        html += '<span class="toggle-slider"></span>';
+        html += '</label>';
+        html += '<span>限制在工作目录内</span>';
+        html += '</div>';
+        
+        // Provider
+        html += '<div class="form-group">';
+        html += '<label>默认 Provider</label>';
+        html += '<select id="agent_provider">';
+        const providers = Object.keys(config.providers || {});
+        const currentProvider = defaults.provider || 'openai';
+        providers.forEach(function(p) {
+            html += '<option value="' + p + '" ' + (p === currentProvider ? 'selected' : '') + '>' + (providerNames[p] || p) + '</option>';
+        });
+        html += '</select>';
+        html += '</div>';
+        
+        // Model
+        html += '<div class="form-group">';
+        html += '<label>默认模型</label>';
+        html += '<input type="text" id="agent_model" value="' + escapeHtml(defaults.model || '') + '" placeholder="如: gpt-4o, MiniMax-M2.5">';
+        html += '</div>';
+        
+        // Max tokens
+        html += '<div class="row">';
+        html += '<div class="form-group"><label>Max Tokens</label><input type="number" id="agent_maxTokens" value="' + (defaults.maxTokens || 8192) + '"></div>';
+        html += '<div class="form-group"><label>Temperature</label><input type="number" id="agent_temperature" value="' + (defaults.temperature || 0.1) + '" step="0.1" min="0" max="2"></div>';
+        html += '</div>';
+        
+        // Max tool iterations
+        html += '<div class="form-group">';
+        html += '<label>最大工具调用次数</label>';
+        html += '<input type="number" id="agent_maxToolIterations" value="' + (defaults.maxToolIterations || 40) + '">';
+        html += '</div>';
+        
+        html += '</div>';
+        
+        container.innerHTML = html;
+    }
+
+    function renderChannels() {
+        const tabsContainer = document.getElementById('channelsTabs');
+        const contentContainer = document.getElementById('channelsContent');
+        const channels = config.channels || {};
+        const channelList = Object.keys(channels).filter(k => typeof channels[k] === 'object');
+        
+        if (channelList.length === 0) {
+            tabsContainer.innerHTML = '';
+            contentContainer.innerHTML = '<div style="padding:16px;color:#666;">暂无 Channel</div>';
+            return;
+        }
+        
+        // 默认选中第一个启用的 channel 或第一个
+        let activeChannel = channelList.find(c => channels[c] && channels[c].enabled) || channelList[0];
+        
+        // 生成 tabs
+        let tabsHtml = '';
+        channelList.forEach(function(name) {
+            const displayName = channelNames[name] || name;
+            const enabled = channels[name] && channels[name].enabled;
+            tabsHtml += '<button style="padding:3px 8px;margin-right:4px;background:#f0f0f0;border:1px solid #ccc;border-radius:4px;font-size:11px;cursor:pointer;color:#333;' + (name === activeChannel ? 'background:#0969da;color:#fff;border-color:#0969da;' : '') + '" data-channel="' + name + '" onclick="switchChannelTab(\'' + name + '\')">' + displayName + '</button>';
+        });
+        tabsContainer.innerHTML = tabsHtml;
+        
+        // 渲染第一个 channel 的内容
+        renderChannelContent(activeChannel, channels);
+    }
+
+    function renderChannelContent(channelName, channels) {
+        const contentContainer = document.getElementById('channelsContent');
+        const cfg = channels[channelName] || {};
+        const displayName = channelNames[channelName] || channelName;
+        
+        let html = '<div class="channel-card">';
+        html += '<div class="channel-header">';
+        html += '<span class="channel-name">' + displayName + '</span>';
+        html += '<label class="toggle">';
+        html += '<input type="checkbox" data-channel="' + channelName + '" ' + (cfg.enabled ? 'checked' : '') + ' onchange="renderChannelContent(\'' + channelName + '\', config.channels)">';
+        html += '<span class="toggle-slider"></span>';
+        html += '</label>';
+        html += '</div>';
+        
+        // 根据不同 channel 显示不同配置字段
+        if (channelName === 'qq') {
+            html += '<div class="form-group"><label>App ID</label><input type="text" data-channel="' + channelName + '" data-field="appId" value="' + (cfg.appId || '') + '"></div>';
+            html += '<div class="form-group"><label>Secret</label><input type="text" data-channel="' + channelName + '" data-field="secret" value="' + (cfg.secret || '') + '"></div>';
+        } else if (channelName === 'telegram') {
+            html += '<div class="form-group"><label>Token</label><input type="text" data-channel="' + channelName + '" data-field="token" value="' + (cfg.token || '') + '"></div>';
+            html += '<div class="form-group"><label>Proxy</label><input type="text" data-channel="' + channelName + '" data-field="proxy" value="' + (cfg.proxy || '') + '"></div>';
+        } else if (channelName === 'feishu') {
+            html += '<div class="form-group"><label>App ID</label><input type="text" data-channel="' + channelName + '" data-field="appId" value="' + (cfg.appId || '') + '"></div>';
+            html += '<div class="form-group"><label>App Secret</label><input type="text" data-channel="' + channelName + '" data-field="appSecret" value="' + (cfg.appSecret || '') + '"></div>';
+            html += '<div class="form-group"><label>Encrypt Key</label><input type="text" data-channel="' + channelName + '" data-field="encryptKey" value="' + (cfg.encryptKey || '') + '"></div>';
+            html += '<div class="form-group"><label>Verification Token</label><input type="text" data-channel="' + channelName + '" data-field="verificationToken" value="' + (cfg.verificationToken || '') + '"></div>';
+        } else if (channelName === 'discord') {
+            html += '<div class="form-group"><label>Token</label><input type="text" data-channel="' + channelName + '" data-field="token" value="' + (cfg.token || '') + '"></div>';
+            html += '<div class="form-group"><label>Gateway URL</label><input type="text" data-channel="' + channelName + '" data-field="gatewayUrl" value="' + (cfg.gatewayUrl || 'wss://gateway.discord.gg/?v=10&encoding=json') + '"></div>';
+            html += '<div class="form-group"><label>Intents</label><input type="number" data-channel="' + channelName + '" data-field="intents" value="' + (cfg.intents || 37377) + '"></div>';
+        } else if (channelName === 'whatsapp') {
+            html += '<div class="form-group"><label>Bridge URL</label><input type="text" data-channel="' + channelName + '" data-field="bridgeUrl" value="' + (cfg.bridgeUrl || 'ws://localhost:3001') + '"></div>';
+            html += '<div class="form-group"><label>Bridge Token</label><input type="text" data-channel="' + channelName + '" data-field="bridgeToken" value="' + (cfg.bridgeToken || '') + '"></div>';
+        } else if (channelName === 'slack') {
+            html += '<div class="form-group"><label>Bot Token</label><input type="text" data-channel="' + channelName + '" data-field="botToken" value="' + (cfg.botToken || '') + '"></div>';
+            html += '<div class="form-group"><label>App Token</label><input type="text" data-channel="' + channelName + '" data-field="appToken" value="' + (cfg.appToken || '') + '"></div>';
+            html += '<div class="form-group"><label>Webhook Path</label><input type="text" data-channel="' + channelName + '" data-field="webhookPath" value="' + (cfg.webhookPath || '/slack/events') + '"></div>';
+        } else if (channelName === 'dingtalk') {
+            html += '<div class="form-group"><label>Client ID</label><input type="text" data-channel="' + channelName + '" data-field="clientId" value="' + (cfg.clientId || '') + '"></div>';
+            html += '<div class="form-group"><label>Client Secret</label><input type="text" data-channel="' + channelName + '" data-field="clientSecret" value="' + (cfg.clientSecret || '') + '"></div>';
+        } else if (channelName === 'email') {
+            html += '<h3 style="margin:12px 0 8px;font-size:13px;color:#57606a;">IMAP 设置</h3>';
+            html += '<div class="form-group"><label>IMAP Host</label><input type="text" data-channel="' + channelName + '" data-field="imapHost" value="' + (cfg.imapHost || '') + '"></div>';
+            html += '<div class="row"><div class="form-group"><label>IMAP Port</label><input type="number" data-channel="' + channelName + '" data-field="imapPort" value="' + (cfg.imapPort || 993) + '"></div>';
+            html += '<div class="form-group"><label>SSL</label><input type="checkbox" data-channel="' + channelName + '" data-field="imapUseSsl" ' + (cfg.imapUseSsl !== false ? 'checked' : '') + '></div></div>';
+            html += '<div class="form-group"><label>IMAP Username</label><input type="text" data-channel="' + channelName + '" data-field="imapUsername" value="' + (cfg.imapUsername || '') + '"></div>';
+            html += '<div class="form-group"><label>IMAP Password</label><input type="text" data-channel="' + channelName + '" data-field="imapPassword" value="' + (cfg.imapPassword || '') + '"></div>';
+            html += '<h3 style="margin:12px 0 8px;font-size:13px;color:#57606a;">SMTP 设置</h3>';
+            html += '<div class="form-group"><label>SMTP Host</label><input type="text" data-channel="' + channelName + '" data-field="smtpHost" value="' + (cfg.smtpHost || '') + '"></div>';
+            html += '<div class="row"><div class="form-group"><label>SMTP Port</label><input type="number" data-channel="' + channelName + '" data-field="smtpPort" value="' + (cfg.smtpPort || 587) + '"></div>';
+            html += '<div class="form-group"><label>TLS</label><input type="checkbox" data-channel="' + channelName + '" data-field="smtpUseTls" ' + (cfg.smtpUseTls !== false ? 'checked' : '') + '></div></div>';
+            html += '<div class="form-group"><label>SMTP Username</label><input type="text" data-channel="' + channelName + '" data-field="smtpUsername" value="' + (cfg.smtpUsername || '') + '"></div>';
+            html += '<div class="form-group"><label>SMTP Password</label><input type="text" data-channel="' + channelName + '" data-field="smtpPassword" value="' + (cfg.smtpPassword || '') + '"></div>';
+            html += '<div class="form-group"><label>From Address</label><input type="text" data-channel="' + channelName + '" data-field="fromAddress" value="' + (cfg.fromAddress || '') + '"></div>';
+        } else if (channelName === 'mochat') {
+            html += '<div class="form-group"><label>Base URL</label><input type="text" data-channel="' + channelName + '" data-field="baseUrl" value="' + (cfg.baseUrl || 'https://mochat.io') + '"></div>';
+            html += '<div class="form-group"><label>Socket URL</label><input type="text" data-channel="' + channelName + '" data-field="socketUrl" value="' + (cfg.socketUrl || '') + '"></div>';
+            html += '<div class="form-group"><label>Claw Token</label><input type="text" data-channel="' + channelName + '" data-field="clawToken" value="' + (cfg.clawToken || '') + '"></div>';
+            html += '<div class="form-group"><label>Agent User ID</label><input type="text" data-channel="' + channelName + '" data-field="agentUserId" value="' + (cfg.agentUserId || '') + '"></div>';
+        } else {
+            html += '<div style="padding:12px;color:#666;font-size:13px;">此 Channel 无需额外配置</div>';
+        }
+        
+        html += '</div>';
+        contentContainer.innerHTML = html;
+    }
+
+    window.switchChannelTab = function(channelName) {
+        // 更新 tab 高亮
+        var tabs = document.getElementById('channelsTabs');
+        if (tabs) {
+            Array.prototype.slice.call(tabs.querySelectorAll('button')).forEach(function(btn) {
+                if (btn.dataset.channel === channelName) {
+                    btn.style.background = '#0969da';
+                    btn.style.color = '#fff';
+                    btn.style.borderColor = '#0969da';
+                } else {
+                    btn.style.background = '#f0f0f0';
+                    btn.style.color = '#333';
+                    btn.style.borderColor = '#ccc';
+                }
+            });
+        }
+        renderChannelContent(channelName, config.channels);
+    };
+
+    function renderProviders() {
+        const tabsContainer = document.getElementById('providersTabs');
+        const contentContainer = document.getElementById('providersContent');
+        const providers = config.providers || {};
+        const providerList = Object.keys(providers);
+        
+        if (providerList.length === 0) {
+            tabsContainer.innerHTML = '';
+            contentContainer.innerHTML = '<div style="padding:16px;color:#666;">暂无 Provider</div>';
+            return;
+        }
+        
+        // 默认选中第一个
+        let activeProvider = providerList[0];
+        
+        // 生成 tabs
+        let tabsHtml = '';
+        providerList.forEach(function(name) {
+            const displayName = providerNames[name] || name;
+            const hasKey = providers[name] && providers[name].api_key;
+            tabsHtml += '<button style="padding:3px 8px;margin-right:4px;background:#f0f0f0;border:1px solid #ccc;border-radius:4px;font-size:11px;cursor:pointer;color:#333;' + (name === activeProvider ? 'background:#0969da;color:#fff;border-color:#0969da;' : '') + '" data-provider="' + name + '" onclick="switchProviderTab(\'' + name + '\')">' + displayName + '</button>';
+        });
+        tabsContainer.innerHTML = tabsHtml;
+        
+        // 渲染第一个 provider 的内容
+        renderProviderContent(activeProvider, providers);
+    }
+
+    function renderProviderContent(providerName, providers) {
+        const contentContainer = document.getElementById('providersContent');
+        const cfg = providers[providerName] || {};
+        const displayName = providerNames[providerName] || providerName;
+        
+        let html = '<div class="provider-card">';
+        html += '<div class="provider-name">' + displayName + '</div>';
+        html += '<div class="form-group">';
+        html += '<label>API Key</label>';
+        html += '<input type="text" class="api-key-input" data-provider="' + providerName + '" data-field="apiKey" value="' + escapeHtml(cfg.apiKey || '') + '" placeholder="sk-...">';
+        html += '</div>';
+        html += '<div class="form-group">';
+        html += '<label>API Base URL (可选)</label>';
+        html += '<input type="text" data-provider="' + providerName + '" data-field="apiBase" value="' + escapeHtml(cfg.apiBase || '') + '" placeholder="https://api.example.com/v1">';
+        html += '</div>';
+        html += '</div>';
+        
+        contentContainer.innerHTML = html;
+    }
+
+    window.switchProviderTab = function(providerName) {
+        // 更新 tab 高亮
+        var tabs = document.getElementById('providersTabs');
+        if (tabs) {
+            Array.prototype.slice.call(tabs.querySelectorAll('button')).forEach(function(btn) {
+                if (btn.dataset.provider === providerName) {
+                    btn.style.background = '#0969da';
+                    btn.style.color = '#fff';
+                    btn.style.borderColor = '#0969da';
+                } else {
+                    btn.style.background = '#f0f0f0';
+                    btn.style.color = '#333';
+                    btn.style.borderColor = '#ccc';
+                }
+            });
+        }
+        renderProviderContent(providerName, config.providers);
+    };
+
+    function renderTools() {
+        const container = document.getElementById('toolsList');
+        const tools = config.tools || {};
+        
+        let html = '';
+        
+        // Web Search - Brave
+        const webTools = tools.web || {};
+        const searchTool = webTools.search || {};
+        html += '<div class="channel-card">';
+        html += '<div class="channel-header"><span class="channel-name">Web Search</span></div>';
+        html += '<div class="form-group"><label>Search API Key</label><input type="text" id="tool_search_api_key" value="' + escapeHtml(searchTool.apiKey || '') + '"></div>';
+        html += '<div class="form-group"><label>Max Results</label><input type="number" id="tool_search_max_results" value="' + (searchTool.maxResults || 5) + '"></div>';
+        html += '</div>';
+        
+        // Exec
+        const execTool = tools.exec || {};
+        html += '<div class="channel-card">';
+        html += '<div class="channel-header"><span class="channel-name">Exec</span></div>';
+        html += '<div class="form-group"><label>Timeout (秒)</label><input type="number" id="tool_exec_timeout" value="' + (execTool.timeout || 60) + '"></div>';
+        html += '</div>';
+        
+        // Restrict to workspace
+        html += '<div class="channel-card">';
+        html += '<div class="channel-header">';
+        html += '<span class="channel-name">限制工作目录</span>';
+        html += '<label class="toggle">';
+        html += '<input type="checkbox" id="tool_restrict_workspace" ' + (tools.restrictToWorkspace ? 'checked' : '') + '>';
+        html += '<span class="toggle-slider"></span>';
+        html += '</label>';
+        html += '</div>';
+        html += '</div>';
+        
+        container.innerHTML = html;
+    }
+
+    function escapeHtml(text) {
+        if (!text) return '';
+        return String(text)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+
+    function collectConfig() {
+        const newConfig = JSON.parse(JSON.stringify(config || {}));
+        
+        // Gateway & Heartbeat
+        newConfig.gateway = {
+            host: document.getElementById('gateway_host').value,
+            port: parseInt(document.getElementById('gateway_port').value) || 18790,
+            heartbeat: {
+                enabled: document.getElementById('heartbeat_enabled').checked,
+                intervalS: parseInt(document.getElementById('heartbeat_interval').value) || 1800
+            }
+        };
+        
+        // Agents
+        newConfig.agents = {
+            defaults: {
+                workspace: document.getElementById('agent_workspace').value || '~/.nanobot/workspace',
+                restrictToWorkspace: document.getElementById('agent_restrict').checked,
+                provider: document.getElementById('agent_provider').value || 'openai',
+                model: document.getElementById('agent_model').value || '',
+                maxTokens: parseInt(document.getElementById('agent_maxTokens').value) || 8192,
+                temperature: parseFloat(document.getElementById('agent_temperature').value) || 0.7,
+                maxToolIterations: parseInt(document.getElementById('agent_maxToolIterations').value) || 20
+            }
+        };
+        
+        // Channels
+        newConfig.channels = newConfig.channels || {};
+        // Channel global settings
+        newConfig.channels.sendProgress = document.getElementById('channel_sendProgress').checked;
+        newConfig.channels.sendToolHints = document.getElementById('channel_sendToolHints').checked;
+        
+        // Channel individual settings
+        document.querySelectorAll('[data-channel]').forEach(el => {
+            const channel = el.dataset.channel;
+            const field = el.dataset.field;
+            if (!newConfig.channels[channel]) newConfig.channels[channel] = {};
+            newConfig.channels[channel][field] = el.value;
+        });
+        // Checkboxes for enabled
+        document.querySelectorAll('[data-channel]').forEach(el => {
+            if (el.type === 'checkbox') {
+                const channel = el.dataset.channel;
+                if (!newConfig.channels[channel]) newConfig.channels[channel] = {};
+                newConfig.channels[channel].enabled = el.checked;
+            }
+        });
+        
+        // Providers
+        newConfig.providers = newConfig.providers || {};
+        document.querySelectorAll('[data-provider]').forEach(el => {
+            const provider = el.dataset.provider;
+            const field = el.dataset.field;
+            if (!newConfig.providers[provider]) newConfig.providers[provider] = {};
+            newConfig.providers[provider][field] = el.value;
+        });
+        
+        // Tools
+        newConfig.tools = newConfig.tools || {};
+        newConfig.tools.web = newConfig.tools.web || {};
+        newConfig.tools.web.search = {
+            apiKey: document.getElementById('tool_search_api_key').value,
+            maxResults: parseInt(document.getElementById('tool_search_max_results').value) || 5
+        };
+        newConfig.tools.exec = {
+            timeout: parseInt(document.getElementById('tool_exec_timeout').value) || 60
+        };
+        newConfig.tools.restrictToWorkspace = document.getElementById('tool_restrict_workspace').checked;
+        
+        return newConfig;
+    }
+
+    function saveConfig() {
+        const newConfig = collectConfig();
+        
+        fetch('/api/nanobot/config', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(newConfig)
+        })
+        .then(r => r.json())
+        .then(d => {
+            if (d.success) {
+                toastr.success('配置已保存');
+            } else {
+                toastr.error('保存失败: ' + (d.error || '未知错误'));
+            }
+        })
+        .catch(e => toastr.error('请求失败: ' + e.message));
+    }
+
+    function restartService() {
+        if (!confirm('确定要重启 NanoBot 服务吗？')) return;
+        
+        fetch('/api/nanobot/restart', {
+            method: 'POST'
+        })
+        .then(r => r.json())
+        .then(d => {
+            if (d.success) {
+                toastr.success('服务正在重启...');
+                setTimeout(loadConfig, 3000);
+            } else {
+                toastr.error('重启失败');
+            }
+        })
+        .catch(e => toastr.error('请求失败: ' + e.message));
+    }
+
+    // Load on start
+    loadConfig();
+    </script>
+</body>
+</html>

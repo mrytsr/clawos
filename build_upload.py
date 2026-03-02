@@ -27,9 +27,16 @@ def run(cmd: list[str]) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--upload-only", action="store_true", help="Only upload existing dist files, skip build")
+    parser.add_argument("--release", action="store_true", help="Upload to正式 pypi instead of testpypi")
     args = parser.parse_args()
 
     root = Path(__file__).resolve().parent
+
+    # 构建 twine 命令参数
+    twine_base = ["twine", "upload", "--config-file", ".pypirc"]
+    if not args.release:
+        twine_base.insert(1, "--repository")
+        twine_base.insert(2, "testpypi")
 
     if args.upload_only:
         dist_dir = root / "dist"
@@ -38,7 +45,7 @@ def main() -> None:
             raise SystemExit("No dist files found. Run without --upload-only first.")
         latest = dist_files[0]
         print(f"Uploading {latest.name}")
-        run(["twine", "upload", "--repository", "testpypi", "--config-file", ".pypirc", str(latest)])
+        run(twine_base + [str(latest)])
         return
 
     pyproject_path = root / "pyproject.toml"
@@ -51,7 +58,7 @@ def main() -> None:
     print(f"Updated version to {version}")
 
     run([sys.executable, "-m", "build"])
-    run(["twine", "upload", "--repository", "testpypi", "--config-file", ".pypirc", f"dist/clawos-{version}*"])
+    run(twine_base + [f"dist/clawos-{version}*"])
 
 
 if __name__ == "__main__":

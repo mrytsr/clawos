@@ -213,28 +213,45 @@ Click to view full size.
 ### Requirements
 
 - Linux with systemd user services (`systemctl --user`)
-- Python 3.9+
+- `python3`, `pip3`, `git`, `openssl`
 
-### Install
+### 1. Clone to the expected path
 
-```bash
-pip install clawos
-```
-
-### Usage
+The installer assumes the source code is located at `~/clawos`.
 
 ```bash
-clawos start          # 启动服务（首次自动安装 systemd service）
-clawos -h             # 查看帮助
-clawos status         # 查看状态
-clawos stop           # 停止服务
-clawos restart        # 重启服务
-clawos log            # 查看日志
-clawos uninstall      # 卸载（停止并移除 service，pip uninstall）
+git clone https://github.com/mrytsr/clawos.git ~/clawos
+cd ~/clawos
 ```
+
+### 2. Run installer
+
+```bash
+bash install.sh
+```
+
+What the script does:
+
+- Installs Python dependencies when needed (`pip3 install -r ~/clawos/requirements.txt` if Flask is missing)
+- Creates data directory: `~/.local/clawos`
+- Generates random password: `~/.local/clawos/clawos_password.json`
+- Installs CLI to: `/usr/local/bin/clawos`
+- Writes user unit to: `~/.config/systemd/user/clawos.service`
+- Enables and starts service via: `systemctl --user`
+
+### 3. Access & manage
 
 - Web UI: `http://127.0.0.1:6002/`
-- Password: `clawos status` 或 `clawos password`
+- Password: `clawos status` or `cat ~/.local/clawos/clawos_password.json`
+- Logs: `journalctl --user -u clawos -f`
+
+```bash
+clawos start|stop|restart|status|log|enable|disable|password
+```
+
+#### Notes
+
+- If you cannot write to `/usr/local/bin`, change `BIN_FILE` in `install.sh` to `~/.local/bin/clawos` (and ensure `~/.local/bin` is in `PATH`), then rerun.
 - On headless servers, user services may stop after logout; enable linger if you need it:
   `loginctl enable-linger $USER`
 

@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 模型配置</title>
+    <link rel="stylesheet" href="/static/lib/sweetalert2.min.css">
+    <script src="/static/lib/sweetalert2.min.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: #eee;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            text-align: center;
+            padding: 30px 0;
+        }
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+        .header p {
+            color: #888;
+        }
+        
+        /* 标签页导航 */
+        .tabs {
+            display: flex;
+            gap: 4px;
+            background: #0f0f23;
+            padding: 6px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+        .tab-btn {
+            flex: 1;
+            padding: 12px 20px;
+            background: transparent;
+            border: none;
+            color: #888;
+            font-size: 15px;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+        .tab-btn:hover {
+            background: #1a1a3e;
+            color: #aaa;
+        }
+        .tab-btn.active {
+            background: #4361ee;
+            color: #fff;
+        }
+        
+        /* 标签页内容 */
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        
+        /* 卡片样式 */
+        .card {
+            background: #1a1a2e;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 16px;
+            border: 1px solid #2a2a4e;
+        }
+        .card-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        /* 模型列表 */
+        .model-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 12px;
+        }
+        .model-item {
+            background: #0f0f23;
+            border-radius: 10px;
+            padding: 16px;
+            border: 1px solid #2a2a4e;
+            transition: all 0.2s;
+        }
+        .model-item:hover {
+            border-color: #4361ee;
+            transform: translateY(-2px);
+        }
+        .model-item.selected {
+            border-color: #4361ee;
+            background: rgba(67, 97, 238, 0.1);
+        }
+        .model-name {
+            font-weight: 600;
+            color: #fff;
+            margin-bottom: 4px;
+        }
+        .model-provider {
+            font-size: 12px;
+            color: #4361ee;
+            background: rgba(67, 97, 238, 0.2);
+            padding: 2px 8px;
+            border-radius: 4px;
+            display: inline-block;
+            margin-bottom: 8px;
+        }
+        .model-info {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 8px;
+        }
+        .model-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+        .btn {
+            padding: 8px 16px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+        .btn-primary {
+            background: #4361ee;
+            color: #fff;
+        }
+        .btn-primary:hover {
+            background: #3451d6;
+        }
+        .btn-danger {
+            background: #dc3545;
+            color: #fff;
+        }
+        .btn-danger:hover {
+            background: #c82333;
+        }
+        .btn-success {
+            background: #28a745;
+            color: #fff;
+        }
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+        .btn-outline {
+            background: transparent;
+            border: 1px solid #4361ee;
+            color: #4361ee;
+        }
+        .btn-outline:hover {
+            background: rgba(67, 97, 238, 0.1);
+        }
+        
+        /* 表单样式 */
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+        .form-group {
+            margin-bottom: 12px;
+        }
+        .form-group.full {
+            grid-column: 1 / -1;
+        }
+        .form-label {
+            display: block;
+            font-size: 13px;
+            color: #888;
+            margin-bottom: 6px;
+        }
+        .form-input, .form-select {
+            width: 100%;
+            padding: 10px 12px;
+            background: #0f0f23;
+            border: 1px solid #2a2a4e;
+            border-radius: 6px;
+            color: #fff;
+            font-size: 14px;
+        }
+        .form-input:focus, .form-select:focus {
+            outline: none;
+            border-color: #4361ee;
+        }
+        .form-select {
+            cursor: pointer;
+        }
+        
+        /* 评测设置 */
+        .setting-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid #2a2a4e;
+        }
+        .setting-row:last-child {
+            border-bottom: none;
+        }
+        .setting-label {
+            font-size: 14px;
+        }
+        .setting-value {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        /* 评测结果 */
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        .result-stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .stat-card {
+            background: #0f0f23;
+            border-radius: 10px;
+            padding: 16px;
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: #4361ee;
+        }
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+            margin-top: 4px;
+        }
+        
+        .result-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .result-table th, .result-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #2a2a4e;
+        }
+        .result-table th {
+            background: #0f0f23;
+            color: #888;
+            font-weight: 500;
+            font-size: 13px;
+        }
+        .result-table td {
+            font-size: 14px;
+        }
+        .score-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+        .score-high { background: rgba(40, 167, 69, 0.2); color: #28a745; }
+        .score-mid { background: rgba(255, 193, 7, 0.2); color: #ffc107; }
+        .score-low { background: rgba(220, 53, 69, 0.2); color: #dc3545; }
+        
+        /* 进度条 */
+        .progress-container {
+            display: none;
+            margin-top: 20px;
+        }
+        .progress-container.active {
+            display: block;
+        }
+        .progress-bar {
+            height: 8px;
+            background: #0f0f23;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4361ee, #7c3aed);
+            width: 0%;
+            transition: width 0.3s;
+        }
+        .progress-text {
+            text-align: center;
+            margin-top: 8px;
+            color: #888;
+            font-size: 13px;
+        }
+        
+        /* 空状态 */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+        .empty-state svg {
+            width: 64px;
+            height: 64px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+        
+        /* 复选框 */
+        .checkbox-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+        }
+        .checkbox-wrapper input {
+            width: 18px;
+            height: 18px;
+            accent-color: #4361ee;
+        }
+        
+        /* 批量操作 */
+        .batch-actions {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 AI 模型配置</h1>
+            <p>管理 AI 模型 / 评测对比 / 查看结果</p>
+        </div>
+        
+        <!-- 标签页导航 -->
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="models">📋 模型列表</button>
+            <button class="tab-btn" data-tab="eval">⚙️ 评测设置</button>
+            <button class="tab-btn" data-tab="results">📊 评测结果</button>
+        </div>
+        
+        <!-- 标签页内容 -->
+        <div id="tab-models" class="tab-content active">
+            <div class="card">
+                <div class="card-title">
+                    <span>模型列表</span>
+                    <button class="btn btn-primary" onclick="openAddModal()" style="margin-left: auto;">+ 添加模型</button>
+                </div>
+                <div id="modelList" class="model-list">
+                    <div class="empty-state">
+                        <p>暂无模型，请添加</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div id="tab-eval" class="tab-content">
+            <div class="card">
+                <div class="card-title">评测配置</div>
+                <div class="setting-row">
+                    <span class="setting-label">评测集类型</span>
+                    <select id="evalType" class="form-select" style="width: 200px;">
+                        <option value="mixed">混合题集</option>
+                        <option value="reasoning">推理题集</option>
+                        <option value="code">代码题集</option>
+                    </select>
+                </div>
+                <div class="setting-row">
+                    <span class="setting-label">并发数</span>
+                    <input type="number" id="evalConcurrency" class="form-input" value="3" min="1" max="10" style="width: 100px;">
+                </div>
+                <div class="setting-row">
+                    <span class="setting-label">超时时间(秒)</span>
+                    <input type="number" id="evalTimeout" class="form-input" value="60" min="10" max="300" style="width: 100px;">
+                </div>
+                <div class="setting-row">
+                    <span class="setting-label">评测模型(多选)</span>
+                    <div class="setting-value" id="evalModels"></div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-title">评测控制</div>
+                <div class="batch-actions">
+                    <button class="btn btn-success" onclick="startEval()">▶️ 开始评测</button>
+                    <button class="btn btn-danger" onclick="stopEval()">⏹️ 停止</button>
+                    <button class="btn btn-outline" onclick="clearResults()">🗑️ 清空结果</button>
+                </div>
+                <div id="progressContainer" class="progress-container">
+                    <div class="progress-bar">
+                        <div id="progressFill" class="progress-fill"></div>
+                    </div>
+                    <div id="progressText" class="progress-text">准备中...</div>
+                </div>
+            </div>
+        </div>
+        
+        <div id="tab-results" class="tab-content">
+            <div class="card">
+                <div class="result-header">
+                    <div class="card-title">评测结果</div>
+                    <button class="btn btn-outline btn-sm" onclick="exportResults()">📥 导出 CSV</button>
+                </div>
+                <div class="result-stats">
+                    <div class="stat-card">
+                        <div class="stat-value" id="statTotal">0</div>
+                        <div class="stat-label">总题目数</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="statCompleted">0</div>
+                        <div class="stat-label">已完成</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="statAvgScore">-</div>
+                        <div class="stat-label">平均分</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="statBestModel">-</div>
+                        <div class="stat-label">最佳模型</div>
+                    </div>
+                </div>
+                <div id="resultsTable"></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 添加模型弹窗 -->
+    <div id="addModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 1000; align-items: center; justify-content: center;">
+        <div style="background: #1a1a2e; border-radius: 12px; padding: 24px; width: 480px; max-height: 90vh; overflow-y: auto;">
+            <div style="font-size: 18px; font-weight: 600; margin-bottom: 20px;">添加 AI 模型</div>
+            <div class="form-group">
+                <label class="form-label">显示名称</label>
+                <input type="text" id="addDisplayName" class="form-input" placeholder="如: DeepSeek Chat">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Provider</label>
+                <select id="addProvider" class="form-select" onchange="onProviderChange()">
+                    <option value="">-- 选择 Provider --</option>
+                    <option value="deepseek">DeepSeek</option>
+                    <option value="kimi">Kimi (月之暗面)</option>
+                    <option value="qwen">Qwen (阿里)</option>
+                    <option value="zhipu">Zhipu (智谱)</option>
+                    <option value="minimax">MiniMax</option>
+                    <option value="openrouter">OpenRouter</option>
+                    <option value="qiniu">Qiniu (七牛)</option>
+                    <option value="custom">自定义</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Base URL</label>
+                <input type="text" id="addBaseUrl" class="form-input" placeholder="API 基础地址">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Model</label>
+                <select id="addModelSelect" class="form-select" onchange="onModelSelectChange()">
+                    <option value="">-- 选择模型 --</option>
+                </select>
+                <input type="text" id="addModelInput" class="form-input" placeholder="或手动输入模型名" style="margin-top: 8px; display: none;">
+            </div>
+            <div class="form-group">
+                <label class="form-label">API Key</label>
+                <input type="password" id="addApiKey" class="form-input" placeholder="sk-...">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Engine</label>
+                <select id="addEngine" class="form-select">
+                    <option value="openai-api">OpenAI API</option>
+                    <option value="anthropic">Anthropic</option>
+                    <option value="custom">自定义</option>
+                </select>
+            </div>
+            <div style="display: flex; gap: 12px; margin-top: 20px;">
+                <button class="btn btn-primary" onclick="addModel()" style="flex: 1;">添加</button>
+                <button class="btn btn-outline" onclick="closeAddModal()" style="flex: 1;">取消</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Provider 预设配置
+        const PRESETS = {
+            deepseek: {
+                base_url: "https://api.deepseek.com",
+                models: ["deepseek-chat", "deepseek-coder"]
+            },
+            kimi: {
+                base_url: "https://api.moonshot.cn/v1",
+                models: ["kimi-chat", "kimi-chat-latest"]
+            },
+            qwen: {
+                base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1",
+                models: ["qwen-turbo", "qwen-plus", "qwen-max", "qwen-coder-turbo"]
+            },
+            zhipu: {
+                base_url: "https://open.bigmodel.cn/api/paas/v4",
+                models: ["glm-4", "glm-4-flash", "glm-4-plus"]
+            },
+            minimax: {
+                base_url: "https://api.minimax.chat/v1",
+                models: ["MiniMax-Text-01", "abab6.5s-chat"]
+            },
+            openrouter: {
+                base_url: "https://openrouter.ai/api/v1",
+                models: ["openai/gpt-4o", "google/gemini-2.0-flash-exp", "anthropic/claude-3.5-sonnet"]
+            },
+            qiniu: {
+                base_url: "https://qianfan.ami.qiniuapi.com/v3",
+                models: ["ernie-4.0-8k", "ernie-speed-8k"]
+            }
+        };
+        
+        let models = [];
+        let evalState = null;
+        
+        // 标签页切换
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                btn.classList.add('active');
+                document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+            });
+        });
+        
+        // 加载模型列表
+        async function loadModels() {
+            const res = await fetch('/api/ai/models');
+            const data = await res.json();
+            models = data.models || [];
+            renderModels();
+            renderEvalModels();
+        }
+        
+        // 渲染模型列表
+        function renderModels() {
+            const container = document.getElementById('modelList');
+            if (models.length === 0) {
+                container.innerHTML = '<div class="empty-state"><p>暂无模型，请添加</p></div>';
+                return;
+            }
+            container.innerHTML = models.map((m, i) => `
+                <div class="model-item" data-id="${i}">
+                    <div class="model-name">${m.display_name}</div>
+                    <span class="model-provider">${m.provider}</span>
+                    <div class="model-info">
+                        <div>模型: ${m.model}</div>
+                        <div style="color: #555; font-size: 11px;">${m.base_url}</div>
+                    </div>
+                    <div class="model-actions">
+                        <button class="btn btn-sm btn-success" onclick="testModel(${i})">测试</button>
+                        <button class="btn btn-sm btn-outline" onclick="testBatch(${i})">批量测</button>
+                        <button class="btn btn-sm btn-danger" onclick="deleteModel(${i})">删除</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        // 渲染评测模型选择
+        function renderEvalModels() {
+            const container = document.getElementById('evalModels');
+            container.innerHTML = models.map((m, i) => `
+                <label class="checkbox-wrapper">
+                    <input type="checkbox" value="${m.provider}/${m.model}" checked>
+                    <span>${m.display_name}</span>
+                </label>
+            `).join('') || '<span style="color: #666;">请先添加模型</span>';
+        }
+        
+        // 加载评测状态
+        async function loadEvalState() {
+            try {
+                const res = await fetch('/api/ai/eval/state');
+                evalState = await res.json();
+                updateProgress();
+            } catch (e) {
+                evalState = null;
+            }
+        }
+        
+        // 更新进度
+        function updateProgress() {
+            const container = document.getElementById('progressContainer');
+            const fill = document.getElementById('progressFill');
+            const text = document.getElementById('progressText');
+            
+            if (evalState && evalState.running) {
+                container.classList.add('active');
+                const pct = evalState.total > 0 ? (evalState.completed / evalState.total * 100) : 0;
+                fill.style.width = pct + '%';
+                text.textContent = `${evalState.completed} / ${evalState.total} (${evalState.current_model || ''})`;
+            } else {
+                container.classList.remove('active');
+            }
+        }
+        
+        // 加载结果
+        async function loadResults() {
+            try {
+                const res = await fetch('/api/ai/eval/results');
+                const results = await res.json();
+                renderResults(results);
+            } catch (e) {
+                renderResults({});
+            }
+        }
+        
+        // 渲染结果
+        function renderResults(data) {
+            const results = data.results || [];
+            document.getElementById('statTotal').textContent = data.total || 0;
+            document.getElementById('statCompleted').textContent = results.length;
+            
+            if (results.length > 0) {
+                const avg = (results.reduce((s, r) => s + (r.score || 0), 0) / results.length).toFixed(1);
+                document.getElementById('statAvgScore').textContent = avg;
+                
+                // 找最佳模型
+                const modelScores = {};
+                results.forEach(r => {
+                    if (!modelScores[r.model]) modelScores[r.model] = [];
+                    modelScores[r.model].push(r.score || 0);
+                });
+                let best = '-', bestAvg = 0;
+                Object.entries(modelScores).forEach(([m, scores]) => {
+                    const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
+                    if (avg > bestAvg) {
+                        bestAvg = avg;
+                        best = m;
+                    }
+                });
+                document.getElementById('statBestModel').textContent = best.split('/').pop();
+            }
+            
+            const table = document.getElementById('resultsTable');
+            if (results.length === 0) {
+                table.innerHTML = '<div class="empty-state"><p>暂无评测结果</p></div>';
+                return;
+            }
+            
+            table.innerHTML = `
+                <table class="result-table">
+                    <thead>
+                        <tr>
+                            <th>模型</th>
+                            <th>题目</th>
+                            <th>得分</th>
+                            <th>耗时</th>
+                            <th>时间</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${results.map(r => `
+                            <tr>
+                                <td>${r.model}</td>
+                                <td>${r.question_id}</td>
+                                <td><span class="score-badge ${r.score >= 80 ? 'score-high' : r.score >= 60 ? 'score-mid' : 'score-low'}">${r.score}</span></td>
+                                <td>${(r.duration || 0).toFixed(1)}s</td>
+                                <td style="color: #666;">${new Date(r.timestamp).toLocaleString()}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+        
+        // 添加模型弹窗
+        function openAddModal() {
+            document.getElementById('addModal').style.display = 'flex';
+            document.getElementById('addDisplayName').value = '';
+            document.getElementById('addProvider').value = '';
+            document.getElementById('addBaseUrl').value = '';
+            document.getElementById('addModelSelect').value = '';
+            document.getElementById('addModelInput').value = '';
+            document.getElementById('addApiKey').value = '';
+            document.getElementById('addModelSelect').style.display = 'block';
+            document.getElementById('addModelInput').style.display = 'none';
+        }
+        
+        function closeAddModal() {
+            document.getElementById('addModal').style.display = 'none';
+        }
+        
+        // Provider 变化
+        function onProviderChange() {
+            const provider = document.getElementById('addProvider').value;
+            const baseUrl = document.getElementById('addBaseUrl');
+            const modelSelect = document.getElementById('addModelSelect');
+            const modelInput = document.getElementById('addModelInput');
+            
+            if (provider && PRESETS[provider]) {
+                baseUrl.value = PRESETS[provider].base_url;
+                modelSelect.innerHTML = '<option value="">-- 选择模型 --</option>' + 
+                    PRESETS[provider].models.map(m => `<option value="${m}">${m}</option>`).join('') +
+                    '<option value="__custom__">自定义...</option>';
+                modelSelect.style.display = 'block';
+                modelInput.style.display = 'none';
+            } else if (provider === 'custom') {
+                baseUrl.value = '';
+                modelSelect.style.display = 'none';
+                modelInput.style.display = 'block';
+            } else {
+                baseUrl.value = '';
+                modelSelect.innerHTML = '<option value="">-- 选择模型 --</option>';
+            }
+        }
+        
+        function onModelSelectChange() {
+            const val = document.getElementById('addModelSelect').value;
+            const modelInput = document.getElementById('addModelInput');
+            if (val === '__custom__') {
+                modelInput.style.display = 'block';
+                modelInput.focus();
+            }
+        }
+        
+        // 添加模型
+        async function addModel() {
+            const provider = document.getElementById('addProvider').value;
+            const base_url = document.getElementById('addBaseUrl').value;
+            const modelSelect = document.getElementById('addModelSelect');
+            const model = modelSelect.style.display !== 'none' && modelSelect.value !== '__custom__' 
+                ? modelSelect.value 
+                : document.getElementById('addModelInput').value;
+            const api_key = document.getElementById('addApiKey').value;
+            const display_name = document.getElementById('addDisplayName').value || `${provider}:${model}`;
+            const engine = document.getElementById('addEngine').value;
+            
+            if (!provider || !base_url || !model || !api_key) {
+                Swal.fire('错误', '请填写完整信息', 'error');
+                return;
+            }
+            
+            const res = await fetch('/api/ai/models/add', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({provider, base_url, model, api_key, display_name, engine})
+            });
+            
+            const data = await res.json();
+            if (data.success) {
+                Swal.fire('成功', '模型添加成功', 'success');
+                closeAddModal();
+                loadModels();
+            } else {
+                Swal.fire('错误', data.error || '添加失败', 'error');
+            }
+        }
+        
+        // 删除模型
+        async function deleteModel(index) {
+            const m = models[index];
+            const {isConfirmed} = await Swal.fire({
+                title: '确认删除',
+                text: `删除模型 ${m.display_name}?`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: '删除',
+                cancelButtonText: '取消'
+            });
+            
+            if (isConfirmed) {
+                await fetch('/api/ai/models/delete', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({provider: m.provider, model: m.model})
+                });
+                loadModels();
+            }
+        }
+        
+        // 测试单个模型
+        async function testModel(index) {
+            const m = models[index];
+            Swal.fire({title: '测试中...', allowOutsideClick: false, didOpen: () => Swal.showLoading()});
+            
+            const res = await fetch('/api/ai/models/test', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    provider: m.provider,
+                    model: m.model,
+                    base_url: m.base_url,
+                    api_key: m.api_key,
+                    engine: m.engine
+                })
+            });
+            
+            const data = await res.json();
+            Swal.close();
+            
+            if (data.success) {
+                Swal.fire('✅ 测试成功', `响应: ${data.response?.substring(0, 200)}...`, 'success');
+            } else {
+                Swal.fire('❌ 测试失败', data.error || '未知错误', 'error');
+            }
+        }
+        
+        // 批量测试
+        async function testBatch(index) {
+            const m = models[index];
+            Swal.fire({title: '批量测试中...', html: '请稍候', allowOutsideClick: false, didOpen: () => Swal.showLoading()});
+            
+            const res = await fetch('/api/ai/models/batch-test', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    provider: m.provider,
+                    model: m.model,
+                    base_url: m.base_url,
+                    api_key: m.api_key,
+                    engine: m.engine
+                })
+            });
+            
+            const data = await res.json();
+            Swal.close();
+            
+            if (data.success) {
+                Swal.fire('✅ 完成', `通过: ${data.passed}/${data.total}`, 'success');
+            } else {
+                Swal.fire('❌ 失败', data.error || '未知错误', 'error');
+            }
+        }
+        
+        // 开始评测
+        async function startEval() {
+            const selected = Array.from(document.querySelectorAll('#evalModels input:checked')).map(i => i.value);
+            if (selected.length === 0) {
+                Swal.fire('错误', '请选择至少一个模型', 'error');
+                return;
+            }
+            
+            const res = await fetch('/api/ai/eval/start', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    models: selected,
+                    type: document.getElementById('evalType').value,
+                    concurrency: parseInt(document.getElementById('evalConcurrency').value),
+                    timeout: parseInt(document.getElementById('evalTimeout').value)
+                })
+            });
+            
+            const data = await res.json();
+            if (data.success) {
+                Swal.fire('开始评测', '评测已启动', 'success');
+                loadEvalState();
+            } else {
+                Swal.fire('错误', data.error || '启动失败', 'error');
+            }
+        }
+        
+        // 停止评测
+        async function stopEval() {
+            await fetch('/api/ai/eval/stop', {method: 'POST'});
+            loadEvalState();
+        }
+        
+        // 清空结果
+        async function clearResults() {
+            const {isConfirmed} = await Swal.fire({
+                title: '确认清空',
+                text: '清空所有评测结果?',
+                icon: 'warning',
+                showCancelButton: true
+            });
+            
+            if (isConfirmed) {
+                await fetch('/api/ai/eval/clear', {method: 'POST'});
+                loadResults();
+            }
+        }
+        
+        // 导出结果
+        async function exportResults() {
+            const res = await fetch('/api/ai/eval/results');
+            const data = await res.json();
+            const results = data.results || [];
+            
+            if (results.length === 0) {
+                Swal.fire('提示', '暂无结果可导出', 'info');
+                return;
+            }
+            
+            const csv = 'Model,Question,Score,Duration,Timestamp\n' + 
+                results.map(r => `${r.model},${r.question_id},${r.score},${r.duration},${r.timestamp}`).join('\n');
+            
+            const blob = new Blob([csv], {type: 'text/csv'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'eval_results.csv';
+            a.click();
+        }
+        
+        // 轮询评测状态
+        setInterval(() => {
+            if (evalState && evalState.running) {
+                loadEvalState();
+                loadResults();
+            }
+        }, 2000);
+        
+        // 初始化
+        loadModels();
+        loadEvalState();
+        loadResults();
+    </script>
+</body>
+</html>
