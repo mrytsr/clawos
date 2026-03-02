@@ -92,6 +92,9 @@
     
     function renderLogs(logs) {
         const container = document.getElementById('logs');
+        // 检查是否在底部附近（在50px以内视为在底部）
+        const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 50;
+        
         container.innerHTML = logs.map(log => {
             const raw = log.raw || log.message || '';
             const timeMatch = raw.match(/^(\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2})/);
@@ -106,7 +109,11 @@
                 <span class="log-msg">${msg.replace(/</g, '&lt;')}</span>
             </div>`;
         }).join('');
-        container.scrollTop = container.scrollHeight;
+        
+        // 仅当之前在底部时才滚动到底部
+        if (isAtBottom) {
+            container.scrollTop = container.scrollHeight;
+        }
     }
     
     async function loadLogs() {
