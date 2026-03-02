@@ -754,9 +754,11 @@
 
         // 模型列表菜单
         function showModelMenu(idx, btn, e) {
+            const menuId = 'model-menu';
             const m = models[idx];
-            SmallMenu.render({
-                triggerElement: btn,
+            const result = SmallMenu.render({
+                menuId: menuId,
+                triggerText: '⋮',
                 items: [
                     { label: '测试', icon: '▶', action: testModel, actionParams: [idx] },
                     { label: '批量测', icon: '📊', action: testBatch, actionParams: [idx] },
@@ -764,8 +766,13 @@
                     { label: '克隆', icon: '📋', action: cloneModel, actionParams: [idx] },
                     { label: '删除', icon: '🗑️', danger: true, action: deleteModel, actionParams: [idx] }
                 ],
-                center: true
+                center: true,
+                hideTrigger: true
             });
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = result.html;
+            document.body.appendChild(tempDiv.firstChild);
+            setTimeout(() => SmallMenu.open(menuId), 10);
         }
 
         // 编辑模型
