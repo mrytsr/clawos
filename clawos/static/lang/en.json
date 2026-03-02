@@ -1,0 +1,80 @@
+{
+  "nav": {
+    "files": "File Manager",
+    "terminal": "Terminal",
+    "system": "System Monitor",
+    "editor": "Code Editor",
+    "ai": "AI Assistant",
+    "settings": "Settings"
+  },
+  "fileBrowser": {
+    "upload": "Upload",
+    "newFolder": "New Folder",
+    "newFile": "New File",
+    "download": "Download",
+    "delete": "Delete",
+    "rename": "Rename",
+    "move": "Move",
+    "copy": "Copy",
+    "paste": "Paste",
+    "selectAll": "Select All",
+    "search": "Search",
+    "refresh": "Refresh",
+    "path": "Path",
+    "size": "Size",
+    "modified": "Modified",
+    "permissions": "Permissions",
+    "owner": "Owner",
+    "actions": "Actions"
+  },
+  "terminal": {
+    "title": "Terminal",
+    "connecting": "Connecting...",
+    "connected": "Connected",
+    "disconnected": "Disconnected",
+    "reconnect": "Reconnect",
+    "clear": "Clear",
+    "fullscreen": "Fullscreen"
+  },
+  "system": {
+    "title": "System Monitor",
+    "cpu": "CPU",
+    "memory": "Memory",
+    "disk": "Disk",
+    "network": "Network",
+    "processes": "Processes",
+    "services": "Services",
+    "uptime": "Uptime",
+    "load": "Load",
+    "temperature": "Temperature"
+  },
+  "common": {
+    "confirm": "Confirm",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "add": "Add",
+    "create": "Create",
+    "close": "Close",
+    "open": "Open",
+    "back": "Back",
+    "loading": "Loading...",
+    "success": "Success",
+    "error": "Error",
+    "warning": "Warning",
+    "info": "Info",
+    "yes": "Yes",
+    "no": "No",
+    "ok": "OK"
+  },
+  "settings": {
+    "title": "Settings",
+    "language": "Language",
+    "theme": "Theme",
+    "fontSize": "Font Size",
+    "autoSave": "Auto Save",
+    "notifications": "Notifications",
+    "keyboardShortcuts": "Keyboard Shortcuts"
+  }
+}
