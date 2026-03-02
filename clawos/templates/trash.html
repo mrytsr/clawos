@@ -4,7 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🗑️ 回收站</title>
+    <title data-i18n="trash.title">🗑️ 回收站</title>
+    <script src="/static/js/i18n.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -78,11 +79,11 @@
 </head>
 <body>
     <div class="container">
-        <h1>🗑️ 回收站</h1>
+        <h1 data-i18n="trash.title">🗑️ 回收站</h1>
         
         <div class="card">
             <div class="header">
-                <span>共 {{ items|length }} 个项目</span>
+                <span data-i18n="trash.item_count" data-i18n-params='{"count":{{ items|length }}}'>共 {{ items|length }} 个项目</span>
                 <a href="#" class="btn btn-back" onclick="history.back(); return false;">←</a>
             </div>
             
@@ -92,54 +93,54 @@
                 <div class="file-item">
                     <div class="file-info">
                         <div class="file-name">{{ item.name }}</div>
-                        <div class="file-meta">删除时间: {{ item.deleted_at }}</div>
+                        <div class="file-meta"><span data-i18n="trash.deleted_at">删除时间</span>: {{ item.deleted_at }}</div>
                     </div>
                     <div class="file-actions">
-                        <a class="restore-link" onclick="showRestoreDialog('{{ item.name }}')">还原</a>
+                        <a class="restore-link" onclick="showRestoreDialog('{{ item.name }}')" data-i18n="trash.restore">还原</a>
                     </div>
                 </div>
                 {% endfor %}
             </div>
             {% else %}
-            <div class="empty">回收站是空的</div>
+            <div class="empty" data-i18n="trash.empty">回收站是空的</div>
             {% endif %}
         </div>
 
         <div class="card">
             <div class="header">
-                <span>危险操作</span>
+                <span data-i18n="trash.danger_zone">危险操作</span>
             </div>
-            <button class="btn btn-danger" style="width: 100%;" onclick="showClearDialog()">清空回收站</button>
+            <button class="btn btn-danger" style="width: 100%;" onclick="showClearDialog()" data-i18n="trash.clear_all">清空回收站</button>
         </div>
     </div>
 
     <!-- 原生dialog: 还原 -->
     <dialog id="restoreDialog">
         <div class="dialog-header">
-            <div class="dialog-title">还原文件</div>
+            <div class="dialog-title" data-i18n="trash.restore_dialog.title">还原文件</div>
         </div>
         <div class="dialog-body">
             <div id="restoreFileName" style="font-weight: bold; margin-bottom: 10px;"></div>
-            <input type="text" id="restorePath" class="dialog-input" placeholder="输入还原路径">
+            <input type="text" id="restorePath" class="dialog-input" data-i18n-placeholder="trash.restore_dialog.path_placeholder" placeholder="输入还原路径">
         </div>
         <div class="dialog-actions">
-            <button class="dialog-btn dialog-btn-cancel" onclick="closeRestoreDialog()">取消</button>
-            <button class="dialog-btn dialog-btn-confirm" onclick="confirmRestore()">还原</button>
+            <button class="dialog-btn dialog-btn-cancel" onclick="closeRestoreDialog()" data-i18n="common.cancel">取消</button>
+            <button class="dialog-btn dialog-btn-confirm" onclick="confirmRestore()" data-i18n="trash.restore">还原</button>
         </div>
     </dialog>
 
     <!-- 原生dialog: 清空 -->
     <dialog id="clearDialog">
         <div class="dialog-header">
-            <div class="dialog-title">⚠️ 确认清空</div>
+            <div class="dialog-title">⚠️ <span data-i18n="trash.clear_dialog.title">确认清空</span></div>
         </div>
         <div class="dialog-body">
-            <p>确定要清空回收站吗？</p>
-            <p style="color: #dc3545; margin-top: 10px;">此操作不可恢复！</p>
+            <p data-i18n="trash.clear_dialog.message">确定要清空回收站吗？</p>
+            <p style="color: #dc3545; margin-top: 10px;" data-i18n="trash.clear_dialog.warning">此操作不可恢复！</p>
         </div>
         <div class="dialog-actions">
-            <button class="dialog-btn dialog-btn-cancel" onclick="closeClearDialog()">取消</button>
-            <button class="dialog-btn dialog-btn-danger" onclick="confirmClear()">清空</button>
+            <button class="dialog-btn dialog-btn-cancel" onclick="closeClearDialog()" data-i18n="common.cancel">取消</button>
+            <button class="dialog-btn dialog-btn-danger" onclick="confirmClear()" data-i18n="trash.clear">清空</button>
         </div>
     </dialog>
 
@@ -199,10 +200,11 @@
             .then(r => r.json())
             .then(d => {
                 closeClearDialog();
-                Swal.fire('错误', d.message, 'error');
+                Swal.fire(I18n.t('common.error'), d.message, 'error');
                 if (d.success) location.reload();
             });
         }
+        I18n.setLang(I18n.lang);
     </script>
 </body>
 </html>

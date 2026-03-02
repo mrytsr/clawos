@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cron 管理</title>
+    <title data-i18n="cron.title">Cron 管理</title>
+    <script src="/static/js/i18n.js"></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         html, body { height: 100%; overflow: hidden; }
@@ -71,9 +72,9 @@
 <body>
     <div id="app">
         <div class="toolbar">
-            <span style="font-size:14px;font-weight:500;">Cron 任务管理</span>
-            <button onclick="openAddModal()">+ 添加任务</button>
-            <button class="secondary" onclick="loadJobs()">刷新</button>
+            <span style="font-size:14px;font-weight:500;" data-i18n="cron.heading">Cron 任务管理</span>
+            <button onclick="openAddModal()" data-i18n="cron.add_task">+ 添加任务</button>
+            <button class="secondary" onclick="loadJobs()" data-i18n="common.refresh">刷新</button>
         </div>
         <div id="list" class="list"></div>
     </div>
@@ -81,56 +82,56 @@
     <!-- 添加/编辑弹窗 -->
     <div id="addModal" class="modal">
         <div class="modal-content">
-            <div class="modal-title">添加 Cron 任务</div>
+            <div class="modal-title" data-i18n="cron.modal.title">添加 Cron 任务</div>
             <div class="form-row">
                 <div class="form-group">
-                    <label>分钟</label>
+                    <label data-i18n="cron.modal.minute">分钟</label>
                     <input type="text" id="minute" value="*" placeholder="*">
                 </div>
                 <div class="form-group">
-                    <label>小时</label>
+                    <label data-i18n="cron.modal.hour">小时</label>
                     <input type="text" id="hour" value="*" placeholder="*">
                 </div>
             </div>
             <div class="form-row">
                 <div class="form-group">
-                    <label>日期</label>
+                    <label data-i18n="cron.modal.day">日期</label>
                     <input type="text" id="day" value="*" placeholder="*">
                 </div>
                 <div class="form-group">
-                    <label>月份</label>
+                    <label data-i18n="cron.modal.month">月份</label>
                     <input type="text" id="month" value="*" placeholder="*">
                 </div>
             </div>
             <div class="form-row">
                 <div class="form-group">
-                    <label>星期</label>
+                    <label data-i18n="cron.modal.weekday">星期</label>
                     <input type="text" id="weekday" value="*" placeholder="0-7">
                 </div>
                 <div class="form-group">
-                    <label>快捷</label>
+                    <label data-i18n="cron.modal.shortcut">快捷</label>
                     <select id="template" onchange="applyTemplate()">
-                        <option value="">自定义</option>
-                        <option value="@reboot">系统启动时</option>
-                        <option value="@hourly">每小时</option>
-                        <option value="0 3 * * *">每天 3:00</option>
-                        <option value="0 0 * * 0">每周日</option>
-                        <option value="0 0 1 * *">每月 1 号</option>
-                        <option value="*/5 * * * *">每 5 分钟</option>
+                        <option value="" data-i18n="cron.shortcut.custom">自定义</option>
+                        <option value="@reboot" data-i18n="cron.shortcut.reboot">系统启动时</option>
+                        <option value="@hourly" data-i18n="cron.shortcut.hourly">每小时</option>
+                        <option value="0 3 * * *" data-i18n="cron.shortcut.daily_3am">每天 3:00</option>
+                        <option value="0 0 * * 0" data-i18n="cron.shortcut.weekly_sunday">每周日</option>
+                        <option value="0 0 1 * *" data-i18n="cron.shortcut.monthly_1st">每月 1 号</option>
+                        <option value="*/5 * * * *" data-i18n="cron.shortcut.every_5min">每 5 分钟</option>
                     </select>
                 </div>
             </div>
             <div class="form-group">
-                <label>快捷设置 (可视化)</label>
-                <input type="text" id="quickSchedule" placeholder="点击选择时间...">
+                <label data-i18n="cron.modal.quick_schedule">快捷设置 (可视化)</label>
+                <input type="text" id="quickSchedule" data-i18n-placeholder="cron.modal.quick_schedule_placeholder" placeholder="点击选择时间...">
             </div>
             <div class="form-group">
-                <label>命令</label>
-                <input type="text" id="command" placeholder="例如: /home/tjx/backup.sh">
+                <label data-i18n="cron.modal.command">命令</label>
+                <input type="text" id="command" data-i18n-placeholder="cron.modal.command_placeholder" placeholder="例如: /home/tjx/backup.sh">
             </div>
             <div class="modal-actions">
-                <button class="secondary" onclick="closeAddModal()">取消</button>
-                <button onclick="addJob()">添加</button>
+                <button class="secondary" onclick="closeAddModal()" data-i18n="common.cancel">取消</button>
+                <button onclick="addJob()" data-i18n="common.add">添加</button>
             </div>
         </div>
     </div>
@@ -140,7 +141,7 @@
     
     function $(id) { return document.getElementById(id); }
     
-    function showStatus(msg) { Swal.fire({ icon: 'info', title: '提示', text: msg, timer: 2000 }); }
+    function showStatus(msg) { Swal.fire({ icon: 'info', title: I18n.t('common.notice'), text: msg, timer: 2000 }); }
     
     async function loadJobs() {
         try {
@@ -150,17 +151,17 @@
                 jobs = (data.data && data.data.jobs) || [];
                 render();
             } else {
-                Swal.fire('错误', data.error || '加载失败', 'error');
+                Swal.fire(I18n.t('common.error'), data.error || I18n.t('common.load_failed'), 'error');
             }
         } catch (e) {
-            Swal.fire('错误', e.message, 'error');
+            Swal.fire(I18n.t('common.error'), e.message, 'error');
         }
     }
     
     function render() {
         const list = $('list');
         if (jobs.length === 0) {
-            list.innerHTML = '<div class="empty">暂无 Cron 任务<br><br>点击"添加任务"创建一个</div>';
+            list.innerHTML = '<div class="empty">' + I18n.t('cron.empty.title') + '<br><br>' + I18n.t('cron.empty.hint') + '</div>';
             return;
         }
         
@@ -174,8 +175,8 @@
                     <div class="job-command">${job.command}</div>
                 </div>
                 <div class="job-actions">
-                    <button class="btn-run" onclick="runJob(${i})">▶ 执行</button>
-                    <button onclick="removeJob(${i})" class="danger">删除</button>
+                    <button class="btn-run" onclick="runJob(${i})">▶ ${I18n.t('cron.job.run')}</button>
+                    <button onclick="removeJob(${i})" class="danger">${I18n.t('common.delete')}</button>
                 </div>
             </div>
         `).join('');
@@ -225,7 +226,7 @@
         const command = $('command').value.trim();
         
         if (!command) {
-            Swal.fire({ icon: 'warning', title: '提示', text: '请输入命令' });
+            Swal.fire({ icon: 'warning', title: I18n.t('common.notice'), text: I18n.t('cron.validation.command_required') });
             return;
         }
         
@@ -240,15 +241,15 @@
                 closeAddModal();
                 loadJobs();
             } else {
-                Swal.fire('错误', data.error || '添加失败', 'error');
+                Swal.fire(I18n.t('common.error'), data.error || I18n.t('common.add_failed'), 'error');
             }
         } catch (e) {
-            Swal.fire('错误', e.message, 'error');
+            Swal.fire(I18n.t('common.error'), e.message, 'error');
         }
     }
     
     async function removeJob(i) {
-        const r = await Swal.fire({ icon: 'warning', title: '确认删除', text: '确定删除此任务？', showCancelButton: true }); if (!r.isConfirmed) return;
+        const r = await Swal.fire({ icon: 'warning', title: I18n.t('common.confirm_delete_title'), text: I18n.t('cron.delete.confirm'), showCancelButton: true }); if (!r.isConfirmed) return;
         try {
             const r = await fetch('/api/cron/remove', {
                 method: 'POST',
@@ -259,10 +260,10 @@
             if (data.success) {
                 loadJobs();
             } else {
-                Swal.fire('错误', data.error || '删除失败', 'error');
+                Swal.fire(I18n.t('common.error'), data.error || I18n.t('common.delete_failed'), 'error');
             }
         } catch (e) {
-            Swal.fire('错误', e.message, 'error');
+            Swal.fire(I18n.t('common.error'), e.message, 'error');
         }
     }
     
@@ -278,13 +279,13 @@
                 loadJobs();
             }
         } catch (e) {
-            Swal.fire('错误', e.message, 'error');
+            Swal.fire(I18n.t('common.error'), e.message, 'error');
         }
     }
     
     async function runJob(i) {
         const command = jobs[i].command;
-        const r = await Swal.fire({ icon: 'warning', title: '确认执行', text: '立即执行命令：' + command + '\n\n确定继续？', showCancelButton: true }); if (!r.isConfirmed) return;
+        const r = await Swal.fire({ icon: 'warning', title: I18n.t('cron.run.confirm_title'), text: I18n.t('cron.run.confirm_message') + '：' + command + '\n\n' + I18n.t('common.confirm') + '?', showCancelButton: true }); if (!r.isConfirmed) return;
         
         try {
             const r = await fetch('/api/cron/run', {
@@ -294,12 +295,12 @@
             });
             const data = await r.json();
             if (data.success) {
-                Swal.fire({ icon: 'success', title: '执行成功', text: data.stdout || '' });
+                Swal.fire({ icon: 'success', title: I18n.t('cron.run.success'), text: data.stdout || '' });
             } else {
-                Swal.fire({ icon: 'error', title: '执行失败', text: data.stderr || data.error || '未知错误' });
+                Swal.fire({ icon: 'error', title: I18n.t('cron.run.failed'), text: data.stderr || data.error || I18n.t('common.unknown') });
             }
         } catch (e) {
-            Swal.fire({ icon: 'error', title: '执行失败', text: e.message });
+            Swal.fire({ icon: 'error', title: I18n.t('cron.run.failed'), text: e.message });
         }
     }
     
@@ -346,6 +347,7 @@
     }
 
 loadJobs();
+    I18n.setLang(I18n.lang);
     </script>
 </body>
 </html>
