@@ -1180,8 +1180,8 @@
     <!-- 主菜单抽屉 -->
     <div id="mainMenuDrawer" class="right-drawer" role="dialog" aria-modal="true" aria-label="开始菜单" aria-hidden="true" tabindex="-1">
         <div class="right-drawer-header">
-            <div class="drawer-title">开始菜单</div>
-            <button id="mainMenuCloseBtn" class="drawer-close-btn" onclick="closeMainMenuModal()" aria-label="关闭开始菜单">&times;</button>
+            <div class="drawer-title" data-i18n="menu.startMenu">开始菜单</div>
+            <button id="mainMenuCloseBtn" class="drawer-close-btn" onclick="closeMainMenuModal()" data-i18n-aria-label="menu.closeStartMenu">&times;</button>
         </div>
         <div class="right-drawer-content" id="mainMenuItems">
             <!-- 菜单项由 JS 动态渲染 -->
@@ -1194,7 +1194,7 @@
     <!-- 包管理抽屉 -->
     <div id="pkgDrawer" class="right-drawer" style="width: 480px; max-width: 100vw;">
         <div class="right-drawer-header">
-            <div class="drawer-title">📦 包管理</div>
+            <div class="drawer-title" data-i18n="package.title">📦 包管理</div>
             <button class="drawer-close-btn" onclick="closePkgDrawer()">&times;</button>
         </div>
         <div class="right-drawer-content" style="padding: 0;">
@@ -1203,7 +1203,7 @@
                 <input type="text" id="pkgSearchInput" placeholder="搜索..." 
                     style="flex: 1; padding: 8px 12px; border: 1px solid #d0d7de; border-radius: 6px; font-size: 14px;"
                     oninput="filterPkgList()">
-                <button onclick="loadPkgCurrentTab()" style="padding: 8px 16px; background: #0969da; color: #fff; border: none; border-radius: 6px; cursor: pointer;">刷新</button>
+                <button onclick="loadPkgCurrentTab()" style="padding: 8px 16px; background: #0969da; color: #fff; border: none; border-radius: 6px; cursor: pointer;" data-i18n="common.refresh">刷新</button>
             </div>
             <!-- Tab 栏 -->
             <div style="display: flex; border-bottom: 1px solid #d0d7de; background: #f6f8fa;">
@@ -1249,7 +1249,7 @@
     <!-- 性能监控抽屉 -->
     <div id="perfDrawer" class="right-drawer" style="width: 480px; max-width: 100vw;">
         <div class="right-drawer-header">
-            <div class="drawer-title">📈 性能监控</div>
+            <div class="drawer-title" data-i18n="perf.title">📈 性能监控</div>
             <button class="drawer-close-btn" onclick="closePerfDrawer()">&times;</button>
         </div>
         <div class="right-drawer-content" style="padding: 0;">
@@ -1309,7 +1309,7 @@
     <!-- 网络管理抽屉 -->
     <div id="networkDrawer" class="right-drawer" style="width: 480px; max-width: 100vw;">
         <div class="right-drawer-header">
-            <div class="drawer-title">🌐 网络管理</div>
+            <div class="drawer-title" data-i18n="network.title">🌐 网络管理</div>
             <button class="drawer-close-btn" onclick="closeNetworkDrawer()">&times;</button>
         </div>
         <div class="right-drawer-content" style="padding: 0;">
@@ -1330,7 +1330,7 @@
     <!-- 用户管理抽屉 -->
     <div id="usersDrawer" class="right-drawer" style="width: 480px; max-width: 100vw;">
         <div class="right-drawer-header">
-            <div class="drawer-title">👥 用户管理</div>
+            <div class="drawer-title" data-i18n="users.title">👥 用户管理</div>
             <button class="drawer-close-btn" onclick="closeUsersDrawer()">&times;</button>
         </div>
         <div class="right-drawer-content" style="padding: 0;">

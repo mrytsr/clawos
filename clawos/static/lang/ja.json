@@ -10,6 +10,36 @@
     "ai": "AI アシスタント",
     "settings": "設定"
   },
+  "menu": {
+    "startMenu": "スタートメニュー",
+    "closeStartMenu": "スタートメニューを閉じる",
+    "process": "プロセス管理",
+    "gpu": "GPU管理",
+    "pkg": "パッケージ管理",
+    "perf": "パフォーマンス監視",
+    "network": "ネットワーク管理",
+    "users": "ユーザー管理",
+    "docker": "Docker管理",
+    "systemd": "Systemd管理",
+    "disk": "ディスク管理",
+    "cron": "Cron管理",
+    "ollama": "Ollama",
+    "clash": "Clashプロキシ",
+    "frp": "FRPトンネル",
+    "picoclaw": "PicoClaw設定",
+    "nanobot": "NanoBot設定",
+    "nullclaw": "NullClaw設定"
+  },
+  "package": {
+    "title": "📦 パッケージ管理",
+    "tabSystem": "システム",
+    "tabPip": "pip",
+    "tabNpm": "npm",
+    "tabSource": "ソース",
+    "pipSource": "pip ソース",
+    "npmSource": "npm ソース",
+    "searchPlaceholder": "検索..."
+  },
   "fileBrowser": {
     "upload": "アップロード",
     "newFolder": "新規フォルダ",
@@ -30,7 +60,27 @@
     "owner": "所有者",
     "actions": "操作",
     "openWith": "開く方法",
-    "currentPath": "現在のパス"
+    "currentPath": "現在のパス",
+    "emptyDirectory": "このディレクトリは空です",
+    "rootDirectory": "ルートディレクトリ"
+  },
+  "perf": {
+    "title": "📈 パフォーマンス監視",
+    "cpuUsage": "CPU使用率",
+    "memoryUsage": "メモリ使用",
+    "diskUsage": "ディスク使用",
+    "networkTraffic": "ネットワーク通信",
+    "gpu": "GPU"
+  },
+  "network": {
+    "title": "🌐 ネットワーク管理",
+    "tabInterfaces": "インターフェース",
+    "tabConnections": "接続"
+  },
+  "users": {
+    "title": "👥 ユーザー管理",
+    "tabUsers": "ユーザー",
+    "tabGroups": "グループ"
   },
   "terminal": {
     "title": "ターミナル",
@@ -72,7 +122,9 @@
     "yes": "はい",
     "no": "いいえ",
     "ok": "OK",
-    "manage": "管理"
+    "manage": "管理",
+    "refresh": "更新",
+    "search": "検索"
   },
   "settings": {
     "title": "設定",

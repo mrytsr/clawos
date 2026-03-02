@@ -10,6 +10,36 @@
     "ai": "AI 助手",
     "settings": "设置"
   },
+  "menu": {
+    "startMenu": "开始菜单",
+    "closeStartMenu": "关闭开始菜单",
+    "process": "进程管理",
+    "gpu": "显卡管理",
+    "pkg": "包管理",
+    "perf": "性能监控",
+    "network": "网络管理",
+    "users": "用户管理",
+    "docker": "Docker管理",
+    "systemd": "Systemd管理",
+    "disk": "磁盘管理",
+    "cron": "Cron管理",
+    "ollama": "Ollama",
+    "clash": "Clash代理",
+    "frp": "FRP内网穿透",
+    "picoclaw": "PicoClaw配置",
+    "nanobot": "NanoBot配置",
+    "nullclaw": "NullClaw配置"
+  },
+  "package": {
+    "title": "📦 包管理",
+    "tabSystem": "系统",
+    "tabPip": "pip",
+    "tabNpm": "npm",
+    "tabSource": "源",
+    "pipSource": "pip 源",
+    "npmSource": "npm 源",
+    "searchPlaceholder": "搜索..."
+  },
   "fileBrowser": {
     "upload": "上传",
     "newFolder": "新建文件夹",
@@ -30,7 +60,27 @@
     "owner": "所有者",
     "actions": "操作",
     "openWith": "文件打开方式",
-    "currentPath": "当前路径"
+    "currentPath": "当前路径",
+    "emptyDirectory": "此目录为空",
+    "rootDirectory": "根目录"
+  },
+  "perf": {
+    "title": "📈 性能监控",
+    "cpuUsage": "CPU 使用率",
+    "memoryUsage": "内存使用",
+    "diskUsage": "磁盘使用",
+    "networkTraffic": "网络流量",
+    "gpu": "GPU"
+  },
+  "network": {
+    "title": "🌐 网络管理",
+    "tabInterfaces": "接口",
+    "tabConnections": "连接"
+  },
+  "users": {
+    "title": "👥 用户管理",
+    "tabUsers": "用户",
+    "tabGroups": "组"
   },
   "terminal": {
     "title": "终端",
@@ -72,7 +122,9 @@
     "yes": "是",
     "no": "否",
     "ok": "确定",
-    "manage": "管理"
+    "manage": "管理",
+    "refresh": "刷新",
+    "search": "搜索"
   },
   "settings": {
     "title": "设置",

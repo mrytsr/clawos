@@ -90,6 +90,15 @@
                     elTitle.title = this.t(titleKey);
                 }
             }
+            // 更新 aria-label 属性
+            var ariaElements = document.querySelectorAll('[data-i18n-aria-label]');
+            for (var a = 0; a < ariaElements.length; a++) {
+                var elAria = ariaElements[a];
+                var ariaKey = elAria.getAttribute('data-i18n-aria-label');
+                if (ariaKey) {
+                    elAria.setAttribute('aria-label', this.t(ariaKey));
+                }
+            }
             // 更新 placeholder 属性
             var placeholderElements = document.querySelectorAll('[data-i18n-placeholder]');
             for (var k = 0; k < placeholderElements.length; k++) {

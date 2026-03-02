@@ -741,25 +741,26 @@ window.openMainMenuModal = function() {
     var c = document.getElementById('mainMenuItems');
     if (c) {
         var items = [
-            { action: 'process', icon: '📊', text: '进程管理' },
-            { action: 'gpu', icon: '🖥️', text: '显卡管理' },
-            { action: 'pkg', icon: '📦', text: '包管理' },
-            { action: 'perf', icon: '📈', text: '性能监控' },
-            { action: 'network', icon: '🌐', text: '网络管理' },
-            { action: 'users', icon: '👥', text: '用户管理' },
-            { action: 'docker', icon: '🐳', text: 'docker管理' },
-            { action: 'systemd', icon: '🔧', text: 'systemd管理' },
-            { action: 'disk', icon: '💾', text: '磁盘管理' },
-            { action: 'cron', icon: '⏰', text: 'Cron管理' },
-            { action: 'ollama', icon: '🦙', text: 'Ollama' },
-            { action: 'clash', icon: '🌐', text: 'Clash代理' },
-            { action: 'frp', icon: '🔗', text: 'FRP内网穿透' },
-            { action: 'picoclaw', icon: '🦞', text: 'PicoClaw配置' },
-            { action: 'nanobot', icon: '🐱', text: 'NanoBot配置' },
-            { action: 'nullclaw', icon: '⚡', text: 'NullClaw配置' }
+            { action: 'process', icon: '📊', key: 'menu.process' },
+            { action: 'gpu', icon: '🖥️', key: 'menu.gpu' },
+            { action: 'pkg', icon: '📦', key: 'menu.pkg' },
+            { action: 'perf', icon: '📈', key: 'menu.perf' },
+            { action: 'network', icon: '🌐', key: 'menu.network' },
+            { action: 'users', icon: '👥', key: 'menu.users' },
+            { action: 'docker', icon: '🐳', key: 'menu.docker' },
+            { action: 'systemd', icon: '🔧', key: 'menu.systemd' },
+            { action: 'disk', icon: '💾', key: 'menu.disk' },
+            { action: 'cron', icon: '⏰', key: 'menu.cron' },
+            { action: 'ollama', icon: '🦙', key: 'menu.ollama' },
+            { action: 'clash', icon: '🌐', key: 'menu.clash' },
+            { action: 'frp', icon: '🔗', key: 'menu.frp' },
+            { action: 'picoclaw', icon: '🦞', key: 'menu.picoclaw' },
+            { action: 'nanobot', icon: '🐱', key: 'menu.nanobot' },
+            { action: 'nullclaw', icon: '⚡', key: 'menu.nullclaw' }
         ];
         c.innerHTML = items.map(function(item) {
-            return '<div class="modal-item menu-item" data-action="' + item.action + '"><span style="margin-right:12px;">' + item.icon + '</span>' + item.text + '</div>';
+            var text = (typeof I18n !== 'undefined' && I18n.t) ? I18n.t(item.key) : item.key;
+            return '<div class="modal-item menu-item" data-action="' + item.action + '"><span style="margin-right:12px;">' + item.icon + '</span>' + text + '</div>';
         }).join('');
         c.querySelectorAll('.menu-item[data-action]').forEach(function(el) {
             el.addEventListener('click', function(e) {

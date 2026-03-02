@@ -10,6 +10,36 @@
     "ai": "AI Assistant",
     "settings": "Settings"
   },
+  "menu": {
+    "startMenu": "Start Menu",
+    "closeStartMenu": "Close Start Menu",
+    "process": "Process Manager",
+    "gpu": "GPU Manager",
+    "pkg": "Package Manager",
+    "perf": "Performance Monitor",
+    "network": "Network Manager",
+    "users": "User Manager",
+    "docker": "Docker Manager",
+    "systemd": "Systemd Manager",
+    "disk": "Disk Manager",
+    "cron": "Cron Manager",
+    "ollama": "Ollama",
+    "clash": "Clash Proxy",
+    "frp": "FRP Tunnel",
+    "picoclaw": "PicoClaw Config",
+    "nanobot": "NanoBot Config",
+    "nullclaw": "NullClaw Config"
+  },
+  "package": {
+    "title": "📦 Package Manager",
+    "tabSystem": "System",
+    "tabPip": "pip",
+    "tabNpm": "npm",
+    "tabSource": "Source",
+    "pipSource": "pip Source",
+    "npmSource": "npm Source",
+    "searchPlaceholder": "Search..."
+  },
   "fileBrowser": {
     "upload": "Upload",
     "newFolder": "New Folder",
@@ -30,7 +60,27 @@
     "owner": "Owner",
     "actions": "Actions",
     "openWith": "Open With",
-    "currentPath": "Current Path"
+    "currentPath": "Current Path",
+    "emptyDirectory": "This directory is empty",
+    "rootDirectory": "Root Directory"
+  },
+  "perf": {
+    "title": "📈 Performance Monitor",
+    "cpuUsage": "CPU Usage",
+    "memoryUsage": "Memory Usage",
+    "diskUsage": "Disk Usage",
+    "networkTraffic": "Network Traffic",
+    "gpu": "GPU"
+  },
+  "network": {
+    "title": "🌐 Network Manager",
+    "tabInterfaces": "Interfaces",
+    "tabConnections": "Connections"
+  },
+  "users": {
+    "title": "👥 User Manager",
+    "tabUsers": "Users",
+    "tabGroups": "Groups"
   },
   "terminal": {
     "title": "Terminal",
@@ -72,7 +122,9 @@
     "yes": "Yes",
     "no": "No",
     "ok": "OK",
-    "manage": "Manage"
+    "manage": "Manage",
+    "refresh": "Refresh",
+    "search": "Search"
   },
   "settings": {
     "title": "Settings",
