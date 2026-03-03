@@ -377,6 +377,7 @@
     "openWith": "Open With",
     "currentPath": "Current Path",
     "open_folder_menu": "Open current folder menu",
+    "open_folder": "Containing folder",
     "emptyDirectory": "This directory is empty",
     "rootDirectory": "Root Directory",
     "folder": "Folder",
@@ -403,13 +404,17 @@
   },
   "archive": {
     "create_title": "Create Archive",
+    "default_name": "New Archive",
     "create_message": "Enter archive name and select format (created in same directory)",
     "name_placeholder": "e.g., backup.zip",
     "start": "Start Compression",
     "select_files": "Please select files to compress",
+    "no_selection": "No items selected for compression",
     "not_archive": "Not an archive",
     "extract_message": "Enter extraction target directory (relative to current folder)",
     "extract_here": "Extract Here",
+    "extract": "Extract",
+    "extract_placeholder": "e.g., downloads/unpacked",
     "extract_success": "Extraction completed",
     "extract_failed": "Extraction failed"
   },
@@ -425,6 +430,8 @@
     "title": "Clipboard Operations",
     "copied": "Copied to clipboard",
     "unavailable": "Copy unavailable",
+    "select_copy": "Please select files to operate",
+    "select_move": "Please select files to move",
     "cut": "Cut to clipboard",
     "cut_unavailable": "Cut unavailable",
     "link_selected": "Link selected",
@@ -475,13 +482,18 @@
   },
   "file_menu": {
     "open": "Open",
+    "details": "Details",
     "edit": "Edit",
     "rename": "Rename",
     "copy": "Copy",
+    "copy_url": "Copy download URL",
+    "copy_path": "Copy absolute path",
     "cut": "Cut",
     "paste": "Paste",
     "delete": "Delete",
     "download": "Download",
+    "link": "Create symlink",
+    "terminal": "Open in terminal",
     "share": "Share",
     "compress": "Compress",
     "extract": "Extract",
@@ -496,6 +508,8 @@
     "cut": "Cut",
     "paste": "Paste",
     "delete": "Delete",
+    "link": "Create symlink",
+    "terminal": "Open in terminal",
     "compress": "Compress",
     "properties": "Properties"
   },
@@ -607,7 +621,8 @@
   "error": {
     "url_file_content": "Cannot read URL file content",
     "file_not_found": "File not found or cannot be read",
-    "open_url_failed": "Failed to open URL"
+    "open_url_failed": "Failed to open URL",
+    "invalid_path": "Invalid file path"
   },
   "time": {
     "just_now": "Just now",
@@ -980,11 +995,13 @@
     "restore": "Restore",
     "empty": "Trash is empty",
     "danger_zone": "Danger Zone",
+    "clear": "Clear",
     "clear_all": "Empty Trash",
     "restore_dialog": {
       "title": "Restore File",
       "path_placeholder": "Enter restore path"
     },
+    "restore_example": "e.g., docs/a.txt",
     "clear_dialog": {
       "title": "Confirm Empty",
       "message": "Are you sure you want to empty the trash?",

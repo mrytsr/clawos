@@ -377,6 +377,7 @@
     "openWith": "文件打开方式",
     "currentPath": "当前路径",
     "open_folder_menu": "打开当前文件夹菜单",
+    "open_folder": "所在文件夹",
     "emptyDirectory": "此目录为空",
     "rootDirectory": "根目录",
     "folder": "文件夹",
@@ -403,13 +404,17 @@
   },
   "archive": {
     "create_title": "新建压缩包",
+    "default_name": "新建压缩包",
     "create_message": "输入压缩包名称并选择格式（生成在同级目录）",
     "name_placeholder": "例如：backup.zip",
     "start": "开始压缩",
     "select_files": "请选择要压缩的文件",
+    "no_selection": "未选择可压缩项目",
     "not_archive": "不是压缩包",
     "extract_message": "输入解压目标目录（相对于当前文件夹）",
     "extract_here": "解压到此处",
+    "extract": "解压",
+    "extract_placeholder": "例如：downloads/unpacked",
     "extract_success": "解压完成",
     "extract_failed": "解压失败"
   },
@@ -425,6 +430,8 @@
     "title": "剪贴板操作",
     "copied": "已复制到剪贴板",
     "unavailable": "复制不可用",
+    "select_copy": "请选择要操作的文件",
+    "select_move": "请选择要移动的文件",
     "cut": "已剪切到剪贴板",
     "cut_unavailable": "剪切不可用",
     "link_selected": "已选择链接",
@@ -475,13 +482,18 @@
   },
   "file_menu": {
     "open": "打开",
+    "details": "查看详情",
     "edit": "编辑",
     "rename": "重命名",
     "copy": "复制",
+    "copy_url": "复制下载地址",
+    "copy_path": "复制绝对路径",
     "cut": "剪切",
     "paste": "粘贴",
     "delete": "删除",
     "download": "下载",
+    "link": "创建软链接",
+    "terminal": "在终端打开",
     "share": "分享",
     "compress": "压缩",
     "extract": "解压",
@@ -496,6 +508,8 @@
     "cut": "剪切",
     "paste": "粘贴",
     "delete": "删除",
+    "link": "创建软链接",
+    "terminal": "在终端打开",
     "compress": "压缩",
     "properties": "属性"
   },
@@ -607,7 +621,8 @@
   "error": {
     "url_file_content": "无法读取 URL 文件内容",
     "file_not_found": "文件不存在或无法读取",
-    "open_url_failed": "打开 URL 失败"
+    "open_url_failed": "打开 URL 失败",
+    "invalid_path": "无效的文件路径"
   },
   "time": {
     "just_now": "刚刚",
@@ -980,11 +995,13 @@
     "restore": "还原",
     "empty": "回收站是空的",
     "danger_zone": "危险操作",
+    "clear": "清空",
     "clear_all": "清空回收站",
     "restore_dialog": {
       "title": "还原文件",
       "path_placeholder": "输入还原路径"
     },
+    "restore_example": "例如：docs/a.txt",
     "clear_dialog": {
       "title": "确认清空",
       "message": "确定要清空回收站吗？",

@@ -377,6 +377,7 @@
     "openWith": "プログラムから開く",
     "currentPath": "現在のパス",
     "open_folder_menu": "現在のフォルダメニューを開く",
+    "open_folder": "保存先フォルダ",
     "emptyDirectory": "このディレクトリは空です",
     "rootDirectory": "ルートディレクトリ",
     "folder": "フォルダ",
@@ -403,13 +404,17 @@
   },
   "archive": {
     "create_title": "新規アーカイブ",
+    "default_name": "新規アーカイブ",
     "create_message": "アーカイブ名を入力し、形式を選択してください（同じディレクトリに作成）",
     "name_placeholder": "例: backup.zip",
     "start": "圧縮開始",
     "select_files": "圧縮するファイルを選択してください",
+    "no_selection": "圧縮する項目が選択されていません",
     "not_archive": "アーカイブではありません",
     "extract_message": "展開先ディレクトリを入力してください（現在のフォルダからの相対パス）",
     "extract_here": "ここに展開",
+    "extract": "展開",
+    "extract_placeholder": "例: downloads/unpacked",
     "extract_success": "展開完了",
     "extract_failed": "展開に失敗しました"
   },
@@ -425,6 +430,8 @@
     "title": "クリップボード操作",
     "copied": "クリップボードにコピーしました",
     "unavailable": "コピーできません",
+    "select_copy": "操作するファイルを選択してください",
+    "select_move": "移動するファイルを選択してください",
     "cut": "クリップボードに切り取りました",
     "cut_unavailable": "切り取りできません",
     "link_selected": "リンクを選択しました",
@@ -475,13 +482,18 @@
   },
   "file_menu": {
     "open": "開く",
+    "details": "詳細",
     "edit": "編集",
     "rename": "名前変更",
     "copy": "コピー",
+    "copy_url": "ダウンロードURLをコピー",
+    "copy_path": "絶対パスをコピー",
     "cut": "切り取り",
     "paste": "貼り付け",
     "delete": "削除",
     "download": "ダウンロード",
+    "link": "シンボリックリンクを作成",
+    "terminal": "ターミナルで開く",
     "share": "共有",
     "compress": "圧縮",
     "extract": "展開",
@@ -496,6 +508,8 @@
     "cut": "切り取り",
     "paste": "貼り付け",
     "delete": "削除",
+    "link": "シンボリックリンクを作成",
+    "terminal": "ターミナルで開く",
     "compress": "圧縮",
     "properties": "プロパティ"
   },
@@ -607,7 +621,8 @@
   "error": {
     "url_file_content": "URLファイルの内容を読み込めません",
     "file_not_found": "ファイルが見つからないか、読み込めません",
-    "open_url_failed": "URLを開けませんでした"
+    "open_url_failed": "URLを開けませんでした",
+    "invalid_path": "無効なファイルパス"
   },
   "time": {
     "just_now": "たった今",
@@ -980,11 +995,13 @@
     "restore": "復元",
     "empty": "ゴミ箱は空です",
     "danger_zone": "危険な操作",
+    "clear": "クリア",
     "clear_all": "ゴミ箱を空にする",
     "restore_dialog": {
       "title": "ファイル復元",
       "path_placeholder": "復元先パスを入力"
     },
+    "restore_example": "例: docs/a.txt",
     "clear_dialog": {
       "title": "空にする確認",
       "message": "ゴミ箱を空にしてもよろしいですか？",
