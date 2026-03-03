@@ -73,8 +73,6 @@ clawos stop
 - Discord: https://discord.gg/4PW8pEazm
 - QQ 群：485345801（扫码加入）
 
-将二维码图片保存为 `imgs/qq_group_qr.png` 后，README 会自动展示：
-
 <img src="imgs/qq_group_qr.png" width="280" alt="QQ Group QR Code" />
 
 ## Contributing
