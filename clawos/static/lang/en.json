@@ -57,8 +57,10 @@
     "create": "Create",
     "close": "Close",
     "open": "Open",
+    "menu": "Menu",
     "back": "Back",
     "loading": "Loading...",
+    "items": "items",
     "success": "Success",
     "error": "Error",
     "warning": "Warning",
@@ -364,6 +366,7 @@
     "paste": "Paste",
     "selectAll": "Select All",
     "search": "Search",
+    "search_hotkey": "Search (Ctrl+F)",
     "refresh": "Refresh",
     "path": "Path",
     "size": "Size",
@@ -373,10 +376,12 @@
     "actions": "Actions",
     "openWith": "Open With",
     "currentPath": "Current Path",
+    "open_folder_menu": "Open current folder menu",
     "emptyDirectory": "This directory is empty",
     "rootDirectory": "Root Directory",
     "folder": "Folder",
     "file": "File",
+    "open_site": "Open website",
     "symlink": "Symlink",
     "broken": "Broken",
     "symlink_target": "Symlink Target",
@@ -413,6 +418,7 @@
     "failed": "Upload failed"
   },
   "task": {
+    "listening": "Listening for task status…",
     "create_failed": "Failed to create task"
   },
   "clipboard": {

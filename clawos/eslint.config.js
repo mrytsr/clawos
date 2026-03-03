@@ -56,6 +56,7 @@ export default [
                 apiMessage: "readonly",
                 Drawer: "readonly",
                 SmallMenu: "readonly",
+                I18n: "readonly",
                 openTerminal: "readonly",
                 openPreview: "readonly",
                 loadBotHistory: "readonly",

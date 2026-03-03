@@ -68,6 +68,8 @@ window.loadProcessList = function() {
             var totalProcessText = (typeof I18n !== 'undefined' ? I18n.t('system.process.total') : '总进程');
             var cpuText = (typeof I18n !== 'undefined' ? I18n.t('system.process.cpu') : 'CPU');
             var memoryText = (typeof I18n !== 'undefined' ? I18n.t('system.process.memory') : '内存');
+            var detailText = (typeof I18n !== 'undefined' ? I18n.t('system.process.detail') : '详情');
+            var killText = (typeof I18n !== 'undefined' ? I18n.t('system.process.kill') : '结束');
             const header = '<div style="padding:14px 16px;border-bottom:1px solid #eee;background:#f6f8fa;">'
                 + '<div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;justify-content:space-between;">'
                 + '<div style="font-weight:600;">' + totalProcessText + '：' + escapeHtml(String(procCount)) + '</div>'
@@ -100,8 +102,6 @@ window.loadProcessList = function() {
                     + '<span>' + escapeHtml(String(elapsed)) + '</span>'
                     + '</div>'
                     + '</div>'
-                    var detailText = (typeof I18n !== 'undefined' ? I18n.t('system.process.detail') : '详情');
-                    var killText = (typeof I18n !== 'undefined' ? I18n.t('system.process.kill') : '结束');
                     + '<div style="display:flex;gap:8px;flex-shrink:0;">'
                     + '<button type="button" data-action="proc-detail" data-pid="' + safePid + '" style="border:1px solid #d0d7de;background:#fff;border-radius:8px;padding:6px 10px;cursor:pointer;">' + detailText + '</button>'
                     + '<button type="button" data-action="proc-kill" data-pid="' + safePid + '" style="border:1px solid #cf222e;background:#fff;border-radius:8px;padding:6px 10px;cursor:pointer;color:#cf222e;">' + killText + '</button>'

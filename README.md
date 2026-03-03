@@ -1,203 +1,89 @@
-# 🖥️ ClawOS
+# ClawOS
 
-A web-based management console for Linux systems with file management, system monitoring, and service administration capabilities.
+<p align="center">
+  <img src="imgs/icon.jpg" width="120" alt="ClawOS" />
+</p>
 
-![License](https://img.shields.io/badge/License-MIT-blue.svg)
-![Python](https://img.shields.io/badge/Python-3.8+-green.svg)
+<p align="center">
+  一个基于浏览器的 Linux 管理面板：文件管理、系统监控、终端、服务管理等。
+</p>
 
----
+<p align="center">
+  <img alt="License" src="https://img.shields.io/badge/License-MIT-blue.svg" />
+  <img alt="Python" src="https://img.shields.io/badge/Python-3.9%2B-green.svg" />
+</p>
+
+- 一条命令启动：`clawos start`，随后在浏览器完成管理
+- 文件管理：上传/下载、拖拽上传、批量操作、回收站、搜索
+- 系统与服务：进程、systemd、Docker、网络、磁盘、GPU（可选）
+- 内置工具：Git、编辑器、日志查看、任务队列
+
+## Quick Start
+
+### 0. 运行环境
+
+- Linux（依赖 systemd user：`systemctl --user`）
+- Python 3.9+
+
+### 1. 安装
+
+```bash
+pip install clawos
+```
+
+### 2. 启动
+
+```bash
+clawos start
+```
+
+打开浏览器访问：
+
+- http://localhost:6002
+
+查看登录密码：
+
+```bash
+clawos status
+clawos password
+```
+
+停止服务：
+
+```bash
+clawos stop
+```
 
 ## Screenshots
 
-Click to view full size.
-
 | | | |
 |---|---|---|
-| <img src="screenshots/20260225-110434.jpg" width="320" alt="ClawOS Screenshot 1" /> | <img src="screenshots/20260225-110441.jpg" width="320" alt="ClawOS Screenshot 2" /> | <img src="screenshots/20260225-110446.jpg" width="320" alt="ClawOS Screenshot 3" /> |
-| <img src="screenshots/20260225-110451.jpg" width="320" alt="ClawOS Screenshot 4" /> | <img src="screenshots/20260225-110456.jpg" width="320" alt="ClawOS Screenshot 5" /> | <img src="screenshots/20260225-110500.jpg" width="320" alt="ClawOS Screenshot 6" /> |
-| <img src="screenshots/20260225-110505.jpg" width="320" alt="ClawOS Screenshot 7" /> | <img src="screenshots/20260225-110510.jpg" width="320" alt="ClawOS Screenshot 8" /> | <img src="screenshots/20260225-110514.jpg" width="320" alt="ClawOS Screenshot 9" /> |
-| <img src="screenshots/20260227-123006.jpg" width="320" alt="ClawOS Screenshot 10" /> |  |  |
+| <img src="imgs/20260225-110434.jpg" width="320" alt="ClawOS Screenshot 1" /> | <img src="imgs/20260225-110441.jpg" width="320" alt="ClawOS Screenshot 2" /> | <img src="imgs/20260225-110446.jpg" width="320" alt="ClawOS Screenshot 3" /> |
+| <img src="imgs/20260225-110451.jpg" width="320" alt="ClawOS Screenshot 4" /> | <img src="imgs/20260225-110456.jpg" width="320" alt="ClawOS Screenshot 5" /> | <img src="imgs/20260225-110500.jpg" width="320" alt="ClawOS Screenshot 6" /> |
+| <img src="imgs/20260225-110505.jpg" width="320" alt="ClawOS Screenshot 7" /> | <img src="imgs/20260225-110510.jpg" width="320" alt="ClawOS Screenshot 8" /> | <img src="imgs/20260225-110514.jpg" width="320" alt="ClawOS Screenshot 9" /> |
+| <img src="imgs/20260227-123006.jpg" width="320" alt="ClawOS Screenshot 10" /> |  |  |
 
----
+## Documentation
 
-## Table of Contents
+- API: [docs/api.md](docs/api.md)
+- Protocol: [docs/PROTOCOL.md](docs/PROTOCOL.md)
 
-- [Architecture](#architecture)
-- [Features](#features)
-- [Installation](#installation)
-- [Configuration](#configuration)
-- [API Reference](#api-reference)
-- [Project Structure](#project-structure)
-- [Security](#security)
-- [License](#license)
+## Community
 
----
+- Discord: https://discord.gg/4PW8pEazm
+- QQ 群：485345801（扫码加入）
 
-## Architecture
+将二维码图片保存为 `imgs/qq_group_qr.png` 后，README 会自动展示：
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                         ClawOS Architecture                      │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  ┌──────────────────────────────────────────────────────────┐   │
-│  │                    Web Browser (Client)                  │   │
-│  │   ┌─────────────┐  ┌─────────────┐  ┌─────────────┐   │   │
-│  │   │ File Browser│  │  Terminal   │  │   System    │   │   │
-│  │   │     UI      │  │      UI     │  │   Monitor   │   │   │
-│  │   └─────────────┘  └─────────────┘  └─────────────┘   │   │
-│  └──────────────────────────────────────────────────────────┘   │
-│                              │                                 │
-│                    HTTP / WebSocket (REST API)                   │
-│                              │                                 │
-│  ┌──────────────────────────────────────────────────────────┐   │
-│  │                    Flask Server                           │   │
-│  │   ┌─────────────┐  ┌─────────────┐  ┌─────────────┐   │   │
-│  │   │  Blueprints │  │  SocketIO   │  │   Auth     │   │   │
-│  │   │  (REST API) │  │  (Terminal) │  │  Middleware │   │   │
-│  │   └─────────────┘  └─────────────┘  └─────────────┘   │   │
-│  └──────────────────────────────────────────────────────────┘   │
-│                              │                                 │
-│  ┌──────────────────────────────────────────────────────────┐   │
-│  │                    Service Controllers                     │   │
-│  │   ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐       │   │
-│  │   │  File   │ │ System │ │  Git   │ │Docker │       │   │
-│  │   │ Manager │ │ Monitor│ │Manager │ │Manager│       │   │
-│  │   └────────┘ └────────┘ └────────┘ └────────┘       │   │
-│  │   ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐       │   │
-│  │   │ FRPMgr  │ │ClashMgr│ │OpenClaw│ │Terminal │       │   │
-│  │   └────────┘ └────────┘ └────────┘ └────────┘       │   │
-│  └──────────────────────────────────────────────────────────┘   │
-│                              │                                 │
-│              ┌───────────────┼───────────────┐                │
-│              ▼               ▼               ▼                │
-│      ┌───────────┐  ┌───────────┐  ┌───────────┐        │
-│      │ Local File │ │Systemd    │ │ External   │        │
-│      │   System   │ │ Services  │ │ Services   │        │
-│      └───────────┘  └───────────┘  └───────────┘        │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
-```
+<img src="imgs/qq_group_qr.png" width="280" alt="QQ Group QR Code" />
 
-### Technology Stack
+## Contributing
 
-```
-┌─────────────────────────────────────────┐
-│              Frontend                    │
-├─────────────────────────────────────────┤
-│  HTML5 + CSS3 (Responsive)               │
-│  Vue.js 3 (Reactive UI)                 │
-│  xterm.js (Terminal Emulator)            │
-│  Monaco Editor (Code Editing)            │
-│  Socket.IO Client (WebSocket)            │
-└─────────────────────────────────────────┘
-                    │
-                    ▼
-┌─────────────────────────────────────────┐
-│              Backend                     │
-├─────────────────────────────────────────┤
-│  Python 3.8+                            │
-│  Flask 2.x (REST API)                  │
-│  Flask-SocketIO 5.x (WebSocket)        │
-│  psutil (System Monitoring)             │
-│  GitPython (Git Integration)             │
-└─────────────────────────────────────────┘
-```
+欢迎提交 Issue / PR。
 
----
+## License
 
-## Features
-
-### 📂 File Management
-- Browse files with hierarchical navigation
-- Upload/download files (drag & drop supported)
-- Create folders, rename, move, delete, clone
-- Multi-select with checkboxes
-- Batch operations (copy/move/delete)
-- Trash recovery system
-- File search with filters
-- Symlink detection and handling
-- Broken symlink visualization (black background, red text)
-
-### 📝 Multi-Format Editors
-- **JSON Editor**: Syntax highlighting, validation, tree/text/table modes
-- **YAML/TOML Editor**: Monaco-based code editor with syntax highlighting
-- **Markdown Preview**: Live preview with rendering
-- **Code Editor**: Multi-language support (Python, JS, HTML, CSS, etc.)
-- **Config Editors**: INI, CONF, XML support
-
-### 🖥️ Web Terminal
-- Full xterm.js terminal emulator
-- Socket.IO-based real-time communication
-- Command history navigation
-- Session persistence
-
-### 📊 System Monitoring
-- CPU usage and memory statistics
-- Process list with sorting
-- Disk usage information
-- Network interface stats
-- GPU information (NVIDIA)
-- Docker container management
-- Systemd service management
-
-### 🤖 Service Management
-
-#### FRP Management (frpc)
-```
-┌─────────────────────────────────────┐
-│  🌐 FRP 内网穿透                      │
-├─────────────────────────────────────┤
-│  Service Status: ● Running          │
-│                                     │
-│  Server: your-frp-server:17777      │
-│                                     │
-│  Proxies:                           │
-│  - test-tcp (22 → 6022)           │
-│  - http (80 → 6080)                │
-│  - 18789 (18789 → 18789)           │
-│  - 5001 (5001 → 15001)             │
-│  - 6002 (6002 → 6002)              │
-│                                     │
-│  [Start] [Stop] [Restart]           │
-│  [Edit Config]                      │
-└─────────────────────────────────────┘
-```
-
-#### Clash Management
-```
-┌─────────────────────────────────────┐
-│  🌐 Clash 代理                        │
-├─────────────────────────────────────┤
-│  Service Status: ● Running          │
-│                                     │
-│  Ports: 7890 (Mixed)                 │
-│                                     │
-│  📡 Subscription                    │
-│  [输入订阅URL] [Update]             │
-│                                     │
-│  🎯 Proxy Groups                     │
-│  - 一元机场 → 香港 01               │
-│  - 自动选择 → 香港 02               │
-│                                     │
-│  📡 Nodes: 12                       │
-│  📊 Rules: 514                      │
-└─────────────────────────────────────┘
-```
-
-#### OpenClaw Integration
-- Gateway status monitoring
-- Agent management
-- Channel configuration
-- Skills installation tracking
-- Health diagnostics
-
-### 🐙 Git Integration
-- Repository browser
-- Branch management
-- Commit history viewer
-- Diff visualization
-- Status bar integration
+MIT
 
 ### 🔐 Security Features
 - Password-based authentication

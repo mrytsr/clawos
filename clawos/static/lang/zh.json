@@ -57,8 +57,10 @@
     "create": "创建",
     "close": "关闭",
     "open": "打开",
+    "menu": "菜单",
     "back": "返回",
     "loading": "加载中...",
+    "items": "项",
     "success": "成功",
     "error": "错误",
     "warning": "警告",
@@ -364,6 +366,7 @@
     "paste": "粘贴",
     "selectAll": "全选",
     "search": "搜索",
+    "search_hotkey": "搜索 (Ctrl+F)",
     "refresh": "刷新",
     "path": "路径",
     "size": "大小",
@@ -373,10 +376,12 @@
     "actions": "操作",
     "openWith": "文件打开方式",
     "currentPath": "当前路径",
+    "open_folder_menu": "打开当前文件夹菜单",
     "emptyDirectory": "此目录为空",
     "rootDirectory": "根目录",
     "folder": "文件夹",
     "file": "文件",
+    "open_site": "打开网站",
     "symlink": "软链接",
     "broken": "破损",
     "symlink_target": "软链接目标",
@@ -413,6 +418,7 @@
     "failed": "上传失败"
   },
   "task": {
+    "listening": "正在监听任务状态…",
     "create_failed": "创建任务失败"
   },
   "clipboard": {

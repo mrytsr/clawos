@@ -1043,7 +1043,7 @@
 <body>
     <div id="taskListenerBar" class="task-listener-bar" role="status" aria-live="polite" aria-hidden="true" style="display:none;">
         <div class="task-spinner" aria-hidden="true"></div>
-        <div id="taskListenerText" class="task-listener-text">正在监听任务状态…</div>
+        <div id="taskListenerText" class="task-listener-text" data-i18n="task.listening">正在监听任务状态…</div>
     </div>
     <div class="container" id="browseApp">
         <!-- 文件浏览器顶部状态栏 -->
@@ -1102,7 +1102,7 @@
                             <span class="crumb-name">
                                 {{ crumb.name }}
                                 <span class="crumb-count">({{ items.length }})</span>
-                                <button type="button" class="menu-btn breadcrumb-folder-menu-btn" onclick="openCurrentFolderMenu(event)" aria-label="打开当前文件夹菜单" title="菜单"><span>⋮</span></button>
+                                <button type="button" class="menu-btn breadcrumb-folder-menu-btn" onclick="openCurrentFolderMenu(event)" :aria-label="t('fileBrowser.open_folder_menu')" :title="t('common.menu')"><span>⋮</span></button>
                             </span>
                         </template>
                         <template v-else>
@@ -1114,12 +1114,12 @@
                 <template v-else>
                     <span class="crumb-name">
                         <span class="crumb-count">({{ items.length }})</span>
-                        <button type="button" class="menu-btn breadcrumb-folder-menu-btn" onclick="openCurrentFolderMenu(event)" aria-label="打开当前文件夹菜单" title="菜单"><span>⋮</span></button>
+                        <button type="button" class="menu-btn breadcrumb-folder-menu-btn" onclick="openCurrentFolderMenu(event)" :aria-label="t('fileBrowser.open_folder_menu')" :title="t('common.menu')"><span>⋮</span></button>
                     </span>
                 </template>
             </div>
             <div class="breadcrumb-right">
-                <button onclick="openSearchModal()" style="background: none; border: none; cursor: pointer; font-size: var(--global-font-size, 16px); opacity: 0.75; padding: 4px 6px;" title="搜索 (Ctrl+F)">🔍</button>
+                <button onclick="openSearchModal()" style="background: none; border: none; cursor: pointer; font-size: var(--global-font-size, 16px); opacity: 0.75; padding: 4px 6px;" :title="t('fileBrowser.search_hotkey')">🔍</button>
             </div>
         </div>
 
@@ -1131,7 +1131,7 @@
                 <span class="git-status-indicator" id="gitStatusIndicator">●</span>
                 <span class="git-stats" id="gitStatusStats"></span>
             </div>
-            <div class="git-action-btn" title="Git管理">🔧</div>
+                <div class="git-action-btn" data-i18n-title="git.title" title="Git管理">🔧</div>
         </div>
 
         <div v-if="message" class="message" :class="messageTypeClass">
@@ -1152,11 +1152,11 @@
                     <div class="file-col-info">
                         <div class="file-name" :class="{ 'is-symlink': !!item.is_symlink, 'is-broken-link': !!item.is_broken_link }">
                             <span>{{ item.name }}</span>
-                            <a v-if="isPortDir(item)" :href="portHref(item.name)" target="_blank" style="margin-left: 8px; color: #17a2b8; text-decoration: none; font-size: 1.2em;" title="打开网站">🔗</a>
+                            <a v-if="isPortDir(item)" :href="portHref(item.name)" target="_blank" style="margin-left: 8px; color: #17a2b8; text-decoration: none; font-size: 1.2em;" :title="t('fileBrowser.open_site')">🔗</a>
                         </div>
                         <div class="file-details-inline">
                             <span class="file-size">
-                                {{ item.is_dir ? item.modified + " - " + (item.item_count || 0) + " 项" : item.size + " - " + item.modified }}
+                                {{ item.is_dir ? item.modified + " - " + (item.item_count || 0) + " " + t('common.items') : item.size + " - " + item.modified }}
                             </span>
                         </div>
                     </div>
@@ -1171,21 +1171,21 @@
                 </div>
             </div>
             <div v-else class="empty-directory">
-                <p>此目录为空</p>
+                <p>{{ t('fileBrowser.emptyDirectory') }}</p>
             </div>
         </div>
 
     </div><!-- end container -->
 
     <!-- 主菜单抽屉 -->
-    <div id="mainMenuDrawer" class="right-drawer" role="dialog" aria-modal="true" aria-label="开始菜单" aria-hidden="true" tabindex="-1">
+    <div id="mainMenuDrawer" class="right-drawer" role="dialog" aria-modal="true" aria-label="开始菜单" data-i18n-aria-label="menu.startMenu" aria-hidden="true" tabindex="-1">
         <div class="right-drawer-header">
             <div class="drawer-title" data-i18n="menu.startMenu">开始菜单</div>
             <button id="mainMenuCloseBtn" class="drawer-close-btn" onclick="closeMainMenuModal()" data-i18n-aria-label="menu.closeStartMenu">&times;</button>
         </div>
         <div class="right-drawer-content" id="mainMenuItems">
             <!-- 菜单项由 JS 动态渲染 -->
-            <div style="text-align: center; padding: 20px; color: #666;">加载中...</div>
+            <div style="text-align: center; padding: 20px; color: #666;" data-i18n="common.loading">加载中...</div>
         </div>
     </div>
     <div id="mainMenuBackdrop" class="right-drawer-backdrop" onclick="closeMainMenuModal()" aria-hidden="true"></div>
@@ -1200,43 +1200,43 @@
         <div class="right-drawer-content" style="padding: 0;">
             <!-- 搜索框 -->
             <div style="padding: 12px 16px; border-bottom: 1px solid #d0d7de; display: flex; gap: 8px;">
-                <input type="text" id="pkgSearchInput" placeholder="搜索..." 
+                <input type="text" id="pkgSearchInput" placeholder="搜索..." data-i18n-placeholder="package.searchPlaceholder"
                     style="flex: 1; padding: 8px 12px; border: 1px solid #d0d7de; border-radius: 6px; font-size: 14px;"
                     oninput="filterPkgList()">
                 <button onclick="loadPkgCurrentTab()" style="padding: 8px 16px; background: #0969da; color: #fff; border: none; border-radius: 6px; cursor: pointer;" data-i18n="common.refresh">刷新</button>
             </div>
             <!-- Tab 栏 -->
             <div style="display: flex; border-bottom: 1px solid #d0d7de; background: #f6f8fa;">
-                <button class="pkg-tab active" data-tab="system" onclick="switchPkgTab('system')">系统</button>
-                <button class="pkg-tab" data-tab="pip" onclick="switchPkgTab('pip')">pip</button>
-                <button class="pkg-tab" data-tab="npm" onclick="switchPkgTab('npm')">npm</button>
-                <button class="pkg-tab" data-tab="source" onclick="switchPkgTab('source')">源</button>
+                <button class="pkg-tab active" data-tab="system" onclick="switchPkgTab('system')" data-i18n="package.tabSystem">系统</button>
+                <button class="pkg-tab" data-tab="pip" onclick="switchPkgTab('pip')" data-i18n="package.tabPip">pip</button>
+                <button class="pkg-tab" data-tab="npm" onclick="switchPkgTab('npm')" data-i18n="package.tabNpm">npm</button>
+                <button class="pkg-tab" data-tab="source" onclick="switchPkgTab('source')" data-i18n="package.tabSource">源</button>
             </div>
             <!-- Tab 内容 -->
             <div id="pkgTabContent" style="height: calc(100vh - 180px); overflow-y: auto; padding: 12px;">
                 <!-- 系统包 -->
                 <div id="pkgSystem" class="pkg-tab-panel active">
-                    <div id="pkgSystemList" class="pkg-list">加载中...</div>
+                    <div id="pkgSystemList" class="pkg-list" data-i18n="common.loading">加载中...</div>
                 </div>
                 <!-- pip 包 -->
                 <div id="pkgPip" class="pkg-tab-panel">
-                    <div id="pkgPipList" class="pkg-list">加载中...</div>
+                    <div id="pkgPipList" class="pkg-list" data-i18n="common.loading">加载中...</div>
                 </div>
                 <!-- npm 包 -->
                 <div id="pkgNpm" class="pkg-tab-panel">
-                    <div id="pkgNpmList" class="pkg-list">加载中...</div>
+                    <div id="pkgNpmList" class="pkg-list" data-i18n="common.loading">加载中...</div>
                 </div>
                 <!-- 源管理 -->
                 <div id="pkgSource" class="pkg-tab-panel">
                     <!-- pip 源 -->
                     <div style="margin-bottom: 20px;">
-                        <div style="font-size: 13px; color: #57606a; margin-bottom: 8px;">pip 源</div>
+                        <div style="font-size: 13px; color: #57606a; margin-bottom: 8px;" data-i18n="package.pipSource">pip 源</div>
                         <div id="pipSourceCurrent" style="padding: 8px 12px; background: #f6f8fa; border-radius: 6px; margin-bottom: 8px; font-size: 13px;"></div>
                         <div id="pipSourceList" class="source-list"></div>
                     </div>
                     <!-- npm 源 -->
                     <div>
-                        <div style="font-size: 13px; color: #57606a; margin-bottom: 8px;">npm 源</div>
+                        <div style="font-size: 13px; color: #57606a; margin-bottom: 8px;" data-i18n="package.npmSource">npm 源</div>
                         <div id="npmSourceCurrent" style="padding: 8px 12px; background: #f6f8fa; border-radius: 6px; margin-bottom: 8px; font-size: 13px;"></div>
                         <div id="npmSourceList" class="source-list"></div>
                     </div>
@@ -2277,6 +2277,7 @@
                         message: getQueryParam('message'),
                         messageType: getQueryParam('msg_type') || 'success',
                         loading: true,
+                        i18nLang: (function() { try { return localStorage.getItem('clawos_lang') || 'zh'; } catch (e) { return 'zh'; } })(),
                     };
                 },
                 computed: {
@@ -2285,6 +2286,13 @@
                     }
                 },
                 methods: {
+                    t: function(key) {
+                        var _ = this.i18nLang;
+                        if (typeof window.I18n !== 'undefined' && typeof window.I18n.t === 'function') {
+                            return window.I18n.t(key);
+                        }
+                        return key;
+                    },
                     browseHref: function(relPath) {
                         if (!relPath) { return '/browse/'; }
                         if (typeof window.encodePathForUrl === 'function') {
@@ -2504,6 +2512,12 @@
                     var app = this;
                     // 保存 Vue 组件引用供全局 refreshFileList 使用
                     window.__browseVueApp__ = app;
+
+                    document.addEventListener('i18n:languageChanged', function(e) {
+                        if (e && e.detail && e.detail.lang) {
+                            app.i18nLang = e.detail.lang;
+                        }
+                    });
                     
                     var nav = {
                         __abort: null,

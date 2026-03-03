@@ -57,8 +57,10 @@
     "create": "作成",
     "close": "閉じる",
     "open": "開く",
+    "menu": "メニュー",
     "back": "戻る",
     "loading": "読み込み中...",
+    "items": "件",
     "success": "成功",
     "error": "エラー",
     "warning": "警告",
@@ -364,6 +366,7 @@
     "paste": "貼り付け",
     "selectAll": "すべて選択",
     "search": "検索",
+    "search_hotkey": "検索 (Ctrl+F)",
     "refresh": "更新",
     "path": "パス",
     "size": "サイズ",
@@ -373,10 +376,12 @@
     "actions": "アクション",
     "openWith": "プログラムから開く",
     "currentPath": "現在のパス",
+    "open_folder_menu": "現在のフォルダメニューを開く",
     "emptyDirectory": "このディレクトリは空です",
     "rootDirectory": "ルートディレクトリ",
     "folder": "フォルダ",
     "file": "ファイル",
+    "open_site": "サイトを開く",
     "symlink": "シンボリックリンク",
     "broken": "破損",
     "symlink_target": "シンボリックリンク先",
@@ -413,6 +418,7 @@
     "failed": "アップロードに失敗しました"
   },
   "task": {
+    "listening": "タスク状態を監視中…",
     "create_failed": "タスクの作成に失敗しました"
   },
   "clipboard": {
