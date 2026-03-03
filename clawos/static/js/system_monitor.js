@@ -12,15 +12,18 @@ function __setContainerHtml(id, html) {
 }
 
 function __loadingHtml(label) {
-    return '<div style="text-align:center;padding:40px;color:#666;">🔄 ' + escapeHtml(label || '加载中...') + '</div>';
+    var loadingText = (typeof I18n !== 'undefined' ? I18n.t('common.loading_ellipsis') : '加载中...');
+    return '<div style="text-align:center;padding:40px;color:#666;">🔄 ' + escapeHtml(label || loadingText) + '</div>';
 }
 
 function __emptyHtml(label) {
-    return '<div style="text-align:center;padding:40px;color:#666;">' + escapeHtml(label || '暂无数据') + '</div>';
+    var emptyText = (typeof I18n !== 'undefined' ? I18n.t('common.no_data') : '暂无数据');
+    return '<div style="text-align:center;padding:40px;color:#666;">' + escapeHtml(label || emptyText) + '</div>';
 }
 
 function __errorHtml(label) {
-    return '<div style="text-align:center;padding:40px;color:#cf222e;">' + escapeHtml(label || '加载失败') + '</div>';
+    var errorText = (typeof I18n !== 'undefined' ? I18n.t('common.load_failed') : '加载失败');
+    return '<div style="text-align:center;padding:40px;color:#cf222e;">' + escapeHtml(label || errorText) + '</div>';
 }
 
 function __postJson(url, payload) {
@@ -42,7 +45,8 @@ function __fmtInt(n) {
 }
 
 window.loadProcessList = function() {
-    const container = __setContainerHtml('processListContainer', __loadingHtml('加载中...'));
+    var loadingText = (typeof I18n !== 'undefined' ? I18n.t('common.loading_ellipsis') : '加载中...');
+    const container = __setContainerHtml('processListContainer', __loadingHtml(loadingText));
     fetch('/api/process/list', { headers: authHeaders() })
         .then(function(r) { return r.json(); })
         .then(function(data) {
@@ -61,12 +65,15 @@ window.loadProcessList = function() {
             const memPct = typeof stats.memory_percent === 'number' ? stats.memory_percent : null;
             const procCount = typeof stats.process_count === 'number' ? stats.process_count : processes.length;
 
+            var totalProcessText = (typeof I18n !== 'undefined' ? I18n.t('system.process.total') : '总进程');
+            var cpuText = (typeof I18n !== 'undefined' ? I18n.t('system.process.cpu') : 'CPU');
+            var memoryText = (typeof I18n !== 'undefined' ? I18n.t('system.process.memory') : '内存');
             const header = '<div style="padding:14px 16px;border-bottom:1px solid #eee;background:#f6f8fa;">'
                 + '<div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;justify-content:space-between;">'
-                + '<div style="font-weight:600;">总进程：' + escapeHtml(String(procCount)) + '</div>'
+                + '<div style="font-weight:600;">' + totalProcessText + '：' + escapeHtml(String(procCount)) + '</div>'
                 + '<div style="display:flex;gap:10px;flex-wrap:wrap;font-size:12px;color:#57606a;">'
-                + '<span>CPU：' + (cpuPct === null ? '-' : escapeHtml(__fmtPct(cpuPct)) + '%') + '</span>'
-                + '<span>内存：' + (memUsed === null || memTotal === null ? '-' : escapeHtml(formatSize(memUsed)) + ' / ' + escapeHtml(formatSize(memTotal)) + (memPct === null ? '' : ' (' + escapeHtml(__fmtPct(memPct)) + '%)')) + '</span>'
+                + '<span>' + cpuText + '：' + (cpuPct === null ? '-' : escapeHtml(__fmtPct(cpuPct)) + '%') + '</span>'
+                + '<span>' + memoryText + '：' + (memUsed === null || memTotal === null ? '-' : escapeHtml(formatSize(memUsed)) + ' / ' + escapeHtml(formatSize(memTotal)) + (memPct === null ? '' : ' (' + escapeHtml(__fmtPct(memPct)) + '%)')) + '</span>'
                 + '</div>'
                 + '</div>'
                 + '</div>';
@@ -93,9 +100,11 @@ window.loadProcessList = function() {
                     + '<span>' + escapeHtml(String(elapsed)) + '</span>'
                     + '</div>'
                     + '</div>'
+                    var detailText = (typeof I18n !== 'undefined' ? I18n.t('system.process.detail') : '详情');
+                    var killText = (typeof I18n !== 'undefined' ? I18n.t('system.process.kill') : '结束');
                     + '<div style="display:flex;gap:8px;flex-shrink:0;">'
-                    + '<button type="button" data-action="proc-detail" data-pid="' + safePid + '" style="border:1px solid #d0d7de;background:#fff;border-radius:8px;padding:6px 10px;cursor:pointer;">详情</button>'
-                    + '<button type="button" data-action="proc-kill" data-pid="' + safePid + '" style="border:1px solid #cf222e;background:#fff;border-radius:8px;padding:6px 10px;cursor:pointer;color:#cf222e;">结束</button>'
+                    + '<button type="button" data-action="proc-detail" data-pid="' + safePid + '" style="border:1px solid #d0d7de;background:#fff;border-radius:8px;padding:6px 10px;cursor:pointer;">' + detailText + '</button>'
+                    + '<button type="button" data-action="proc-kill" data-pid="' + safePid + '" style="border:1px solid #cf222e;background:#fff;border-radius:8px;padding:6px 10px;cursor:pointer;color:#cf222e;">' + killText + '</button>'
                     + '</div>'
                     + '</div>'
                     + '</div>';

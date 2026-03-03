@@ -137,9 +137,11 @@ function __gitListCss() {
 
 function __gitDirtyLineHtml(hasChanges, statusText, changeInfo) {
     const color = hasChanges ? '#cf222e' : '#2da44e';
+    const pullText = typeof I18n !== 'undefined' ? I18n.t('git.pull') : '拉取';
+    const pushText = typeof I18n !== 'undefined' ? I18n.t('git.push_changes') : '推送变更';
     const btn = hasChanges
-        ? '<button type="button" class="git-diff-btn" id="gitDiffBtn">diff</button><button type="button" class="git-pull-btn" id="gitPullBtn">拉取</button><button type="button" class="git-push-btn" id="gitPushBtn">推送变更</button>'
-        : '<button type="button" class="git-pull-btn" id="gitPullBtn">拉取</button>';
+        ? '<button type="button" class="git-diff-btn" id="gitDiffBtn">diff</button><button type="button" class="git-pull-btn" id="gitPullBtn">' + pullText + '</button><button type="button" class="git-push-btn" id="gitPushBtn">' + pushText + '</button>'
+        : '<button type="button" class="git-pull-btn" id="gitPullBtn">' + pullText + '</button>';
     const hint = hasChanges ? '<span id="gitPushHint" style="font-size:12px;color:#57606a;"></span>' : '';
     return '<div id="gitRepoDirtyLine" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:12px;color:' + color + ';margin-top:4px;">' +
         '<span>' + escapeHtml(statusText || '') + escapeHtml(changeInfo || '') + '</span>' +
@@ -151,11 +153,11 @@ function __gitDirtyLineHtml(hasChanges, statusText, changeInfo) {
 function __gitBindPullButton(repoPath) {
     const btn = document.getElementById('gitPullBtn');
     if (!btn) return;
-    btn.addEventListener('click', function() {
+        btn.addEventListener('click', function() {
         if (btn.disabled) return;
         btn.disabled = true;
         const prevText = btn.textContent;
-        btn.textContent = '拉取中…';
+        btn.textContent = typeof I18n !== 'undefined' ? I18n.t('git.pulling') : '拉取中…';
         const headers = authHeaders ? (authHeaders() || {}) : {};
         headers['Content-Type'] = 'application/json';
         fetch('/api/git/pull', {
@@ -167,14 +169,14 @@ function __gitBindPullButton(repoPath) {
             .then(function(resp) {
                 const payload = apiData(resp);
                 if (!payload) {
-                    const msg = resp?.error?.message || '拉取失败';
+                    const msg = resp?.error?.message || (typeof I18n !== 'undefined' ? I18n.t('git.pull_failed') : '拉取失败');
                     throw new Error(msg);
                 }
-                if (typeof showToast === 'function') showToast('拉取成功', 'success');
+                if (typeof showToast === 'function') showToast(typeof I18n !== 'undefined' ? I18n.t('git.pull_success') : '拉取成功', 'success');
                 window.loadGitList(repoPath);
             })
             .catch(function(e) {
-                const msg = e?.message || '拉取失败';
+                const msg = e?.message || (typeof I18n !== 'undefined' ? I18n.t('git.pull_failed') : '拉取失败');
                 if (typeof showToast === 'function') showToast(msg, 'error');
             })
             .finally(function() {
@@ -212,7 +214,7 @@ function __gitDoDiff(repoPath) {
 
     // 显示 loading
     if (typeof window.showTaskListener === 'function') {
-        window.showTaskListener('正在加载 diff…');
+        window.showTaskListener(typeof I18n !== 'undefined' ? I18n.t('git.loading_diff') : '正在加载 diff…');
     }
     window.open(url, '_blank');
 
@@ -227,14 +229,14 @@ function __gitDoDiff(repoPath) {
 // Checkout 放弃所有更改
 function __gitDoCheckout(repoPath) {
     window.showConfirm(
-        '放弃本地更改',
-        '确定要放弃所有本地更改吗？此操作不可恢复！',
+        typeof I18n !== 'undefined' ? I18n.t('git.checkout_confirm_title') : '放弃本地更改',
+        typeof I18n !== 'undefined' ? I18n.t('git.checkout_confirm_message') : '确定要放弃所有本地更改吗？此操作不可恢复！',
         function() {
             const headers = authHeaders ? (authHeaders() || {}) : {};
             headers['Content-Type'] = 'application/json';
 
             if (typeof window.showTaskListener === 'function') {
-                window.showTaskListener('正在 checkout…');
+                window.showTaskListener(typeof I18n !== 'undefined' ? I18n.t('git.checkout_progress') : '正在 checkout…');
             }
 
             fetch('/api/git/checkout', {
@@ -248,7 +250,7 @@ function __gitDoCheckout(repoPath) {
                     if (typeof window.hideTaskListener === 'function') {
                         window.hideTaskListener();
                     }
-                    const msg = payload && payload.message ? payload.message : (resp.error && resp.error.message ? resp.error.message : '操作完成');
+                    const msg = payload && payload.message ? payload.message : (resp.error && resp.error.message ? resp.error.message : (typeof I18n !== 'undefined' ? I18n.t('git.operation_complete') : '操作完成'));
                     if (typeof window.showTaskListener === 'function') {
                         window.showTaskListener(msg);
                     }
@@ -272,7 +274,7 @@ function __gitDoPull(repoPath) {
 
     // 显示 loading
     if (typeof window.showTaskListener === 'function') {
-        window.showTaskListener('正在拉取…');
+        window.showTaskListener(typeof I18n !== 'undefined' ? I18n.t('git.pulling') : '正在拉取…');
     }
 
     fetch('/api/git/pull', {
@@ -288,17 +290,17 @@ function __gitDoPull(repoPath) {
             }
 
             if (!payload) {
-                const msg = resp?.error?.message || '拉取失败';
+                const msg = resp?.error?.message || (typeof I18n !== 'undefined' ? I18n.t('git.pull_failed') : '拉取失败');
                 throw new Error(msg);
             }
-            if (typeof showToast === 'function') showToast('拉取成功', 'success');
+            if (typeof showToast === 'function') showToast(typeof I18n !== 'undefined' ? I18n.t('git.pull_success') : '拉取成功', 'success');
             window.loadGitList(repoPath);
         })
         .catch(function(e) {
             if (typeof window.hideTaskListener === 'function') {
                 window.hideTaskListener();
             }
-            const msg = e?.message || '拉取失败';
+            const msg = e?.message || (typeof I18n !== 'undefined' ? I18n.t('git.pull_failed') : '拉取失败');
             if (typeof showToast === 'function') showToast(msg, 'error');
         });
 }
@@ -310,7 +312,7 @@ function __gitFetchRemotes(repoPath) {
         .then(function(resp) {
             const payload = apiData(resp);
             if (!payload) {
-                const msg = resp?.error?.message || '获取 remote 失败';
+                const msg = resp?.error?.message || (typeof I18n !== 'undefined' ? I18n.t('git.fetch_remotes_failed') : '获取 remote 失败');
                 throw new Error(msg);
             }
             const remotes = payload.remotes;
@@ -329,12 +331,12 @@ function __gitRunPushChanges(repoPath, remote, ui) {
 
     if (btn) {
         btn.disabled = true;
-        btn.textContent = '推送中…';
+        btn.textContent = typeof I18n !== 'undefined' ? I18n.t('git.pushing') : '推送中…';
     }
-    if (hint) hint.textContent = '处理中…';
+    if (hint) hint.textContent = typeof I18n !== 'undefined' ? I18n.t('common.processing') : '处理中…';
 
     if (typeof window.showTaskListener === 'function') {
-        window.showTaskListener('正在推送…');
+        window.showTaskListener(typeof I18n !== 'undefined' ? I18n.t('git.pushing') : '正在推送…');
     }
 
     return fetch('/api/git/push-changes', {
@@ -350,28 +352,28 @@ function __gitRunPushChanges(repoPath, remote, ui) {
             }
 
             if (!payload) {
-                const msg = resp?.error?.message || '推送失败';
+                const msg = resp?.error?.message || (typeof I18n !== 'undefined' ? I18n.t('git.push_failed') : '推送失败');
                 throw new Error(msg);
             }
             if (payload.status === 'clean') {
-                if (typeof showToast === 'function') showToast('当前没有可提交的变更', 'warning');
-                if (hint) hint.textContent = '没有可提交的变更';
+                if (typeof showToast === 'function') showToast(typeof I18n !== 'undefined' ? I18n.t('git.no_changes') : '当前没有可提交的变更', 'warning');
+                if (hint) hint.textContent = typeof I18n !== 'undefined' ? I18n.t('git.no_changes') : '没有可提交的变更';
                 return;
             }
             if (payload.pushed) {
-                if (typeof showToast === 'function') showToast('推送成功', 'success');
+                if (typeof showToast === 'function') showToast(typeof I18n !== 'undefined' ? I18n.t('git.push_success') : '推送成功', 'success');
                 didReload = true;
                 window.loadGitList(repoPath);
                 return;
             }
-            const msg = payload.message || '推送失败';
+            const msg = payload.message || (typeof I18n !== 'undefined' ? I18n.t('git.push_failed') : '推送失败');
             throw new Error(msg);
         })
         .catch(function(e) {
             if (typeof window.hideTaskListener === 'function') {
                 window.hideTaskListener();
             }
-            const msg = e?.message || '推送失败';
+            const msg = e?.message || (typeof I18n !== 'undefined' ? I18n.t('git.push_failed') : '推送失败');
             if (typeof showToast === 'function') showToast(msg, 'error');
             if (hint) hint.textContent = msg;
             throw e;
@@ -379,7 +381,7 @@ function __gitRunPushChanges(repoPath, remote, ui) {
         .finally(function() {
             if (btn && !didReload) {
                 btn.disabled = false;
-                btn.textContent = prevText || '推送变更';
+                btn.textContent = prevText || (typeof I18n !== 'undefined' ? I18n.t('git.push_changes') : '推送变更');
             }
         });
 }
@@ -391,9 +393,9 @@ function __gitPromptPushRemote(repoPath, remotes, onConfirm) {
     if (typeof window.openDialogDrawer !== 'function') return false;
 
     window.openDialogDrawer({
-        title: '选择推送 remote',
-        message: '请选择要推送到哪个 remote',
-        confirmText: '推送',
+        title: typeof I18n !== 'undefined' ? I18n.t('git.select_remote_title') : '选择推送 remote',
+        message: typeof I18n !== 'undefined' ? I18n.t('git.select_remote_message') : '请选择要推送到哪个 remote',
+        confirmText: typeof I18n !== 'undefined' ? I18n.t('git.push') : '推送',
         select: {
             options: list.map(function(r) { return { value: r, label: r }; }),
             defaultValue: defaultRemote
@@ -414,14 +416,14 @@ function __gitPushChangesWithRemoteFlow(repoPath, ui) {
 
     if (btn) {
         btn.disabled = true;
-        btn.textContent = '检查 remote…';
+        btn.textContent = typeof I18n !== 'undefined' ? I18n.t('git.checking_remotes') : '检查 remote…';
     }
-    if (hint) hint.textContent = '处理中…';
+    if (hint) hint.textContent = typeof I18n !== 'undefined' ? I18n.t('common.processing') : '处理中…';
 
     __gitFetchRemotes(repoPath)
         .then(function(remotes) {
             if (!remotes.length) {
-                const msg = '未找到 remote';
+                const msg = typeof I18n !== 'undefined' ? I18n.t('git.no_remotes') : '未找到 remote';
                 if (typeof showToast === 'function') showToast(msg, 'error');
                 if (hint) hint.textContent = msg;
                 return;
@@ -440,20 +442,20 @@ function __gitPushChangesWithRemoteFlow(repoPath, ui) {
                 __gitRunPushChanges(repoPath, selected, ui);
             });
             if (!opened) {
-                const msg = '无法打开选择窗口';
+                const msg = typeof I18n !== 'undefined' ? I18n.t('git.cannot_open_dialog') : '无法打开选择窗口';
                 if (typeof showToast === 'function') showToast(msg, 'error');
                 if (hint) hint.textContent = msg;
             }
         })
         .catch(function(e) {
-            const msg = e?.message || '推送失败';
+            const msg = e?.message || (typeof I18n !== 'undefined' ? I18n.t('git.push_failed') : '推送失败');
             if (typeof showToast === 'function') showToast(msg, 'error');
             if (hint) hint.textContent = msg;
         })
         .finally(function() {
-            if (btn && btn.disabled && btn.textContent === '检查 remote…') {
+            if (btn && btn.disabled && btn.textContent === (typeof I18n !== 'undefined' ? I18n.t('git.checking_remotes') : '检查 remote…')) {
                 btn.disabled = false;
-                btn.textContent = prevText || '推送变更';
+                btn.textContent = prevText || (typeof I18n !== 'undefined' ? I18n.t('git.push_changes') : '推送变更');
             }
         });
 }
@@ -463,7 +465,7 @@ function __gitDoPush(repoPath) {
     __gitFetchRemotes(repoPath)
         .then(function(remotes) {
             if (!remotes.length) {
-                const msg = '未找到 remote';
+                const msg = typeof I18n !== 'undefined' ? I18n.t('git.no_remotes') : '未找到 remote';
                 if (typeof showToast === 'function') showToast(msg, 'error');
                 throw new Error(msg);
             }
@@ -474,7 +476,7 @@ function __gitDoPush(repoPath) {
                 __gitRunPushChanges(repoPath, selected, null);
             });
             if (!opened) {
-                const msg = '无法打开选择窗口';
+                const msg = typeof I18n !== 'undefined' ? I18n.t('git.cannot_open_dialog') : '无法打开选择窗口';
                 if (typeof showToast === 'function') showToast(msg, 'error');
                 throw new Error(msg);
             }
@@ -509,7 +511,7 @@ function __gitRenderDiffFileTable(container, rows, repoPath, meta) {
     if (!list.length) {
         container.innerHTML = '<div style="padding:10px 12px;color:#57606a;font-size:12px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">' +
             statusHtml + infoHtml +
-            '<span>暂无变更 · ' + updateTime + '</span>' +
+            '<span>' + (typeof I18n !== 'undefined' ? I18n.t('git.no_changes_yet') : '暂无变更') + ' · ' + updateTime + '</span>' +
             '</div>';
         return;
     }
@@ -535,8 +537,8 @@ function __gitRenderDiffFileTable(container, rows, repoPath, meta) {
             const delClick = delNum > 0 ? "__gitOpenFileDiff('" + repo + "', '" + path + "'); event.stopPropagation();" : '';
             return '<tr onclick="' + rowClick + '" style="cursor:pointer;border-bottom:1px solid #eee;">' +
                 '<td class="git-diffstat-path" title="' + pathEsc + '" style="color:#0969da;padding:8px 12px;text-align:left;">' + pathEsc + '</td>' +
-                '<td class="git-diffstat-num" ' + (addClick ? 'onclick="' + addClick + '" style="cursor:pointer;color:#2da44e;padding:8px 12px;text-align:right;white-space:nowrap;text-decoration:underline;text-decoration-style:dotted;" title="点击查看 diff"' : 'style="color:#2da44e;padding:8px 12px;text-align:right;white-space:nowrap;"') + '>+' + escapeHtml(add) + '</td>' +
-                '<td class="git-diffstat-num" ' + (delClick ? 'onclick="' + delClick + '" style="cursor:pointer;color:#cf222e;padding:8px 12px;text-align:right;white-space:nowrap;text-decoration:underline;text-decoration-style:dotted;" title="点击查看 diff"' : 'style="color:#cf222e;padding:8px 12px;text-align:right;white-space:nowrap;"') + '>-' + escapeHtml(del) + '</td>' +
+                '<td class="git-diffstat-num" ' + (addClick ? 'onclick="' + addClick + '" style="cursor:pointer;color:#2da44e;padding:8px 12px;text-align:right;white-space:nowrap;text-decoration:underline;text-decoration-style:dotted;" title="' + (typeof I18n !== 'undefined' ? I18n.t('git.click_view_diff') : '点击查看 diff') + '"' : 'style="color:#2da44e;padding:8px 12px;text-align:right;white-space:nowrap;"') + '>+' + escapeHtml(add) + '</td>' +
+                '<td class="git-diffstat-num" ' + (delClick ? 'onclick="' + delClick + '" style="cursor:pointer;color:#cf222e;padding:8px 12px;text-align:right;white-space:nowrap;text-decoration:underline;text-decoration-style:dotted;" title="' + (typeof I18n !== 'undefined' ? I18n.t('git.click_view_diff') : '点击查看 diff') + '"' : 'style="color:#cf222e;padding:8px 12px;text-align:right;white-space:nowrap;"') + '>-' + escapeHtml(del) + '</td>' +
                 '</tr>';
         }).join('') +
         '</table></div>';
@@ -582,13 +584,13 @@ function __gitLoadDiffFileList(repoPath, meta) {
         el.parentNode.insertBefore(metaEl, el);
     }
 
-    el.innerHTML = '<div style="padding:10px 12px;color:#57606a;font-size:12px;">加载变更…</div>';
+    el.innerHTML = '<div style="padding:10px 12px;color:#57606a;font-size:12px;">' + (typeof I18n !== 'undefined' ? I18n.t('git.loading_changes') : '加载变更…') + '</div>';
     fetch('/api/git/diff-numstat?path=' + encodeURIComponent(String(repoPath || '')), { headers: authHeaders() })
         .then(function(r) { return r.json(); })
         .then(function(resp) {
             const payload = apiData(resp);
             if (!payload) {
-                const msg = resp && resp.error && resp.error.message ? resp.error.message : '加载失败';
+                const msg = resp && resp.error && resp.error.message ? resp.error.message : (typeof I18n !== 'undefined' ? I18n.t('common.load_failed') : '加载失败');
                 throw new Error(msg);
             }
             // 使用 API 返回的绝对路径
@@ -596,14 +598,14 @@ function __gitLoadDiffFileList(repoPath, meta) {
             __gitRenderDiffFileTable(el, payload.files || [], absRepoPath, meta);
         })
         .catch(function() {
-            el.innerHTML = '<div style="padding:10px 12px;color:#cf222e;font-size:12px;">加载失败</div>';
+            el.innerHTML = '<div style="padding:10px 12px;color:#cf222e;font-size:12px;">' + (typeof I18n !== 'undefined' ? I18n.t('common.load_failed') : '加载失败') + '</div>';
         });
 }
 
 function __gitSetDrawerTitle(html) {
     const el = document.getElementById('gitDrawerTitle');
     if (!el) return;
-    el.innerHTML = html || '🔀 Git管理';
+    el.innerHTML = html || (typeof I18n !== 'undefined' ? I18n.t('git.title') : '🔀 Git管理');
 }
 
 function __gitSkeletonHtml(rows) {
@@ -626,16 +628,16 @@ function __gitEmptyHtml() {
         '<path d="M26 35H42" stroke="#8C959F" stroke-width="2" stroke-linecap="round"/>' +
         '<path d="M26 43H38" stroke="#8C959F" stroke-width="2" stroke-linecap="round"/>' +
         '</svg>' +
-        '<div style="font-size:14px;font-weight:600;margin-bottom:4px;">暂无提交记录</div>' +
-        '<div style="font-size:12px;">该仓库还没有提交或日志不可用</div>' +
+        '<div style="font-size:14px;font-weight:600;margin-bottom:4px;">' + (typeof I18n !== 'undefined' ? I18n.t('git.empty.title') : '暂无提交记录') + '</div>' +
+        '<div style="font-size:12px;">' + (typeof I18n !== 'undefined' ? I18n.t('git.empty.subtitle') : '该仓库还没有提交或日志不可用') + '</div>' +
         '</div>';
 }
 
 function __gitErrorBannerHtml(message) {
-    const msg = escapeHtml(message || '加载失败');
+    const msg = escapeHtml(message || (typeof I18n !== 'undefined' ? I18n.t('common.load_failed') : '加载失败'));
     return '<div class="git-banner" role="alert">' +
         '<div style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + msg + '</div>' +
-        '<button type="button" id="gitRetryBtn">重试</button>' +
+        '<button type="button" id="gitRetryBtn">' + (typeof I18n !== 'undefined' ? I18n.t('common.retry') : '重试') + '</button>' +
         '</div>';
 }
 
@@ -752,7 +754,7 @@ function __gitMountCommitList(container, repoPath, headerData) {
     function fetchPage(page) {
         if (state.loading) return;
         state.loading = true;
-        setFoot('加载中…');
+        setFoot(typeof I18n !== 'undefined' ? I18n.t('common.loading') : '加载中…');
         fetch('/api/git/commit-list?path=' + encodeURIComponent(state.repoPath) +
             '&max_count=' + String(state.maxCount) +
             '&page=' + String(page) +
@@ -761,7 +763,7 @@ function __gitMountCommitList(container, repoPath, headerData) {
             .then(function(data) {
                 const payload = apiData(data);
                 if (!payload || !payload.is_repo) {
-                    if (listEl) listEl.innerHTML = '<div style="padding:16px;text-align:center;color:#cf222e;">此目录不是Git仓库</div>';
+                    if (listEl) listEl.innerHTML = '<div style="padding:16px;text-align:center;color:#cf222e;">' + (typeof I18n !== 'undefined' ? I18n.t('git.not_a_repo') : '此目录不是Git仓库') + '</div>';
                     setFoot('');
                     state.hasMore = false;
                     state.commits = [];
@@ -783,14 +785,14 @@ function __gitMountCommitList(container, repoPath, headerData) {
                 }
 
                 if (!state.hasMore) {
-                    setFoot(state.commits.length > 0 ? '已加载全部提交' : '');
+                    setFoot(state.commits.length > 0 ? (typeof I18n !== 'undefined' ? I18n.t('git.all_commits_loaded') : '已加载全部提交') : '');
                 } else {
                     setFoot('');
                 }
             })
             .catch(function() {
                 if (!listEl) return;
-                listEl.innerHTML = __gitErrorBannerHtml('接口异常：无法获取提交记录');
+                listEl.innerHTML = __gitErrorBannerHtml(typeof I18n !== 'undefined' ? I18n.t('git.api_error_commits') : '接口异常：无法获取提交记录');
                 setFoot('');
                 const btn = document.getElementById('gitRetryBtn');
                 if (btn) btn.addEventListener('click', function() { __gitMountCommitList(container, repoPath, headerData); });
@@ -848,7 +850,7 @@ function __gitMountCommitList(container, repoPath, headerData) {
 window.loadGitList = function(specificRepoPath) {
     const container = document.getElementById('gitListContainer');
     if (container) container.innerHTML = __gitListCss() + '<div class="git-shell"><div class="git-list">' + __gitSkeletonHtml(8) + '</div></div>';
-    __gitSetDrawerTitle('🔀 Git管理');
+    __gitSetDrawerTitle(typeof I18n !== 'undefined' ? I18n.t('git.title') : '🔀 Git管理');
 
     if (specificRepoPath) {
         fetch('/api/git/repo-status?path=' + encodeURIComponent(specificRepoPath), { headers: authHeaders() })
@@ -857,7 +859,7 @@ window.loadGitList = function(specificRepoPath) {
                 const payload = apiData(data);
                 if (!container) return;
                 if (!payload || !payload.is_repo) {
-                    container.innerHTML = __gitListCss() + '<div style="padding:16px;text-align:center;color:#cf222e;">此目录不是Git仓库</div>';
+                    container.innerHTML = __gitListCss() + '<div style="padding:16px;text-align:center;color:#cf222e;">' + (typeof I18n !== 'undefined' ? I18n.t('git.not_a_repo') : '此目录不是Git仓库') + '</div>';
                     return;
                 }
 
@@ -869,10 +871,10 @@ window.loadGitList = function(specificRepoPath) {
                 let changeInfo = '';
                 if (hasChanges) {
                     const changes = [];
-                    if (repoStatus.modified) changes.push((repoStatus.modified || 0) + ' modified');
-                    if (repoStatus.added) changes.push((repoStatus.added || 0) + ' added');
-                    if (repoStatus.deleted) changes.push((repoStatus.deleted || 0) + ' deleted');
-                    if (repoStatus.untracked) changes.push((repoStatus.untracked || 0) + ' untracked');
+                    if (repoStatus.modified) changes.push((repoStatus.modified || 0) + ' ' + (typeof I18n !== 'undefined' ? I18n.t('git.status.modified') : 'modified'));
+                    if (repoStatus.added) changes.push((repoStatus.added || 0) + ' ' + (typeof I18n !== 'undefined' ? I18n.t('git.status.added') : 'added'));
+                    if (repoStatus.deleted) changes.push((repoStatus.deleted || 0) + ' ' + (typeof I18n !== 'undefined' ? I18n.t('git.status.deleted') : 'deleted'));
+                    if (repoStatus.untracked) changes.push((repoStatus.untracked || 0) + ' ' + (typeof I18n !== 'undefined' ? I18n.t('git.status.untracked') : 'untracked'));
                     changeInfo = changes.length ? ' · ' + changes.join(', ') : '';
                 }
 
@@ -894,7 +896,7 @@ window.loadGitList = function(specificRepoPath) {
                 __gitLoadDiffFileList(specificRepoPath, diffMeta);
             })
             .catch(function() {
-                if (container) container.innerHTML = __gitErrorBannerHtml('加载失败');
+                if (container) container.innerHTML = __gitErrorBannerHtml(typeof I18n !== 'undefined' ? I18n.t('common.load_failed') : '加载失败');
             });
         return;
     }
@@ -911,7 +913,7 @@ window.loadGitList = function(specificRepoPath) {
 
             window.__gitRepos = payload.repos || [];
             const css = __gitListCss();
-            const html = css + '<div class="git-shell"><div class="git-top"><span style="font-size:12px;color:#57606a;">仓库</span><select id="gitRepoSelect" class="git-select"></select></div><div id="gitRepoPanel"></div></div>';
+            const html = css + '<div class="git-shell"><div class="git-top"><span style="font-size:12px;color:#57606a;">' + (typeof I18n !== 'undefined' ? I18n.t('git.repository') : '仓库') + '</span><select id="gitRepoSelect" class="git-select"></select></div><div id="gitRepoPanel"></div></div>';
             container.innerHTML = html;
 
             const repos = window.__gitRepos || [];
@@ -928,10 +930,10 @@ window.loadGitList = function(specificRepoPath) {
                 let changeInfo = '';
                 if (hasChanges) {
                     const changes = [];
-                    if (repoStatus.modified) changes.push((repoStatus.modified || 0) + ' modified');
-                    if (repoStatus.added) changes.push((repoStatus.added || 0) + ' added');
-                    if (repoStatus.deleted) changes.push((repoStatus.deleted || 0) + ' deleted');
-                    if (repoStatus.untracked) changes.push((repoStatus.untracked || 0) + ' untracked');
+                    if (repoStatus.modified) changes.push((repoStatus.modified || 0) + ' ' + (typeof I18n !== 'undefined' ? I18n.t('git.status.modified') : 'modified'));
+                    if (repoStatus.added) changes.push((repoStatus.added || 0) + ' ' + (typeof I18n !== 'undefined' ? I18n.t('git.status.added') : 'added'));
+                    if (repoStatus.deleted) changes.push((repoStatus.deleted || 0) + ' ' + (typeof I18n !== 'undefined' ? I18n.t('git.status.deleted') : 'deleted'));
+                    if (repoStatus.untracked) changes.push((repoStatus.untracked || 0) + ' ' + (typeof I18n !== 'undefined' ? I18n.t('git.status.untracked') : 'untracked'));
                     changeInfo = changes.length ? ' · ' + changes.join(', ') : '';
                 }
 
@@ -972,7 +974,7 @@ window.loadGitList = function(specificRepoPath) {
         })
         .catch(function() {
             if (!container) return;
-            container.innerHTML = __gitErrorBannerHtml('加载失败');
+            container.innerHTML = __gitErrorBannerHtml(typeof I18n !== 'undefined' ? I18n.t('common.load_failed') : '加载失败');
             const btn = document.getElementById('gitRetryBtn');
             if (btn) btn.addEventListener('click', function() { window.loadGitList(); });
         });

@@ -69,7 +69,7 @@
 
         bar.className = 'clipboard-bar';
         bar.setAttribute('role', 'region');
-        bar.setAttribute('aria-label', '剪贴板操作');
+        bar.setAttribute('aria-label', typeof I18n !== 'undefined' ? I18n.t('clipboard.title') : '剪贴板操作');
         if (!bar.getAttribute('aria-hidden')) bar.setAttribute('aria-hidden', 'true');
 
         if (bar.getAttribute('data-clipboard-initialized') !== '1') {
@@ -80,8 +80,8 @@
                         '<div id="clipboardFilename" class="clipboard-filename"></div>' +
                     '</div>' +
                     '<div class="clipboard-actions">' +
-                        '<button id="clipboardPasteBtn" type="button" class="clipboard-paste-btn" aria-label="粘贴">粘贴</button>' +
-                                                '<button id="clipboardCloseBtn" type="button" class="clipboard-close-btn" aria-label="关闭">×</button>' +
+                    '<button id="clipboardPasteBtn" type="button" class="clipboard-paste-btn" aria-label="' + (typeof I18n !== 'undefined' ? I18n.t('common.paste') : '粘贴') + '">' + (typeof I18n !== 'undefined' ? I18n.t('common.paste') : '粘贴') + '</button>' +
+                    '<button id="clipboardCloseBtn" type="button" class="clipboard-close-btn" aria-label="' + (typeof I18n !== 'undefined' ? I18n.t('common.close') : '关闭') + '">×</button>' +
 
                     '</div>' +
                 '</div>';
@@ -219,7 +219,14 @@
         var filenameEl = document.getElementById('clipboardFilename');
         
         if (bar && filenameEl) {
-            var titleText = state.op === 'link' ? '已选择链接' : (state.op === 'cut' ? '已剪切' : '已复制');
+            var titleText;
+            if (state.op === 'link') {
+                titleText = typeof I18n !== 'undefined' ? I18n.t('clipboard.link_selected') : '已选择链接';
+            } else if (state.op === 'cut') {
+                titleText = typeof I18n !== 'undefined' ? I18n.t('clipboard.cut') : '已剪切';
+            } else {
+                titleText = typeof I18n !== 'undefined' ? I18n.t('clipboard.copied') : '已复制';
+            }
             if (titleEl) {
                 titleEl.textContent = titleText;
             }
@@ -227,7 +234,7 @@
             if (state.count === 1) {
                 fileText = state.paths[0].split(/[/\\]/).pop();
             } else {
-                fileText = state.count + ' 个项目';
+                fileText = state.count + (typeof I18n !== 'undefined' ? I18n.t('clipboard.items_count') : ' 个项目');
             }
             filenameEl.textContent = fileText;
             bar.style.display = 'flex';
@@ -293,26 +300,23 @@
                 removeDom();
                 if (window.showToast) {
                     var msg = '';
+                    var itemsLabel = typeof I18n !== 'undefined' ? I18n.t('clipboard.items_count_suffix') : '个项目';
                     if (state.count === 1) {
                         var name = state.paths[0].split(/[/\\]/).pop();
                         if (state.op === 'link') {
-                            msg = '已创建链接: ' + name;
+                            msg = (typeof I18n !== 'undefined' ? I18n.t('clipboard.link_created') : '已创建链接') + ': ' + name;
                         } else if (state.op === 'cut') {
-                            msg = '已移动: ' + name;
+                            msg = (typeof I18n !== 'undefined' ? I18n.t('clipboard.moved') : '已移动') + ': ' + name;
                         } else {
-                            msg = '已复制: ' + name;
+                            msg = (typeof I18n !== 'undefined' ? I18n.t('clipboard.copied') : '已复制') + ': ' + name;
                         }
                     } else {
                         if (state.op === 'link') {
-                            msg = '已创建链接 ' + state.count + ' 个项目';
+                            msg = (typeof I18n !== 'undefined' ? I18n.t('clipboard.link_created') : '已创建链接') + ' ' + state.count + ' ' + itemsLabel;
                         } else if (state.op === 'cut') {
-                            msg = '已移动 ' + state.count + ' 个项目';
+                            msg = (typeof I18n !== 'undefined' ? I18n.t('clipboard.moved') : '已移动') + ' ' + state.count + ' ' + itemsLabel;
                         } else {
-                            if (state.op === 'link') {
-                        msg = '已创建链接 ' + state.count + ' 个项目';
-                    } else {
-                        msg = '已复制 ' + state.count + ' 个项目';
-                    }
+                            msg = (typeof I18n !== 'undefined' ? I18n.t('clipboard.copied') : '已复制') + ' ' + state.count + ' ' + itemsLabel;
                         }
                     }
                     window.showToast(msg, 'success');
@@ -322,15 +326,15 @@
                 }
             } else {
                 if (window.showToast) {
-                    var errMsg = (data && data.error && data.error.message) || data.message || '未知错误';
-                    window.showToast('操作失败: ' + errMsg, 'error');
+                    var errMsg = (data && data.error && data.error.message) || data.message || (typeof I18n !== 'undefined' ? I18n.t('common.unknown_error') : '未知错误');
+                    window.showToast((typeof I18n !== 'undefined' ? I18n.t('clipboard.operation_failed') : '操作失败') + ': ' + errMsg, 'error');
                 }
             }
         })
         .catch(function(err) {
             console.error('Paste error:', err);
             if (window.showToast) {
-                window.showToast('网络错误', 'error');
+                window.showToast(typeof I18n !== 'undefined' ? I18n.t('common.network_error') : '网络错误', 'error');
             }
         });
     }
