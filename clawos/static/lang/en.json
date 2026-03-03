@@ -763,6 +763,78 @@
       "failed": "Restart failed"
     }
   },
+  "zeroclaw": {
+    "title": "ZeroClaw Config",
+    "heading": "ZeroClaw Configuration",
+    "restart_service": "Restart Service",
+    "save_config": "Save",
+    "status_checking": "Checking...",
+    "status_active": "Running",
+    "status_inactive": "Stopped",
+    "sections": {
+      "basic": "Basic Settings",
+      "providers": "Model Providers",
+      "autonomy": "Autonomy",
+      "security": "Security",
+      "runtime": "Runtime",
+      "reliability": "Reliability",
+      "scheduler": "Scheduler",
+      "agent": "Agent",
+      "memory": "Memory",
+      "gateway": "Gateway",
+      "browser": "Browser",
+      "cron": "Cron",
+      "observability": "Observability"
+    },
+    "basic": {
+      "default_provider": "Default Provider",
+      "default_model": "Default Model",
+      "temperature": "Temperature",
+      "model_routes": "Model Routes",
+      "embedding_routes": "Embedding Routes"
+    },
+    "autonomy": {
+      "level": "Autonomy Level",
+      "workspace_only": "Workspace Only",
+      "require_approval": "Medium Risk Approval",
+      "block_high_risk": "Block High Risk",
+      "allowed_commands": "Allowed Commands",
+      "forbidden_paths": "Forbidden Paths",
+      "auto_approve": "Auto Approve"
+    },
+    "security": {
+      "sandbox": "Sandbox",
+      "resources": "Resources",
+      "max_memory": "Max Memory (MB)",
+      "max_cpu_time": "Max CPU Time (s)",
+      "max_subprocesses": "Max Subprocesses",
+      "otp": "OTP"
+    },
+    "runtime": {
+      "kind": "Runtime Type",
+      "docker": "Docker Config"
+    },
+    "memory": {
+      "backend": "Backend",
+      "auto_save": "Auto Save",
+      "retention_days": "Retention Days",
+      "max_history": "Max History Messages"
+    },
+    "scheduler": {
+      "enabled": "Enable Scheduler",
+      "max_tasks": "Max Tasks",
+      "max_concurrent": "Max Concurrent"
+    },
+    "gateway": {
+      "port": "Port",
+      "host": "Host",
+      "require_pairing": "Require Pairing"
+    },
+    "restart_confirm": {
+      "title": "Confirm Restart",
+      "message": "Restart ZeroClaw service?"
+    }
+  },
   "model_config": {
     "title": "AI Model Config",
     "heading": "AI Model Configuration",
@@ -1018,6 +1090,7 @@
   "db_manager": {
     "title": "Database Manager",
     "heading": "Database Manager",
+    "new_connection": "+ New Connection",
     "tables": "Tables",
     "views": "Views",
     "procedures": "Procedures",

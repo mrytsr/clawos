@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>数据库管理</title>
+    <title data-i18n="db_manager.title">数据库管理</title>
+    <script src="/static/js/i18n.js"></script>
     <!-- Tabulator 样式 - 匹配数据库页面 -->
     <link href="/static/lib/tabulator.min.css" rel="stylesheet">
     <style>
@@ -490,7 +491,7 @@
                 </div>
             </div>
             <div class="drawer-content">
-                <button class="add-btn" onclick="openAddModal()">+ 新建连接</button>
+                <button class="add-btn" onclick="openAddModal()" data-i18n="db_manager.new_connection">+ 新建连接</button>
                 <div class="tree" id="dbTree"></div>
             </div>
         </div>

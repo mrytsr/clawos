@@ -763,6 +763,78 @@
       "failed": "再起動に失敗しました"
     }
   },
+  "zeroclaw": {
+    "title": "ZeroClaw設定",
+    "heading": "ZeroClaw設定",
+    "restart_service": "サービス再起動",
+    "save_config": "保存",
+    "status_checking": "確認中...",
+    "status_active": "実行中",
+    "status_inactive": "停止",
+    "sections": {
+      "basic": "基本設定",
+      "providers": "モデルプロバイダー",
+      "autonomy": "自律性",
+      "security": "セキュリティ",
+      "runtime": "ランタイム",
+      "reliability": "信頼性",
+      "scheduler": "スケジューラー",
+      "agent": "エージェント",
+      "memory": "メモリ",
+      "gateway": "ゲートウェイ",
+      "browser": "ブラウザ",
+      "cron": "Cron",
+      "observability": "可観測性"
+    },
+    "basic": {
+      "default_provider": "デフォルトプロバイダー",
+      "default_model": "デフォルトモデル",
+      "temperature": "Temperature",
+      "model_routes": "モデルルート",
+      "embedding_routes": "Embeddingルート"
+    },
+    "autonomy": {
+      "level": "自律レベル",
+      "workspace_only": "ワークスペースのみ",
+      "require_approval": "中リスク承認",
+      "block_high_risk": "高リスク阻止",
+      "allowed_commands": "許可されたコマンド",
+      "forbidden_paths": "禁止パス",
+      "auto_approve": "自動承認"
+    },
+    "security": {
+      "sandbox": "サンドボックス",
+      "resources": "リソース",
+      "max_memory": "最大メモリ (MB)",
+      "max_cpu_time": "最大CPU時間 (秒)",
+      "max_subprocesses": "最大サブプロセス",
+      "otp": "OTP"
+    },
+    "runtime": {
+      "kind": "ランタイムタイプ",
+      "docker": "Docker設定"
+    },
+    "memory": {
+      "backend": "バックエンド",
+      "auto_save": "自動保存",
+      "retention_days": "保持日数",
+      "max_history": "最大履歴メッセージ"
+    },
+    "scheduler": {
+      "enabled": "スケジューラー有効",
+      "max_tasks": "最大タスク数",
+      "max_concurrent": "最大同時実行"
+    },
+    "gateway": {
+      "port": "ポート",
+      "host": "ホスト",
+      "require_pairing": "ペアリング必要"
+    },
+    "restart_confirm": {
+      "title": "再起動確認",
+      "message": "ZeroClawサービスを再起動しますか？"
+    }
+  },
   "model_config": {
     "title": "AIモデル設定",
     "heading": "AIモデル設定",
@@ -1018,6 +1090,7 @@
   "db_manager": {
     "title": "データベース管理",
     "heading": "データベース管理",
+    "new_connection": "+ 新規接続",
     "tables": "テーブル",
     "views": "ビュー",
     "procedures": "ストアドプロシージャ",

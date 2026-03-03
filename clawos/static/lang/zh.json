@@ -763,6 +763,78 @@
       "failed": "重启失败"
     }
   },
+  "zeroclaw": {
+    "title": "ZeroClaw 配置",
+    "heading": "ZeroClaw 配置",
+    "restart_service": "重启服务",
+    "save_config": "保存",
+    "status_checking": "检查中...",
+    "status_active": "运行中",
+    "status_inactive": "已停止",
+    "sections": {
+      "basic": "基础设置",
+      "providers": "模型供应商",
+      "autonomy": "自主权限",
+      "security": "安全设置",
+      "runtime": "运行环境",
+      "reliability": "可靠性",
+      "scheduler": "调度器",
+      "agent": "Agent设置",
+      "memory": "记忆系统",
+      "gateway": "网关",
+      "browser": "浏览器",
+      "cron": "定时任务",
+      "observability": "可观测性"
+    },
+    "basic": {
+      "default_provider": "默认供应商",
+      "default_model": "默认模型",
+      "temperature": "Temperature",
+      "model_routes": "模型路由",
+      "embedding_routes": "Embedding路由"
+    },
+    "autonomy": {
+      "level": "自主级别",
+      "workspace_only": "仅工作区",
+      "require_approval": "中等风险需审批",
+      "block_high_risk": "阻止高风险命令",
+      "allowed_commands": "允许的命令",
+      "forbidden_paths": "禁止的路径",
+      "auto_approve": "自动批准的操作"
+    },
+    "security": {
+      "sandbox": "沙箱",
+      "resources": "资源限制",
+      "max_memory": "最大内存 (MB)",
+      "max_cpu_time": "最大CPU时间 (秒)",
+      "max_subprocesses": "最大子进程数",
+      "otp": "OTP验证"
+    },
+    "runtime": {
+      "kind": "运行时类型",
+      "docker": "Docker配置"
+    },
+    "memory": {
+      "backend": "后端类型",
+      "auto_save": "自动保存",
+      "retention_days": "记忆保留天数",
+      "max_history": "最大历史消息"
+    },
+    "scheduler": {
+      "enabled": "启用调度器",
+      "max_tasks": "最大任务数",
+      "max_concurrent": "最大并发数"
+    },
+    "gateway": {
+      "port": "端口",
+      "host": "主机",
+      "require_pairing": "需要配对"
+    },
+    "restart_confirm": {
+      "title": "确认重启",
+      "message": "是否重启 ZeroClaw 服务？"
+    }
+  },
   "model_config": {
     "title": "AI 模型配置",
     "heading": "AI 模型配置",
@@ -1018,6 +1090,7 @@
   "db_manager": {
     "title": "数据库管理",
     "heading": "数据库管理",
+    "new_connection": "+ 新建连接",
     "tables": "表",
     "views": "视图",
     "procedures": "存储过程",
