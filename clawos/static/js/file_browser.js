@@ -184,6 +184,12 @@ function handleMenuAction(action) {
             case 'rename': showRenameModal(); break;
             case 'move': showMoveModal(); break;
             case 'clone': cloneItem(); break;
+            case 'pin': 
+                __togglePin(getCurrentBrowsePath(), window.currentItemName);
+                break;
+            case 'unpin':
+                __togglePin(getCurrentBrowsePath(), window.currentItemName);
+                break;
             case 'cut':
                 if (window.Clipboard && typeof window.Clipboard.set === 'function') {
                     window.Clipboard.set('cut', { path: window.currentItemPath, name: window.currentItemName, isDir: window.currentItemIsDir });
@@ -1685,6 +1691,15 @@ function showFileSmallMenu(path, name, isDir, triggerElement) {
     // 通用操作 - 传递 path 参数
     menuItems.push({ label: typeof I18n !== 'undefined' ? I18n.t('file_menu.details') : '查看详情', icon: '📋', action: function() { handleMenuAction('details'); }, actionParams: currentPath });
     menuItems.push({ label: typeof I18n !== 'undefined' ? I18n.t('file_menu.edit') : '编辑', icon: '✏️', action: function() { handleMenuAction('edit'); }, actionParams: currentPath });
+    
+    // 置顶操作
+    var isPinned = __isPinnedName(name);
+    menuItems.push({ 
+        label: isPinned ? '取消置顶' : '置顶', 
+        icon: isPinned ? '📌' : '📍', 
+        action: function() { handleMenuAction(isPinned ? 'unpin' : 'pin'); }, 
+        actionParams: currentPath 
+    });
 
     if (!isDir) {
         menuItems.push({ label: typeof I18n !== 'undefined' ? I18n.t('file_menu.download') : '下载文件', icon: '📥', action: function() { handleMenuAction('download'); }, actionParams: currentPath });
