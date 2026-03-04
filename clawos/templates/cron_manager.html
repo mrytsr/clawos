@@ -1,11 +1,10 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title data-i18n="cron.title">Cron 管理</title>
+    <title data-i18n="cron.title">Cron Manager</title>
     <script src="/static/js/i18n.js"></script>
-    <script>I18n.init();</script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         html, body { height: 100%; overflow: hidden; }
@@ -73,9 +72,9 @@
 <body>
     <div id="app">
         <div class="toolbar">
-            <span style="font-size:14px;font-weight:500;" data-i18n="cron.heading">Cron 任务管理</span>
-            <button onclick="openAddModal()" data-i18n="cron.add_task">+ 添加任务</button>
-            <button class="secondary" onclick="loadJobs()" data-i18n="common.refresh">刷新</button>
+            <span style="font-size:14px;font-weight:500;" data-i18n="cron.heading">Cron Task Manager</span>
+            <button onclick="openAddModal()" data-i18n="cron.add_task">+ Add Task</button>
+            <button class="secondary" onclick="loadJobs()" data-i18n="common.refresh">Refresh</button>
         </div>
         <div id="list" class="list"></div>
     </div>
@@ -83,56 +82,56 @@
     <!-- 添加/编辑弹窗 -->
     <div id="addModal" class="modal">
         <div class="modal-content">
-            <div class="modal-title" data-i18n="cron.modal.title">添加 Cron 任务</div>
+            <div class="modal-title" data-i18n="cron.modal.title">Add Cron Task</div>
             <div class="form-row">
                 <div class="form-group">
-                    <label data-i18n="cron.modal.minute">分钟</label>
+                    <label data-i18n="cron.modal.minute">Minute</label>
                     <input type="text" id="minute" value="*" placeholder="*">
                 </div>
                 <div class="form-group">
-                    <label data-i18n="cron.modal.hour">小时</label>
+                    <label data-i18n="cron.modal.hour">Hour</label>
                     <input type="text" id="hour" value="*" placeholder="*">
                 </div>
             </div>
             <div class="form-row">
                 <div class="form-group">
-                    <label data-i18n="cron.modal.day">日期</label>
+                    <label data-i18n="cron.modal.day">Day</label>
                     <input type="text" id="day" value="*" placeholder="*">
                 </div>
                 <div class="form-group">
-                    <label data-i18n="cron.modal.month">月份</label>
+                    <label data-i18n="cron.modal.month">Month</label>
                     <input type="text" id="month" value="*" placeholder="*">
                 </div>
             </div>
             <div class="form-row">
                 <div class="form-group">
-                    <label data-i18n="cron.modal.weekday">星期</label>
+                    <label data-i18n="cron.modal.weekday">Weekday</label>
                     <input type="text" id="weekday" value="*" placeholder="0-7">
                 </div>
                 <div class="form-group">
-                    <label data-i18n="cron.modal.shortcut">快捷</label>
+                    <label data-i18n="cron.modal.shortcut">Shortcut</label>
                     <select id="template" onchange="applyTemplate()">
-                        <option value="" data-i18n="cron.shortcut.custom">自定义</option>
-                        <option value="@reboot" data-i18n="cron.shortcut.reboot">系统启动时</option>
-                        <option value="@hourly" data-i18n="cron.shortcut.hourly">每小时</option>
-                        <option value="0 3 * * *" data-i18n="cron.shortcut.daily_3am">每天 3:00</option>
-                        <option value="0 0 * * 0" data-i18n="cron.shortcut.weekly_sunday">每周日</option>
-                        <option value="0 0 1 * *" data-i18n="cron.shortcut.monthly_1st">每月 1 号</option>
-                        <option value="*/5 * * * *" data-i18n="cron.shortcut.every_5min">每 5 分钟</option>
+                        <option value="" data-i18n="cron.shortcut.custom">Custom</option>
+                        <option value="@reboot" data-i18n="cron.shortcut.reboot">@reboot</option>
+                        <option value="@hourly" data-i18n="cron.shortcut.hourly">Hourly</option>
+                        <option value="0 3 * * *" data-i18n="cron.shortcut.daily_3am">Daily at 3:00</option>
+                        <option value="0 0 * * 0" data-i18n="cron.shortcut.weekly_sunday">Weekly on Sunday</option>
+                        <option value="0 0 1 * *" data-i18n="cron.shortcut.monthly_1st">Monthly on 1st</option>
+                        <option value="*/5 * * * *" data-i18n="cron.shortcut.every_5min">Every 5 minutes</option>
                     </select>
                 </div>
             </div>
             <div class="form-group">
-                <label data-i18n="cron.modal.quick_schedule">快捷设置 (可视化)</label>
-                <input type="text" id="quickSchedule" data-i18n-placeholder="cron.modal.quick_schedule_placeholder" placeholder="点击选择时间...">
+                <label data-i18n="cron.modal.quick_schedule">Quick Schedule (Visual)</label>
+                <input type="text" id="quickSchedule" data-i18n-placeholder="cron.modal.quick_schedule_placeholder" placeholder="Click to select time...">
             </div>
             <div class="form-group">
-                <label data-i18n="cron.modal.command">命令</label>
-                <input type="text" id="command" data-i18n-placeholder="cron.modal.command_placeholder" placeholder="例如: /home/tjx/backup.sh">
+                <label data-i18n="cron.modal.command">Command</label>
+                <input type="text" id="command" data-i18n-placeholder="cron.modal.command_placeholder" placeholder="e.g., /home/user/backup.sh">
             </div>
             <div class="modal-actions">
-                <button class="secondary" onclick="closeAddModal()" data-i18n="common.cancel">取消</button>
-                <button onclick="addJob()" data-i18n="common.add">添加</button>
+                <button class="secondary" onclick="closeAddModal()" data-i18n="common.cancel">Cancel</button>
+                <button onclick="addJob()" data-i18n="common.add">Add</button>
             </div>
         </div>
     </div>

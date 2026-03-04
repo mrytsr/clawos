@@ -1,10 +1,10 @@
 
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>clawOS</title>
+    <title>ClawOS</title>
     <link rel="stylesheet" href="/static/lib/highlight-default.min.css">
     <link rel="stylesheet" href="/static/lib/xterm.css" />
     <script src="/static/lib/highlight.min.js"></script>
@@ -18,6 +18,7 @@
     <link rel="stylesheet" href="/static/lib/sweetalert2.min.css">
     <script src="/static/lib/sweetalert2.min.js"></script>
     <script src="/static/lib/echarts.min.js"></script>
+    <script src="/static/js/i18n.js"></script>
     <!-- 全局函数预加载（必须在最前） -->
     <script src="/static/js/globals.js"></script>
     <script src="/static/js/file_clipboard.js"></script>
@@ -31,11 +32,6 @@
     <script src="/static/js/file_browser.js"></script>
     <script src="/static/js/git.js"></script>
     <script src="/static/js/smallmenu.js"></script>
-    <script src="/static/js/i18n.js"></script>
-    <script>
-        // 初始化国际化
-        I18n.init();
-    </script>
     <script src="/static/js/system_monitor.js"></script>
 
     <!-- SweetAlert2 -->
@@ -1047,7 +1043,7 @@
 <body>
     <div id="taskListenerBar" class="task-listener-bar" role="status" aria-live="polite" aria-hidden="true" style="display:none;">
         <div class="task-spinner" aria-hidden="true"></div>
-        <div id="taskListenerText" class="task-listener-text" data-i18n="task.listening">正在监听任务状态…</div>
+        <div id="taskListenerText" class="task-listener-text" data-i18n="task.listening">Listening for task status…</div>
     </div>
     <div class="container" id="browseApp">
         <!-- 文件浏览器顶部状态栏 -->
@@ -1135,7 +1131,7 @@
                 <span class="git-status-indicator" id="gitStatusIndicator">●</span>
                 <span class="git-stats" id="gitStatusStats"></span>
             </div>
-                <div class="git-action-btn" data-i18n-title="git.title" title="Git管理">🔧</div>
+                <div class="git-action-btn" data-i18n-title="git.title" title="Git Manager">🔧</div>
         </div>
 
         <div v-if="message" class="message" :class="messageTypeClass">
@@ -1184,12 +1180,12 @@
     <!-- 主菜单抽屉 -->
     <div id="mainMenuDrawer" class="right-drawer" role="dialog" aria-modal="true" aria-label="开始菜单" data-i18n-aria-label="menu.startMenu" aria-hidden="true" tabindex="-1">
         <div class="right-drawer-header">
-            <div class="drawer-title" data-i18n="menu.startMenu">开始菜单</div>
+            <div class="drawer-title" data-i18n="menu.startMenu">Start Menu</div>
             <button id="mainMenuCloseBtn" class="drawer-close-btn" onclick="closeMainMenuModal()" data-i18n-aria-label="menu.closeStartMenu">&times;</button>
         </div>
         <div class="right-drawer-content" id="mainMenuItems">
             <!-- 菜单项由 JS 动态渲染 -->
-            <div style="text-align: center; padding: 20px; color: #666;" data-i18n="common.loading">加载中...</div>
+            <div style="text-align: center; padding: 20px; color: #666;" data-i18n="common.loading">Loading...</div>
         </div>
     </div>
     <div id="mainMenuBackdrop" class="right-drawer-backdrop" onclick="closeMainMenuModal()" aria-hidden="true"></div>
@@ -1198,7 +1194,7 @@
     <!-- 包管理抽屉 -->
     <div id="pkgDrawer" class="right-drawer" style="width: 480px; max-width: 100vw;">
         <div class="right-drawer-header">
-            <div class="drawer-title" data-i18n="package.title">📦 包管理</div>
+            <div class="drawer-title" data-i18n="package.title">Package Manager</div>
             <button class="drawer-close-btn" onclick="closePkgDrawer()">&times;</button>
         </div>
         <div class="right-drawer-content" style="padding: 0;">
@@ -1207,40 +1203,40 @@
                 <input type="text" id="pkgSearchInput" placeholder="搜索..." data-i18n-placeholder="package.searchPlaceholder"
                     style="flex: 1; padding: 8px 12px; border: 1px solid #d0d7de; border-radius: 6px; font-size: 14px;"
                     oninput="filterPkgList()">
-                <button onclick="loadPkgCurrentTab()" style="padding: 8px 16px; background: #0969da; color: #fff; border: none; border-radius: 6px; cursor: pointer;" data-i18n="common.refresh">刷新</button>
+                <button onclick="loadPkgCurrentTab()" style="padding: 8px 16px; background: #0969da; color: #fff; border: none; border-radius: 6px; cursor: pointer;" data-i18n="common.refresh">Refresh</button>
             </div>
             <!-- Tab 栏 -->
             <div style="display: flex; border-bottom: 1px solid #d0d7de; background: #f6f8fa;">
-                <button class="pkg-tab active" data-tab="system" onclick="switchPkgTab('system')" data-i18n="package.tabSystem">系统</button>
+                <button class="pkg-tab active" data-tab="system" onclick="switchPkgTab('system')" data-i18n="package.tabSystem">System</button>
                 <button class="pkg-tab" data-tab="pip" onclick="switchPkgTab('pip')" data-i18n="package.tabPip">pip</button>
                 <button class="pkg-tab" data-tab="npm" onclick="switchPkgTab('npm')" data-i18n="package.tabNpm">npm</button>
-                <button class="pkg-tab" data-tab="source" onclick="switchPkgTab('source')" data-i18n="package.tabSource">源</button>
+                <button class="pkg-tab" data-tab="source" onclick="switchPkgTab('source')" data-i18n="package.tabSource">Source</button>
             </div>
             <!-- Tab 内容 -->
             <div id="pkgTabContent" style="height: calc(100vh - 180px); overflow-y: auto; padding: 12px;">
                 <!-- 系统包 -->
                 <div id="pkgSystem" class="pkg-tab-panel active">
-                    <div id="pkgSystemList" class="pkg-list" data-i18n="common.loading">加载中...</div>
+                    <div id="pkgSystemList" class="pkg-list" data-i18n="common.loading">Loading...</div>
                 </div>
                 <!-- pip 包 -->
                 <div id="pkgPip" class="pkg-tab-panel">
-                    <div id="pkgPipList" class="pkg-list" data-i18n="common.loading">加载中...</div>
+                    <div id="pkgPipList" class="pkg-list" data-i18n="common.loading">Loading...</div>
                 </div>
                 <!-- npm 包 -->
                 <div id="pkgNpm" class="pkg-tab-panel">
-                    <div id="pkgNpmList" class="pkg-list" data-i18n="common.loading">加载中...</div>
+                    <div id="pkgNpmList" class="pkg-list" data-i18n="common.loading">Loading...</div>
                 </div>
                 <!-- 源管理 -->
                 <div id="pkgSource" class="pkg-tab-panel">
                     <!-- pip 源 -->
                     <div style="margin-bottom: 20px;">
-                        <div style="font-size: 13px; color: #57606a; margin-bottom: 8px;" data-i18n="package.pipSource">pip 源</div>
+                        <div style="font-size: 13px; color: #57606a; margin-bottom: 8px;" data-i18n="package.pipSource">pip Source</div>
                         <div id="pipSourceCurrent" style="padding: 8px 12px; background: #f6f8fa; border-radius: 6px; margin-bottom: 8px; font-size: 13px;"></div>
                         <div id="pipSourceList" class="source-list"></div>
                     </div>
                     <!-- npm 源 -->
                     <div>
-                        <div style="font-size: 13px; color: #57606a; margin-bottom: 8px;" data-i18n="package.npmSource">npm 源</div>
+                        <div style="font-size: 13px; color: #57606a; margin-bottom: 8px;" data-i18n="package.npmSource">npm Source</div>
                         <div id="npmSourceCurrent" style="padding: 8px 12px; background: #f6f8fa; border-radius: 6px; margin-bottom: 8px; font-size: 13px;"></div>
                         <div id="npmSourceList" class="source-list"></div>
                     </div>
@@ -1253,7 +1249,7 @@
     <!-- 性能监控抽屉 -->
     <div id="perfDrawer" class="right-drawer" style="width: 480px; max-width: 100vw;">
         <div class="right-drawer-header">
-            <div class="drawer-title" data-i18n="perf.title">📈 性能监控</div>
+            <div class="drawer-title" data-i18n="perf.title">Performance Monitor</div>
             <button class="drawer-close-btn" onclick="closePerfDrawer()">&times;</button>
         </div>
         <div class="right-drawer-content" style="padding: 0;">
@@ -1313,7 +1309,7 @@
     <!-- 网络管理抽屉 -->
     <div id="networkDrawer" class="right-drawer" style="width: 480px; max-width: 100vw;">
         <div class="right-drawer-header">
-            <div class="drawer-title" data-i18n="network.title">🌐 网络管理</div>
+            <div class="drawer-title" data-i18n="network.title">Network Manager</div>
             <button class="drawer-close-btn" onclick="closeNetworkDrawer()">&times;</button>
         </div>
         <div class="right-drawer-content" style="padding: 0;">
@@ -1334,7 +1330,7 @@
     <!-- 用户管理抽屉 -->
     <div id="usersDrawer" class="right-drawer" style="width: 480px; max-width: 100vw;">
         <div class="right-drawer-header">
-            <div class="drawer-title" data-i18n="users.title">👥 用户管理</div>
+            <div class="drawer-title" data-i18n="users.title">User Manager</div>
             <button class="drawer-close-btn" onclick="closeUsersDrawer()">&times;</button>
         </div>
         <div class="right-drawer-content" style="padding: 0;">
@@ -1802,9 +1798,9 @@
         <div class="drawer-content" style="padding: 16px;">
             <!-- 界面卡片 -->
             <div class="config-card">
-                <div class="config-card-title" data-i18n="settings.appearance">🎨 界面</div>
+                <div class="config-card-title" data-i18n="settings.appearance">Appearance</div>
                 <div class="config-card-row">
-                    <span class="config-card-label" data-i18n="settings.language">语言</span>
+                    <span class="config-card-label" data-i18n="settings.language">Language</span>
                     <select id="langSelect" onchange="changeLanguage(this.value)" style="padding: 6px 12px; border-radius: 6px; border: 1px solid #d0d7de; font-size: 13px; cursor: pointer;">
                         <option value="zh">中文</option>
                         <option value="en">English</option>
@@ -1812,26 +1808,24 @@
                     </select>
                 </div>
                 <div class="config-card-row">
-                    <span class="config-card-label" data-i18n="settings.fontSize">字体大小</span>
+                    <span class="config-card-label" data-i18n="settings.fontSize">Font Size</span>
                     <div style="display: flex; align-items: center; gap: 12px;">
                         <input type="range" id="fontSizeSlider" class="font-size-slider" min="12" max="24" value="14" onchange="updateFontSize(this.value)" style="width: 120px;">
                         <span id="fontSizeValue" style="font-size: 13px; color: #666; min-width: 36px;">14px</span>
                     </div>
                 </div>
-                <div id="fontPreview" class="font-preview" style="font-size: var(--global-font-size, 14px); margin-top: 8px;" data-i18n="settings.fontPreview">
-                    预览文字 abc ABC 123
-                </div>
+                <div id="fontPreview" class="font-preview" style="font-size: var(--global-font-size, 14px); margin-top: 8px;" data-i18n="settings.fontPreview">Preview abc ABC 123</div>
             </div>
             
             <!-- 文件管理卡片 -->
             <div class="config-card">
-                <div class="config-card-title" data-i18n="nav.files">📂 文件管理</div>
+                <div class="config-card-title" data-i18n="nav.files">Files</div>
                 <div class="config-card-row">
-                    <span class="config-card-label" data-i18n="fileBrowser.openWith">文件打开方式</span>
-                    <button class="config-card-btn" onclick="window.open('/file-open-config', '_blank')" data-i18n="common.manage">管理</button>
+                    <span class="config-card-label" data-i18n="fileBrowser.openWith">Open With</span>
+                    <button class="config-card-btn" onclick="window.open('/file-open-config', '_blank')" data-i18n="common.manage">Manage</button>
                 </div>
                 <div class="config-card-row">
-                    <span class="config-card-label" data-i18n="fileBrowser.currentPath">当前路径</span>
+                    <span class="config-card-label" data-i18n="fileBrowser.currentPath">Current Path</span>
                     <span id="configCurrentPath" style="font-size: 12px; color: #666; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">/root</span>
                 </div>
             </div>

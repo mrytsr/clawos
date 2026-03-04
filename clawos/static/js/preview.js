@@ -20,7 +20,7 @@ function getFileExt(name) {
 
 function openPreview(path, name) {
     var titleEl = document.getElementById('previewTitle');
-    if (titleEl) titleEl.textContent = name || (typeof I18n !== 'undefined' ? I18n.t('preview.title') : '预览');
+    if (titleEl) titleEl.textContent = name || (typeof I18n !== 'undefined' ? I18n.t('preview.title') : 'Preview');
     var content = document.getElementById('previewContent');
     if (!content) return;
 
@@ -32,7 +32,7 @@ function openPreview(path, name) {
 
     // Excel 预览
     if (excelExts.indexOf(ext) >= 0) {
-        content.innerHTML = '<div style="text-align:center;padding:40px;color:#666;">🔄 ' + (typeof I18n !== 'undefined' ? I18n.t('common.loading') : '加载中...') + '</div>';
+        content.innerHTML = '<div style="text-align:center;padding:40px;color:#666;">🔄 ' + (typeof I18n !== 'undefined' ? I18n.t('common.loading') : 'Loading...') + '</div>';
         Drawer.open('previewModal');
         
         fetch(url, { headers: (typeof authHeaders === 'function' ? authHeaders() : {}) })
@@ -73,11 +73,11 @@ function openPreview(path, name) {
                     // 保存 workbook 到全局变量
                     window.__xlsxWorkbook = workbook;
                 } catch (e) {
-                    content.innerHTML = '<div style="text-align:center;padding:40px;color:#cf222e;">' + (typeof I18n !== 'undefined' ? I18n.t('preview.parse_failed') : '解析失败') + ': ' + escapeHtml(e.message) + '</div>';
+                    content.innerHTML = '<div style="text-align:center;padding:40px;color:#cf222e;">' + (typeof I18n !== 'undefined' ? I18n.t('preview.parse_failed') : 'Parse failed') + ': ' + escapeHtml(e.message) + '</div>';
                 }
             })
             .catch(function() {
-                content.innerHTML = '<div style="text-align:center;padding:40px;color:#cf222e;">' + (typeof I18n !== 'undefined' ? I18n.t('common.load_failed') : '加载失败') + '</div>';
+                content.innerHTML = '<div style="text-align:center;padding:40px;color:#cf222e;">' + (typeof I18n !== 'undefined' ? I18n.t('common.load_failed') : 'Load failed') + '</div>';
             });
         return;
     }
@@ -89,7 +89,7 @@ function openPreview(path, name) {
                 <button class="modal-btn modal-btn-cancel" style="padding:8px 12px;border-radius:8px;" onclick="window.__imagePreviewZoom(0.2)">+</button>
                 <button class="modal-btn modal-btn-cancel" style="padding:8px 12px;border-radius:8px;" onclick="window.__imagePreviewRotate(-90)">⟲</button>
                 <button class="modal-btn modal-btn-cancel" style="padding:8px 12px;border-radius:8px;" onclick="window.__imagePreviewRotate(90)">⟳</button>
-                <button class="modal-btn modal-btn-cancel" style="padding:8px 12px;border-radius:8px;" onclick="window.__imagePreviewReset()">' + (typeof I18n !== 'undefined' ? I18n.t('common.reset') : '重置') + '</button>
+                <button class="modal-btn modal-btn-cancel" style="padding:8px 12px;border-radius:8px;" onclick="window.__imagePreviewReset()">' + (typeof I18n !== 'undefined' ? I18n.t('common.reset') : 'Reset') + '</button>
             </div>
             <div id="imagePreviewStage" style="height:70vh;display:flex;align-items:center;justify-content:center;overflow:hidden;padding:12px;">
                 <img id="imagePreviewImg" src="${url}" style="max-width:100%;max-height:100%;transform-origin:center center;user-select:none;touch-action:none;">
@@ -133,19 +133,19 @@ function openPreview(path, name) {
     }
 
     if (archiveExts.indexOf(ext) >= 0) {
-        content.innerHTML = '<div style="text-align:center;padding:40px;color:#666;">🔄 ' + (typeof I18n !== 'undefined' ? I18n.t('common.loading') : '加载中...') + '</div>';
+        content.innerHTML = '<div style="text-align:center;padding:40px;color:#666;">🔄 ' + (typeof I18n !== 'undefined' ? I18n.t('common.loading') : 'Loading...') + '</div>';
         Drawer.open('previewModal');
         fetch('/api/archive/list/' + encodePathForUrl(path), { headers: (typeof authHeaders === 'function' ? authHeaders() : {}) })
             .then(r => r.json())
             .then(data => {
                 if (!data || !data.success || !data.data) {
-                    var msg = (data && data.error && data.error.message) || (data && data.message) || (typeof I18n !== 'undefined' ? I18n.t('common.load_failed') : '加载失败');
+                    var msg = (data && data.error && data.error.message) || (data && data.message) || (typeof I18n !== 'undefined' ? I18n.t('common.load_failed') : 'Load failed');
                     content.innerHTML = '<div style="text-align:center;padding:40px;color:#cf222e;">' + escapeHtml(msg) + '</div>';
                     return;
                 }
                 var items = data.data.items || [];
                 if (!items.length) {
-                    content.innerHTML = '<div style="text-align:center;padding:40px;color:#666;">' + (typeof I18n !== 'undefined' ? I18n.t('preview.empty_archive') : '空压缩包') + '</div>';
+                    content.innerHTML = '<div style="text-align:center;padding:40px;color:#666;">' + (typeof I18n !== 'undefined' ? I18n.t('preview.empty_archive') : 'Empty archive') + '</div>';
                     return;
                 }
                 content.innerHTML = items.map(function(it) {
@@ -160,12 +160,12 @@ function openPreview(path, name) {
                 }).join('');
             })
             .catch(() => {
-                content.innerHTML = '<div style="text-align:center;padding:40px;color:#cf222e;">' + (typeof I18n !== 'undefined' ? I18n.t('common.load_failed') : '加载失败') + '</div>';
+                content.innerHTML = '<div style="text-align:center;padding:40px;color:#cf222e;">' + (typeof I18n !== 'undefined' ? I18n.t('common.load_failed') : 'Load failed') + '</div>';
             });
         return;
     }
 
-    content.innerHTML = '<div style="padding:40px;text-align:center;color:#666;">' + (typeof I18n !== 'undefined' ? I18n.t('preview.unsupported_type') : '该文件类型不在抽屉预览范围') + '</div>';
+    content.innerHTML = '<div style="padding:40px;text-align:center;color:#666;">' + (typeof I18n !== 'undefined' ? I18n.t('preview.unsupported_type') : 'This file type is not supported for preview') + '</div>';
     Drawer.open('previewModal');
 }
 

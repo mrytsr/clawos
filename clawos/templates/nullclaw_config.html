@@ -1,13 +1,12 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title data-i18n="nullclaw.title">NullClaw 配置</title>
+    <title data-i18n="nullclaw.title">NullClaw Config</title>
     <link rel="stylesheet" href="/static/lib/sweetalert2.min.css">
     <script src="/static/lib/sweetalert2.min.js"></script>
     <script src="/static/js/i18n.js"></script>
-    <script>I18n.init();</script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
@@ -316,14 +315,14 @@
         <a href="/" class="back-link">← 返回桌面</a>
         
         <div class="header">
-            <h1 data-i18n="nullclaw.heading">⚡ NullClaw 配置</h1>
+            <h1 data-i18n="nullclaw.heading">NullClaw Configuration</h1>
             <div class="header-actions">
                 <div id="statusBadge" class="status-badge">
                     <span class="status-dot"></span>
-                    <span data-i18n="nullclaw.status_checking">检查中...</span>
+                    <span data-i18n="nullclaw.status_checking">Checking...</span>
                 </div>
-                <button class="btn btn-success" onclick="restartNullclaw()" data-i18n="nullclaw.restart_service">🔄 重启服务</button>
-                <button class="btn btn-primary" onclick="saveConfig()" data-i18n="nullclaw.save_config">💾 保存配置</button>
+                <button class="btn btn-success" onclick="restartNullclaw()" data-i18n="nullclaw.restart_service">Restart Service</button>
+                <button class="btn btn-primary" onclick="saveConfig()" data-i18n="nullclaw.save_config">Save Config</button>
             </div>
         </div>
         

@@ -1,19 +1,14 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title data-i18n="login.title">登录</title>
+    <title data-i18n="login.title">Login</title>
     <script src="/static/js/i18n.js"></script>
-    <script>
-        I18n.init();
-    </script>
 </head>
 <body style="font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif;padding:24px;max-width:420px;margin:0 auto;">
-    <h2 style="margin:0 0 12px 0;" data-i18n="login.heading">登录</h2>
-    <div style="color:#57606a;line-height:1.6;margin-bottom:12px;" data-i18n="login.description">
-        请输入密码登录。
-    </div>
+    <h2 style="margin:0 0 12px 0;" data-i18n="login.heading">Login</h2>
+    <div style="color:#57606a;line-height:1.6;margin-bottom:12px;" data-i18n="login.description">Please enter password to login.</div>
     {% if error_message %}
     <div style="margin:12px 0;padding:10px 12px;border:1px solid #ffebe9;background:#fff1f0;color:#cf222e;border-radius:8px;">
         {{ error_message }}
@@ -23,12 +18,9 @@
         {% if success_redirect %}
         <input type="hidden" name="success_redirect" value="{{ success_redirect }}">
         {% endif %}
-        <label style="display:block;margin:8px 0 6px 0;color:#24292f;" data-i18n="login.password_label">密码</label>
+        <label style="display:block;margin:8px 0 6px 0;color:#24292f;" data-i18n="login.password_label">Password</label>
         <input name="password" type="password" autocomplete="current-password" style="width:100%;padding:10px 12px;border:1px solid #d0d7de;border-radius:8px;font-size:16px;outline:none;" autofocus data-i18n-placeholder="login.password_placeholder">
-        <button type="submit" style="margin-top:12px;width:100%;padding:10px 12px;border:0;border-radius:8px;background:#0969da;color:#fff;font-size:16px;cursor:pointer;" data-i18n="login.button">登录</button>
+        <button type="submit" style="margin-top:12px;width:100%;padding:10px 12px;border:0;border-radius:8px;background:#0969da;color:#fff;font-size:16px;cursor:pointer;" data-i18n="login.button">Login</button>
     </form>
-    <script>
-        I18n.setLang(I18n.lang);
-    </script>
 </body>
 </html>

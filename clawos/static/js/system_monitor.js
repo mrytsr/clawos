@@ -12,17 +12,17 @@ function __setContainerHtml(id, html) {
 }
 
 function __loadingHtml(label) {
-    var loadingText = (typeof I18n !== 'undefined' ? I18n.t('common.loading_ellipsis') : '加载中...');
+    var loadingText = (typeof I18n !== 'undefined' ? I18n.t('common.loading_ellipsis') : 'Loading...');
     return '<div style="text-align:center;padding:40px;color:#666;">🔄 ' + escapeHtml(label || loadingText) + '</div>';
 }
 
 function __emptyHtml(label) {
-    var emptyText = (typeof I18n !== 'undefined' ? I18n.t('common.no_data') : '暂无数据');
+    var emptyText = (typeof I18n !== 'undefined' ? I18n.t('common.no_data') : 'No data');
     return '<div style="text-align:center;padding:40px;color:#666;">' + escapeHtml(label || emptyText) + '</div>';
 }
 
 function __errorHtml(label) {
-    var errorText = (typeof I18n !== 'undefined' ? I18n.t('common.load_failed') : '加载失败');
+    var errorText = (typeof I18n !== 'undefined' ? I18n.t('common.load_failed') : 'Load failed');
     return '<div style="text-align:center;padding:40px;color:#cf222e;">' + escapeHtml(label || errorText) + '</div>';
 }
 
@@ -45,7 +45,7 @@ function __fmtInt(n) {
 }
 
 window.loadProcessList = function() {
-    var loadingText = (typeof I18n !== 'undefined' ? I18n.t('common.loading_ellipsis') : '加载中...');
+    var loadingText = (typeof I18n !== 'undefined' ? I18n.t('common.loading_ellipsis') : 'Loading...');
     const container = __setContainerHtml('processListContainer', __loadingHtml(loadingText));
     fetch('/api/process/list', { headers: authHeaders() })
         .then(function(r) { return r.json(); })
@@ -65,11 +65,11 @@ window.loadProcessList = function() {
             const memPct = typeof stats.memory_percent === 'number' ? stats.memory_percent : null;
             const procCount = typeof stats.process_count === 'number' ? stats.process_count : processes.length;
 
-            var totalProcessText = (typeof I18n !== 'undefined' ? I18n.t('system.process.total') : '总进程');
+            var totalProcessText = (typeof I18n !== 'undefined' ? I18n.t('system.process.total') : 'Total Processes');
             var cpuText = (typeof I18n !== 'undefined' ? I18n.t('system.process.cpu') : 'CPU');
-            var memoryText = (typeof I18n !== 'undefined' ? I18n.t('system.process.memory') : '内存');
-            var detailText = (typeof I18n !== 'undefined' ? I18n.t('system.process.detail') : '详情');
-            var killText = (typeof I18n !== 'undefined' ? I18n.t('system.process.kill') : '结束');
+            var memoryText = (typeof I18n !== 'undefined' ? I18n.t('system.process.memory') : 'Memory');
+            var detailText = (typeof I18n !== 'undefined' ? I18n.t('system.process.detail') : 'Details');
+            var killText = (typeof I18n !== 'undefined' ? I18n.t('system.process.kill') : 'Kill');
             const header = '<div style="padding:14px 16px;border-bottom:1px solid #eee;background:#f6f8fa;">'
                 + '<div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;justify-content:space-between;">'
                 + '<div style="font-weight:600;">' + totalProcessText + '：' + escapeHtml(String(procCount)) + '</div>'

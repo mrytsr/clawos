@@ -1,14 +1,10 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title data-i18n="db_manager.title">数据库管理</title>
+    <title data-i18n="db_manager.title">Database Manager</title>
     <script src="/static/js/i18n.js"></script>
-    <script>
-        // 初始化国际化
-        I18n.init();
-    </script>
     <!-- Tabulator 样式 - 匹配数据库页面 -->
     <link href="/static/lib/tabulator.min.css" rel="stylesheet">
     <style>
@@ -486,16 +482,16 @@
         <!-- 抽屉 -->
         <div class="drawer" id="drawer">
             <div class="drawer-header">
-                <h2 data-i18n="db_manager.heading">📊 数据库</h2>
+                <h2 data-i18n="db_manager.heading">Database Manager</h2>
                 <div class="drawer-header-actions">
                     <input id="dbConnImportFile" type="file" accept="application/json" style="display:none;" onchange="onImportDbConnectionsFileChange(event)">
-                    <button class="drawer-mini-btn" onclick="triggerImportDbConnections()" data-i18n="db_manager.import">导入</button>
-                    <button class="drawer-mini-btn" onclick="exportDbConnections()" data-i18n="db_manager.export">导出</button>
+                    <button class="drawer-mini-btn" onclick="triggerImportDbConnections()" data-i18n="db_manager.import">Import</button>
+                    <button class="drawer-mini-btn" onclick="exportDbConnections()" data-i18n="db_manager.export">Export</button>
                     <button class="drawer-close" onclick="closeDrawer()" aria-label="关闭" data-i18n-aria-label="common.close">×</button>
                 </div>
             </div>
             <div class="drawer-content">
-                <button class="add-btn" onclick="openAddModal()" data-i18n="db_manager.new_connection">+ 新建连接</button>
+                <button class="add-btn" onclick="openAddModal()" data-i18n="db_manager.new_connection">+ New Connection</button>
                 <div class="tree" id="dbTree"></div>
             </div>
         </div>
@@ -503,13 +499,13 @@
         <!-- 主内容区 -->
         <div class="main-content">
             <div class="top-bar">
-                <h1 data-i18n="db_manager.heading">数据库</h1>
-                <div class="breadcrumb" id="breadcrumb"><span data-i18n="db_manager.no_selection">未选择</span></div>
+                <h1 data-i18n="db_manager.heading">Database Manager</h1>
+                <div class="breadcrumb" id="breadcrumb"><span data-i18n="db_manager.no_selection">Not selected</span></div>
             </div>
             
             <!-- SQL 编辑器 -->
             <div class="sql-toggle" id="sqlToggle" onclick="toggleSqlEditor()">
-                <span data-i18n="db_manager.sql_query">📝 SQL 查询</span>
+                <span data-i18n="db_manager.sql_query">📝 SQL Query</span>
                 <span class="arrow">▼</span>
             </div>
             <div class="sql-editor" id="sqlEditorPanel">
@@ -544,11 +540,11 @@
             <div class="drawer-backdrop" id="historyBackdrop" onclick="closeSqlHistory()"></div>
             <div class="drawer" id="historyDrawer" style="width:50%;max-width:280px;">
                 <div class="drawer-header">
-                    <h2 data-i18n="db_manager.sql_history">📜 SQL 历史</h2>
+                    <h2 data-i18n="db_manager.sql_history">📜 SQL History</h2>
                     <button class="drawer-close" onclick="closeSqlHistory()" aria-label="关闭" data-i18n-aria-label="common.close">×</button>
                 </div>
                 <div class="drawer-content">
-                    <div style="font-size:11px;color:#888;margin-bottom:8px;" data-i18n="db_manager.favorites">常用</div>
+                    <div style="font-size:11px;color:#888;margin-bottom:8px;" data-i18n="db_manager.favorites">Favorites</div>
                     <div class="sql-history-list" id="sqlHistoryList"></div>
                 </div>
             </div>
@@ -571,29 +567,29 @@
             
             <!-- 结果 -->
             <div class="results-tabs">
-                <button class="results-tab active" id="tabResults" onclick="switchResultsTab('results')" data-i18n="db_manager.data">数据</button>
-                <button class="results-tab" id="tabSchema" onclick="switchResultsTab('schema')" data-i18n="db_manager.table_structure">结构</button>
+                <button class="results-tab active" id="tabResults" onclick="switchResultsTab('results')" data-i18n="db_manager.data">Data</button>
+                <button class="results-tab" id="tabSchema" onclick="switchResultsTab('schema')" data-i18n="db_manager.table_structure">Structure</button>
             </div>
             <div class="results" id="resultsContent">
-                <div class="results-empty" data-i18n="db_manager.results_empty">选择表后自动查询</div>
+                <div class="results-empty" data-i18n="db_manager.results_empty">Select a table to auto query</div>
             </div>
             <div class="results" id="schemaPanel" style="display:none;">
-                <div class="results-empty" data-i18n="db_manager.schema_empty">选择表查看结构</div>
+                <div class="results-empty" data-i18n="db_manager.schema_empty">Select a table to view schema</div>
             </div>
             
             <!-- 状态栏 -->
             <div id="toast"></div>
-        <div class="status-bar" id="statusBar"><span data-i18n="db_manager.status_ready">就绪</span></div>
+        <div class="status-bar" id="statusBar"><span data-i18n="db_manager.status_ready">Ready</span></div>
         </div>
     </div>
     
     <!-- 添加连接弹窗 -->
     <div id="addModal" class="modal">
         <div class="modal-content" style="max-width:420px;">
-            <div class="modal-title" data-i18n="db_manager.add_connection_title">新建连接</div>
+            <div class="modal-title" data-i18n="db_manager.add_connection_title">New Connection</div>
             <div class="form-grid stacked">
-                <div class="field-row"><label data-i18n="db_manager.engine">引擎</label><select id="dbEngine"><option value="mysql">MySQL</option><option value="postgresql">PostgreSQL</option><option value="sqlite">SQLite</option><option value="mariadb">MariaDB</option><option value="oracle">Oracle</option><option value="mssql">SQL Server</option></select></div>
-                <div class="field-row"><label data-i18n="common.name">名称</label><div class="input-wrap"><input type="text" id="dbName" placeholder="例如: 生产库" data-i18n-placeholder="db_manager.name_placeholder"><button class="copy-btn" onclick="copyToClipboard($$('dbName').value)">📋</button></div></div>
+                <div class="field-row"><label data-i18n="db_manager.engine">Engine</label><select id="dbEngine"><option value="mysql">MySQL</option><option value="postgresql">PostgreSQL</option><option value="sqlite">SQLite</option><option value="mariadb">MariaDB</option><option value="oracle">Oracle</option><option value="mssql">SQL Server</option></select></div>
+                <div class="field-row"><label data-i18n="common.name">Name</label><div class="input-wrap"><input type="text" id="dbName" placeholder="例如: 生产库" data-i18n-placeholder="db_manager.name_placeholder"><button class="copy-btn" onclick="copyToClipboard($$('dbName').value)">📋</button></div></div>
                 <div class="field-row full-width">
                     <label data-i18n="db_manager.url">URL</label>
                     <div class="input-wrap">
@@ -602,17 +598,17 @@
                         <button class="copy-btn" onclick="copyToClipboard($$('dbUrl').value)">📋</button>
                     </div>
                 </div>
-                <div class="field-row"><label data-i18n="db_manager.host">主机</label><div class="input-wrap"><input type="text" id="dbHost" placeholder="localhost"><button class="copy-btn" onclick="copyToClipboard($$('dbHost').value)">📋</button></div></div>
-                <div class="field-row"><label data-i18n="db_manager.port">端口</label><div class="input-wrap"><input type="number" id="dbPort" value="3306"><button class="copy-btn" onclick="copyToClipboard($$('dbPort').value)">📋</button></div></div>
-                <div class="field-row"><label data-i18n="db_manager.username">用户名</label><div class="input-wrap"><input type="text" id="dbUser" placeholder="root"><button class="copy-btn" onclick="copyToClipboard($$('dbUser').value)">📋</button></div></div>
-                <div class="field-row"><label data-i18n="db_manager.password">密码</label><div class="input-wrap"><input type="password" id="dbPass" placeholder="密码" data-i18n-placeholder="db_manager.password_placeholder"><button class="copy-btn" onclick="copyToClipboard($$('dbPass').value)">📋</button></div></div>
-                <div class="field-row"><label data-i18n="db_manager.database">数据库</label><div class="input-wrap"><input type="text" id="dbDatabase" placeholder="数据库名" data-i18n-placeholder="db_manager.database_placeholder"><button class="copy-btn" onclick="copyToClipboard($$('dbDatabase').value)">📋</button></div></div>
-                <div class="field-row sqlite-field" style="display:none;"><label data-i18n="db_manager.file_path">文件路径</label><div class="input-wrap"><input type="text" id="dbSqlitePath" placeholder="/path/to/db.sqlite"><button class="copy-btn" onclick="copyToClipboard($$('dbSqlitePath').value)">📋</button></div></div>
+                <div class="field-row"><label data-i18n="db_manager.host">Host</label><div class="input-wrap"><input type="text" id="dbHost" placeholder="localhost"><button class="copy-btn" onclick="copyToClipboard($$('dbHost').value)">📋</button></div></div>
+                <div class="field-row"><label data-i18n="db_manager.port">Port</label><div class="input-wrap"><input type="number" id="dbPort" value="3306"><button class="copy-btn" onclick="copyToClipboard($$('dbPort').value)">📋</button></div></div>
+                <div class="field-row"><label data-i18n="db_manager.username">Username</label><div class="input-wrap"><input type="text" id="dbUser" placeholder="root"><button class="copy-btn" onclick="copyToClipboard($$('dbUser').value)">📋</button></div></div>
+                <div class="field-row"><label data-i18n="db_manager.password">Password</label><div class="input-wrap"><input type="password" id="dbPass" placeholder="密码" data-i18n-placeholder="db_manager.password_placeholder"><button class="copy-btn" onclick="copyToClipboard($$('dbPass').value)">📋</button></div></div>
+                <div class="field-row"><label data-i18n="db_manager.database">Database</label><div class="input-wrap"><input type="text" id="dbDatabase" placeholder="数据库名" data-i18n-placeholder="db_manager.database_placeholder"><button class="copy-btn" onclick="copyToClipboard($$('dbDatabase').value)">📋</button></div></div>
+                <div class="field-row sqlite-field" style="display:none;"><label data-i18n="db_manager.file_path">File Path</label><div class="input-wrap"><input type="text" id="dbSqlitePath" placeholder="/path/to/db.sqlite"><button class="copy-btn" onclick="copyToClipboard($$('dbSqlitePath').value)">📋</button></div></div>
             </div>
             <div class="modal-actions">
-                <button class="cancel" onclick="closeAddModal()" data-i18n="common.cancel">取消</button>
-                <button class="secondary" onclick="testConnection()" style="background:#0f3460;" data-i18n="common.test">测试</button>
-                <button class="confirm" onclick="testAndSave()" data-i18n="common.save">保存</button>
+                <button class="cancel" onclick="closeAddModal()" data-i18n="common.cancel">Cancel</button>
+                <button class="secondary" onclick="testConnection()" style="background:#0f3460;" data-i18n="common.test">Test</button>
+                <button class="confirm" onclick="testAndSave()" data-i18n="common.save">Save</button>
             </div>
         </div>
     </div>
@@ -620,7 +616,7 @@
     <!-- 编辑连接弹窗 -->
     <div id="editModal" class="modal">
         <div class="modal-content" style="max-width:420px;">
-            <div class="modal-title" data-i18n="db_manager.edit_connection_title">编辑连接</div>
+            <div class="modal-title" data-i18n="db_manager.edit_connection_title">Edit Connection</div>
             <input type="hidden" id="editConnId">
             <div class="form-grid stacked">
                 <div class="form-group full-width url-field">
@@ -630,18 +626,18 @@
                         <button class="copy-btn" onclick="copyToClipboard($$('editDbUrl').value)">📋</button>
                     </div>
                 </div>
-                <div class="field-row"><label data-i18n="common.name">名称</label><div class="input-wrap"><input type="text" id="editDbName"><button class="copy-btn" onclick="copyToClipboard($$('editDbName').value)">📋</button></div></div>
-                <div class="field-row"><label data-i18n="db_manager.host">主机</label><div class="input-wrap"><input type="text" id="editDbHost"><button class="copy-btn" onclick="copyToClipboard($$('editDbHost').value)">📋</button></div></div>
-                <div class="field-row"><label data-i18n="db_manager.port">端口</label><div class="input-wrap"><input type="number" id="editDbPort"><button class="copy-btn" onclick="copyToClipboard($$('editDbPort').value)">📋</button></div></div>
-                <div class="field-row"><label data-i18n="db_manager.username">用户名</label><div class="input-wrap"><input type="text" id="editDbUser"><button class="copy-btn" onclick="copyToClipboard($$('editDbUser').value)">📋</button></div></div>
-                <div class="field-row"><label data-i18n="db_manager.password">密码</label><div class="input-wrap"><input type="password" id="editDbPass" placeholder="留空保持原密码" data-i18n-placeholder="db_manager.keep_password_placeholder"><button class="copy-btn" onclick="copyToClipboard($$('editDbPass').value)">📋</button></div></div>
-                <div class="field-row"><label data-i18n="db_manager.database">数据库</label><div class="input-wrap"><input type="text" id="editDbDatabase"><button class="copy-btn" onclick="copyToClipboard($$('editDbDatabase').value)">📋</button></div></div>
-                <div class="field-row" style="display:none;"><label data-i18n="db_manager.file_path">文件路径</label><div class="input-wrap"><input type="text" id="editDbSqlitePath"><button class="copy-btn" onclick="copyToClipboard($$('editDbSqlitePath').value)">📋</button></div></div>
+                <div class="field-row"><label data-i18n="common.name">Name</label><div class="input-wrap"><input type="text" id="editDbName"><button class="copy-btn" onclick="copyToClipboard($$('editDbName').value)">📋</button></div></div>
+                <div class="field-row"><label data-i18n="db_manager.host">Host</label><div class="input-wrap"><input type="text" id="editDbHost"><button class="copy-btn" onclick="copyToClipboard($$('editDbHost').value)">📋</button></div></div>
+                <div class="field-row"><label data-i18n="db_manager.port">Port</label><div class="input-wrap"><input type="number" id="editDbPort"><button class="copy-btn" onclick="copyToClipboard($$('editDbPort').value)">📋</button></div></div>
+                <div class="field-row"><label data-i18n="db_manager.username">Username</label><div class="input-wrap"><input type="text" id="editDbUser"><button class="copy-btn" onclick="copyToClipboard($$('editDbUser').value)">📋</button></div></div>
+                <div class="field-row"><label data-i18n="db_manager.password">Password</label><div class="input-wrap"><input type="password" id="editDbPass" placeholder="留空保持原密码" data-i18n-placeholder="db_manager.keep_password_placeholder"><button class="copy-btn" onclick="copyToClipboard($$('editDbPass').value)">📋</button></div></div>
+                <div class="field-row"><label data-i18n="db_manager.database">Database</label><div class="input-wrap"><input type="text" id="editDbDatabase"><button class="copy-btn" onclick="copyToClipboard($$('editDbDatabase').value)">📋</button></div></div>
+                <div class="field-row" style="display:none;"><label data-i18n="db_manager.file_path">File Path</label><div class="input-wrap"><input type="text" id="editDbSqlitePath"><button class="copy-btn" onclick="copyToClipboard($$('editDbSqlitePath').value)">📋</button></div></div>
             </div>
             <div class="modal-actions">
-                <button class="cancel" onclick="closeEditModal()" data-i18n="common.cancel">取消</button>
-                <button class="secondary" onclick="testEditConnection()" style="background:#0f3460;" data-i18n="common.test">测试</button>
-                <button class="confirm" onclick="saveEditConnection()" data-i18n="common.save">保存</button>
+                <button class="cancel" onclick="closeEditModal()" data-i18n="common.cancel">Cancel</button>
+                <button class="secondary" onclick="testEditConnection()" style="background:#0f3460;" data-i18n="common.test">Test</button>
+                <button class="confirm" onclick="saveEditConnection()" data-i18n="common.save">Save</button>
             </div>
         </div>
     </div>
@@ -649,11 +645,11 @@
     <!-- Confirm 弹窗 -->
     <div id="confirmBackdrop" class="modal" onclick="closeConfirmModal()" style="display:none;background:rgba(0,0,0,0.5);">
         <div class="modal-content" onclick="event.stopPropagation()" style="max-width:320px;">
-            <div class="modal-title" id="confirmTitle" data-i18n="common.confirm">确认</div>
+            <div class="modal-title" id="confirmTitle" data-i18n="common.confirm">Confirm</div>
             <div id="confirmMessage" style="color:#888;margin-bottom:20px;"></div>
             <div style="display:flex;gap:12px;justify-content:flex-end;">
-                <button onclick="closeConfirmModal()" style="padding:10px 16px;background:#0f3460;border:none;border-radius:8px;color:#ccc;cursor:pointer;" data-i18n="common.cancel">取消</button>
-                <button id="confirmBtn" onclick="performConfirm()" style="padding:10px 16px;border:none;border-radius:8px;color:#fff;cursor:pointer;" data-i18n="common.confirm">确认</button>
+                <button onclick="closeConfirmModal()" style="padding:10px 16px;background:#0f3460;border:none;border-radius:8px;color:#ccc;cursor:pointer;" data-i18n="common.cancel">Cancel</button>
+                <button id="confirmBtn" onclick="performConfirm()" style="padding:10px 16px;border:none;border-radius:8px;color:#fff;cursor:pointer;" data-i18n="common.confirm">Confirm</button>
             </div>
         </div>
     </div>
@@ -794,17 +790,17 @@
         
         // 加载树数据
         async function loadTree() {
-            $$('dbTree').innerHTML = '<div class="tree-loading"><div class="spinner"></div>' + __t('common.loading', '加载中...') + '</div>';
+            $$('dbTree').innerHTML = '<div class="tree-loading"><div class="spinner"></div>' + __t('common.loading', 'Loading...') + '</div>';
             try {
                 const r = await fetch('/api/db/tree');
                 const data = await r.json();
                 if (data.success) {
                     renderTree(data.data || []);
                 } else {
-                    $$('dbTree').innerHTML = '<div class="results-empty">' + __t('db_manager.load_failed', '加载失败') + '</div>';
+                    $$('dbTree').innerHTML = '<div class="results-empty">' + __t('db_manager.load_failed', 'Load failed') + '</div>';
                 }
             } catch (e) {
-                $$('dbTree').innerHTML = '<div class="results-empty">' + __t('db_manager.load_failed', '加载失败') + '</div>';
+                $$('dbTree').innerHTML = '<div class="results-empty">' + __t('db_manager.load_failed', 'Load failed') + '</div>';
             }
         }
         
@@ -817,7 +813,7 @@
                 html += renderTreeNode(conn, 'conn', null);
             });
             html += '</div>';
-            $$('dbTree').innerHTML = html || '<div class="results-empty">' + __t('db_manager.no_connections', '暂无连接') + '</div>';
+            $$('dbTree').innerHTML = html || '<div class="results-empty">' + __t('db_manager.no_connections', 'No connections') + '</div>';
         }
         
         function renderTreeNode(node, type, parentConnId) {
@@ -835,8 +831,8 @@
                     <span class="tree-icon">${icon}</span>
                     <span class="tree-label">${label}</span>
                     ${type === 'conn' ? `<div class="tree-actions">
-                        <button onclick="event.stopPropagation();openEditModal('${id}')">${__t('common.edit', '编辑')}</button>
-                        <button onclick="event.stopPropagation();deleteConnection('${id}')">${__t('common.delete', '删除')}</button>
+                        <button onclick="event.stopPropagation();openEditModal('${id}')">${__t('common.edit', 'Edit')}</button>
+                        <button onclick="event.stopPropagation();deleteConnection('${id}')">${__t('common.delete', 'Delete')}</button>
                     </div>` : ''}
                 </div>`;
             
@@ -913,7 +909,7 @@
             if (currentConn) html += `<span>${currentConn.name}</span>`;
             if (currentDb) html += ` / <span>${currentDb}</span>`;
             if (currentTable) html += ` / <span>${currentTable}</span>`;
-            $$('breadcrumb').innerHTML = html || '<span>' + __t('db_manager.no_selection', '未选择') + '</span>';
+            $$('breadcrumb').innerHTML = html || '<span>' + __t('db_manager.no_selection', 'Not selected') + '</span>';
         }
         
         window.toggleDrawer = function() { $$('drawer').classList.toggle('open'); $$('drawerBackdrop').classList.toggle('show'); };
@@ -958,12 +954,12 @@
                     <div class="sql-text">${s.sql.length > 50 ? s.sql.substring(0, 50) + '...' : s.sql}</div>
                     <div class="sql-time">${new Date(s.time).toLocaleString()}</div>
                 </div>`;
-            }).join('') : '<div style="padding:20px;text-align:center;color:#666;font-size:12px;">' + __t('db_manager.no_history', '暂无历史记录') + '</div>';
+            }).join('') : '<div style="padding:20px;text-align:center;color:#666;font-size:12px;">' + __t('db_manager.no_history', 'No history') + '</div>';
             
             $$('sqlHistoryList').innerHTML = `
-                <div class="history-section-title">${__t('db_manager.common_sql', '常用 SQL')}</div>
+                <div class="history-section-title">${__t('db_manager.common_sql', 'Common SQL')}</div>
                 ${fixedHtml}
-                ${history.length ? '<div class="history-divider"></div><div class="history-section-title">' + __t('db_manager.history_records', '历史记录') + '</div>' : ''}
+                ${history.length ? '<div class="history-divider"></div><div class="history-section-title">' + __t('db_manager.history_records', 'History') + '</div>' : ''}
                 ${historyHtml}
             `;
         }
@@ -1012,7 +1008,7 @@
         function sqlHistoryPrev() {
             const list = __getSqlHistoryNavList();
             if (!list.length) {
-                showStatus(__t('db_manager.no_history', '暂无历史记录'), true);
+                showStatus(__t('db_manager.no_history', 'No history'), true);
                 return;
             }
 
@@ -1029,7 +1025,7 @@
         function sqlHistoryNext() {
             const list = __getSqlHistoryNavList();
             if (!list.length) {
-                showStatus(__t('db_manager.no_history', '暂无历史记录'), true);
+                showStatus(__t('db_manager.no_history', 'No history'), true);
                 return;
             }
 
@@ -1425,7 +1421,7 @@
         async function executeQuery() {
             const sql = $$('sqlEditor').value.trim();
             if (!sql) return;
-            $$('resultsContent').innerHTML = '<div class="loading"><div class="spinner"></div>' + __t('db_manager.executing', '执行中...') + '</div>';
+            $$('resultsContent').innerHTML = '<div class="loading"><div class="spinner"></div>' + __t('db_manager.executing', 'Running...') + '</div>';
             
             try {
                 const r = await fetch('/api/db/execute', {
@@ -1438,7 +1434,7 @@
                     currentPage = 1;
                     totalPages = Math.ceil(allResults.length / pageSize);
                     renderResults(data.data.headers || [], getPageData());
-                    showStatus(__t('common.success', '成功') + ' ' + allResults.length + ' ' + __t('db_manager.rows', '行'), false);
+                    showStatus(__t('common.success', 'Success') + ' ' + allResults.length + ' ' + __t('db_manager.rows', 'rows'), false);
                     $$('resultsToolbar').style.display = allResults.length > pageSize ? 'flex' : 'none';
                     
                     // 保存到历史
@@ -1449,12 +1445,12 @@
                         localStorage.setItem('db_sql_history', JSON.stringify(filtered.slice(0, 50)));
                     }
                 } else {
-                    showStatus(__t('db_manager.failed_prefix', '失败: ') + data.message, true);
+                    showStatus(__t('db_manager.failed_prefix', 'Failed: ') + data.message, true);
                     $$('resultsContent').innerHTML = `<div class="results-empty" style="color:#ef4444;">${data.message}</div>`;
                     $$('resultsToolbar').style.display = 'none';
                 }
             } catch (e) {
-                showStatus(__t('db_manager.failed_prefix', '失败: ') + e.message, true);
+                showStatus(__t('db_manager.failed_prefix', 'Failed: ') + e.message, true);
                 $$('resultsContent').innerHTML = `<div class="results-empty" style="color:#ef4444;">${e.message}</div>`;
             }
         }
@@ -1480,7 +1476,7 @@ async function toggleAiHistory() {
     }
     const history = await loadAiHistory();
     if (history.length === 0) {
-        dropdown.innerHTML = '<div style="padding:20px;text-align:center;color:#666;font-size:12px;">' + __t('db_manager.no_history', '暂无历史记录') + '</div>';
+        dropdown.innerHTML = '<div style="padding:20px;text-align:center;color:#666;font-size:12px;">' + __t('db_manager.no_history', 'No history') + '</div>';
     } else {
         dropdown.innerHTML = history.slice(0, 10).map(item => `
             <div class="ai-history-item" onclick="selectAiHistory('${item.prompt.replace(/'/g, "\'")}', '${item.sql.replace(/'/g, "\'").replace(/\n/g, " ")}')">
@@ -1517,7 +1513,7 @@ async function generateSqlFromPrompt() {
             const currentSql = $$('sqlEditor').value.trim();
             
             if (!prompt) {
-                showStatus(__t('db_manager.ai_prompt_required', '请输入 AI Prompt'), true);
+                showStatus(__t('db_manager.ai_prompt_required', 'Please enter AI prompt'), true);
                 return;
             }
             
@@ -1530,7 +1526,7 @@ async function generateSqlFromPrompt() {
                 // 获取当前连接的数据库信息
                 const connId = currentConn?.id;
                 if (!connId) {
-                    showStatus(__t('db_manager.select_connection_first', '请先选择数据库连接'), true);
+                    showStatus(__t('db_manager.select_connection_first', 'Please select a database connection first'), true);
                     return;
                 }
                 
@@ -1575,13 +1571,13 @@ async function generateSqlFromPrompt() {
                 if (data.success && data.sql) {
                     $$('sqlEditor').value = data.sql;
                     $$('aiPromptInput').value = '';
-                    showStatus(__t('db_manager.ai_generate_success', 'SQL 生成成功 ✓'), false);
+                    showStatus(__t('db_manager.ai_generate_success', 'SQL generated ✓'), false);
                 } else {
-                    const errMsg = data.error?.message || data.message || data.error || __t('common.unknown', '未知错误');
-                    showStatus(__t('db_manager.ai_generate_failed_prefix', '生成失败: ') + errMsg, true);
+                    const errMsg = data.error?.message || data.message || data.error || __t('common.unknown', 'Unknown');
+                    showStatus(__t('db_manager.ai_generate_failed_prefix', 'Generate failed: ') + errMsg, true);
                 }
             } catch (e) {
-                showStatus(__t('db_manager.ai_generate_failed_prefix', '生成失败: ') + e.message, true);
+                showStatus(__t('db_manager.ai_generate_failed_prefix', 'Generate failed: ') + e.message, true);
             } finally {
                 btn.disabled = false;
                 btn.innerHTML = originalText;
@@ -1630,7 +1626,7 @@ async function generateSqlFromPrompt() {
         
         function renderResults(headers, rows) {
             if (rows.length === 0) {
-                $$('resultsContent').innerHTML = '<div class="results-empty">' + __t('db_manager.no_data', '无数据') + '</div>';
+                $$('resultsContent').innerHTML = '<div class="results-empty">' + __t('db_manager.no_data', 'No data') + '</div>';
                 $$('pageInfo').textContent = '0 / 0';
                 return;
             }
@@ -1698,7 +1694,7 @@ async function generateSqlFromPrompt() {
                             "page_size": "每页条数"
                         },
                         "headerfilters": {
-                            "default": __t('db_manager.filter_placeholder', '筛选...')
+                            "default": __t('db_manager.filter_placeholder', 'Filter...')
                         }
                     }
                 },
@@ -1769,25 +1765,25 @@ async function generateSqlFromPrompt() {
                         }).then(function(r) { return r.json(); }).then(function(data) {
                             console.log('Update result:', data);
                             if (data.success) {
-                                showStatus(__t('db_manager.update_success', '✅ 更新成功'), false);
+                                showStatus(__t('db_manager.update_success', '✅ Update successful'), false);
                             } else {
-                                showStatus(__t('db_manager.update_failed_prefix', '❌ 更新失败: ') + (data.message || data.error), true);
+                                showStatus(__t('db_manager.update_failed_prefix', '❌ Update failed: ') + (data.message || data.error), true);
                             }
                         }).catch(function(e) { 
                             console.error('Update error:', e);
-                            showStatus(__t('db_manager.update_failed_prefix', '❌ 更新失败: ') + e.message, true); 
+                            showStatus(__t('db_manager.update_failed_prefix', '❌ Update failed: ') + e.message, true); 
                         });
                     }
                 }
             });
             
-            $$('pageInfo').textContent = __t('db_manager.total', '共') + ' ' + rows.length + ' ' + __t('db_manager.entries', '条');
+            $$('pageInfo').textContent = __t('db_manager.total', 'Total') + ' ' + rows.length + ' ' + __t('db_manager.entries', 'items');
         }
         
         // 回退到原生表格实现
         function renderResultsNative(headers, rows) {
             $$('resultsContent').innerHTML = `<table class="data-table" style="width:100%"><thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>${rows.map((row, ri) => `<tr>${row.map((cell, ci) => `<td onclick="editCell(this, ${ri}, ${ci})">${cell||''}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
-            $$('pageInfo').textContent = __t('db_manager.total', '共') + ' ' + rows.length + ' ' + __t('db_manager.entries', '条') + ' (' + __t('db_manager.tabulator_not_loaded', 'Tabulator 未加载') + ')';
+            $$('pageInfo').textContent = __t('db_manager.total', 'Total') + ' ' + rows.length + ' ' + __t('db_manager.entries', 'items') + ' (' + __t('db_manager.tabulator_not_loaded', 'Tabulator not loaded') + ')';
         }
         
         // 单元格编辑
@@ -1813,12 +1809,12 @@ async function generateSqlFromPrompt() {
                 return; 
             }
             
-            if (!currentTable) { showStatus(__t('db_manager.update_no_table', '无法更新：未选择表'), true); return; }
+            if (!currentTable) { showStatus(__t('db_manager.update_no_table', 'Cannot update: no table selected'), true); return; }
             
             // 使用保存的表头
             const headerList = window._tableHeaders || [];
             const colName = headerList[colIdx];
-            if (!colName) { showStatus(__t('db_manager.update_unknown_column', '无法更新：未知列'), true); return; }
+            if (!colName) { showStatus(__t('db_manager.update_unknown_column', 'Cannot update: unknown column'), true); return; }
             
             const sql = "UPDATE `" + currentTable + "` SET `" + colName + "` = " + (newValue === '' ? 'NULL' : typeof newValue === 'number' ? newValue : "'" + newValue.replace(/'/g, "''") + "'") + " WHERE ";
             
@@ -1840,7 +1836,7 @@ async function generateSqlFromPrompt() {
                 if (data.success) {
                     allResults[rowIdx][colIdx] = newValue;
                     if (td) td.textContent = newValue;
-                    showStatus(__t('db_manager.update_success_plain', '更新成功'), false);
+                    showStatus(__t('db_manager.update_success_plain', 'Update successful'), false);
                 } else {
                     // 回滚数据
                     if (window._resultsTable) {
@@ -1848,16 +1844,16 @@ async function generateSqlFromPrompt() {
                         rowData[rowIdx][colName] = oldValue;
                         window._resultsTable.setData(rowData);
                     }
-                    showStatus(__t('db_manager.update_failed_prefix_plain', '更新失败: ') + (data.message || data.error), true);
+                    showStatus(__t('db_manager.update_failed_prefix_plain', 'Update failed: ') + (data.message || data.error), true);
                 }
             }).catch(e => { 
-                showStatus(__t('db_manager.update_failed_prefix_plain', '更新失败: ') + e.message, true); 
+                showStatus(__t('db_manager.update_failed_prefix_plain', 'Update failed: ') + e.message, true); 
             });
         }
         
         
         function quickQuery(sql) {
-            if (!currentConn) { showStatus(__t('db_manager.select_table_first', '请先选择表'), true); return; }
+            if (!currentConn) { showStatus(__t('db_manager.select_table_first', 'Please select a table first'), true); return; }
             $$('sqlEditor').value = sql;
             $$('sqlEditorPanel').classList.add('open');
             $$('sqlToggle').classList.add('open');
@@ -1866,7 +1862,7 @@ async function generateSqlFromPrompt() {
         }
         
         function exportData(format) {
-            if (allResults.length === 0) { showStatus(__t('db_manager.no_export_data', '无可导出数据'), true); return; }
+            if (allResults.length === 0) { showStatus(__t('db_manager.no_export_data', 'No data to export'), true); return; }
             const headers = $$('resultsContent').querySelectorAll('thead th');
             const headerArr = Array.from(headers).map(th => th.textContent);
             let content = '', filename = `export_${Date.now()}`;
@@ -1893,7 +1889,7 @@ async function generateSqlFromPrompt() {
             a.download = filename;
             a.click();
             URL.revokeObjectURL(blob);
-            showStatus(__t('db_manager.exported_prefix', '已导出 ') + allResults.length + ' ' + __t('db_manager.rows', '行'), false);
+            showStatus(__t('db_manager.exported_prefix', 'Exported ') + allResults.length + ' ' + __t('db_manager.rows', 'rows'), false);
         }
         
         function switchResultsTab(tab) {
@@ -1908,16 +1904,16 @@ async function generateSqlFromPrompt() {
         
         async function loadTableSchema() {
             if (!currentConn || !currentTable) return;
-            $$('schemaPanel').innerHTML = '<div class="loading"><div class="spinner"></div>' + __t('common.loading', '加载中...') + '</div>';
+            $$('schemaPanel').innerHTML = '<div class="loading"><div class="spinner"></div>' + __t('common.loading', 'Loading...') + '</div>';
             try {
                 const r = await fetch(`/api/db/${currentConn.id}/table/${currentTable}/schema`);
                 const data = await r.json();
                 if (data.success) {
                     const cols = data.data?.columns || [];
-                    $$('schemaPanel').innerHTML = cols.length ? `<table class="data-table"><thead><tr><th>${__t('db_manager.schema_column', '列名')}</th><th>${__t('db_manager.schema_type', '类型')}</th><th>${__t('db_manager.schema_nullable', '可空')}</th><th>${__t('db_manager.schema_key', '键')}</th></tr></thead><tbody>` + 
-                        cols.map(c => `<tr><td>${c.field}</td><td>${c.type}</td><td>${c.null === 'YES' ? '✓' : '✗'}</td><td>${c.key || ''}</td></tr>`).join('') + '</tbody></table>' : '<div class="results-empty">' + __t('db_manager.no_schema', '无结构') + '</div>';
+                    $$('schemaPanel').innerHTML = cols.length ? `<table class="data-table"><thead><tr><th>${__t('db_manager.schema_column', 'Column')}</th><th>${__t('db_manager.schema_type', 'Type')}</th><th>${__t('db_manager.schema_nullable', 'Nullable')}</th><th>${__t('db_manager.schema_key', 'Key')}</th></tr></thead><tbody>` + 
+                        cols.map(c => `<tr><td>${c.field}</td><td>${c.type}</td><td>${c.null === 'YES' ? '✓' : '✗'}</td><td>${c.key || ''}</td></tr>`).join('') + '</tbody></table>' : '<div class="results-empty">' + __t('db_manager.no_schema', 'No schema') + '</div>';
                 }
-            } catch (e) { $$('schemaPanel').innerHTML = '<div class="results-empty">' + __t('db_manager.load_failed', '加载失败') + '</div>'; }
+            } catch (e) { $$('schemaPanel').innerHTML = '<div class="results-empty">' + __t('db_manager.load_failed', 'Load failed') + '</div>'; }
         }
         
         function showStatus(msg, error) { 
@@ -1934,14 +1930,14 @@ async function generateSqlFromPrompt() {
             $$('confirmMessage').textContent = msg;
             __confirmCallback = onConfirm;
             $$('confirmBtn').className = danger ? 'confirm' : '';
-            $$('confirmBtn').textContent = danger ? __t('common.delete', '删除') : __t('common.confirm', '确认');
+            $$('confirmBtn').textContent = danger ? __t('common.delete', 'Delete') : __t('common.confirm', 'Confirm');
             $$('confirmBackdrop').style.display = 'flex';
         }
         function performConfirm() { if (__confirmCallback) __confirmCallback(); closeConfirmModal(); }
         function closeConfirmModal() { $$('confirmBackdrop').style.display = 'none'; }
         
         function copyToClipboard(text) {
-            if (typeof clipboard !== 'undefined' && clipboard.copy) clipboard.copy(text).then(() => showStatus(__t('common.copied', '已复制'), false)).catch(() => fallbackCopy(text));
+            if (typeof clipboard !== 'undefined' && clipboard.copy) clipboard.copy(text).then(() => showStatus(__t('common.copied', 'Copied'), false)).catch(() => fallbackCopy(text));
             else fallbackCopy(text);
         }
         function fallbackCopy(text) {
@@ -1949,7 +1945,7 @@ async function generateSqlFromPrompt() {
             ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
             document.body.appendChild(ta);
             ta.select();
-            try { document.execCommand('copy'); showStatus(__t('common.copied', '已复制'), false); } catch (e) { showStatus(__t('common.copy_failed_detail', '无法复制到剪贴板'), true); }
+            try { document.execCommand('copy'); showStatus(__t('common.copied', 'Copied'), false); } catch (e) { showStatus(__t('common.copy_failed_detail', 'Failed to copy to clipboard'), true); }
             document.body.removeChild(ta);
         }
         
@@ -2016,7 +2012,7 @@ async function generateSqlFromPrompt() {
             var url = $$('dbUrl') ? $$('dbUrl').value : '';
             var parsed = parseDbUrl(url);
             if (!parsed) {
-                if (showErr) showStatus(__t('db_manager.url_parse_failed', 'URL 解析失败'), true);
+                if (showErr) showStatus(__t('db_manager.url_parse_failed', 'Failed to parse URL'), true);
                 return;
             }
 
@@ -2041,32 +2037,32 @@ async function generateSqlFromPrompt() {
             const eng = $$('dbEngine').value;
             const data = {name:$$('dbName').value || 'test', engine:eng, host:eng==='sqlite'?'':$$('dbHost').value, port:String($$('dbPort').value||ENGINE_CONFIG[eng]?.port||3306), 
                 user:eng==='sqlite'?'':$$('dbUser').value, password:eng==='sqlite'?'':$$('dbPass').value, database:eng==='sqlite'?$$('dbSqlitePath').value:$$('dbDatabase').value};
-            if (eng !== 'sqlite' && (!data.host || !data.user)) { showStatus(__t('db_manager.required_fields', '请填写必要信息'), true); return; }
-            showStatus(__t('db_manager.testing_connection', '测试连接中...'), false);
+            if (eng !== 'sqlite' && (!data.host || !data.user)) { showStatus(__t('db_manager.required_fields', 'Please fill required fields'), true); return; }
+            showStatus(__t('db_manager.testing_connection', 'Testing connection...'), false);
             try {
                 
                 const r = await fetch('/api/db/test', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)});
                 
                 const result = await r.json();
                 if (!r.ok || !result.success) { 
-                    const errMsg = result.error?.message || result.error || __t('db_manager.connect_failed', '连接失败');
+                    const errMsg = result.error?.message || result.error || __t('db_manager.connect_failed', 'Connection failed');
                     showStatus(errMsg.substring(0, 100), true); return; 
                 }
-                showStatus(__t('db_manager.connect_success', '连接成功!'), false);
-            } catch (e) { showStatus(__t('db_manager.connect_failed_prefix', '连接失败: ') + e.message, true); }
+                showStatus(__t('db_manager.connect_success', 'Connected!'), false);
+            } catch (e) { showStatus(__t('db_manager.connect_failed_prefix', 'Connection failed: ') + e.message, true); }
         }
         async function testAndSave() {
             const eng = $$('dbEngine').value;
             const data = {name:$$('dbName').value, engine:eng, host:eng==='sqlite'?'':$$('dbHost').value, port:String($$('dbPort').value||ENGINE_CONFIG[eng]?.port||3306), 
                 user:eng==='sqlite'?'':$$('dbUser').value, password:eng==='sqlite'?'':$$('dbPass').value, database:eng==='sqlite'?$$('dbSqlitePath').value:$$('dbDatabase').value};
-            if (!data.name) { showStatus(__t('db_manager.name_required', '请填写名称'), true); return; }
-            if (eng !== 'sqlite' && (!data.host || !data.user)) { showStatus(__t('db_manager.required_fields', '请填写必要信息'), true); return; }
+            if (!data.name) { showStatus(__t('db_manager.name_required', 'Please enter a name'), true); return; }
+            if (eng !== 'sqlite' && (!data.host || !data.user)) { showStatus(__t('db_manager.required_fields', 'Please fill required fields'), true); return; }
             try {
                 const r = await fetch('/api/db/connect', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)});
                 const result = await r.json();
-                if (!r.ok || !result.success) { showStatus(result.error || __t('db_manager.save_failed', '保存失败'), true); return; }
-                closeAddModal(); loadTree(); loadConnections(); showStatus(__t('db_manager.saved', '已保存'), false);
-            } catch (e) { showStatus(__t('db_manager.save_failed_prefix', '保存失败: ') + e.message, true); }
+                if (!r.ok || !result.success) { showStatus(result.error || __t('db_manager.save_failed', 'Save failed'), true); return; }
+                closeAddModal(); loadTree(); loadConnections(); showStatus(__t('db_manager.saved', 'Saved'), false);
+            } catch (e) { showStatus(__t('db_manager.save_failed_prefix', 'Save failed: ') + e.message, true); }
         }
         
         // 编辑连接
@@ -2090,9 +2086,9 @@ async function generateSqlFromPrompt() {
             try {
                 const r = await fetch(`/api/db/connection/${id}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)});
                 const result = await r.json();
-                if (!r.ok || !result.success) { showStatus(result.error || __t('db_manager.save_failed', '保存失败'), true); return; }
-                closeEditModal(); loadTree(); loadConnections(); showStatus(__t('db_manager.updated', '已更新'), false);
-            } catch (e) { showStatus(__t('db_manager.save_failed', '保存失败'), true); }
+                if (!r.ok || !result.success) { showStatus(result.error || __t('db_manager.save_failed', 'Save failed'), true); return; }
+                closeEditModal(); loadTree(); loadConnections(); showStatus(__t('db_manager.updated', 'Updated'), false);
+            } catch (e) { showStatus(__t('db_manager.save_failed', 'Save failed'), true); }
         }
         
         async function testEditConnection() {
@@ -2114,27 +2110,27 @@ async function generateSqlFromPrompt() {
                 password:password, 
                 database:isSqlite?$$('editDbSqlitePath').value:$$('editDbDatabase').value
             };
-            showStatus(__t('db_manager.testing_connection', '测试连接中...'), false);
+            showStatus(__t('db_manager.testing_connection', 'Testing connection...'), false);
             try {
                 
                 const r = await fetch('/api/db/test', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)});
                 
                 const result = await r.json();
                 if (!r.ok || !result.success) { 
-                    const errMsg = result.error?.message || result.error || __t('db_manager.connect_failed', '连接失败');
+                    const errMsg = result.error?.message || result.error || __t('db_manager.connect_failed', 'Connection failed');
                     showStatus(errMsg.substring(0, 100), true); return; 
                 }
-                showStatus(__t('db_manager.connect_success', '连接成功!'), false);
-            } catch (e) { showStatus(__t('db_manager.connect_failed_prefix', '连接失败: ') + e.message, true); }
+                showStatus(__t('db_manager.connect_success', 'Connected!'), false);
+            } catch (e) { showStatus(__t('db_manager.connect_failed_prefix', 'Connection failed: ') + e.message, true); }
         }
         
         function deleteConnection(id) {
-            showConfirm(__t('db_manager.delete_connection_title', '删除连接'), __t('db_manager.delete_connection_confirm', '确定要删除此连接吗？'), async () => {
+            showConfirm(__t('db_manager.delete_connection_title', 'Delete Connection'), __t('db_manager.delete_connection_confirm', 'Are you sure you want to delete this connection?'), async () => {
                 try {
                     await fetch(`/api/db/connections/${id}`, {method:'DELETE'});
                     currentConn = null; currentDb = null; currentTable = null;
-                    loadTree(); loadConnections(); updateBreadcrumb(); showStatus(__t('db_manager.deleted', '已删除'), false);
-                } catch (e) { showStatus(__t('db_manager.delete_failed', '删除失败'), true); }
+                    loadTree(); loadConnections(); updateBreadcrumb(); showStatus(__t('db_manager.deleted', 'Deleted'), false);
+                } catch (e) { showStatus(__t('db_manager.delete_failed', 'Delete failed'), true); }
             }, true);
         }
         
@@ -2157,19 +2153,19 @@ async function generateSqlFromPrompt() {
         }
 
         async function exportDbConnections() {
-            showStatus(__t('db_manager.exporting', '导出中...'), false);
+            showStatus(__t('db_manager.exporting', 'Exporting...'), false);
             try {
                 const r = await fetch('/api/db/connections/export');
                 const data = await r.json();
                 if (!r.ok || !data.success) {
-                    const errMsg = data.error?.message || data.error || __t('db_manager.export_failed', '导出失败');
+                    const errMsg = data.error?.message || data.error || __t('db_manager.export_failed', 'Export failed');
                     showStatus(errMsg, true);
                     return;
                 }
                 __downloadJson('db_connections.json', data.data || {});
-                showStatus(__t('db_manager.exported', '已导出'), false);
+                showStatus(__t('db_manager.exported', 'Exported'), false);
             } catch (e) {
-                showStatus(__t('db_manager.export_failed_prefix', '导出失败: ') + (e && e.message ? e.message : 'Error'), true);
+                showStatus(__t('db_manager.export_failed_prefix', 'Export failed: ') + (e && e.message ? e.message : 'Error'), true);
             }
         }
 
@@ -2186,7 +2182,7 @@ async function generateSqlFromPrompt() {
             try {
                 const text = await file.text();
                 const json = JSON.parse(text);
-                showStatus(__t('db_manager.importing', '导入中...'), false);
+                showStatus(__t('db_manager.importing', 'Importing...'), false);
                 const r = await fetch('/api/db/connections/import', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -2194,15 +2190,15 @@ async function generateSqlFromPrompt() {
                 });
                 const data = await r.json();
                 if (!r.ok || !data.success) {
-                    const errMsg = data.error?.message || data.error || __t('db_manager.import_failed', '导入失败');
+                    const errMsg = data.error?.message || data.error || __t('db_manager.import_failed', 'Import failed');
                     showStatus(errMsg, true);
                     return;
                 }
                 await loadConnections();
                 await loadTree();
-                showStatus(__t('db_manager.imported_prefix', '已导入 ') + (data.data?.imported || 0) + ' ' + __t('db_manager.entries', '条'), false);
+                showStatus(__t('db_manager.imported_prefix', 'Imported ') + (data.data?.imported || 0) + ' ' + __t('db_manager.entries', 'items'), false);
             } catch (e) {
-                showStatus(__t('db_manager.import_failed_prefix', '导入失败: ') + (e && e.message ? e.message : 'Error'), true);
+                showStatus(__t('db_manager.import_failed_prefix', 'Import failed: ') + (e && e.message ? e.message : 'Error'), true);
             }
         }
 

@@ -6,7 +6,7 @@
     'use strict';
 
     var I18n = {
-        lang: 'zh',
+        lang: 'en',
         data: {},
         supportedLangs: ['zh', 'en', 'ja'],
         langNames: {
@@ -20,7 +20,7 @@
          */
         init: function() {
             var savedLang = localStorage.getItem('clawos_lang');
-            var defaultLang = savedLang || 'zh';
+            var defaultLang = savedLang || 'en';
             this.setLang(defaultLang);
         },
 
@@ -29,7 +29,7 @@
          */
         setLang: function(lang) {
             if (this.supportedLangs.indexOf(lang) === -1) {
-                lang = 'zh';
+                lang = 'en';
             }
             this.lang = lang;
             localStorage.setItem('clawos_lang', lang);

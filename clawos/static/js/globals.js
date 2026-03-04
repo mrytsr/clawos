@@ -406,7 +406,7 @@ window.showTaskListener = function(text) {
     var bar = document.getElementById('taskListenerBar');
     var label = document.getElementById('taskListenerText');
     if (!bar) return;
-    if (label) label.textContent = text || (typeof I18n !== 'undefined' ? I18n.t('common.loading') : '加载中...');
+    if (label) label.textContent = text || (typeof I18n !== 'undefined' ? I18n.t('common.loading') : 'Loading...');
     bar.style.display = 'flex';
     bar.setAttribute('aria-hidden', 'false');
 };
@@ -431,7 +431,7 @@ window.openDialogDrawer = function(opts) {
     var inputEl = document.getElementById('dialogInput');
     var btnEl = document.getElementById('dialogConfirmBtn');
 
-    if (titleEl) titleEl.textContent = o.title || (typeof I18n !== 'undefined' ? I18n.t('common.notice') : '提示');
+    if (titleEl) titleEl.textContent = o.title || (typeof I18n !== 'undefined' ? I18n.t('common.notice') : 'Notice');
     if (msgEl) msgEl.textContent = o.message || '';
 
     if (selectEl) {
@@ -466,7 +466,7 @@ window.openDialogDrawer = function(opts) {
     }
 
     if (btnEl) {
-        btnEl.textContent = o.confirmText || (typeof I18n !== 'undefined' ? I18n.t('common.confirm') : '确认');
+        btnEl.textContent = o.confirmText || (typeof I18n !== 'undefined' ? I18n.t('common.confirm') : 'Confirm');
         if (o.danger) {
             btnEl.style.background = '#dc3545';
         } else {
@@ -517,10 +517,10 @@ window.confirmDialogDrawer = function() {
 };
 
 window.showPromptDrawer = function(title, message, placeholder, defaultValue, confirmText, onConfirm, danger) {
-    var i18nConfirm = (typeof I18n !== 'undefined' ? I18n.t('common.confirm') : '确定');
-    var i18nCancel = (typeof I18n !== 'undefined' ? I18n.t('common.cancel') : '取消');
+    var i18nConfirm = (typeof I18n !== 'undefined' ? I18n.t('common.confirm') : 'Confirm');
+    var i18nCancel = (typeof I18n !== 'undefined' ? I18n.t('common.cancel') : 'Cancel');
     window.SwalGitHub.fire({
-        title: title || (typeof I18n !== 'undefined' ? I18n.t('prompt.title') : '输入'),
+        title: title || (typeof I18n !== 'undefined' ? I18n.t('prompt.title') : 'Input'),
         text: message || '',
         input: 'text',
         inputPlaceholder: placeholder || '',
@@ -536,11 +536,11 @@ window.showPromptDrawer = function(title, message, placeholder, defaultValue, co
 };
 
 window.showConfirmDrawer = function(title, message, confirmText, onConfirm, danger) {
-    var i18nConfirm = (typeof I18n !== 'undefined' ? I18n.t('common.confirm') : '确认');
-    var i18nCancel = (typeof I18n !== 'undefined' ? I18n.t('common.cancel') : '取消');
+    var i18nConfirm = (typeof I18n !== 'undefined' ? I18n.t('common.confirm') : 'Confirm');
+    var i18nCancel = (typeof I18n !== 'undefined' ? I18n.t('common.cancel') : 'Cancel');
     window.SwalGitHub.fire({
         icon: danger ? 'warning' : 'question',
-        title: title || (typeof I18n !== 'undefined' ? I18n.t('confirm.title') : '确认'),
+        title: title || (typeof I18n !== 'undefined' ? I18n.t('confirm.title') : 'Confirm'),
         text: message || '',
         showCancelButton: true,
         confirmButtonText: confirmText || i18nConfirm,
@@ -903,14 +903,14 @@ window.handleMainMenu = function(action) {
                         if (match && match[1]) {
                             window.open(match[1].trim(), '_blank');
                         } else {
-                            alert(typeof I18n !== 'undefined' ? I18n.t('error.url_file_content') : '无法读取 URL 文件内容');
+                            alert(typeof I18n !== 'undefined' ? I18n.t('error.url_file_content') : 'Cannot read URL file content');
                         }
                     } else {
-                        alert((typeof I18n !== 'undefined' ? I18n.t('error.file_not_found') : '文件不存在或无法读取') + ': ' + config.path);
+                        alert((typeof I18n !== 'undefined' ? I18n.t('error.file_not_found') : 'File not found or cannot be read') + ': ' + config.path);
                     }
                 })
                 .catch(function(e) { 
-                    alert((typeof I18n !== 'undefined' ? I18n.t('error.open_url_failed') : '打开 URL 失败') + ': ' + config.path); 
+                    alert((typeof I18n !== 'undefined' ? I18n.t('error.open_url_failed') : 'Failed to open URL') + ': ' + config.path); 
                 });
         } else if (config.open && window[config.open]) {
             window[config.open]();
@@ -936,13 +936,13 @@ window.showConfirm = function(title, message, onConfirm, danger, onCancel) {
         }
         return;
     }
-    var i18nDelete = (typeof I18n !== 'undefined' ? I18n.t('common.delete') : '删除');
-    var i18nConfirm = (typeof I18n !== 'undefined' ? I18n.t('common.confirm') : '确认');
-    var i18nCancel = (typeof I18n !== 'undefined' ? I18n.t('common.cancel') : '取消');
+    var i18nDelete = (typeof I18n !== 'undefined' ? I18n.t('common.delete') : 'Delete');
+    var i18nConfirm = (typeof I18n !== 'undefined' ? I18n.t('common.confirm') : 'Confirm');
+    var i18nCancel = (typeof I18n !== 'undefined' ? I18n.t('common.cancel') : 'Cancel');
     window.SwalGitHub.fire({
         icon: danger ? 'warning' : 'question',
-        title: title || (typeof I18n !== 'undefined' ? I18n.t('confirm.operation_title') : '确认操作'),
-        text: message || (typeof I18n !== 'undefined' ? I18n.t('confirm.operation_message') : '确定要执行此操作吗？'),
+        title: title || (typeof I18n !== 'undefined' ? I18n.t('confirm.operation_title') : 'Confirm Operation'),
+        text: message || (typeof I18n !== 'undefined' ? I18n.t('confirm.operation_message') : 'Are you sure you want to perform this operation?'),
         showCancelButton: true,
         confirmButtonText: danger ? i18nDelete : i18nConfirm,
         cancelButtonText: i18nCancel,
@@ -1010,8 +1010,8 @@ window.cancelConfirm = function() {
 
 window.confirmDelete = function(path, name) {
     window.showConfirm(
-        (typeof I18n !== 'undefined' ? I18n.t('common.delete') : '删除') + ' "' + (name || '') + '"',
-        typeof I18n !== 'undefined' ? I18n.t('confirm.delete_message') : '此操作无法撤销，确定要继续吗？',
+        (typeof I18n !== 'undefined' ? I18n.t('common.delete') : 'Delete') + ' "' + (name || '') + '"',
+        typeof I18n !== 'undefined' ? I18n.t('confirm.delete_message') : 'This action cannot be undone. Continue?',
         function() { window.performDelete(path); },
         true
     );
@@ -1068,7 +1068,7 @@ window.clearSelection = function() {
 window.batchDelete = function() { 
     var paths = []; 
     document.querySelectorAll('.file-checkbox:checked').forEach(function(c) { paths.push(c.dataset.path); }); 
-    if (paths.length === 0) { return showToast(typeof I18n !== 'undefined' ? I18n.t('clipboard.select_copy') : '请选择要删除的文件', 'warning'); } 
+    if (paths.length === 0) { return showToast(typeof I18n !== 'undefined' ? I18n.t('clipboard.select_copy') : 'Please select files to operate', 'warning'); } 
 
     var batchDrawer = document.getElementById('batchDrawer');
     if (batchDrawer && batchDrawer.classList.contains('open')) {
@@ -1088,9 +1088,9 @@ window.batchDelete = function() {
     }
     
     window.showConfirmDrawer(
-        typeof I18n !== 'undefined' ? I18n.t('batch.delete_title') : '批量删除', 
-        (typeof I18n !== 'undefined' ? I18n.t('batch.delete_message') : '确定要删除这') + ' ' + paths.length + ' ' + (typeof I18n !== 'undefined' ? I18n.t('common.items') : '个项目') + '？', 
-        typeof I18n !== 'undefined' ? I18n.t('common.delete') : '删除', 
+        typeof I18n !== 'undefined' ? I18n.t('batch.delete_title') : 'Batch Delete', 
+        (typeof I18n !== 'undefined' ? I18n.t('batch.delete_message') : 'Are you sure you want to delete these') + ' ' + paths.length + ' ' + (typeof I18n !== 'undefined' ? I18n.t('common.items') : 'items') + '？', 
+        typeof I18n !== 'undefined' ? I18n.t('common.delete') : 'Delete', 
         function() {
             fetch('/api/batch/delete', { 
                 method: 'POST', 
@@ -1099,12 +1099,12 @@ window.batchDelete = function() {
             }).then(function(r) { return r.json(); })
             .then(function(d) { 
                 if (d && d.success) { 
-                    showToast((typeof I18n !== 'undefined' ? I18n.t('common.delete_success') : '删除成功') + ' ' + paths.length + ' ' + (typeof I18n !== 'undefined' ? I18n.t('common.items') : '个项目'), 'success'); 
+                    showToast((typeof I18n !== 'undefined' ? I18n.t('common.delete_success') : 'Delete successful') + ' ' + paths.length + ' ' + (typeof I18n !== 'undefined' ? I18n.t('common.items') : 'items'), 'success'); 
                     refreshFileList(); 
                 } else { 
-                    showToast(d.error?.message || (typeof I18n !== 'undefined' ? I18n.t('common.delete_failed') : '删除失败'), 'error'); 
+                    showToast(d.error?.message || (typeof I18n !== 'undefined' ? I18n.t('common.delete_failed') : 'Delete failed'), 'error'); 
                 } 
-            }).catch(function() { showToast(typeof I18n !== 'undefined' ? I18n.t('common.delete_failed') : '删除失败', 'error'); });
+            }).catch(function() { showToast(typeof I18n !== 'undefined' ? I18n.t('common.delete_failed') : 'Delete failed', 'error'); });
             window.clearSelection();
         }, true);
 };
@@ -1112,35 +1112,35 @@ window.batchDelete = function() {
 window.batchCopy = function() {
     var paths = [];
     document.querySelectorAll('.file-checkbox:checked').forEach(function(c) { paths.push(c.dataset.path); });
-    if (paths.length === 0) { return showToast(typeof I18n !== 'undefined' ? I18n.t('clipboard.select_copy') : '请选择要复制的文件', 'warning'); }
+    if (paths.length === 0) { return showToast(typeof I18n !== 'undefined' ? I18n.t('clipboard.select_copy') : 'Please select files to operate', 'warning'); }
 
     if (window.Clipboard && typeof window.Clipboard.set === 'function') {
         window.Clipboard.set('copy', paths);
-        showToast(typeof I18n !== 'undefined' ? I18n.t('clipboard.copied') : '已复制到剪贴板', 'success');
+        showToast(typeof I18n !== 'undefined' ? I18n.t('clipboard.copied') : 'Copied to clipboard', 'success');
         window.clearSelection();
     } else {
-        showToast(typeof I18n !== 'undefined' ? I18n.t('clipboard.unavailable') : '复制不可用', 'error');
+        showToast(typeof I18n !== 'undefined' ? I18n.t('clipboard.unavailable') : 'Copy unavailable', 'error');
     }
 };
 
 window.batchMove = function() {
     var paths = [];
     document.querySelectorAll('.file-checkbox:checked').forEach(function(c) { paths.push(c.dataset.path); });
-    if (paths.length === 0) { return showToast(typeof I18n !== 'undefined' ? I18n.t('clipboard.select_move') : '请选择要移动的文件', 'warning'); }
+    if (paths.length === 0) { return showToast(typeof I18n !== 'undefined' ? I18n.t('clipboard.select_move') : 'Please select files to move', 'warning'); }
 
     if (window.Clipboard && typeof window.Clipboard.set === 'function') {
         window.Clipboard.set('cut', paths);
-        showToast(typeof I18n !== 'undefined' ? I18n.t('clipboard.cut') : '已剪切到剪贴板', 'success');
+        showToast(typeof I18n !== 'undefined' ? I18n.t('clipboard.cut') : 'Cut to clipboard', 'success');
         window.clearSelection();
     } else {
-        showToast(typeof I18n !== 'undefined' ? I18n.t('clipboard.cut_unavailable') : '剪切不可用', 'error');
+        showToast(typeof I18n !== 'undefined' ? I18n.t('clipboard.cut_unavailable') : 'Cut unavailable', 'error');
     }
 };
 
 // Target Modal Functions
 window.openTargetModal = function(title) {
     var t = document.getElementById('targetModalTitle');
-    if (t) t.textContent = title || (typeof I18n !== 'undefined' ? I18n.t('common.select') : '选择目标位置');
+    if (t) t.textContent = title || (typeof I18n !== 'undefined' ? I18n.t('common.select') : 'Select');
     document.getElementById('targetPathInput').value = '';
     Drawer.open('targetModal');
     setTimeout(function() { document.getElementById('targetPathInput').focus(); }, 100);
@@ -1152,12 +1152,12 @@ window.closeTargetModal = function() {
 
 window.confirmTargetPath = function() {
     var target = document.getElementById('targetPathInput').value.trim();
-    if (!target) { return showToast(typeof I18n !== 'undefined' ? I18n.t('validation.path_required') : '请输入目标路径', 'warning'); }
+    if (!target) { return showToast(typeof I18n !== 'undefined' ? I18n.t('validation.path_required') : 'Please enter path', 'warning'); }
     
     var paths = window.batchOperationFiles;
     var action = window.batchActionType;
     
-    if (!paths || paths.length === 0) { return showToast(typeof I18n !== 'undefined' ? I18n.t('fileBrowser.select_files') : '未选择文件', 'error'); }
+    if (!paths || paths.length === 0) { return showToast(typeof I18n !== 'undefined' ? I18n.t('fileBrowser.select_files') : 'Please select files to operate', 'error'); }
     
     var endpoint = action === 'move' ? '/api/batch/move' : '/api/batch/copy';
     
@@ -1169,14 +1169,14 @@ window.confirmTargetPath = function() {
     .then(function(r) { return r.json(); })
     .then(function(d) {
         if (d && d.success) {
-            showToast(action === 'move' ? (typeof I18n !== 'undefined' ? I18n.t('move.success') : '移动成功') : (typeof I18n !== 'undefined' ? I18n.t('copy.success') : '复制成功'), 'success');
+            showToast(action === 'move' ? (typeof I18n !== 'undefined' ? I18n.t('move.success') : 'Move successful') : (typeof I18n !== 'undefined' ? I18n.t('copy.success') : 'Copy successful'), 'success');
             window.clearSelection();
             refreshFileList();
         } else {
-            showToast(d.error?.message || (action === 'move' ? (typeof I18n !== 'undefined' ? I18n.t('move.failed') : '移动失败') : (typeof I18n !== 'undefined' ? I18n.t('copy.failed') : '复制失败')), 'error');
+            showToast(d.error?.message || (action === 'move' ? (typeof I18n !== 'undefined' ? I18n.t('move.failed') : 'Move failed') : (typeof I18n !== 'undefined' ? I18n.t('copy.failed') : 'Copy failed')), 'error');
         }
     })
-    .catch(function() { showToast(typeof I18n !== 'undefined' ? I18n.t('common.error') : '操作失败', 'error'); });
+    .catch(function() { showToast(typeof I18n !== 'undefined' ? I18n.t('common.error') : 'Error', 'error'); });
     
     window.closeTargetModal();
 };
@@ -1217,7 +1217,7 @@ window.handleFileSelect = function(event) {
         // 显示进度条
         var progressDiv = document.createElement('div');
         progressDiv.className = 'upload-progress';
-        var uploadingText = typeof I18n !== 'undefined' ? I18n.t('upload.uploading') : '上传中...';
+        var uploadingText = typeof I18n !== 'undefined' ? I18n.t('upload.uploading') : 'Uploading...';
         progressDiv.innerHTML = '<span>' + uploadingText + '</span><div class="progress-bar"><div class="progress-fill" id="uploadProgressFill"></div></div>';
         document.body.appendChild(progressDiv);
         
@@ -1233,16 +1233,16 @@ window.handleFileSelect = function(event) {
         xhr.addEventListener('load', function() {
             progressDiv.remove();
             if (xhr.status === 200) {
-                showToast(typeof I18n !== 'undefined' ? I18n.t('common.upload_success') : '上传成功', 'success');
+                showToast(typeof I18n !== 'undefined' ? I18n.t('common.upload_success') : 'Upload successful', 'success');
                 setTimeout(function() { window.location.reload(); }, 500);
             } else {
-                showToast(typeof I18n !== 'undefined' ? I18n.t('upload.failed') : '上传失败', 'error');
+                showToast(typeof I18n !== 'undefined' ? I18n.t('upload.failed') : 'Upload failed', 'error');
             }
         });
         
         xhr.addEventListener('error', function() {
             progressDiv.remove();
-            showToast(typeof I18n !== 'undefined' ? I18n.t('upload.failed') : '上传失败', 'error');
+            showToast(typeof I18n !== 'undefined' ? I18n.t('upload.failed') : 'Upload failed', 'error');
         });
         
         xhr.open('POST', '/upload/' + encodeURIComponent(currentPath));
@@ -1256,7 +1256,7 @@ window.updateFontSize = function(size) {
     localStorage.setItem('global_font_size', size);
     var fontSizeValue = document.getElementById('fontSizeValue');
     if (fontSizeValue) fontSizeValue.textContent = size + 'px';
-    showToast(typeof I18n !== 'undefined' ? I18n.t('settings.fontSize') + ' ' + (typeof I18n !== 'undefined' ? I18n.t('common.update_success') : '已更新') : '字体大小已更新', 'success'); 
+    showToast(typeof I18n !== 'undefined' ? I18n.t('settings.fontSize') + ' ' + (typeof I18n !== 'undefined' ? I18n.t('common.update_success') : 'Update successful') : '字体大小已更新', 'success'); 
 };
 window.handleSearchKeyup = function(e) { if (e.key === 'Enter' && typeof doSearch === 'function') { doSearch(); } };
 window.refreshFileList = function() {
@@ -1285,8 +1285,8 @@ window.toggleItemSelection = function(path, cb) { if (!cb.checked) { document.ge
 function updateBatchBar() {
     var count = document.querySelectorAll('.file-checkbox:checked').length;
     var countEl = document.getElementById('batchCount');
-    var selectedText = typeof I18n !== 'undefined' ? I18n.t('common.selected') : '已选';
-    var itemsText = typeof I18n !== 'undefined' ? I18n.t('common.items') : '项';
+    var selectedText = typeof I18n !== 'undefined' ? I18n.t('common.selected') : 'Selected';
+    var itemsText = typeof I18n !== 'undefined' ? I18n.t('common.items') : 'items';
     if (countEl) { countEl.textContent = selectedText + ' ' + count + ' ' + itemsText; }
     
     var d = document.getElementById('batchDrawer');
@@ -1406,7 +1406,7 @@ window.renderPkgList = function(elId, list) {
 };
 
 window.showPkgActions = function(name) {
-    window.showAlert(typeof I18n !== 'undefined' ? I18n.t('common.notice') : '提示', typeof I18n !== 'undefined' ? I18n.t('common.feature_coming_soon') : '功能开发中...', 'info');
+    window.showAlert(typeof I18n !== 'undefined' ? I18n.t('common.notice') : 'Notice', typeof I18n !== 'undefined' ? I18n.t('common.feature_coming_soon') : 'Feature coming soon...', 'info');
 };
 
 window.filterPkgList = function() {
@@ -1456,13 +1456,13 @@ window.loadSources = function() {
 window.switchPipSource = function(url) {
     localStorage.setItem('pip_source', url);
     window.loadSources();
-    window.showAlert(typeof I18n !== 'undefined' ? I18n.t('common.notice') : '提示', (typeof I18n !== 'undefined' ? I18n.t('sources.pip_switched') : 'pip 源已切换为') + ': ' + url, 'success');
+    window.showAlert(typeof I18n !== 'undefined' ? I18n.t('common.notice') : 'Notice', (typeof I18n !== 'undefined' ? I18n.t('sources.pip_switched') : 'pip source switched to') + ': ' + url, 'success');
 };
 
 window.switchNpmSource = function(url) {
     localStorage.setItem('npm_source', url);
     window.loadSources();
-    window.showAlert(typeof I18n !== 'undefined' ? I18n.t('common.notice') : '提示', (typeof I18n !== 'undefined' ? I18n.t('sources.npm_switched') : 'npm 源已切换为') + ': ' + url, 'success');
+    window.showAlert(typeof I18n !== 'undefined' ? I18n.t('common.notice') : 'Notice', (typeof I18n !== 'undefined' ? I18n.t('sources.npm_switched') : 'npm source switched to') + ': ' + url, 'success');
 };
 
 // ========== 批量操作 ==========

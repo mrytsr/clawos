@@ -1,14 +1,13 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title data-i18n="zeroclaw.title">ZeroClaw 配置</title>
+    <title data-i18n="zeroclaw.title">ZeroClaw Config</title>
     <link rel="stylesheet" href="/static/css/zeroclaw.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="/static/js/i18n.js"></script>
-    <script>I18n.init();</script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
@@ -314,14 +313,14 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1 data-i18n="zeroclaw.heading">⚡ ZeroClaw 配置</h1>
+            <h1 data-i18n="zeroclaw.heading">ZeroClaw Configuration</h1>
             <div class="header-actions">
                 <div class="status-badge">
                     <span class="status-dot" id="statusDot"></span>
-                    <span id="statusText" data-i18n="zeroclaw.status_checking">检查中...</span>
+                    <span id="statusText" data-i18n="zeroclaw.status_checking">Checking...</span>
                 </div>
-                <button class="btn btn-success" onclick="restartService()" data-i18n="zeroclaw.restart_service">🔄 重启服务</button>
-                <button class="btn btn-primary" onclick="saveCurrentSection()" data-i18n="zeroclaw.save_config">💾 保存</button>
+                <button class="btn btn-success" onclick="restartService()" data-i18n="zeroclaw.restart_service">Restart Service</button>
+                <button class="btn btn-primary" onclick="saveCurrentSection()" data-i18n="zeroclaw.save_config">Save</button>
             </div>
         </div>
         
