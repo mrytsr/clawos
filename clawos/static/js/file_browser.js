@@ -344,7 +344,7 @@ function openArchiveProgressDrawer() {
     var fill = document.getElementById('archiveProgressFill');
     var text = document.getElementById('archiveProgressText');
     if (fill) fill.style.width = '0%';
-    if (text) text.textContent = '准备中…';
+    if (text) text.textContent = (typeof I18n !== 'undefined' ? I18n.t('archive.preparing') : 'Preparing…');
     Drawer.open('archiveProgressDrawer');
 }
 
@@ -374,14 +374,14 @@ function startArchiveProgressPoll(taskId) {
     });
     window.__archiveProgressPoller.promise.then(function(res) {
         if (res && res.ok) {
-            showToast('压缩完成', 'success');
+            showToast(typeof I18n !== 'undefined' ? I18n.t('archive.compress_success') : 'Compression completed', 'success');
             closeArchiveProgressDrawer();
             if (typeof refreshFileList === 'function') doRefreshFileList();
             return;
         }
         var payload = res && res.payload ? res.payload : null;
         var msg = payload && (payload.message || (payload.error && payload.error.message)) ? (payload.message || (payload.error && payload.error.message)) : '';
-        showToast(msg || '压缩失败', 'error');
+        showToast(msg || (typeof I18n !== 'undefined' ? I18n.t('archive.compress_failed') : 'Compression failed'), 'error');
         closeArchiveProgressDrawer();
     });
 }

@@ -115,6 +115,9 @@
     "reconnect": "再接続",
     "retry": "再試行",
     "reset": "リセット",
+    "connect": "接続",
+    "reinstall": "再インストール",
+    "tools": "ツール",
     "apply": "適用",
     "format": "フォーマット",
     "test": "テスト",
@@ -158,6 +161,7 @@
     "password": "パスワード",
     "username": "ユーザー名",
     "email": "メール",
+    "email_placeholder": "メールアドレスを入力",
     "phone": "電話",
     "description": "説明",
     "notes": "メモ",
@@ -176,8 +180,10 @@
     "message": "メッセージ",
     "notification": "通知",
     "alert": "アラート",
+    "confirm_action_title": "操作の確認",
     "confirm_delete_title": "削除確認",
     "confirm_delete_message": "この項目を削除してもよろしいですか？",
+    "confirm_action_message": "この操作を実行しますか？",
     "validation_required": "必須項目を入力してください",
     "validation_name_required": "名前は必須です",
     "validation_url_required": "URLを入力してください",
@@ -355,6 +361,11 @@
   },
   "fileBrowser": {
     "title": "ファイル管理",
+    "details_title": "📋 ファイル詳細",
+    "rename_title": "名前変更",
+    "rename_prompt": "新しい名前を入力",
+    "move_title": "移動先",
+    "move_prompt": "移動先パスを入力（ルートからの相対パス）:",
     "upload": "アップロード",
     "newFolder": "新規フォルダ",
     "newFile": "新規ファイル",
@@ -366,6 +377,8 @@
     "paste": "貼り付け",
     "selectAll": "すべて選択",
     "search": "検索",
+    "search_files_title": "🔍 ファイル検索",
+    "search_placeholder": "ファイル名で検索...",
     "search_hotkey": "検索 (Ctrl+F)",
     "refresh": "更新",
     "path": "パス",
@@ -404,6 +417,10 @@
   },
   "archive": {
     "create_title": "新規アーカイブ",
+    "compressing": "🗜️ 圧縮中",
+    "preparing": "準備中…",
+    "compress_success": "圧縮が完了しました",
+    "compress_failed": "圧縮に失敗しました",
     "default_name": "新規アーカイブ",
     "create_message": "アーカイブ名を入力し、形式を選択してください（同じディレクトリに作成）",
     "name_placeholder": "例: backup.zip",
@@ -420,7 +437,14 @@
   },
   "upload": {
     "uploading": "アップロード中...",
-    "failed": "アップロードに失敗しました"
+    "failed": "アップロードに失敗しました",
+    "release_to_upload": "離すとアップロード",
+    "drag_upload_title": "📤 ドラッグアップロード",
+    "start_upload": "アップロード開始",
+    "paste_image_title": "🖼️ 貼り付け画像を保存",
+    "target_path_placeholder": "保存先（ルートからの相対パス）",
+    "save_path_placeholder": "保存パス（ルートからの相対パス）",
+    "filename_placeholder": "ファイル名"
   },
   "task": {
     "listening": "タスク状態を監視中…",
@@ -428,6 +452,8 @@
   },
   "clipboard": {
     "title": "クリップボード操作",
+    "paste_here": "ここに貼り付け",
+    "cancel_operation": "クリップボード操作をキャンセル",
     "copied": "クリップボードにコピーしました",
     "unavailable": "コピーできません",
     "select_copy": "操作するファイルを選択してください",
@@ -446,7 +472,10 @@
   },
   "move": {
     "success": "移動しました",
-    "failed": "移動に失敗しました"
+    "failed": "移動に失敗しました",
+    "select_target_title": "対象を選択",
+    "relative_to_root_hint": "ルートからの相対パス",
+    "placeholder": "例: docs/new-folder"
   },
   "copy": {
     "success": "コピーしました",
@@ -457,6 +486,8 @@
     "failed": "名前変更に失敗しました"
   },
   "clone": {
+    "in_progress": "クローン中...",
+    "processing": "処理中...",
     "success": "クローンしました",
     "failed": "クローンに失敗しました"
   },
@@ -478,7 +509,10 @@
     "folder_example": "例: assets",
     "file_name_placeholder": "ファイル名を入力",
     "file_example": "例: README.md",
-    "url_shortcut": "URLショートカット"
+    "url_shortcut": "URLショートカット",
+    "create_url_shortcut_title": "URLショートカットを作成",
+    "url_name_example": "例: マイサイト",
+    "url_url_example": "例: https://example.com"
   },
   "file_menu": {
     "open": "開く",
@@ -545,6 +579,7 @@
   },
   "perf": {
     "title": "パフォーマンス監視",
+    "auto_refreshing": "🔄 自動更新中",
     "cpuUsage": "CPU使用率",
     "memoryUsage": "メモリ使用",
     "diskUsage": "ディスク使用",
@@ -587,6 +622,7 @@
   },
   "settings": {
     "title": "設定",
+    "drawer_title": "⚙️ 設定",
     "appearance": "外観",
     "language": "言語",
     "theme": "テーマ",
@@ -595,6 +631,20 @@
     "autoSave": "自動保存",
     "notifications": "通知",
     "keyboardShortcuts": "キーボードショートカット"
+  },
+  "tools": {
+    "email_config": "メール設定",
+    "email_not_configured": "未設定"
+  },
+  "email": {
+    "select_recipient": "受信者を選択",
+    "history_title": "履歴",
+    "no_history": "履歴なし"
+  },
+  "account": {
+    "title": "👤 アカウント",
+    "logout_label": "ログアウト",
+    "logout_action": "ログアウト"
   },
   "toast": {
     "message": "メッセージ",
@@ -1061,6 +1111,7 @@
   },
   "trash": {
     "title": "ゴミ箱",
+    "drawer_title": "🗑️ ゴミ箱",
     "heading": "ゴミ箱",
     "item_count": "{{count}}項目",
     "deleted_at": "削除日時",
@@ -1191,6 +1242,8 @@
   },
   "git": {
     "title": "Git管理",
+    "commit_detail_title": "📝 コミット詳細",
+    "auto_refresh": "自動更新",
     "status": {
       "unmodified": "未変更",
       "modified": "変更済み",
@@ -1244,7 +1297,18 @@
     "empty_archive": "空のアーカイブ",
     "unsupported_type": "このファイルタイプはプレビューに対応していません"
   },
+  "openclaw": {
+    "config_title": "⚙️ OpenClaw 設定",
+    "gateway_token_placeholder": "Gateway Token（バックエンドが自動取得）"
+  },
   "bot": {
+    "input_placeholder": "メッセージを入力...",
+    "settings_title": "設定 & 状態",
+    "clear_history": "履歴をクリア",
+    "sent": "送信済み",
+    "rounds": "回数",
+    "close_settings": "設定を閉じる",
+    "jump_latest": "⬇ 最新へ移動",
     "status": {
       "connected": "接続済み",
       "disconnected": "未接続",
@@ -1329,6 +1393,7 @@
     },
     "systemd": {
       "title": "Systemd 管理",
+      "search_placeholder": "サービス検索...",
       "user_services": "ユーザーサービス",
       "system_services": "システムサービス",
       "enable": "自動起動有効",
@@ -1426,6 +1491,7 @@
     },
     "openclaw": {
       "title": "OpenClaw",
+      "gateway_token_placeholder": "Gateway Token（バックエンドが自動取得）",
       "cron": {
         "title": "Cronジョブ",
         "add": "追加",

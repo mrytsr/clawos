@@ -487,7 +487,7 @@
                     <input id="dbConnImportFile" type="file" accept="application/json" style="display:none;" onchange="onImportDbConnectionsFileChange(event)">
                     <button class="drawer-mini-btn" onclick="triggerImportDbConnections()" data-i18n="db_manager.import">Import</button>
                     <button class="drawer-mini-btn" onclick="exportDbConnections()" data-i18n="db_manager.export">Export</button>
-                    <button class="drawer-close" onclick="closeDrawer()" aria-label="关闭" data-i18n-aria-label="common.close">×</button>
+                    <button class="drawer-close" onclick="closeDrawer()" aria-label="Close" data-i18n-aria-label="common.close">×</button>
                 </div>
             </div>
             <div class="drawer-content">
@@ -510,24 +510,24 @@
             </div>
             <div class="sql-editor" id="sqlEditorPanel">
                 <div class="sql-editor-wrapper">
-                    <textarea id="sqlEditor" placeholder="输入 SQL... (Ctrl+Enter 执行)" data-i18n-placeholder="db_manager.sql_placeholder"></textarea>
+                    <textarea id="sqlEditor" placeholder="Enter SQL... (Ctrl+Enter to execute)" data-i18n-placeholder="db_manager.sql_placeholder"></textarea>
                     <div class="sql-autocomplete" id="sqlAutocomplete" style="display:none;"></div>
                 </div>
                 <div class="sql-toolbar">
-                    <button onclick="executeQuery()" title="执行 (Ctrl+Enter)" data-i18n-title="db_manager.execute_hotkey">▶</button>
-                    <button class="secondary" onclick="clearEditor()" title="清空" data-i18n-title="db_manager.clear">🗑️</button>
-                    <button class="secondary" onclick="openSqlHistory()" title="历史" data-i18n-title="db_manager.history">📜</button>
-                    <button class="secondary" onclick="sqlHistoryPrev()" title="上一条" data-i18n-title="db_manager.prev">⏮</button>
-                    <button class="secondary" onclick="sqlHistoryNext()" title="下一条" data-i18n-title="db_manager.next">⏭</button>
+                    <button onclick="executeQuery()" title="Execute (Ctrl+Enter)" data-i18n-title="db_manager.execute_hotkey">▶</button>
+                    <button class="secondary" onclick="clearEditor()" title="Clear" data-i18n-title="db_manager.clear">🗑️</button>
+                    <button class="secondary" onclick="openSqlHistory()" title="History" data-i18n-title="db_manager.history">📜</button>
+                    <button class="secondary" onclick="sqlHistoryPrev()" title="Previous" data-i18n-title="db_manager.prev">⏮</button>
+                    <button class="secondary" onclick="sqlHistoryNext()" title="Next" data-i18n-title="db_manager.next">⏭</button>
                 </div>
                 <div class="ai-prompt-row">
                     <div class="ai-prompt-combo" id="aiPromptCombo">
                         <input type="text" id="aiPromptInput" class="ai-prompt-input"
-                               placeholder="✨ 输入自然语言，让 AI 生成/修改 SQL..." data-i18n-placeholder="db_manager.ai_prompt_placeholder">
-                        <button id="btnAiHistory" type="button" class="ai-combo-toggle" onclick="toggleAiHistory()" aria-label="历史" data-i18n-aria-label="db_manager.ai_history">▾</button>
+                               placeholder="✨ Describe what you want, AI will generate/modify SQL..." data-i18n-placeholder="db_manager.ai_prompt_placeholder">
+                        <button id="btnAiHistory" type="button" class="ai-combo-toggle" onclick="toggleAiHistory()" aria-label="History" data-i18n-aria-label="db_manager.ai_history">▾</button>
                         <div class="ai-history-dropdown" id="aiHistoryDropdown"></div>
                     </div>
-                    <button id="btnAiGenerate" class="btn-ai-generate icon" onclick="generateSqlFromPrompt()" title="AI 生成 SQL" aria-label="AI 生成 SQL" data-i18n-title="db_manager.ai_generate" data-i18n-aria-label="db_manager.ai_generate">
+                    <button id="btnAiGenerate" class="btn-ai-generate icon" onclick="generateSqlFromPrompt()" title="Generate SQL with AI" aria-label="Generate SQL with AI" data-i18n-title="db_manager.ai_generate" data-i18n-aria-label="db_manager.ai_generate">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                             <path d="M12 2l1.6 5.4L19 9l-5.4 1.6L12 16l-1.6-5.4L5 9l5.4-1.6L12 2z"></path>
                             <path d="M19 13l.8 2.7 2.2.7-2.2.7L19 20l-.8-2.6-2.2-.7 2.2-.7L19 13z"></path>
@@ -541,7 +541,7 @@
             <div class="drawer" id="historyDrawer" style="width:50%;max-width:280px;">
                 <div class="drawer-header">
                     <h2 data-i18n="db_manager.sql_history">📜 SQL History</h2>
-                    <button class="drawer-close" onclick="closeSqlHistory()" aria-label="关闭" data-i18n-aria-label="common.close">×</button>
+                    <button class="drawer-close" onclick="closeSqlHistory()" aria-label="Close" data-i18n-aria-label="common.close">×</button>
                 </div>
                 <div class="drawer-content">
                     <div style="font-size:11px;color:#888;margin-bottom:8px;" data-i18n="db_manager.favorites">Favorites</div>
@@ -589,7 +589,7 @@
             <div class="modal-title" data-i18n="db_manager.add_connection_title">New Connection</div>
             <div class="form-grid stacked">
                 <div class="field-row"><label data-i18n="db_manager.engine">Engine</label><select id="dbEngine"><option value="mysql">MySQL</option><option value="postgresql">PostgreSQL</option><option value="sqlite">SQLite</option><option value="mariadb">MariaDB</option><option value="oracle">Oracle</option><option value="mssql">SQL Server</option></select></div>
-                <div class="field-row"><label data-i18n="common.name">Name</label><div class="input-wrap"><input type="text" id="dbName" placeholder="例如: 生产库" data-i18n-placeholder="db_manager.name_placeholder"><button class="copy-btn" onclick="copyToClipboard($$('dbName').value)">📋</button></div></div>
+                <div class="field-row"><label data-i18n="common.name">Name</label><div class="input-wrap"><input type="text" id="dbName" placeholder="e.g., Production DB" data-i18n-placeholder="db_manager.name_placeholder"><button class="copy-btn" onclick="copyToClipboard($$('dbName').value)">📋</button></div></div>
                 <div class="field-row full-width">
                     <label data-i18n="db_manager.url">URL</label>
                     <div class="input-wrap">
@@ -601,8 +601,8 @@
                 <div class="field-row"><label data-i18n="db_manager.host">Host</label><div class="input-wrap"><input type="text" id="dbHost" placeholder="localhost"><button class="copy-btn" onclick="copyToClipboard($$('dbHost').value)">📋</button></div></div>
                 <div class="field-row"><label data-i18n="db_manager.port">Port</label><div class="input-wrap"><input type="number" id="dbPort" value="3306"><button class="copy-btn" onclick="copyToClipboard($$('dbPort').value)">📋</button></div></div>
                 <div class="field-row"><label data-i18n="db_manager.username">Username</label><div class="input-wrap"><input type="text" id="dbUser" placeholder="root"><button class="copy-btn" onclick="copyToClipboard($$('dbUser').value)">📋</button></div></div>
-                <div class="field-row"><label data-i18n="db_manager.password">Password</label><div class="input-wrap"><input type="password" id="dbPass" placeholder="密码" data-i18n-placeholder="db_manager.password_placeholder"><button class="copy-btn" onclick="copyToClipboard($$('dbPass').value)">📋</button></div></div>
-                <div class="field-row"><label data-i18n="db_manager.database">Database</label><div class="input-wrap"><input type="text" id="dbDatabase" placeholder="数据库名" data-i18n-placeholder="db_manager.database_placeholder"><button class="copy-btn" onclick="copyToClipboard($$('dbDatabase').value)">📋</button></div></div>
+                <div class="field-row"><label data-i18n="db_manager.password">Password</label><div class="input-wrap"><input type="password" id="dbPass" placeholder="Password" data-i18n-placeholder="db_manager.password_placeholder"><button class="copy-btn" onclick="copyToClipboard($$('dbPass').value)">📋</button></div></div>
+                <div class="field-row"><label data-i18n="db_manager.database">Database</label><div class="input-wrap"><input type="text" id="dbDatabase" placeholder="Database name" data-i18n-placeholder="db_manager.database_placeholder"><button class="copy-btn" onclick="copyToClipboard($$('dbDatabase').value)">📋</button></div></div>
                 <div class="field-row sqlite-field" style="display:none;"><label data-i18n="db_manager.file_path">File Path</label><div class="input-wrap"><input type="text" id="dbSqlitePath" placeholder="/path/to/db.sqlite"><button class="copy-btn" onclick="copyToClipboard($$('dbSqlitePath').value)">📋</button></div></div>
             </div>
             <div class="modal-actions">
@@ -630,7 +630,7 @@
                 <div class="field-row"><label data-i18n="db_manager.host">Host</label><div class="input-wrap"><input type="text" id="editDbHost"><button class="copy-btn" onclick="copyToClipboard($$('editDbHost').value)">📋</button></div></div>
                 <div class="field-row"><label data-i18n="db_manager.port">Port</label><div class="input-wrap"><input type="number" id="editDbPort"><button class="copy-btn" onclick="copyToClipboard($$('editDbPort').value)">📋</button></div></div>
                 <div class="field-row"><label data-i18n="db_manager.username">Username</label><div class="input-wrap"><input type="text" id="editDbUser"><button class="copy-btn" onclick="copyToClipboard($$('editDbUser').value)">📋</button></div></div>
-                <div class="field-row"><label data-i18n="db_manager.password">Password</label><div class="input-wrap"><input type="password" id="editDbPass" placeholder="留空保持原密码" data-i18n-placeholder="db_manager.keep_password_placeholder"><button class="copy-btn" onclick="copyToClipboard($$('editDbPass').value)">📋</button></div></div>
+                <div class="field-row"><label data-i18n="db_manager.password">Password</label><div class="input-wrap"><input type="password" id="editDbPass" placeholder="Leave blank to keep current password" data-i18n-placeholder="db_manager.keep_password_placeholder"><button class="copy-btn" onclick="copyToClipboard($$('editDbPass').value)">📋</button></div></div>
                 <div class="field-row"><label data-i18n="db_manager.database">Database</label><div class="input-wrap"><input type="text" id="editDbDatabase"><button class="copy-btn" onclick="copyToClipboard($$('editDbDatabase').value)">📋</button></div></div>
                 <div class="field-row" style="display:none;"><label data-i18n="db_manager.file_path">File Path</label><div class="input-wrap"><input type="text" id="editDbSqlitePath"><button class="copy-btn" onclick="copyToClipboard($$('editDbSqlitePath').value)">📋</button></div></div>
             </div>

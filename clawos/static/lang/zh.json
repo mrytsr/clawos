@@ -54,6 +54,7 @@
     "delete": "删除",
     "edit": "编辑",
     "add": "添加",
+    "connect": "连接",
     "create": "创建",
     "close": "关闭",
     "open": "打开",
@@ -70,6 +71,7 @@
     "no": "否",
     "ok": "确定",
     "manage": "管理",
+    "tools": "工具",
     "refresh": "刷新",
     "search": "搜索",
     "name": "名称",
@@ -115,6 +117,7 @@
     "reconnect": "重新连接",
     "retry": "重试",
     "reset": "重置",
+    "reinstall": "重新安装",
     "apply": "应用",
     "format": "格式化",
     "test": "测试",
@@ -158,6 +161,7 @@
     "password": "密码",
     "username": "用户名",
     "email": "邮箱",
+    "email_placeholder": "输入邮箱地址",
     "phone": "电话",
     "description": "描述",
     "notes": "备注",
@@ -176,6 +180,7 @@
     "message": "消息",
     "notification": "通知",
     "alert": "警告",
+    "confirm_action_title": "确认操作",
     "confirm_delete_title": "确认删除",
     "confirm_delete_message": "确定要删除此项吗？",
     "validation_required": "请填写必填项",
@@ -222,6 +227,7 @@
     "restart_failed": "重启失败",
     "copied": "已复制",
     "copy_failed_detail": "无法复制到剪贴板",
+    "confirm_action_message": "确定要执行此操作吗？",
     "pasted": "已粘贴",
     "cutted": "已剪切",
     "loading_ellipsis": "加载中...",
@@ -355,6 +361,11 @@
   },
   "fileBrowser": {
     "title": "文件管理",
+    "details_title": "📋 文件详情",
+    "rename_title": "重命名",
+    "rename_prompt": "请输入新名称",
+    "move_title": "移动到",
+    "move_prompt": "请输入目标路径（相对于根目录）：",
     "upload": "上传",
     "newFolder": "新建文件夹",
     "newFile": "新建文件",
@@ -366,6 +377,8 @@
     "paste": "粘贴",
     "selectAll": "全选",
     "search": "搜索",
+    "search_files_title": "🔍 搜索文件",
+    "search_placeholder": "输入文件名搜索...",
     "search_hotkey": "搜索 (Ctrl+F)",
     "refresh": "刷新",
     "path": "路径",
@@ -404,6 +417,10 @@
   },
   "archive": {
     "create_title": "新建压缩包",
+    "compressing": "🗜️ 压缩中",
+    "preparing": "准备中…",
+    "compress_success": "压缩完成",
+    "compress_failed": "压缩失败",
     "default_name": "新建压缩包",
     "create_message": "输入压缩包名称并选择格式（生成在同级目录）",
     "name_placeholder": "例如：backup.zip",
@@ -420,7 +437,14 @@
   },
   "upload": {
     "uploading": "上传中...",
-    "failed": "上传失败"
+    "failed": "上传失败",
+    "release_to_upload": "释放以上传",
+    "drag_upload_title": "📤 拖拽上传",
+    "start_upload": "开始上传",
+    "paste_image_title": "🖼️ 保存粘贴图片",
+    "target_path_placeholder": "目标路径（相对于根目录）",
+    "save_path_placeholder": "保存路径（相对于根目录）",
+    "filename_placeholder": "文件名"
   },
   "task": {
     "listening": "正在监听任务状态…",
@@ -428,6 +452,8 @@
   },
   "clipboard": {
     "title": "剪贴板操作",
+    "paste_here": "在此粘贴",
+    "cancel_operation": "取消剪贴板操作",
     "copied": "已复制到剪贴板",
     "unavailable": "复制不可用",
     "select_copy": "请选择要操作的文件",
@@ -446,7 +472,10 @@
   },
   "move": {
     "success": "移动成功",
-    "failed": "移动失败"
+    "failed": "移动失败",
+    "select_target_title": "选择目标位置",
+    "relative_to_root_hint": "相对于根目录的路径",
+    "placeholder": "例如：docs/新文件夹名"
   },
   "copy": {
     "success": "复制成功",
@@ -457,6 +486,8 @@
     "failed": "重命名失败"
   },
   "clone": {
+    "in_progress": "克隆中...",
+    "processing": "正在处理...",
     "success": "克隆成功",
     "failed": "克隆失败"
   },
@@ -478,7 +509,10 @@
     "folder_example": "例如：assets",
     "file_name_placeholder": "请输入文件名",
     "file_example": "例如：README.md",
-    "url_shortcut": "网页快捷方式"
+    "url_shortcut": "网页快捷方式",
+    "create_url_shortcut_title": "创建网页快捷方式",
+    "url_name_example": "例如：爱球网",
+    "url_url_example": "例如：https://example.com"
   },
   "file_menu": {
     "open": "打开",
@@ -545,6 +579,7 @@
   },
   "perf": {
     "title": "性能监控",
+    "auto_refreshing": "🔄 自动刷新中",
     "cpuUsage": "CPU 使用率",
     "memoryUsage": "内存使用",
     "diskUsage": "磁盘使用",
@@ -587,6 +622,7 @@
   },
   "settings": {
     "title": "设置",
+    "drawer_title": "⚙️ 设置",
     "appearance": "界面",
     "language": "语言",
     "theme": "主题",
@@ -595,6 +631,20 @@
     "autoSave": "自动保存",
     "notifications": "通知",
     "keyboardShortcuts": "快捷键"
+  },
+  "tools": {
+    "email_config": "邮件配置",
+    "email_not_configured": "未配置"
+  },
+  "email": {
+    "select_recipient": "选择收件人",
+    "history_title": "历史记录",
+    "no_history": "暂无历史"
+  },
+  "account": {
+    "title": "👤 账户",
+    "logout_label": "退出登录",
+    "logout_action": "退出"
   },
   "toast": {
     "message": "消息",
@@ -1061,6 +1111,7 @@
   },
   "trash": {
     "title": "回收站",
+    "drawer_title": "🗑️ 回收站",
     "heading": "回收站",
     "item_count": "共 {{count}} 个项目",
     "deleted_at": "删除时间",
@@ -1191,6 +1242,7 @@
   },
   "git": {
     "title": "Git 管理",
+      "auto_refresh": "自动刷新",
     "status": {
       "unmodified": "未修改",
       "modified": "已修改",
@@ -1244,7 +1296,18 @@
     "empty_archive": "空压缩包",
     "unsupported_type": "该文件类型不在抽屉预览范围"
   },
+  "openclaw": {
+    "config_title": "⚙️ OpenClaw 配置",
+    "gateway_token_placeholder": "Gateway Token（由后端自动获取）"
+  },
   "bot": {
+    "input_placeholder": "输入消息...",
+    "settings_title": "设置 & 状态",
+    "clear_history": "清空记录",
+    "sent": "已发送",
+    "rounds": "轮次",
+    "close_settings": "关闭设置",
+    "jump_latest": "⬇ 跳转到最新",
     "status": {
       "connected": "已连接",
       "disconnected": "未连接",
@@ -1329,6 +1392,7 @@
     },
     "systemd": {
       "title": "Systemd 管理",
+      "search_placeholder": "搜索服务...",
       "user_services": "用户服务",
       "system_services": "系统服务",
       "enable": "启用开机启动",
@@ -1426,6 +1490,7 @@
     },
     "openclaw": {
       "title": "OpenClaw",
+      "gateway_token_placeholder": "Gateway Token（由后端自动获取）",
       "cron": {
         "title": "定时任务",
         "add": "添加",

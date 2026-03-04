@@ -1087,10 +1087,10 @@
             <div class="breadcrumb-btn-group">
                 <form method="post" action="#" enctype="multipart/form-data" id="uploadForm" style="margin:0;">
                     <input type="file" name="file" id="fileInputInline" onchange="handleFileSelect(event)" style="display:none;">
-                    <div class="crumb-btn" onclick="openCreateMenuDrawer()" title="创建" data-i18n-title="breadcrumb.create">+</div>
+                    <div class="crumb-btn" onclick="openCreateMenuDrawer()" title="Create" data-i18n-title="breadcrumb.create">+</div>
                 </form>
-                <a href="#" onclick="openTrashDrawer(); return false;" title="回收站" class="crumb-btn" data-i18n-title="breadcrumb.trash">🗑️</a>
-                <a :href="browseHref('')" @click="onBreadcrumbClick('', $event)" title="根目录" class="crumb-btn" data-i18n-title="fileBrowser.rootDirectory">🏠</a>
+                <a href="#" onclick="openTrashDrawer(); return false;" title="Trash" class="crumb-btn" data-i18n-title="breadcrumb.trash">🗑️</a>
+                <a :href="browseHref('')" @click="onBreadcrumbClick('', $event)" title="Root Directory" class="crumb-btn" data-i18n-title="fileBrowser.rootDirectory">🏠</a>
                 
             </div>
             
@@ -1178,7 +1178,7 @@
     </div><!-- end container -->
 
     <!-- 主菜单抽屉 -->
-    <div id="mainMenuDrawer" class="right-drawer" role="dialog" aria-modal="true" aria-label="开始菜单" data-i18n-aria-label="menu.startMenu" aria-hidden="true" tabindex="-1">
+    <div id="mainMenuDrawer" class="right-drawer" role="dialog" aria-modal="true" aria-label="Start Menu" data-i18n-aria-label="menu.startMenu" aria-hidden="true" tabindex="-1">
         <div class="right-drawer-header">
             <div class="drawer-title" data-i18n="menu.startMenu">Start Menu</div>
             <button id="mainMenuCloseBtn" class="drawer-close-btn" onclick="closeMainMenuModal()" data-i18n-aria-label="menu.closeStartMenu">&times;</button>
@@ -1200,7 +1200,7 @@
         <div class="right-drawer-content" style="padding: 0;">
             <!-- 搜索框 -->
             <div style="padding: 12px 16px; border-bottom: 1px solid #d0d7de; display: flex; gap: 8px;">
-                <input type="text" id="pkgSearchInput" placeholder="搜索..." data-i18n-placeholder="package.searchPlaceholder"
+                <input type="text" id="pkgSearchInput" placeholder="Search..." data-i18n-placeholder="package.searchPlaceholder"
                     style="flex: 1; padding: 8px 12px; border: 1px solid #d0d7de; border-radius: 6px; font-size: 14px;"
                     oninput="filterPkgList()">
                 <button onclick="loadPkgCurrentTab()" style="padding: 8px 16px; background: #0969da; color: #fff; border: none; border-radius: 6px; cursor: pointer;" data-i18n="common.refresh">Refresh</button>
@@ -1256,7 +1256,7 @@
             <!-- 刷新状态 -->
             <div id="perfStatus" style="padding: 8px 16px; background: #f6f8fa; border-bottom: 1px solid #d0d7de; font-size: 12px; color: #57606a; display: flex; justify-content: space-between;">
                 <span id="perfUpdateTime">--:--:--</span>
-                <span id="perfAuto" style="color: #0969da;">🔄 自动刷新中</span>
+                <span id="perfAuto" style="color: #0969da;" data-i18n="perf.auto_refreshing">🔄 Auto refreshing</span>
             </div>
             <!-- 监控项 -->
             <div style="padding: 12px; overflow-y: auto; max-height: calc(100vh - 120px);">
@@ -1265,7 +1265,7 @@
                 
                 <!-- CPU -->
                 <div style="margin-bottom: 16px;">
-                    <div style="font-size: 13px; color: #57606a; margin-bottom: 6px;">CPU 使用率</div>
+                    <div style="font-size: 13px; color: #57606a; margin-bottom: 6px;" data-i18n="perf.cpuUsage">CPU Usage</div>
                     <div id="perfCpuBar" style="height: 24px; background: #eaecef; border-radius: 12px; overflow: hidden; position: relative;">
                         <div id="perfCpuFill" style="height: 100%; background: linear-gradient(90deg, #0969da, #58a6ff); transition: width 0.3s; width: 0%;"></div>
                         <div id="perfCpuText" style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 500; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.3);">--%</div>
@@ -1273,7 +1273,7 @@
                 </div>
                 <!-- 内存 -->
                 <div style="margin-bottom: 16px;">
-                    <div style="font-size: 13px; color: #57606a; margin-bottom: 6px;">内存使用</div>
+                    <div style="font-size: 13px; color: #57606a; margin-bottom: 6px;" data-i18n="perf.memoryUsage">Memory Usage</div>
                     <div id="perfMemBar" style="height: 24px; background: #eaecef; border-radius: 12px; overflow: hidden; position: relative;">
                         <div id="perfMemFill" style="height: 100%; background: linear-gradient(90deg, #1a7f37, #2ea043); transition: width 0.3s; width: 0%;"></div>
                         <div id="perfMemText" style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 500; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.3);">-- / --</div>
@@ -1281,7 +1281,7 @@
                 </div>
                 <!-- 磁盘 -->
                 <div style="margin-bottom: 16px;">
-                    <div style="font-size: 13px; color: #57606a; margin-bottom: 6px;">磁盘使用</div>
+                    <div style="font-size: 13px; color: #57606a; margin-bottom: 6px;" data-i18n="perf.diskUsage">Disk Usage</div>
                     <div id="perfDiskBar" style="height: 24px; background: #eaecef; border-radius: 12px; overflow: hidden; position: relative;">
                         <div id="perfDiskFill" style="height: 100%; background: linear-gradient(90deg, #bf8700, #d4a72c); transition: width 0.3s; width: 0%;"></div>
                         <div id="perfDiskText" style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 500; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.3);">--%</div>
@@ -1289,12 +1289,12 @@
                 </div>
                 <!-- 网络 -->
                 <div style="margin-bottom: 16px;">
-                    <div style="font-size: 13px; color: #57606a; margin-bottom: 6px;">网络流量</div>
+                    <div style="font-size: 13px; color: #57606a; margin-bottom: 6px;" data-i18n="perf.networkTraffic">Network Traffic</div>
                     <div id="perfNetText" style="font-size: 13px; color: #24292f;">↓ -- / ↑ --</div>
                 </div>
                 <!-- GPU -->
                 <div id="perfGpuSection" style="margin-bottom: 16px; display: none;">
-                    <div style="font-size: 13px; color: #57606a; margin-bottom: 6px;">GPU</div>
+                    <div style="font-size: 13px; color: #57606a; margin-bottom: 6px;" data-i18n="perf.gpu">GPU</div>
                     <div id="perfGpuBar" style="height: 24px; background: #eaecef; border-radius: 12px; overflow: hidden; position: relative;">
                         <div id="perfGpuFill" style="height: 100%; background: linear-gradient(90deg, #cf222e, #f85149); transition: width 0.3s; width: 0%;"></div>
                         <div id="perfGpuText" style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 500; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.3);">--%</div>
@@ -1315,8 +1315,8 @@
         <div class="right-drawer-content" style="padding: 0;">
             <!-- Tab -->
             <div style="display: flex; border-bottom: 1px solid #d0d7de; background: #f6f8fa;">
-                <button class="net-tab active" data-tab="interfaces" onclick="switchNetTab('interfaces')" style="flex:1;padding:10px;border:none;background:transparent;font-size:13px;color:#57606a;cursor:pointer;border-bottom:2px solid transparent;">接口</button>
-                <button class="net-tab" data-tab="connections" onclick="switchNetTab('connections')" style="flex:1;padding:10px;border:none;background:transparent;font-size:13px;color:#57606a;cursor:pointer;border-bottom:2px solid transparent;">连接</button>
+                <button class="net-tab active" data-tab="interfaces" onclick="switchNetTab('interfaces')" style="flex:1;padding:10px;border:none;background:transparent;font-size:13px;color:#57606a;cursor:pointer;border-bottom:2px solid transparent;" data-i18n="network.tabInterfaces">Interfaces</button>
+                <button class="net-tab" data-tab="connections" onclick="switchNetTab('connections')" style="flex:1;padding:10px;border:none;background:transparent;font-size:13px;color:#57606a;cursor:pointer;border-bottom:2px solid transparent;" data-i18n="network.tabConnections">Connections</button>
             </div>
             <!-- 内容 -->
             <div id="netTabContent" style="padding: 12px; overflow-y: auto; max-height: calc(100vh - 180px);">
@@ -1336,8 +1336,8 @@
         <div class="right-drawer-content" style="padding: 0;">
             <!-- Tab -->
             <div style="display: flex; border-bottom: 1px solid #d0d7de; background: #f6f8fa;">
-                <button class="user-tab active" data-tab="users" onclick="switchUserTab('users')" style="flex:1;padding:10px;border:none;background:transparent;font-size:13px;color:#57606a;cursor:pointer;border-bottom:2px solid transparent;">用户</button>
-                <button class="user-tab" data-tab="groups" onclick="switchUserTab('groups')" style="flex:1;padding:10px;border:none;background:transparent;font-size:13px;color:#57606a;cursor:pointer;border-bottom:2px solid transparent;">组</button>
+                <button class="user-tab active" data-tab="users" onclick="switchUserTab('users')" style="flex:1;padding:10px;border:none;background:transparent;font-size:13px;color:#57606a;cursor:pointer;border-bottom:2px solid transparent;" data-i18n="users.tabUsers">Users</button>
+                <button class="user-tab" data-tab="groups" onclick="switchUserTab('groups')" style="flex:1;padding:10px;border:none;background:transparent;font-size:13px;color:#57606a;cursor:pointer;border-bottom:2px solid transparent;" data-i18n="users.tabGroups">Groups</button>
             </div>
             <!-- 内容 -->
             <div id="userTabContent" style="padding: 12px; overflow-y: auto; max-height: calc(100vh - 180px);">
@@ -1392,12 +1392,12 @@
         <!-- Header -->
         <div class="drawer-header">
             <div id="botDrawerHeaderMain" style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex:1;min-width:0;">
-                <div style="font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">⚙️ OpenClaw 配置</div>
+                <div style="font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" data-i18n="openclaw.config_title">⚙️ OpenClaw Settings</div>
                 <div style="display:flex;gap:8px;flex-shrink:0;">
-                    <button id="openclawInstallBtn" style="display:none;background:#2da44e;border:none;border-radius:6px;color:#fff;padding:6px 10px;cursor:pointer;font-size:13px;" onclick="serviceInstallAction('openclaw','install')">安装</button>
-                    <button id="openclawReinstallBtn" style="display:none;background:#0969da;border:none;border-radius:6px;color:#fff;padding:6px 10px;cursor:pointer;font-size:13px;" onclick="serviceInstallAction('openclaw','reinstall')">重新安装</button>
-                    <button id="openclawUninstallBtn" style="display:none;background:#cf222e;border:none;border-radius:6px;color:#fff;padding:6px 10px;cursor:pointer;font-size:13px;" onclick="serviceInstallAction('openclaw','uninstall')">卸载</button>
-                    <button style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px;" onclick="loadOpenclawConfig()" title="刷新">🔄</button>
+                    <button id="openclawInstallBtn" style="display:none;background:#2da44e;border:none;border-radius:6px;color:#fff;padding:6px 10px;cursor:pointer;font-size:13px;" onclick="serviceInstallAction('openclaw','install')" data-i18n="common.install">Install</button>
+                    <button id="openclawReinstallBtn" style="display:none;background:#0969da;border:none;border-radius:6px;color:#fff;padding:6px 10px;cursor:pointer;font-size:13px;" onclick="serviceInstallAction('openclaw','reinstall')" data-i18n="common.reinstall">Reinstall</button>
+                    <button id="openclawUninstallBtn" style="display:none;background:#cf222e;border:none;border-radius:6px;color:#fff;padding:6px 10px;cursor:pointer;font-size:13px;" onclick="serviceInstallAction('openclaw','uninstall')" data-i18n="common.uninstall">Uninstall</button>
+                    <button style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px;" onclick="loadOpenclawConfig()" title="Refresh" data-i18n-title="common.refresh">🔄</button>
                 </div>
             </div>
             <button class="drawer-close-btn" onclick="closeBotModal()">&times;</button>
@@ -1406,29 +1406,29 @@
         <div class="bot-container">
             <!-- Settings Overlay -->
             <div id="botSettings" class="bot-settings-overlay">
-                <h4>设置 & 状态</h4>
+                <h4 data-i18n="bot.settings_title">Settings & Status</h4>
                 <div style="margin: 10px 0; font-size: var(--global-font-size, 13px); color: #666;">
                     <span id="botWsDot" class="bot-status-dot bot-dot-disconnected"></span>
-                    <span id="botWsStatus">未连接</span>
+                    <span id="botWsStatus" data-i18n="bot.status.disconnected">Disconnected</span>
                 </div>
                 
-                <input type="text" id="botTokenInput" placeholder="Gateway Token（由后端自动获取）" value="" disabled style="margin-bottom: 10px; width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px; opacity: 0.7;">
+                <input type="text" id="botTokenInput" placeholder="Gateway Token (auto-fetched by backend)" data-i18n-placeholder="openclaw.gateway_token_placeholder" value="" disabled style="margin-bottom: 10px; width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px; opacity: 0.7;">
                 <div style="display: flex; gap: 10px;">
-                    <button onclick="botConnect()" class="dialog-btn dialog-btn-primary" style="padding: 8px;">连接</button>
-                    <button onclick="botClear()" class="dialog-btn dialog-btn-danger" style="padding: 8px;">清空记录</button>
+                    <button onclick="botConnect()" class="dialog-btn dialog-btn-primary" style="padding: 8px;" data-i18n="common.connect">Connect</button>
+                    <button onclick="botClear()" class="dialog-btn dialog-btn-danger" style="padding: 8px;" data-i18n="bot.clear_history">Clear history</button>
                 </div>
                 <div style="margin-top: 20px; font-size: var(--global-font-size, 12px); color: #999;">
-                    已发送: <span id="botSentCount">-</span> | 轮次: <span id="botConvCount">-</span>
+                    <span data-i18n="bot.sent">Sent</span>: <span id="botSentCount">-</span> | <span data-i18n="bot.rounds">Rounds</span>: <span id="botConvCount">-</span>
                 </div>
-                <button onclick="toggleBotSettings()" class="dialog-btn" style="margin-top: auto; background: #ddd;">关闭设置</button>
+                <button onclick="toggleBotSettings()" class="dialog-btn" style="margin-top: auto; background: #ddd;" data-i18n="bot.close_settings">Close settings</button>
             </div>
 
             <div style="display:flex;border-bottom:1px solid #d0d7de;background:#f6f8fa;">
-                <button class="bot-tab active" data-tab="config" onclick="switchBotTab('config')" style="flex:1;padding:10px;border:none;background:transparent;font-size:13px;color:#57606a;cursor:pointer;border-bottom:2px solid transparent;">配置</button>
+                <button class="bot-tab active" data-tab="config" onclick="switchBotTab('config')" style="flex:1;padding:10px;border:none;background:transparent;font-size:13px;color:#57606a;cursor:pointer;border-bottom:2px solid transparent;" data-i18n="common.settings">Settings</button>
                 <button class="bot-tab" data-tab="agents" onclick="switchBotTab('agents')" style="flex:1;padding:10px;border:none;background:transparent;font-size:13px;color:#57606a;cursor:pointer;border-bottom:2px solid transparent;">Agents</button>
                 <button class="bot-tab" data-tab="models" onclick="switchBotTab('models')" style="flex:1;padding:10px;border:none;background:transparent;font-size:13px;color:#57606a;cursor:pointer;border-bottom:2px solid transparent;">Models</button>
                 <button class="bot-tab" data-tab="channels" onclick="switchBotTab('channels')" style="flex:1;padding:10px;border:none;background:transparent;font-size:13px;color:#57606a;cursor:pointer;border-bottom:2px solid transparent;">Channels</button>
-                <button class="bot-tab" data-tab="chat" onclick="switchBotTab('chat')" style="flex:1;padding:10px;border:none;background:transparent;font-size:13px;color:#57606a;cursor:pointer;border-bottom:2px solid transparent;">对话</button>
+                <button class="bot-tab" data-tab="chat" onclick="switchBotTab('chat')" style="flex:1;padding:10px;border:none;background:transparent;font-size:13px;color:#57606a;cursor:pointer;border-bottom:2px solid transparent;" data-i18n="nav.chat">Chat</button>
             </div>
 
             <div id="botConfigPanel" style="display:block;overflow-y:auto;flex:1;padding:16px;">
@@ -1439,8 +1439,8 @@
                 <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px;">
                     <div style="font-weight:600;font-size:14px;">Agents</div>
                     <div style="display:flex;gap:8px;flex-shrink:0;">
-                        <button onclick="openOpenclawAddAgentModal()" style="background:#0969da;border:none;border-radius:6px;color:#fff;padding:6px 10px;cursor:pointer;font-size:13px;">+ 添加</button>
-                        <button style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px;" onclick="loadOpenclawAgents()" title="刷新">🔄</button>
+                        <button onclick="openOpenclawAddAgentModal()" style="background:#0969da;border:none;border-radius:6px;color:#fff;padding:6px 10px;cursor:pointer;font-size:13px;" data-i18n="common.add">Add</button>
+                        <button style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px;" onclick="loadOpenclawAgents()" title="Refresh" data-i18n-title="common.refresh">🔄</button>
                     </div>
                 </div>
                 <div id="botOpenclawAgentsContainer"></div>
@@ -1450,8 +1450,8 @@
                 <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px;">
                     <div style="font-weight:600;font-size:14px;">Models</div>
                     <div style="display:flex;gap:8px;flex-shrink:0;">
-                        <button onclick="openOpenclawAddModelModal()" style="background:#0969da;border:none;border-radius:6px;color:#fff;padding:6px 10px;cursor:pointer;font-size:13px;">+ 添加</button>
-                        <button style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px;" onclick="loadOpenclawModels()" title="刷新">🔄</button>
+                        <button onclick="openOpenclawAddModelModal()" style="background:#0969da;border:none;border-radius:6px;color:#fff;padding:6px 10px;cursor:pointer;font-size:13px;" data-i18n="common.add">Add</button>
+                        <button style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px;" onclick="loadOpenclawModels()" title="Refresh" data-i18n-title="common.refresh">🔄</button>
                     </div>
                 </div>
                 <div id="botOpenclawModelsContainer"></div>
@@ -1461,8 +1461,8 @@
                 <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px;">
                     <div style="font-weight:600;font-size:14px;">Channels</div>
                     <div style="display:flex;gap:8px;flex-shrink:0;">
-                        <button onclick="openOpenclawAddChannelModal()" style="background:#0969da;border:none;border-radius:6px;color:#fff;padding:6px 10px;cursor:pointer;font-size:13px;">+ 添加</button>
-                        <button style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px;" onclick="loadOpenclawChannels()" title="刷新">🔄</button>
+                        <button onclick="openOpenclawAddChannelModal()" style="background:#0969da;border:none;border-radius:6px;color:#fff;padding:6px 10px;cursor:pointer;font-size:13px;" data-i18n="common.add">Add</button>
+                        <button style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px;" onclick="loadOpenclawChannels()" title="Refresh" data-i18n-title="common.refresh">🔄</button>
                     </div>
                 </div>
                 <div id="botOpenclawChannelsContainer"></div>
@@ -1472,12 +1472,12 @@
                 <div class="bot-chat-box" id="botChatBox" style="flex:1;min-height:0;width:100%;">
                     <ul id="botHistoryList" class="bot-history" style="list-style: none; padding: 0; margin: 0;"></ul>
                 </div>
-                <button id="botJumpLatestBtn" type="button" onclick="botJumpToLatest()" style="position:absolute;right:16px;bottom:78px;z-index:5;display:none;padding:10px 12px;border-radius:999px;border:1px solid #d0d7de;background:#ffffff;color:#24292f;box-shadow:0 6px 16px rgba(0,0,0,0.12);cursor:pointer;font-size: var(--global-font-size, 12px);">
-                    ⬇ 跳转到最新
+                <button id="botJumpLatestBtn" type="button" onclick="botJumpToLatest()" style="position:absolute;right:16px;bottom:78px;z-index:5;display:none;padding:10px 12px;border-radius:999px;border:1px solid #d0d7de;background:#ffffff;color:#24292f;box-shadow:0 6px 16px rgba(0,0,0,0.12);cursor:pointer;font-size: var(--global-font-size, 12px);" data-i18n="bot.jump_latest">
+                    ⬇ Jump to latest
                 </button>
 
                 <div class="bot-input-area">
-                    <textarea class="bot-input" id="botInput" placeholder="输入消息..." style="flex: 1; border: 1px solid #ddd; background: #f5f5f5; padding: 10px 12px; border-radius: 8px; font-size: var(--global-font-size, 14px); resize: none; outline: none; height: 40px; max-height: 100px;"></textarea>
+                    <textarea class="bot-input" id="botInput" placeholder="Type a message..." data-i18n-placeholder="bot.input_placeholder" style="flex: 1; border: 1px solid #ddd; background: #f5f5f5; padding: 10px 12px; border-radius: 8px; font-size: var(--global-font-size, 14px); resize: none; outline: none; height: 40px; max-height: 100px;"></textarea>
                     <button class="bot-settings-btn" onclick="toggleBotSettings()" style="background: none; border: 1px solid #d0d7de; font-size: var(--global-font-size, 16px); cursor: pointer; padding: 0 10px; height: 40px; border-radius: 8px; flex-shrink: 0;">⚙️</button>
                     <button class="bot-send-btn" onclick="botSend()" style="width: 40px; height: 40px; border-radius: 8px; background: #95ec69; border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0;">🚀</button>
                 </div>
@@ -1492,30 +1492,30 @@
     <div id="archiveProgressDrawer" class="drawer">
         <div class="drawer-handle"></div>
         <div class="drawer-header">
-            <div class="drawer-title">🗜️ 压缩中</div>
+            <div class="drawer-title" data-i18n="archive.compressing">🗜️ Compressing</div>
             <button class="drawer-close-btn" onclick="closeArchiveProgressDrawer()">&times;</button>
         </div>
         <div class="drawer-content" style="padding:16px;">
-            <div id="archiveProgressText" style="font-size: var(--global-font-size, 14px); color:#57606a; margin-bottom: 12px;">准备中…</div>
+            <div id="archiveProgressText" style="font-size: var(--global-font-size, 14px); color:#57606a; margin-bottom: 12px;" data-i18n="archive.preparing">Preparing…</div>
             <div class="progress-bar" style="width:100%;height:10px;background:#e5e7eb;border-radius:999px;overflow:hidden;">
                 <div id="archiveProgressFill" style="height:100%;width:0%;background:#2da44e;transition:width 0.2s;"></div>
             </div>
         </div>
     </div>
 
-    <div id="dragUploadOverlay" style="position:fixed;inset:0;background:rgba(0,0,0,0.35);backdrop-filter:blur(2px);z-index:1900;display:none;align-items:center;justify-content:center;color:#fff;font-size:18px;font-weight:600;">
-        释放以上传
+    <div id="dragUploadOverlay" style="position:fixed;inset:0;background:rgba(0,0,0,0.35);backdrop-filter:blur(2px);z-index:1900;display:none;align-items:center;justify-content:center;color:#fff;font-size:18px;font-weight:600;" data-i18n="upload.release_to_upload">
+        Release to upload
     </div>
     <div id="dragUploadBackdrop" class="drawer-backdrop" onclick="closeDragUploadDrawer()"></div>
     <div id="dragUploadDrawer" class="drawer">
         <div class="drawer-handle"></div>
         <div class="drawer-header">
-            <div class="drawer-title">📤 拖拽上传</div>
+            <div class="drawer-title" data-i18n="upload.drag_upload_title">📤 Drag Upload</div>
             <button class="drawer-close-btn" onclick="closeDragUploadDrawer()">&times;</button>
         </div>
         <div class="drawer-content" style="padding:16px;">
             <div style="display:flex;gap:10px;margin-bottom:12px;">
-                <input type="text" id="dragUploadTargetPath" style="flex:1;padding:12px;border:1px solid #ddd;border-radius:8px;font-size: var(--global-font-size, 14px);" placeholder="目标路径（相对于根目录）">
+                <input type="text" id="dragUploadTargetPath" style="flex:1;padding:12px;border:1px solid #ddd;border-radius:8px;font-size: var(--global-font-size, 14px);" placeholder="Target path (relative to root)" data-i18n-placeholder="upload.target_path_placeholder">
             </div>
             <div id="dragUploadFileList" style="max-height: 220px; overflow:auto; border:1px solid #eee; border-radius:8px; padding:8px; margin-bottom:12px;"></div>
             <div id="dragUploadProgressText" style="font-size: var(--global-font-size, 12px); color:#57606a; margin-bottom: 8px;"></div>
@@ -1523,8 +1523,8 @@
                 <div id="dragUploadProgressFill" style="height:100%;width:0%;background:#0969da;transition:width 0.2s;"></div>
             </div>
             <div class="modal-buttons" style="padding:0;border:none;background:none;gap:12px;display:flex;">
-                <button class="modal-btn modal-btn-cancel" style="flex:1;padding:12px;border-radius:8px;" onclick="closeDragUploadDrawer()">取消</button>
-                <button class="modal-btn modal-btn-confirm" style="flex:1;padding:12px;border-radius:8px;" onclick="startDragUpload()">开始上传</button>
+                <button class="modal-btn modal-btn-cancel" style="flex:1;padding:12px;border-radius:8px;" onclick="closeDragUploadDrawer()" data-i18n="common.cancel">Cancel</button>
+                <button class="modal-btn modal-btn-confirm" style="flex:1;padding:12px;border-radius:8px;" onclick="startDragUpload()" data-i18n="upload.start_upload">Start upload</button>
             </div>
         </div>
     </div>
@@ -1533,7 +1533,7 @@
     <div id="pasteImageDrawer" class="drawer">
         <div class="drawer-handle"></div>
         <div class="drawer-header">
-            <div class="drawer-title">🖼️ 保存粘贴图片</div>
+            <div class="drawer-title" data-i18n="upload.paste_image_title">🖼️ Save Pasted Image</div>
             <button class="drawer-close-btn" onclick="closePasteImageDrawer()">&times;</button>
         </div>
         <div class="drawer-content" style="padding:16px;">
@@ -1541,14 +1541,14 @@
                 <img id="pasteImagePreview" alt="paste preview" style="max-width: 100%; max-height: 240px; border-radius: 8px; border: 1px solid #eee; display:none;">
             </div>
             <div style="display:flex;gap:10px;margin-bottom:12px;">
-                <input type="text" id="pasteImageTargetPath" style="flex:1;padding:12px;border:1px solid #ddd;border-radius:8px;font-size: var(--global-font-size, 14px);" placeholder="保存路径（相对于根目录）">
+                <input type="text" id="pasteImageTargetPath" style="flex:1;padding:12px;border:1px solid #ddd;border-radius:8px;font-size: var(--global-font-size, 14px);" placeholder="Save path (relative to root)" data-i18n-placeholder="upload.save_path_placeholder">
             </div>
             <div style="display:flex;gap:10px;margin-bottom:12px;">
-                <input type="text" id="pasteImageFilename" style="flex:1;padding:12px;border:1px solid #ddd;border-radius:8px;font-size: var(--global-font-size, 14px);" placeholder="文件名">
+                <input type="text" id="pasteImageFilename" style="flex:1;padding:12px;border:1px solid #ddd;border-radius:8px;font-size: var(--global-font-size, 14px);" placeholder="Filename" data-i18n-placeholder="upload.filename_placeholder">
             </div>
             <div class="modal-buttons" style="padding:0;border:none;background:none;gap:12px;display:flex;">
-                <button class="modal-btn modal-btn-cancel" style="flex:1;padding:12px;border-radius:8px;" onclick="closePasteImageDrawer()">取消</button>
-                <button class="modal-btn modal-btn-confirm" style="flex:1;padding:12px;border-radius:8px;" onclick="savePasteImage()">保存</button>
+                <button class="modal-btn modal-btn-cancel" style="flex:1;padding:12px;border-radius:8px;" onclick="closePasteImageDrawer()" data-i18n="common.cancel">Cancel</button>
+                <button class="modal-btn modal-btn-confirm" style="flex:1;padding:12px;border-radius:8px;" onclick="savePasteImage()" data-i18n="common.save">Save</button>
             </div>
         </div>
     </div>
@@ -1558,7 +1558,7 @@
     <div id="previewModal" class="drawer">
         <div class="drawer-handle"></div>
         <div class="drawer-header">
-            <div class="drawer-title" id="previewTitle">预览</div>
+            <div class="drawer-title" id="previewTitle" data-i18n="preview.title">Preview</div>
             <button class="drawer-close-btn" onclick="closePreviewModal()">&times;</button>
         </div>
         <div class="drawer-content">
@@ -1570,14 +1570,14 @@
     <div id="createMenuDrawer" class="drawer">
         <div class="drawer-handle"></div>
         <div class="drawer-header">
-            <div class="drawer-title">创建</div>
+            <div class="drawer-title" data-i18n="breadcrumb.create">Create</div>
             <button class="drawer-close-btn" onclick="closeCreateMenuDrawer()">&times;</button>
         </div>
         <div class="drawer-content">
-            <div class="modal-item" onclick="createMenuUpload()">📤 上传</div>
-            <div class="modal-item" onclick="createMenuNewFolder()">📁 新建文件夹</div>
-            <div class="modal-item" onclick="createMenuNewFile()">📄 新建文件</div>
-            <div class="modal-item" onclick="createMenuNewUrl()">🔗 网页快捷方式</div>
+            <div class="modal-item" onclick="createMenuUpload()" data-i18n="fileBrowser.upload">📤 Upload</div>
+            <div class="modal-item" onclick="createMenuNewFolder()" data-i18n="fileBrowser.newFolder">📁 New Folder</div>
+            <div class="modal-item" onclick="createMenuNewFile()" data-i18n="fileBrowser.newFile">📄 New File</div>
+            <div class="modal-item" onclick="createMenuNewUrl()" data-i18n="create_menu.url_shortcut">🔗 URL Shortcut</div>
         </div>
     </div>
 
@@ -1585,7 +1585,7 @@
     <div id="dialogDrawer" class="drawer">
         <div class="drawer-handle"></div>
         <div class="drawer-header">
-            <div class="drawer-title" id="dialogTitle">提示</div>
+            <div class="drawer-title" id="dialogTitle" data-i18n="common.notice">Notice</div>
             <button class="drawer-close-btn" onclick="closeDialogDrawer()">&times;</button>
         </div>
         <div class="drawer-content">
@@ -1593,8 +1593,8 @@
             <select id="dialogSelect" style="width: 100%; padding: 12px; margin-bottom: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: var(--global-font-size, 14px); box-sizing: border-box; display:none;"></select>
             <input type="text" id="dialogInput" style="width: 100%; padding: 12px; margin-bottom: 16px; border: 1px solid #ddd; border-radius: 8px; font-size: var(--global-font-size, 14px); box-sizing: border-box;">
             <div class="modal-buttons" style="padding: 0; border: none; background: none; gap: 12px; display:flex;">
-                <button style="flex: 1; padding: 12px; border-radius: 8px; border: 1px solid #d0d7de; background: #f6f8fa; cursor: pointer;" onclick="closeDialogDrawer()">取消</button>
-                <button id="dialogConfirmBtn" style="flex: 1; padding: 12px; border-radius: 8px; border: 1px solid transparent; background: #2da44e; color: #fff; cursor: pointer;" onclick="confirmDialogDrawer()">确认</button>
+                <button style="flex: 1; padding: 12px; border-radius: 8px; border: 1px solid #d0d7de; background: #f6f8fa; cursor: pointer;" onclick="closeDialogDrawer()" data-i18n="common.cancel">Cancel</button>
+                <button id="dialogConfirmBtn" style="flex: 1; padding: 12px; border-radius: 8px; border: 1px solid transparent; background: #2da44e; color: #fff; cursor: pointer;" onclick="confirmDialogDrawer()" data-i18n="common.confirm">Confirm</button>
             </div>
         </div>
     </div>
@@ -1604,21 +1604,21 @@
     <div id="urlShortcutDrawer" class="drawer" style="width: 360px;">
         <div class="drawer-handle"></div>
         <div class="drawer-header">
-            <div class="drawer-title">创建网页快捷方式</div>
+            <div class="drawer-title" data-i18n="create_menu.create_url_shortcut_title">Create URL Shortcut</div>
             <button class="drawer-close-btn" onclick="closeUrlShortcutDrawer()">&times;</button>
         </div>
         <div class="drawer-content" style="padding: 16px;">
             <div class="form-group" style="margin-bottom: 12px;">
-                <label style="display: block; font-size: 12px; color: #888; margin-bottom: 4px;">名称</label>
-                <input type="text" id="urlShortcutName" placeholder="例如：爱球网" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; box-sizing: border-box;">
+                <label style="display: block; font-size: 12px; color: #888; margin-bottom: 4px;" data-i18n="common.name">Name</label>
+                <input type="text" id="urlShortcutName" placeholder="e.g., My Website" data-i18n-placeholder="create_menu.url_name_example" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; box-sizing: border-box;">
             </div>
             <div class="form-group" style="margin-bottom: 16px;">
-                <label style="display: block; font-size: 12px; color: #888; margin-bottom: 4px;">网址 URL</label>
-                <input type="text" id="urlShortcutUrl" placeholder="例如：https://w.utjx.cn/aiqiu/list" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; box-sizing: border-box;">
+                <label style="display: block; font-size: 12px; color: #888; margin-bottom: 4px;" data-i18n="common.url">URL</label>
+                <input type="text" id="urlShortcutUrl" placeholder="e.g., https://example.com" data-i18n-placeholder="create_menu.url_url_example" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; box-sizing: border-box;">
             </div>
             <div style="display: flex; gap: 12px;">
-                <button onclick="closeUrlShortcutDrawer()" style="flex: 1; padding: 10px; border-radius: 6px; border: 1px solid #ddd; background: #f6f8fa; cursor: pointer;">取消</button>
-                <button onclick="confirmUrlShortcut()" style="flex: 1; padding: 10px; border-radius: 6px; border: none; background: #2da44e; color: #fff; cursor: pointer;">创建</button>
+                <button onclick="closeUrlShortcutDrawer()" style="flex: 1; padding: 10px; border-radius: 6px; border: 1px solid #ddd; background: #f6f8fa; cursor: pointer;" data-i18n="common.cancel">Cancel</button>
+                <button onclick="confirmUrlShortcut()" style="flex: 1; padding: 10px; border-radius: 6px; border: none; background: #2da44e; color: #fff; cursor: pointer;" data-i18n="common.create">Create</button>
             </div>
         </div>
     </div>
@@ -1630,12 +1630,12 @@
                 <svg id="confirmIcon" class="gh-dialog-icon danger" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
                 </svg>
-                <div class="gh-dialog-title" id="confirmTitle">确认操作</div>
+                <div class="gh-dialog-title" id="confirmTitle" data-i18n="common.confirm_action_title">Confirm Action</div>
             </div>
-            <div class="gh-dialog-body" id="confirmMessage">确定要执行此操作吗？</div>
+            <div class="gh-dialog-body" id="confirmMessage" data-i18n="common.confirm_action_message">Are you sure you want to proceed?</div>
             <div class="gh-dialog-footer">
-                <button class="gh-btn gh-btn-secondary" onclick="closeConfirmModal()">取消</button>
-                <button class="gh-btn gh-btn-primary" id="confirmBtn" onclick="performConfirm()">确认</button>
+                <button class="gh-btn gh-btn-secondary" onclick="closeConfirmModal()" data-i18n="common.cancel">Cancel</button>
+                <button class="gh-btn gh-btn-primary" id="confirmBtn" onclick="performConfirm()" data-i18n="common.confirm">Confirm</button>
             </div>
         </div>
     </div>
@@ -1658,7 +1658,7 @@
     <div id="detailsModal" class="drawer">
         <div class="drawer-handle"></div>
         <div class="drawer-header">
-            <div class="drawer-title">📋 文件详情</div>
+            <div class="drawer-title" data-i18n="fileBrowser.details_title">📋 File Details</div>
             <button class="drawer-close-btn" onclick="closeDetailsModal()">&times;</button>
         </div>
         <div class="drawer-content" id="detailsContent">
@@ -1671,15 +1671,15 @@
     <div id="renameModal" class="drawer">
         <div class="drawer-handle"></div>
         <div class="drawer-header">
-            <div class="drawer-title">重命名</div>
+            <div class="drawer-title" data-i18n="fileBrowser.rename_title">Rename</div>
             <button class="drawer-close-btn" onclick="closeRenameModal()">&times;</button>
         </div>
         <div class="drawer-content">
-            <p style="margin: 0 0 12px 0; color: #666; font-size: var(--global-font-size, 14px);">请输入新名称</p>
+            <p style="margin: 0 0 12px 0; color: #666; font-size: var(--global-font-size, 14px);" data-i18n="fileBrowser.rename_prompt">Enter new name</p>
             <input type="text" id="renameInput" style="width: 100%; padding: 12px; margin-bottom: 16px; border: 1px solid #ddd; border-radius: 8px; font-size: var(--global-font-size, 14px); box-sizing: border-box;">
             <div class="modal-buttons" style="padding: 0; border: none; background: none; gap: 12px;">
-                <button class="modal-btn modal-btn-cancel" style="flex: 1; padding: 12px; border-radius: 8px;" onclick="closeRenameModal()">取消</button>
-                <button class="modal-btn modal-btn-confirm" style="flex: 1; padding: 12px; border-radius: 8px;" onclick="performRename()">确认</button>
+                <button class="modal-btn modal-btn-cancel" style="flex: 1; padding: 12px; border-radius: 8px;" onclick="closeRenameModal()" data-i18n="common.cancel">Cancel</button>
+                <button class="modal-btn modal-btn-confirm" style="flex: 1; padding: 12px; border-radius: 8px;" onclick="performRename()" data-i18n="common.confirm">Confirm</button>
             </div>
         </div>
     </div>
@@ -1689,15 +1689,15 @@
     <div id="moveModal" class="drawer">
         <div class="drawer-handle"></div>
         <div class="drawer-header">
-            <div class="drawer-title">移动到</div>
+            <div class="drawer-title" data-i18n="fileBrowser.move_title">Move to</div>
             <button class="drawer-close-btn" onclick="closeMoveModal()">&times;</button>
         </div>
         <div class="drawer-content">
-            <p style="margin: 0 0 12px 0; color: #666; font-size: var(--global-font-size, 14px);">请输入目标路径（相对于根目录）：</p>
-            <input type="text" id="moveInput" style="width: 100%; padding: 12px; margin-bottom: 16px; border: 1px solid #ddd; border-radius: 8px; font-size: var(--global-font-size, 14px); box-sizing: border-box;" placeholder="例如：tjx/新文件夹名">
+            <p style="margin: 0 0 12px 0; color: #666; font-size: var(--global-font-size, 14px);" data-i18n="fileBrowser.move_prompt">Enter target path (relative to root):</p>
+            <input type="text" id="moveInput" style="width: 100%; padding: 12px; margin-bottom: 16px; border: 1px solid #ddd; border-radius: 8px; font-size: var(--global-font-size, 14px); box-sizing: border-box;" placeholder="e.g., docs/new-folder" data-i18n-placeholder="move.placeholder">
             <div class="modal-buttons" style="padding: 0; border: none; background: none; gap: 12px;">
-                <button class="modal-btn modal-btn-cancel" style="flex: 1; padding: 12px; border-radius: 8px;" onclick="closeMoveModal()">取消</button>
-                <button class="modal-btn modal-btn-confirm" style="flex: 1; padding: 12px; border-radius: 8px;" onclick="performMove()">确认</button>
+                <button class="modal-btn modal-btn-cancel" style="flex: 1; padding: 12px; border-radius: 8px;" onclick="closeMoveModal()" data-i18n="common.cancel">Cancel</button>
+                <button class="modal-btn modal-btn-confirm" style="flex: 1; padding: 12px; border-radius: 8px;" onclick="performMove()" data-i18n="common.confirm">Confirm</button>
             </div>
         </div>
     </div>
@@ -1707,11 +1707,11 @@
     <div id="cloneModal" class="drawer">
         <div class="drawer-handle"></div>
         <div class="drawer-header">
-            <div class="drawer-title">克隆中...</div>
+            <div class="drawer-title" data-i18n="clone.in_progress">Cloning...</div>
             <button class="drawer-close-btn" onclick="Drawer.close('cloneModal')">&times;</button>
         </div>
         <div class="drawer-content">
-            <p id="cloneStatus" style="text-align: center; color: #666;">正在处理...</p>
+            <p id="cloneStatus" style="text-align: center; color: #666;" data-i18n="clone.processing">Processing...</p>
         </div>
     </div>
 
@@ -1792,7 +1792,7 @@
     <div id="configModal" class="drawer">
         <div class="drawer-handle"></div>
         <div class="drawer-header">
-            <div class="drawer-title">⚙️ clawOS配置</div>
+            <div class="drawer-title" data-i18n="settings.drawer_title">⚙️ Settings</div>
             <button class="drawer-close-btn" onclick="closeConfigModal()">&times;</button>
         </div>
         <div class="drawer-content" style="padding: 16px;">
@@ -1832,27 +1832,27 @@
             
             <!-- 工具卡片 -->
             <div class="config-card">
-                <div class="config-card-title">🔧 工具</div>
+                <div class="config-card-title" data-i18n="common.tools">🔧 Tools</div>
                 <div class="config-card-row">
-                    <span class="config-card-label">Clash 代理</span>
-                    <button class="config-card-btn" onclick="closeConfigModal(); setTimeout(openClashModal, 300);">设置</button>
+                    <span class="config-card-label" data-i18n="system.clash.title">Clash Proxy</span>
+                    <button class="config-card-btn" onclick="closeConfigModal(); setTimeout(openClashModal, 300);" data-i18n="common.settings">Settings</button>
                 </div>
                 <div class="config-card-row">
-                    <span class="config-card-label">邮件配置</span>
-                    <button class="config-card-btn" onclick="window.open('/email-config', '_blank')">管理</button>
+                    <span class="config-card-label" data-i18n="tools.email_config">Email Config</span>
+                    <button class="config-card-btn" onclick="window.open('/email-config', '_blank')" data-i18n="common.manage">Manage</button>
                 </div>
                 <div class="config-card-row">
-                    <span class="config-card-label">AI 模型配置</span>
-                    <button class="config-card-btn" onclick="window.open('/ai/model-config', '_blank')">配置</button>
+                    <span class="config-card-label" data-i18n="model_config.title">AI Model Config</span>
+                    <button class="config-card-btn" onclick="window.open('/ai/model-config', '_blank')" data-i18n="common.manage">Manage</button>
                 </div>
             </div>
             
             <!-- 账户卡片 -->
             <div class="config-card">
-                <div class="config-card-title">👤 账户</div>
+                <div class="config-card-title" data-i18n="account.title">👤 Account</div>
                 <div class="config-card-row">
-                    <span class="config-card-label">退出登录</span>
-                    <button class="config-card-btn config-card-btn-danger" onclick="logoutAuth()">退出</button>
+                    <span class="config-card-label" data-i18n="account.logout_label">Logout</span>
+                    <button class="config-card-btn config-card-btn-danger" onclick="logoutAuth()" data-i18n="account.logout_action">Logout</button>
                 </div>
             </div>
         </div>
@@ -1863,17 +1863,17 @@
     <div id="searchModal" class="drawer">
         <div class="drawer-handle"></div>
         <div class="drawer-header">
-            <div class="drawer-title">🔍 搜索文件</div>
+            <div class="drawer-title" data-i18n="fileBrowser.search_files_title">🔍 Search Files</div>
             <div style="display:flex;gap:8px;">
-                <button style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px;" onclick="resetSearch()" title="重置">🔄</button>
+                <button style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px;" onclick="resetSearch()" title="Reset" data-i18n-title="common.reset">🔄</button>
                 <button class="drawer-close-btn" onclick="closeSearchModal()">&times;</button>
             </div>
         </div>
         <div class="drawer-content" style="padding:0;">
             <div style="padding: 16px;">
                 <div style="display: flex; gap: 10px; margin-bottom: 16px;">
-                    <input type="text" id="searchInput" style="flex: 1; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: var(--global-font-size, 14px);" placeholder="输入文件名搜索..." onkeyup="handleSearchKeyup(event)">
-                    <button class="modal-btn modal-btn-confirm" style="padding: 12px 20px;" onclick="doSearch()">搜索</button>
+                    <input type="text" id="searchInput" style="flex: 1; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: var(--global-font-size, 14px);" placeholder="Search by filename..." data-i18n-placeholder="fileBrowser.search_placeholder" onkeyup="handleSearchKeyup(event)">
+                    <button class="modal-btn modal-btn-confirm" style="padding: 12px 20px;" onclick="doSearch()" data-i18n="fileBrowser.search">Search</button>
                 </div>
                 <div id="searchResults" style="overflow-y: auto;"></div>
             </div>
@@ -1885,10 +1885,10 @@
     <div id="trashDrawer" class="drawer">
         <div class="drawer-handle"></div>
         <div class="drawer-header">
-            <div class="drawer-title">🗑️ 回收站</div>
+            <div class="drawer-title" data-i18n="trash.drawer_title">🗑️ Trash</div>
             <div style="display:flex;gap:8px;">
-                <button style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px;" onclick="loadTrashList()" title="刷新">🔄</button>
-                <button style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px;" onclick="clearTrash()" title="清空">🧹</button>
+                <button style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px;" onclick="loadTrashList()" title="Refresh" data-i18n-title="common.refresh">🔄</button>
+                <button style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px;" onclick="clearTrash()" title="Clear" data-i18n-title="common.clear">🧹</button>
                 <button class="drawer-close-btn" onclick="closeTrashDrawer()">&times;</button>
             </div>
         </div>
@@ -1901,7 +1901,7 @@
     <div id="processModal" class="drawer">
         <div class="drawer-handle"></div>
         <div class="drawer-header">
-            <div class="drawer-title">📊 进程管理</div>
+            <div class="drawer-title" data-i18n="system.process.title">Process Management</div>
             <button class="drawer-close-btn" onclick="closeProcessModal()">&times;</button>
         </div>
         <div class="drawer-content" style="padding:0;display:flex;flex-direction:column;max-height:calc(85vh - 60px);">
@@ -1914,7 +1914,7 @@
     <div id="processDetailModal" class="drawer">
         <div class="drawer-handle"></div>
         <div class="drawer-header">
-            <div class="drawer-title">进程详情</div>
+            <div class="drawer-title" data-i18n="system.process.detail_title">Process Details</div>
             <button class="drawer-close-btn" onclick="Drawer.close('processDetailModal')">&times;</button>
         </div>
         <div class="drawer-content" style="padding:0;">
@@ -1927,9 +1927,9 @@
     <div id="systemPackageModal" class="drawer">
         <div class="drawer-handle"></div>
         <div class="drawer-header">
-            <div class="drawer-title">📦 系统包管理</div>
+            <div class="drawer-title" data-i18n="system.package.system_packages">System Packages</div>
             <div style="display:flex;gap:8px;">
-                <button style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px;" onclick="loadSystemPackageList()" title="刷新">🔄</button>
+                <button style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px;" onclick="loadSystemPackageList()" title="Refresh" data-i18n-title="common.refresh">🔄</button>
                 <button class="drawer-close-btn" onclick="closeSystemPackageModal()">&times;</button>
             </div>
         </div>
@@ -1943,9 +1943,9 @@
     <div id="pipModal" class="drawer">
         <div class="drawer-handle"></div>
         <div class="drawer-header">
-            <div class="drawer-title">🐍 Pip 包管理</div>
+            <div class="drawer-title" data-i18n="system.package.pip_packages">Pip Packages</div>
             <div style="display:flex;gap:8px;">
-                <button style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px;" onclick="loadPipList()" title="刷新">🔄</button>
+                <button style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px;" onclick="loadPipList()" title="Refresh" data-i18n-title="common.refresh">🔄</button>
                 <button class="drawer-close-btn" onclick="closePipModal()">&times;</button>
             </div>
         </div>
@@ -1959,9 +1959,9 @@
     <div id="npmModal" class="drawer">
         <div class="drawer-handle"></div>
         <div class="drawer-header">
-            <div class="drawer-title">📦 NPM 包管理</div>
+            <div class="drawer-title" data-i18n="system.package.npm_packages">NPM Packages</div>
             <div style="display:flex;gap:8px;">
-                <button style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px;" onclick="loadNpmList()" title="刷新">🔄</button>
+                <button style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px;" onclick="loadNpmList()" title="Refresh" data-i18n-title="common.refresh">🔄</button>
                 <button class="drawer-close-btn" onclick="closeNpmModal()">&times;</button>
             </div>
         </div>
@@ -1975,16 +1975,16 @@
     <div id="dockerModal" class="drawer">
         <div class="drawer-handle"></div>
         <div class="drawer-header">
-            <div class="drawer-title">🐳 Docker 管理</div>
+            <div class="drawer-title" data-i18n="system.docker.title">Docker</div>
             <div style="display:flex;gap:8px;">
-                <button style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px;" onclick="loadDockerTabs('images')" title="刷新">🔄</button>
+                <button style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px;" onclick="loadDockerTabs('images')" title="Refresh" data-i18n-title="common.refresh">🔄</button>
                 <button class="drawer-close-btn" onclick="closeDockerModal()">&times;</button>
             </div>
         </div>
         <div class="drawer-content" style="padding:0;">
             <div style="display: flex; border-bottom: 1px solid #d0d7de;">
-                <button class="docker-tab active" data-tab="images" onclick="loadDockerTabs('images')" style="flex: 1; padding: 12px; background: none; border: none; cursor: pointer; font-size: 14px; border-bottom: 2px solid transparent;">镜像</button>
-                <button class="docker-tab" data-tab="containers" onclick="loadDockerTabs('containers')" style="flex: 1; padding: 12px; background: none; border: none; cursor: pointer; font-size: 14px; border-bottom: 2px solid transparent;">容器</button>
+                <button class="docker-tab active" data-tab="images" onclick="loadDockerTabs('images')" style="flex: 1; padding: 12px; background: none; border: none; cursor: pointer; font-size: 14px; border-bottom: 2px solid transparent;" data-i18n="system.docker.images">Images</button>
+                <button class="docker-tab" data-tab="containers" onclick="loadDockerTabs('containers')" style="flex: 1; padding: 12px; background: none; border: none; cursor: pointer; font-size: 14px; border-bottom: 2px solid transparent;" data-i18n="system.docker.containers">Containers</button>
             </div>
             <div id="dockerImagesContainer" style="padding: 16px;"></div>
             <div id="dockerContainersContainer" style="padding: 16px; display: none;"></div>
@@ -1996,9 +1996,9 @@
     <div id="systemdModal" class="drawer">
         <div class="drawer-handle"></div>
         <div class="drawer-header">
-            <div class="drawer-title">🔧 Systemd 管理</div>
+            <div class="drawer-title" data-i18n="system.systemd.title">Systemd Management</div>
             <div style="display:flex;gap:8px;">
-                <button style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px;" onclick="loadSystemdList()" title="刷新">🔄</button>
+                <button style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px;" onclick="loadSystemdList()" title="Refresh" data-i18n-title="common.refresh">🔄</button>
                 <button class="drawer-close-btn" onclick="closeSystemdModal()">&times;</button>
             </div>
         </div>
@@ -2007,7 +2007,7 @@
                 <button id="systemdTabUser" onclick="switchSystemdTab('user')" style="padding:6px 14px;border:1px solid #d0d7de;border-radius:6px;background:#fff;cursor:pointer;font-size:13px;">User (<span id="systemdUserCount">-</span>)</button>
                 <button id="systemdTabSystem" onclick="switchSystemdTab('system')" style="padding:6px 14px;border:1px solid #d0d7de;border-radius:6px;background:#f6f8fa;cursor:pointer;font-size:13px;">System (<span id="systemdSystemCount">-</span>)</button>
             </div>
-            <input type="text" id="systemdSearch" oninput="filterSystemdServices()" placeholder="搜索服务..." style="padding:6px 10px;border:1px solid #d0d7de;border-radius:6px;font-size:13px;width:150px;">
+            <input type="text" id="systemdSearch" oninput="filterSystemdServices()" placeholder="Search services..." data-i18n-placeholder="systemd.search_placeholder" style="padding:6px 10px;border:1px solid #d0d7de;border-radius:6px;font-size:13px;width:150px;">
         </div>
         <div class="drawer-content" style="padding:0;">
             <div id="systemdListContainer" style="padding: 16px;"></div>
@@ -2019,9 +2019,9 @@
     <div id="diskModal" class="drawer">
         <div class="drawer-handle"></div>
         <div class="drawer-header">
-            <div class="drawer-title">💾 磁盘管理</div>
+            <div class="drawer-title" data-i18n="system.disk.title">Disk Management</div>
             <div style="display:flex;gap:8px;">
-                <button style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px;" onclick="loadDiskList()" title="刷新">🔄</button>
+                <button style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px;" onclick="loadDiskList()" title="Refresh" data-i18n-title="common.refresh">🔄</button>
                 <button class="drawer-close-btn" onclick="closeDiskModal()">&times;</button>
             </div>
         </div>
@@ -2035,9 +2035,9 @@
     <div id="networkModal" class="drawer">
         <div class="drawer-handle"></div>
         <div class="drawer-header">
-            <div class="drawer-title">🌐 网络管理</div>
+            <div class="drawer-title" data-i18n="system.network.title">Network Management</div>
             <div style="display:flex;gap:8px;">
-                <button style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px;" onclick="loadNetworkList()" title="刷新">🔄</button>
+                <button style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px;" onclick="loadNetworkList()" title="Refresh" data-i18n-title="common.refresh">🔄</button>
                 <button class="drawer-close-btn" onclick="closeNetworkModal()">&times;</button>
             </div>
         </div>
@@ -2051,9 +2051,9 @@
     <div id="gitModal" class="drawer">
         <div class="drawer-handle"></div>
         <div class="drawer-header">
-            <div class="drawer-title" id="gitDrawerTitle">🔀 Git管理</div>
+            <div class="drawer-title" id="gitDrawerTitle" data-i18n="git.title">Git Manager</div>
             <div style="display:flex;gap:8px;">
-                <button id="gitRefreshBtn" style="background:none;border:none;width:32px;height:32px;cursor:pointer;display:flex;align-items:center;justify-content:center;" onclick="toggleGitAutoRefresh()" title="自动刷新">
+                <button id="gitRefreshBtn" style="background:none;border:none;width:32px;height:32px;cursor:pointer;display:flex;align-items:center;justify-content:center;" onclick="toggleGitAutoRefresh()" title="Auto refresh" data-i18n-title="git.auto_refresh">
                     <svg id="gitRefreshIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M23 4v6h-6M1 20v-6h6" />
                         <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
@@ -2083,9 +2083,9 @@
     <div id="gitCommitModal" class="drawer">
         <div class="drawer-handle"></div>
         <div class="drawer-header">
-            <div class="drawer-title">📝 Commit详情</div>
+            <div class="drawer-title" data-i18n="git.commit_detail_title">📝 Commit Details</div>
             <div style="display:flex;gap:8px;">
-                <button style="background:none;border:none;font-size:16px;cursor:pointer;padding:4px;" onclick="loadGitCommitDetail()" title="刷新">🔄</button>
+                <button style="background:none;border:none;font-size:16px;cursor:pointer;padding:4px;" onclick="loadGitCommitDetail()" title="Refresh" data-i18n-title="common.refresh">🔄</button>
                 <button class="drawer-close-btn" onclick="closeGitCommitModal()">&times;</button>
             </div>
         </div>
@@ -2099,9 +2099,9 @@
     <div id="gpuModal" class="drawer">
         <div class="drawer-handle"></div>
         <div class="drawer-header">
-            <div class="drawer-title">🖥️ 显卡信息</div>
+            <div class="drawer-title" data-i18n="system.gpu.title">GPU Management</div>
             <div style="display:flex;gap:8px;">
-                <button style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px;" onclick="loadGpuInfo()" title="刷新">🔄</button>
+                <button style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px;" onclick="loadGpuInfo()" title="Refresh" data-i18n-title="common.refresh">🔄</button>
                 <button class="drawer-close-btn" onclick="closeGpuModal()">&times;</button>
             </div>
         </div>
@@ -2115,12 +2115,12 @@
     <div id="ollamaModal" class="drawer">
         <div class="drawer-handle"></div>
         <div class="drawer-header">
-            <div class="drawer-title">🦙 Ollama 模型</div>
+            <div class="drawer-title" data-i18n="system.ollama.title">Ollama</div>
             <div style="display:flex;gap:8px;">
-                <button id="ollamaInstallBtn" style="display:none;background:#2da44e;border:none;border-radius:6px;color:#fff;padding:6px 10px;cursor:pointer;font-size:13px;" onclick="serviceInstallAction('ollama','install')">安装</button>
-                <button id="ollamaReinstallBtn" style="display:none;background:#0969da;border:none;border-radius:6px;color:#fff;padding:6px 10px;cursor:pointer;font-size:13px;" onclick="serviceInstallAction('ollama','reinstall')">重新安装</button>
-                <button id="ollamaUninstallBtn" style="display:none;background:#cf222e;border:none;border-radius:6px;color:#fff;padding:6px 10px;cursor:pointer;font-size:13px;" onclick="serviceInstallAction('ollama','uninstall')">卸载</button>
-                <button style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px;" onclick="loadOllamaModels()" title="刷新">🔄</button>
+                <button id="ollamaInstallBtn" style="display:none;background:#2da44e;border:none;border-radius:6px;color:#fff;padding:6px 10px;cursor:pointer;font-size:13px;" onclick="serviceInstallAction('ollama','install')" data-i18n="common.install">Install</button>
+                <button id="ollamaReinstallBtn" style="display:none;background:#0969da;border:none;border-radius:6px;color:#fff;padding:6px 10px;cursor:pointer;font-size:13px;" onclick="serviceInstallAction('ollama','reinstall')" data-i18n="common.reinstall">Reinstall</button>
+                <button id="ollamaUninstallBtn" style="display:none;background:#cf222e;border:none;border-radius:6px;color:#fff;padding:6px 10px;cursor:pointer;font-size:13px;" onclick="serviceInstallAction('ollama','uninstall')" data-i18n="common.uninstall">Uninstall</button>
+                <button style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px;" onclick="loadOllamaModels()" title="Refresh" data-i18n-title="common.refresh">🔄</button>
                 <button class="drawer-close-btn" onclick="closeOllamaModal()">&times;</button>
             </div>
         </div>
@@ -2134,7 +2134,7 @@
     <div id="openclawModal" class="drawer">
         <div class="drawer-handle"></div>
         <div class="drawer-header">
-            <div class="drawer-title">⚙️ OpenClaw 配置</div>
+            <div class="drawer-title" data-i18n="openclaw.config_title">⚙️ OpenClaw Settings</div>
             <div style="display:flex;gap:8px;">
                 <button class="drawer-close-btn" onclick="closeOpenclawModal()">&times;</button>
             </div>
@@ -2149,12 +2149,12 @@
     <div id="clashModal" class="drawer">
         <div class="drawer-handle"></div>
         <div class="drawer-header">
-            <div class="drawer-title">🌐 Clash 代理</div>
+            <div class="drawer-title" data-i18n="system.clash.title">Clash Proxy</div>
             <div style="display:flex;gap:8px;">
-                <button id="clashInstallBtn" style="display:none;background:#2da44e;border:none;border-radius:6px;color:#fff;padding:6px 10px;cursor:pointer;font-size:13px;" onclick="serviceInstallAction('clash','install')">安装</button>
-                <button id="clashReinstallBtn" style="display:none;background:#0969da;border:none;border-radius:6px;color:#fff;padding:6px 10px;cursor:pointer;font-size:13px;" onclick="serviceInstallAction('clash','reinstall')">重新安装</button>
-                <button id="clashUninstallBtn" style="display:none;background:#cf222e;border:none;border-radius:6px;color:#fff;padding:6px 10px;cursor:pointer;font-size:13px;" onclick="serviceInstallAction('clash','uninstall')">卸载</button>
-                <button style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px;" onclick="loadClashConfigEnhanced()" title="刷新">🔄</button>
+                <button id="clashInstallBtn" style="display:none;background:#2da44e;border:none;border-radius:6px;color:#fff;padding:6px 10px;cursor:pointer;font-size:13px;" onclick="serviceInstallAction('clash','install')" data-i18n="common.install">Install</button>
+                <button id="clashReinstallBtn" style="display:none;background:#0969da;border:none;border-radius:6px;color:#fff;padding:6px 10px;cursor:pointer;font-size:13px;" onclick="serviceInstallAction('clash','reinstall')" data-i18n="common.reinstall">Reinstall</button>
+                <button id="clashUninstallBtn" style="display:none;background:#cf222e;border:none;border-radius:6px;color:#fff;padding:6px 10px;cursor:pointer;font-size:13px;" onclick="serviceInstallAction('clash','uninstall')" data-i18n="common.uninstall">Uninstall</button>
+                <button style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px;" onclick="loadClashConfigEnhanced()" title="Refresh" data-i18n-title="common.refresh">🔄</button>
                 <button class="drawer-close-btn" onclick="closeClashModal()">&times;</button>
             </div>
         </div>
@@ -2168,12 +2168,12 @@
     <div id="frpModal" class="drawer">
         <div class="drawer-handle"></div>
         <div class="drawer-header">
-            <div class="drawer-title">🔗 FRP 内网穿透</div>
+            <div class="drawer-title" data-i18n="system.frp.title">FRP Tunnel</div>
             <div style="display:flex;gap:8px;">
-                <button id="frpInstallBtn" style="display:none;background:#2da44e;border:none;border-radius:6px;color:#fff;padding:6px 10px;cursor:pointer;font-size:13px;" onclick="serviceInstallAction('frp','install')">安装</button>
-                <button id="frpReinstallBtn" style="display:none;background:#0969da;border:none;border-radius:6px;color:#fff;padding:6px 10px;cursor:pointer;font-size:13px;" onclick="serviceInstallAction('frp','reinstall')">重新安装</button>
-                <button id="frpUninstallBtn" style="display:none;background:#cf222e;border:none;border-radius:6px;color:#fff;padding:6px 10px;cursor:pointer;font-size:13px;" onclick="serviceInstallAction('frp','uninstall')">卸载</button>
-                <button style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px;" onclick="loadFrpConfig()" title="刷新">🔄</button>
+                <button id="frpInstallBtn" style="display:none;background:#2da44e;border:none;border-radius:6px;color:#fff;padding:6px 10px;cursor:pointer;font-size:13px;" onclick="serviceInstallAction('frp','install')" data-i18n="common.install">Install</button>
+                <button id="frpReinstallBtn" style="display:none;background:#0969da;border:none;border-radius:6px;color:#fff;padding:6px 10px;cursor:pointer;font-size:13px;" onclick="serviceInstallAction('frp','reinstall')" data-i18n="common.reinstall">Reinstall</button>
+                <button id="frpUninstallBtn" style="display:none;background:#cf222e;border:none;border-radius:6px;color:#fff;padding:6px 10px;cursor:pointer;font-size:13px;" onclick="serviceInstallAction('frp','uninstall')" data-i18n="common.uninstall">Uninstall</button>
+                <button style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px;" onclick="loadFrpConfig()" title="Refresh" data-i18n-title="common.refresh">🔄</button>
                 <button class="drawer-close-btn" onclick="closeFrpModal()">&times;</button>
             </div>
         </div>
@@ -2188,7 +2188,7 @@
         <div class="drawer-header" style="padding:8px 12px;">
             <div class="drawer-title" style="display:flex;align-items:center;font-size:13px;">
                 <input type="checkbox" id="batchSelectAll" onchange="toggleSelectAll(this)" style="margin-right:8px;">
-                <span id="batchCount">已选 0 项</span>
+                <span id="batchCount">Selected 0 items</span>
             </div>
             <button class="drawer-close-btn" onclick="clearSelection()" style="padding:4px 8px;font-size:16px;">&times;</button>
         </div>
@@ -2196,33 +2196,33 @@
             <div style="display:grid; grid-template-columns: repeat(5, 1fr); gap:6px;">
                 <div class="modal-item" onclick="batchArchive()" style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:8px 4px; border:1px solid #eee; border-radius:6px; cursor:pointer;">
                     <span style="font-size:18px;">🗜️</span>
-                    <span style="font-size:11px;margin-top:2px;">压缩</span>
+                    <span style="font-size:11px;margin-top:2px;" data-i18n="file_menu.compress">Compress</span>
                 </div>
                 <div class="modal-item" onclick="batchMove()" style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:8px 4px; border:1px solid #eee; border-radius:6px; cursor:pointer;">
                     <span style="font-size:18px;">📁</span>
-                    <span style="font-size:11px;margin-top:2px;">移动</span>
+                    <span style="font-size:11px;margin-top:2px;" data-i18n="file_menu.move">Move</span>
                 </div>
                 <div class="modal-item" onclick="batchCopy()" style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:8px 4px; border:1px solid #eee; border-radius:6px; cursor:pointer;">
                     <span style="font-size:18px;">📋</span>
-                    <span style="font-size:11px;margin-top:2px;">复制</span>
+                    <span style="font-size:11px;margin-top:2px;" data-i18n="file_menu.copy">Copy</span>
                 </div>
                 <div class="modal-item delete-item" onclick="batchDelete()" style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:8px 4px; border:1px solid #eee; border-radius:6px; color:#cf222e; cursor:pointer;">
                     <span style="font-size:18px;">🗑️</span>
-                    <span style="font-size:11px;margin-top:2px;">删除</span>
+                    <span style="font-size:11px;margin-top:2px;" data-i18n="file_menu.delete">Delete</span>
                 </div>
                 <div class="modal-item" onclick="clearSelection()" style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:8px 4px; border:1px solid #eee; border-radius:6px; cursor:pointer;">
                     <span style="font-size:18px;">✖</span>
-                    <span style="font-size:11px;margin-top:2px;">取消</span>
+                    <span style="font-size:11px;margin-top:2px;" data-i18n="common.cancel">Cancel</span>
                 </div>
             </div>
         </div>
     </div>
 
-    <div id="clipboardBar" class="clipboard-bar" role="region" aria-label="剪贴板操作" aria-hidden="true" style="display:none;">
-        <button id="clipboardPasteBtn" type="button" class="clipboard-paste-btn" aria-label="在此粘贴">
+    <div id="clipboardBar" class="clipboard-bar" role="region" aria-label="Clipboard Operations" data-i18n-aria-label="clipboard.title" aria-hidden="true" style="display:none;">
+        <button id="clipboardPasteBtn" type="button" class="clipboard-paste-btn" aria-label="Paste here" data-i18n-aria-label="clipboard.paste_here">
             <span id="clipboardLabel" aria-live="polite"></span>
         </button>
-        <button id="clipboardCancelBtn" type="button" class="clipboard-cancel-btn" aria-label="取消剪贴板操作">×</button>
+        <button id="clipboardCancelBtn" type="button" class="clipboard-cancel-btn" aria-label="Cancel clipboard operation" data-i18n-aria-label="clipboard.cancel_operation">×</button>
     </div>
 
     <!-- Toast 通知容器 -->
@@ -2233,15 +2233,15 @@
     <div id="targetModal" class="drawer">
         <div class="drawer-handle"></div>
         <div class="drawer-header">
-            <div class="drawer-title" id="targetModalTitle">选择目标位置</div>
+            <div class="drawer-title" id="targetModalTitle" data-i18n="move.select_target_title">Select Target</div>
             <button class="drawer-close-btn" onclick="closeTargetModal()">&times;</button>
         </div>
         <div class="drawer-content">
-            <input type="text" id="targetPathInput" style="width: 100%; padding: 12px; margin-bottom: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: var(--global-font-size, 14px); box-sizing: border-box;" placeholder="例如：tjx/新文件夹名">
-            <p style="font-size: var(--global-font-size, 12px); color: #666; margin: 0 0 16px 0;">相对于根目录的路径</p>
+            <input type="text" id="targetPathInput" style="width: 100%; padding: 12px; margin-bottom: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: var(--global-font-size, 14px); box-sizing: border-box;" placeholder="e.g., docs/new-folder" data-i18n-placeholder="move.placeholder">
+            <p style="font-size: var(--global-font-size, 12px); color: #666; margin: 0 0 16px 0;" data-i18n="move.relative_to_root_hint">Relative to root directory</p>
             <div class="modal-buttons" style="padding: 0; border: none; background: none; gap: 12px;">
-                <button class="modal-btn modal-btn-cancel" style="flex: 1; padding: 12px; border-radius: 8px;" onclick="closeTargetModal()">取消</button>
-                <button class="modal-btn modal-btn-confirm" style="flex: 1; padding: 12px; border-radius: 8px;" onclick="confirmTargetPath()">确认</button>
+                <button class="modal-btn modal-btn-cancel" style="flex: 1; padding: 12px; border-radius: 8px;" onclick="closeTargetModal()" data-i18n="common.cancel">Cancel</button>
+                <button class="modal-btn modal-btn-confirm" style="flex: 1; padding: 12px; border-radius: 8px;" onclick="confirmTargetPath()" data-i18n="common.confirm">Confirm</button>
             </div>
         </div>
     </div>
@@ -2427,7 +2427,7 @@
                                     this.$nextTick(this.postRenderInit);
                                     return;
                                 }
-                                var msg = (d && d.error && d.error.message) ? d.error.message : '加载失败';
+                                var msg = (d && d.error && d.error.message) ? d.error.message : (typeof I18n !== 'undefined' ? I18n.t('common.load_failed') : 'Load failed');
                                 this.messageType = 'error';
                                 this.message = msg;
                                 this.items = [];
@@ -2436,7 +2436,7 @@
                             }).bind(this))
                             .catch((function() {
                                 this.messageType = 'error';
-                                this.message = '加载失败';
+                                this.message = (typeof I18n !== 'undefined' ? I18n.t('common.load_failed') : 'Load failed');
                                 this.items = [];
                                 this.breadcrumbs = [];
                             }).bind(this))
@@ -2591,7 +2591,7 @@
                                         try { window.scrollTo(0, 0); } catch (e) {}
                                         return;
                                     }
-                                    var msg = (d && d.error && d.error.message) ? d.error.message : '加载失败';
+                                    var msg = (d && d.error && d.error.message) ? d.error.message : (typeof I18n !== 'undefined' ? I18n.t('common.load_failed') : 'Load failed');
                                     this.__app.messageType = 'error';
                                     this.__app.message = msg;
                                     this.__app.items = [];
@@ -2602,7 +2602,7 @@
                                     if (seq !== this.__seq) return;
                                     if (err && err.name === 'AbortError') return;
                                     this.__app.messageType = 'error';
-                                    this.__app.message = '加载失败';
+                                    this.__app.message = (typeof I18n !== 'undefined' ? I18n.t('common.load_failed') : 'Load failed');
                                     this.__app.items = [];
                                     this.__app.breadcrumbs = [];
                                 }).bind(this))
@@ -2639,11 +2639,11 @@
 
     <!-- 底部 Dock -->
     <div class="dock">
-        <button class="dock-btn" onclick="openMainMenuModal()" title="菜单" style="font-size:20px;" data-i18n-title="nav.menu">☰</button>
-        <button class="dock-btn" onclick="handleMainMenu('bot')" title="对话" data-i18n-title="nav.chat">🤖</button>
-        <button class="dock-btn" onclick="handleMainMenu('terminal')" title="终端" data-i18n-title="nav.terminal">🖥️</button>
-        <button class="dock-btn" onclick="window.open('/db/manager', '_blank')" title="数据库管理" data-i18n-title="nav.database">🗄️</button>
-        <button class="dock-btn" onclick="handleMainMenu('system')" title="clawOS配置" data-i18n-title="nav.settings">⚙️</button>
+        <button class="dock-btn" onclick="openMainMenuModal()" title="Menu" style="font-size:20px;" data-i18n-title="nav.menu">☰</button>
+        <button class="dock-btn" onclick="handleMainMenu('bot')" title="Chat" data-i18n-title="nav.chat">🤖</button>
+        <button class="dock-btn" onclick="handleMainMenu('terminal')" title="Terminal" data-i18n-title="nav.terminal">🖥️</button>
+        <button class="dock-btn" onclick="window.open('/db/manager', '_blank')" title="Database" data-i18n-title="nav.database">🗄️</button>
+        <button class="dock-btn" onclick="handleMainMenu('system')" title="Settings" data-i18n-title="nav.settings">⚙️</button>
     </div>
     
     <style>
@@ -2721,17 +2721,17 @@
                     if (d.data.smtp_server) {
                         html += '✓ SMTP: ' + d.data.smtp_server + ':' + d.data.smtp_port;
                     } else {
-                        html += '✗ 未配置';
+                        html += '✗ ' + (typeof I18n !== 'undefined' ? I18n.t('tools.email_not_configured') : 'Not configured');
                     }
                     html += '</div>';
                     el.innerHTML = html;
                 } else {
-                    el.innerHTML = '<div style="padding:8px;background:#f6f8fa;border-radius:6px;font-size:13px;">✗ 未配置</div>';
+                    el.innerHTML = '<div style="padding:8px;background:#f6f8fa;border-radius:6px;font-size:13px;">✗ ' + (typeof I18n !== 'undefined' ? I18n.t('tools.email_not_configured') : 'Not configured') + '</div>';
                 }
             })
             .catch(function() {
                 var el = document.getElementById('emailConfigStatus');
-                if (el) el.innerHTML = '<div style="color:#666;font-size:13px;">加载失败</div>';
+                if (el) el.innerHTML = '<div style="color:#666;font-size:13px;">' + (typeof I18n !== 'undefined' ? I18n.t('common.load_failed') : 'Load failed') + '</div>';
             });
     })();
 
@@ -2771,26 +2771,26 @@
 <!-- Email History Modal -->
 <div id="emailBackdrop" onclick="closeEmailDrawer()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;"></div>
 <div id="emailInputDrawer" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,0.2);z-index:10000;width:300px;max-width:90vw;padding:16px;">
-    <div style="font-weight:600;margin-bottom:12px;">选择收件人</div>
-    <input type="email" id="emailInput" placeholder="输入邮箱地址" style="width:100%;padding:10px;margin-bottom:10px;border:1px solid #d0d7de;border-radius:6px;">
-    <button onclick="confirmEmail()" style="width:100%;padding:10px;background:#0969da;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:14px;">确定</button>
-    <div style="margin-top:16px;color:#57606a;font-size:12px;">历史记录</div>
+    <div style="font-weight:600;margin-bottom:12px;" data-i18n="email.select_recipient">Select recipient</div>
+    <input type="email" id="emailInput" placeholder="Enter email address" data-i18n-placeholder="common.email_placeholder" style="width:100%;padding:10px;margin-bottom:10px;border:1px solid #d0d7de;border-radius:6px;">
+    <button onclick="confirmEmail()" style="width:100%;padding:10px;background:#0969da;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:14px;" data-i18n="common.confirm">Confirm</button>
+    <div style="margin-top:16px;color:#57606a;font-size:12px;" data-i18n="email.history_title">History</div>
     <div id="emailHistoryList" style="margin-top:8px;"></div>
 </div>
 <script>
 function openEmailDrawer(callback){emailCallback=callback;document.getElementById('emailInput').value='';loadEmailHistory();document.getElementById('emailBackdrop').style.display='block';document.getElementById('emailInputDrawer').style.display='block';document.getElementById('emailInput').focus();}
 function closeEmailDrawer(){document.getElementById('emailBackdrop').style.display='none';document.getElementById('emailInputDrawer').style.display='none';}
 
-function loadEmailHistory(){fetch('/api/email/history').then(r=>r.json()).then(d=>{var h=d.data||[];var l=document.getElementById('emailHistoryList');l.innerHTML=h.length?h.map(e=>'<div style="display:flex;justify-content:space-between;padding:8px;border-bottom:1px solid #eee;"><span>'+e+'</span><span onclick="delEmailHist(\''+e.replace('@','@')+'\')" style="cursor:pointer;color:#cf222e;padding:4px;">×</span></div>').join(''):'<div style="color:#8b949e;">暂无历史</div>';});}
+function loadEmailHistory(){fetch('/api/email/history').then(r=>r.json()).then(d=>{var h=d.data||[];var l=document.getElementById('emailHistoryList');var noHist=(typeof I18n!=='undefined'?I18n.t('email.no_history'):'No history');l.innerHTML=h.length?h.map(e=>'<div style="display:flex;justify-content:space-between;padding:8px;border-bottom:1px solid #eee;"><span>'+e+'</span><span onclick="delEmailHist(\''+e.replace('@','@')+'\')" style="cursor:pointer;color:#cf222e;padding:4px;">×</span></div>').join(''):'<div style="color:#8b949e;">'+noHist+'</div>';});}
 function delEmailHist(e){fetch('/api/email/history',{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:e})}).then(r=>r.json()).then(loadEmailHistory);}
 function confirmEmail(){var e=document.getElementById('emailInput').value.trim();if(!e)return;fetch('/api/email/history',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:e})});closeEmailDrawer();if(emailCallback)emailCallback(e);}
 </script>
 <!-- Email Drawer -->
 <div id="emailDrawer" class="drawer" style="width:320px;display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,0.2);z-index:9999;padding:16px;">
-    <div style="font-weight:600;margin-bottom:12px;">选择收件人</div>
-    <input type="email" id="emailInput" placeholder="输入邮箱地址" style="width:100%;padding:10px;margin-bottom:10px;border:1px solid #d0d7de;border-radius:6px;">
-    <button onclick="confirmEmail()" style="width:100%;padding:10px;background:#0969da;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:14px;">确定</button>
-    <div style="margin-top:16px;color:#57606a;font-size:12px;">历史记录</div>
+    <div style="font-weight:600;margin-bottom:12px;" data-i18n="email.select_recipient">Select recipient</div>
+    <input type="email" id="emailInput" placeholder="Enter email address" data-i18n-placeholder="common.email_placeholder" style="width:100%;padding:10px;margin-bottom:10px;border:1px solid #d0d7de;border-radius:6px;">
+    <button onclick="confirmEmail()" style="width:100%;padding:10px;background:#0969da;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:14px;" data-i18n="common.confirm">Confirm</button>
+    <div style="margin-top:16px;color:#57606a;font-size:12px;" data-i18n="email.history_title">History</div>
     <div id="emailHistoryList" style="margin-top:8px;max-height:200px;overflow-y:auto;"></div>
 </div>
 <div id="emailBackdrop" onclick="closeEmailDrawer()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9998;" ></div>

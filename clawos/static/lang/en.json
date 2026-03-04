@@ -54,6 +54,7 @@
     "delete": "Delete",
     "edit": "Edit",
     "add": "Add",
+    "connect": "Connect",
     "create": "Create",
     "close": "Close",
     "open": "Open",
@@ -70,6 +71,7 @@
     "no": "No",
     "ok": "OK",
     "manage": "Manage",
+    "tools": "Tools",
     "refresh": "Refresh",
     "search": "Search",
     "name": "Name",
@@ -115,6 +117,7 @@
     "reconnect": "Reconnect",
     "retry": "Retry",
     "reset": "Reset",
+    "reinstall": "Reinstall",
     "apply": "Apply",
     "format": "Format",
     "test": "Test",
@@ -158,6 +161,7 @@
     "password": "Password",
     "username": "Username",
     "email": "Email",
+    "email_placeholder": "Enter email address",
     "phone": "Phone",
     "description": "Description",
     "notes": "Notes",
@@ -176,6 +180,7 @@
     "message": "Message",
     "notification": "Notification",
     "alert": "Alert",
+    "confirm_action_title": "Confirm Action",
     "confirm_delete_title": "Confirm Delete",
     "confirm_delete_message": "Are you sure you want to delete this item?",
     "validation_required": "Please fill in required fields",
@@ -222,6 +227,7 @@
     "restart_failed": "Restart failed",
     "copied": "Copied",
     "copy_failed_detail": "Failed to copy to clipboard",
+    "confirm_action_message": "Are you sure you want to proceed?",
     "pasted": "Pasted",
     "cutted": "Cut",
     "loading_ellipsis": "Loading...",
@@ -355,6 +361,11 @@
   },
   "fileBrowser": {
     "title": "File Manager",
+    "details_title": "📋 File Details",
+    "rename_title": "Rename",
+    "rename_prompt": "Enter new name",
+    "move_title": "Move to",
+    "move_prompt": "Enter target path (relative to root):",
     "upload": "Upload",
     "newFolder": "New Folder",
     "newFile": "New File",
@@ -366,6 +377,8 @@
     "paste": "Paste",
     "selectAll": "Select All",
     "search": "Search",
+    "search_files_title": "🔍 Search Files",
+    "search_placeholder": "Search by filename...",
     "search_hotkey": "Search (Ctrl+F)",
     "refresh": "Refresh",
     "path": "Path",
@@ -404,6 +417,10 @@
   },
   "archive": {
     "create_title": "Create Archive",
+    "compressing": "🗜️ Compressing",
+    "preparing": "Preparing…",
+    "compress_success": "Compression completed",
+    "compress_failed": "Compression failed",
     "default_name": "New Archive",
     "create_message": "Enter archive name and select format (created in same directory)",
     "name_placeholder": "e.g., backup.zip",
@@ -420,7 +437,14 @@
   },
   "upload": {
     "uploading": "Uploading...",
-    "failed": "Upload failed"
+    "failed": "Upload failed",
+    "release_to_upload": "Release to upload",
+    "drag_upload_title": "📤 Drag Upload",
+    "start_upload": "Start upload",
+    "paste_image_title": "🖼️ Save Pasted Image",
+    "target_path_placeholder": "Target path (relative to root)",
+    "save_path_placeholder": "Save path (relative to root)",
+    "filename_placeholder": "Filename"
   },
   "task": {
     "listening": "Listening for task status…",
@@ -428,6 +452,8 @@
   },
   "clipboard": {
     "title": "Clipboard Operations",
+    "paste_here": "Paste here",
+    "cancel_operation": "Cancel clipboard operation",
     "copied": "Copied to clipboard",
     "unavailable": "Copy unavailable",
     "select_copy": "Please select files to operate",
@@ -446,7 +472,10 @@
   },
   "move": {
     "success": "Move successful",
-    "failed": "Move failed"
+    "failed": "Move failed",
+    "select_target_title": "Select Target",
+    "relative_to_root_hint": "Relative to root directory",
+    "placeholder": "e.g., docs/new-folder"
   },
   "copy": {
     "success": "Copy successful",
@@ -457,6 +486,8 @@
     "failed": "Rename failed"
   },
   "clone": {
+    "in_progress": "Cloning...",
+    "processing": "Processing...",
     "success": "Clone successful",
     "failed": "Clone failed"
   },
@@ -478,7 +509,10 @@
     "folder_example": "e.g., assets",
     "file_name_placeholder": "Enter file name",
     "file_example": "e.g., README.md",
-    "url_shortcut": "URL Shortcut"
+    "url_shortcut": "URL Shortcut",
+    "create_url_shortcut_title": "Create URL Shortcut",
+    "url_name_example": "e.g., My Website",
+    "url_url_example": "e.g., https://example.com"
   },
   "file_menu": {
     "open": "Open",
@@ -545,6 +579,7 @@
   },
   "perf": {
     "title": "Performance Monitor",
+    "auto_refreshing": "🔄 Auto refreshing",
     "cpuUsage": "CPU Usage",
     "memoryUsage": "Memory Usage",
     "diskUsage": "Disk Usage",
@@ -587,6 +622,7 @@
   },
   "settings": {
     "title": "Settings",
+    "drawer_title": "⚙️ Settings",
     "appearance": "Appearance",
     "language": "Language",
     "theme": "Theme",
@@ -595,6 +631,20 @@
     "autoSave": "Auto Save",
     "notifications": "Notifications",
     "keyboardShortcuts": "Keyboard Shortcuts"
+  },
+  "tools": {
+    "email_config": "Email Config",
+    "email_not_configured": "Not configured"
+  },
+  "email": {
+    "select_recipient": "Select recipient",
+    "history_title": "History",
+    "no_history": "No history"
+  },
+  "account": {
+    "title": "👤 Account",
+    "logout_label": "Logout",
+    "logout_action": "Logout"
   },
   "toast": {
     "message": "Message",
@@ -1061,6 +1111,7 @@
   },
   "trash": {
     "title": "Trash",
+    "drawer_title": "🗑️ Trash",
     "heading": "Trash",
     "item_count": "{{count}} items",
     "deleted_at": "Deleted At",
@@ -1191,6 +1242,8 @@
   },
   "git": {
     "title": "Git Manager",
+    "commit_detail_title": "📝 Commit Details",
+    "auto_refresh": "Auto refresh",
     "status": {
       "unmodified": "Unmodified",
       "modified": "Modified",
@@ -1244,7 +1297,18 @@
     "empty_archive": "Empty archive",
     "unsupported_type": "This file type is not supported for preview"
   },
+  "openclaw": {
+    "config_title": "⚙️ OpenClaw Settings",
+    "gateway_token_placeholder": "Gateway Token (auto-fetched by backend)"
+  },
   "bot": {
+    "input_placeholder": "Type a message...",
+    "settings_title": "Settings & Status",
+    "clear_history": "Clear history",
+    "sent": "Sent",
+    "rounds": "Rounds",
+    "close_settings": "Close settings",
+    "jump_latest": "⬇ Jump to latest",
     "status": {
       "connected": "Connected",
       "disconnected": "Disconnected",
@@ -1282,6 +1346,7 @@
   "system": {
     "process": {
       "title": "Process Management",
+      "detail_title": "Process Details",
       "total": "Total Processes",
       "cpu": "CPU",
       "memory": "Memory",
@@ -1312,6 +1377,7 @@
       "uninstall_failed": "Uninstall failed"
     },
     "docker": {
+      "title": "Docker",
       "images": "Images",
       "containers": "Containers",
       "load_images": "Loading images...",
@@ -1329,6 +1395,7 @@
     },
     "systemd": {
       "title": "Systemd Management",
+      "search_placeholder": "Search services...",
       "user_services": "User Services",
       "system_services": "System Services",
       "enable": "Enable",
@@ -1426,6 +1493,7 @@
     },
     "openclaw": {
       "title": "OpenClaw",
+      "gateway_token_placeholder": "Gateway Token (auto-fetched by backend)",
       "cron": {
         "title": "Cron Jobs",
         "add": "Add",
