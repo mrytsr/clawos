@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title data-i18n="db_manager.title">数据库管理</title>
     <script src="/static/js/i18n.js"></script>
+    <script>
+        // 初始化国际化
+        I18n.init();
+    </script>
     <!-- Tabulator 样式 - 匹配数据库页面 -->
     <link href="/static/lib/tabulator.min.css" rel="stylesheet">
     <style>
@@ -2212,6 +2216,11 @@ async function generateSqlFromPrompt() {
             .then(loadTree)
             .then(() => { updateAutocompleteData(); initAutocomplete(); })
             .then(() => { applyDbUiState(); });
+        
+        // 更新i18n翻译
+        if (typeof I18n !== 'undefined') {
+            I18n.updatePage();
+        }
     </script>
 </body>
 </html>

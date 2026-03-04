@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="/static/js/i18n.js"></script>
+    <script>I18n.init();</script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
@@ -886,13 +887,16 @@
                 const text = document.getElementById('statusText');
                 if (data.active) {
                     dot.className = 'status-dot active';
-                    text.textContent = '运行中';
+                    text.setAttribute('data-i18n', 'zeroclaw.status_active');
+                    if (typeof I18n !== 'undefined') I18n.updatePage();
                 } else {
                     dot.className = 'status-dot inactive';
-                    text.textContent = '已停止';
+                    text.setAttribute('data-i18n', 'zeroclaw.status_inactive');
+                    if (typeof I18n !== 'undefined') I18n.updatePage();
                 }
             } catch(e) {
-                document.getElementById('statusText').textContent = '未知';
+                document.getElementById('statusText').setAttribute('data-i18n', 'zeroclaw.status_inactive');
+                if (typeof I18n !== 'undefined') I18n.updatePage();
             }
         }
         
@@ -900,6 +904,11 @@
         loadSections();
         checkServiceStatus();
         setInterval(checkServiceStatus, 10000);
+        
+        // 更新i18n翻译
+        if (typeof I18n !== 'undefined') {
+            I18n.updatePage();
+        }
     </script>
 </body>
 </html>
