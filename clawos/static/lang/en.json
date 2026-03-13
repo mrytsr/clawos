@@ -30,9 +30,11 @@
     "ollama": "Ollama",
     "clash": "Clash Proxy",
     "frp": "FRP Tunnel",
+    "openclaw": "OpenClaw",
     "picoclaw": "PicoClaw Config",
     "nanobot": "NanoBot Config",
     "nullclaw": "NullClaw Config",
+    "zeroclaw": "ZeroClaw Config",
     "modelConfig": "AI Model Config"
   },
   "breadcrumb": {
@@ -1298,6 +1300,7 @@
     "unsupported_type": "This file type is not supported for preview"
   },
   "openclaw": {
+    "page_title": "OpenClaw",
     "config_title": "⚙️ OpenClaw Settings",
     "gateway_token_placeholder": "Gateway Token (auto-fetched by backend)"
   },

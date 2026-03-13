@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title data-i18n="openclaw.page_title">OpenClaw</title>
+    <link rel="stylesheet" href="/static/lib/highlight-default.min.css">
+    <script src="/static/lib/highlight.min.js"></script>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/lib/sweetalert2.min.css">
+    <script src="/static/lib/sweetalert2.min.js"></script>
+    <script src="/static/js/i18n.js"></script>
+    <script src="/static/js/globals.js"></script>
+    <script src="/static/js/bot.js"></script>
+    <script src="/static/js/openclaw_config.js"></script>
+</head>
+<body style="padding: 20px;">
+    <div class="container" style="height: calc(100vh - 40px);">
+        <div class="breadcrumb" style="position: sticky; top: 0; z-index: 10;">
+            <div class="breadcrumb-left" style="gap: 10px;">
+                <a href="/" style="text-decoration:none;" data-i18n="common.back">Back</a>
+                <span style="font-weight:600;" data-i18n="openclaw.page_title">OpenClaw</span>
+            </div>
+            <div class="breadcrumb-right" style="gap: 10px;">
+                <button id="openclawInstallBtn" style="display:none;background:#2da44e;border:none;border-radius:6px;color:#fff;padding:6px 10px;cursor:pointer;font-size:13px;" onclick="serviceInstallAction('openclaw','install')" data-i18n="common.install">Install</button>
+                <button id="openclawReinstallBtn" style="display:none;background:#0969da;border:none;border-radius:6px;color:#fff;padding:6px 10px;cursor:pointer;font-size:13px;" onclick="serviceInstallAction('openclaw','reinstall')" data-i18n="common.reinstall">Reinstall</button>
+                <button id="openclawUninstallBtn" style="display:none;background:#cf222e;border:none;border-radius:6px;color:#fff;padding:6px 10px;cursor:pointer;font-size:13px;" onclick="serviceInstallAction('openclaw','uninstall')" data-i18n="common.uninstall">Uninstall</button>
+                <button style="background:none;border:1px solid #d0d7de;border-radius:8px;font-size:16px;cursor:pointer;padding:6px 10px;" onclick="loadOpenclawConfig()" data-i18n-title="common.refresh" title="Refresh">🔄</button>
+                <button style="background:none;border:1px solid #d0d7de;border-radius:8px;font-size:16px;cursor:pointer;padding:6px 10px;" onclick="toggleBotSettings()" data-i18n-title="bot.settings_title" title="Settings">⚙️</button>
+            </div>
+        </div>
+
+        <div class="bot-container" style="flex: 1; min-height: 0; position: relative;">
+            <div id="botSettings" class="bot-settings-overlay" style="display:none;">
+                <h4 data-i18n="bot.settings_title">Settings & Status</h4>
+                <div style="margin: 10px 0; font-size: var(--global-font-size, 13px); color: #666;">
+                    <span id="botWsDot" class="bot-status-dot bot-dot-disconnected"></span>
+                    <span id="botWsStatus" data-i18n="bot.status.disconnected">Disconnected</span>
+                </div>
+
+                <input type="text" id="botTokenInput" placeholder="Gateway Token (auto-fetched by backend)" data-i18n-placeholder="openclaw.gateway_token_placeholder" value="" disabled style="margin-bottom: 10px; width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px; opacity: 0.7;">
+                <div style="display: flex; gap: 10px;">
+                    <button onclick="botConnect()" class="dialog-btn dialog-btn-primary" style="padding: 8px;" data-i18n="common.connect">Connect</button>
+                    <button onclick="botClear()" class="dialog-btn dialog-btn-danger" style="padding: 8px;" data-i18n="bot.clear_history">Clear history</button>
+                </div>
+                <div style="margin-top: 20px; font-size: var(--global-font-size, 12px); color: #999;">
+                    <span data-i18n="bot.sent">Sent</span>: <span id="botSentCount">-</span> | <span data-i18n="bot.rounds">Rounds</span>: <span id="botConvCount">-</span>
+                </div>
+                <button onclick="toggleBotSettings()" class="dialog-btn" style="margin-top: auto; background: #ddd;" data-i18n="bot.close_settings">Close settings</button>
+            </div>
+
+            <div style="display:flex;border-bottom:1px solid #d0d7de;background:#f6f8fa;">
+                <button class="bot-tab active" data-tab="config" onclick="switchBotTab('config')" style="flex:1;padding:10px;border:none;background:transparent;font-size:13px;color:#57606a;cursor:pointer;border-bottom:2px solid transparent;" data-i18n="common.settings">Settings</button>
+                <button class="bot-tab" data-tab="agents" onclick="switchBotTab('agents')" style="flex:1;padding:10px;border:none;background:transparent;font-size:13px;color:#57606a;cursor:pointer;border-bottom:2px solid transparent;">Agents</button>
+                <button class="bot-tab" data-tab="models" onclick="switchBotTab('models')" style="flex:1;padding:10px;border:none;background:transparent;font-size:13px;color:#57606a;cursor:pointer;border-bottom:2px solid transparent;">Models</button>
+                <button class="bot-tab" data-tab="channels" onclick="switchBotTab('channels')" style="flex:1;padding:10px;border:none;background:transparent;font-size:13px;color:#57606a;cursor:pointer;border-bottom:2px solid transparent;">Channels</button>
+                <button class="bot-tab" data-tab="chat" onclick="switchBotTab('chat')" style="flex:1;padding:10px;border:none;background:transparent;font-size:13px;color:#57606a;cursor:pointer;border-bottom:2px solid transparent;" data-i18n="nav.chat">Chat</button>
+            </div>
+
+            <div id="botConfigPanel" style="display:block;overflow-y:auto;flex:1;min-height:0;padding:16px;">
+                <div id="botOpenclawConfigContainer"></div>
+            </div>
+
+            <div id="botAgentsPanel" style="display:none;overflow-y:auto;flex:1;min-height:0;padding:16px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px;">
+                    <div style="font-weight:600;font-size:14px;">Agents</div>
+                    <div style="display:flex;gap:8px;flex-shrink:0;">
+                        <button onclick="openOpenclawAddAgentModal()" style="background:#0969da;border:none;border-radius:6px;color:#fff;padding:6px 10px;cursor:pointer;font-size:13px;" data-i18n="common.add">Add</button>
+                        <button style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px;" onclick="loadOpenclawAgents()" data-i18n-title="common.refresh" title="Refresh">🔄</button>
+                    </div>
+                </div>
+                <div id="botOpenclawAgentsContainer"></div>
+            </div>
+
+            <div id="botModelsPanel" style="display:none;overflow-y:auto;flex:1;min-height:0;padding:16px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px;">
+                    <div style="font-weight:600;font-size:14px;">Models</div>
+                    <div style="display:flex;gap:8px;flex-shrink:0;">
+                        <button onclick="openOpenclawAddModelModal()" style="background:#0969da;border:none;border-radius:6px;color:#fff;padding:6px 10px;cursor:pointer;font-size:13px;" data-i18n="common.add">Add</button>
+                        <button style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px;" onclick="loadOpenclawModels()" data-i18n-title="common.refresh" title="Refresh">🔄</button>
+                    </div>
+                </div>
+                <div id="botOpenclawModelsContainer"></div>
+            </div>
+
+            <div id="botChannelsPanel" style="display:none;overflow-y:auto;flex:1;min-height:0;padding:16px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px;">
+                    <div style="font-weight:600;font-size:14px;">Channels</div>
+                    <div style="display:flex;gap:8px;flex-shrink:0;">
+                        <button onclick="openOpenclawAddChannelModal()" style="background:#0969da;border:none;border-radius:6px;color:#fff;padding:6px 10px;cursor:pointer;font-size:13px;" data-i18n="common.add">Add</button>
+                        <button style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px;" onclick="loadOpenclawChannels()" data-i18n-title="common.refresh" title="Refresh">🔄</button>
+                    </div>
+                </div>
+                <div id="botOpenclawChannelsContainer"></div>
+            </div>
+
+            <div id="botChatPanel" style="display:none;flex:1;min-height:0;flex-direction:column;position:relative;">
+                <div class="bot-chat-box" id="botChatBox" style="flex:1;min-height:0;width:100%;">
+                    <ul id="botHistoryList" class="bot-history" style="list-style: none; padding: 0; margin: 0;"></ul>
+                </div>
+                <button id="botJumpLatestBtn" type="button" onclick="botJumpToLatest()" style="position:absolute;right:16px;bottom:78px;z-index:5;display:none;padding:10px 12px;border-radius:999px;border:1px solid #d0d7de;background:#ffffff;color:#24292f;box-shadow:0 6px 16px rgba(0,0,0,0.12);cursor:pointer;font-size: var(--global-font-size, 12px);" data-i18n="bot.jump_latest">
+                    ⬇ Jump to latest
+                </button>
+
+                <div class="bot-input-area">
+                    <textarea class="bot-input" id="botInput" placeholder="Type a message..." data-i18n-placeholder="bot.input_placeholder" style="flex: 1; border: 1px solid #ddd; background: #f5f5f5; padding: 10px 12px; border-radius: 8px; font-size: var(--global-font-size, 14px); resize: none; outline: none; height: 40px; max-height: 100px;"></textarea>
+                    <button class="bot-send-btn" onclick="botSend()" style="width: 40px; height: 40px; border-radius: 8px; background: #95ec69; border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0;">🚀</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>

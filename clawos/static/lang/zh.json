@@ -30,9 +30,11 @@
     "ollama": "Ollama",
     "clash": "Clash代理",
     "frp": "FRP内网穿透",
+    "openclaw": "OpenClaw",
     "picoclaw": "PicoClaw配置",
     "nanobot": "NanoBot配置",
     "nullclaw": "NullClaw配置",
+    "zeroclaw": "ZeroClaw配置",
     "modelConfig": "AI模型配置"
   },
   "breadcrumb": {
@@ -1297,6 +1299,7 @@
     "unsupported_type": "该文件类型不在抽屉预览范围"
   },
   "openclaw": {
+    "page_title": "OpenClaw",
     "config_title": "⚙️ OpenClaw 配置",
     "gateway_token_placeholder": "Gateway Token（由后端自动获取）"
   },

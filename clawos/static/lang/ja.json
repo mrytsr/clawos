@@ -30,9 +30,11 @@
     "ollama": "Ollama",
     "clash": "Clashプロキシ",
     "frp": "FRPトンネル",
+    "openclaw": "OpenClaw",
     "picoclaw": "PicoClaw設定",
     "nanobot": "NanoBot設定",
     "nullclaw": "NullClaw設定",
+    "zeroclaw": "ZeroClaw設定",
     "modelConfig": "AIモデル設定"
   },
   "breadcrumb": {
@@ -1298,6 +1300,7 @@
     "unsupported_type": "このファイルタイプはプレビューに対応していません"
   },
   "openclaw": {
+    "page_title": "OpenClaw",
     "config_title": "⚙️ OpenClaw 設定",
     "gateway_token_placeholder": "Gateway Token（バックエンドが自動取得）"
   },

@@ -758,6 +758,7 @@ window.openMainMenuModal = function() {
             { action: 'ollama', icon: '🦙', key: 'menu.ollama' },
             { action: 'clash', icon: '🌐', key: 'menu.clash' },
             { action: 'frp', icon: '🔗', key: 'menu.frp' },
+            { action: 'openclaw', icon: '🤖', key: 'menu.openclaw' },
             { action: 'picoclaw', icon: '🦞', key: 'menu.picoclaw' },
             { action: 'nanobot', icon: '🐱', key: 'menu.nanobot' },
             { action: 'nullclaw', icon: '⚡', key: 'menu.nullclaw' },
@@ -877,6 +878,8 @@ window.handleMainMenu = function(action) {
         openConfigModal();
     } else if (action === 'pkg') {
         window.openPkgDrawer();
+    } else if (action === 'openclaw') {
+        window.open('/openclaw_config', '_blank');
     } else if (action === 'picoclaw') {
         window.open('/picoclaw/config', '_self');
     } else if (action === 'nanobot') {
@@ -1837,8 +1840,11 @@ window.SwalConfirm = function(title, message, onConfirm, type) {
         icon: icons[type] || 'warning',
         title: title || '确认',
         text: message || '',
+        showCancelButton: true,
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
         preConfirm: function() {
-            if (onConfirm) onConfirm();
+            if (onConfirm) return onConfirm();
         }
     });
 };

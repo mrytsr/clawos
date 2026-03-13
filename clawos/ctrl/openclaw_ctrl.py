@@ -5,7 +5,7 @@ import socket
 import subprocess
 import shutil
 
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, render_template, redirect
 
 from ctrl import api_error, api_ok
 from ctrl.task_ctrl import create_task
@@ -15,6 +15,15 @@ from lib import packages_utils
 openclaw_bp = Blueprint('openclaw', __name__)
 
 OPENCLAW_CONFIG_PATH = os.path.expanduser('~/.openclaw/openclaw.json')
+
+@openclaw_bp.route('/openclaw-config')
+def openclaw_config_page():
+    return redirect('/openclaw_config')
+
+
+@openclaw_bp.route('/openclaw_config')
+def openclaw_config_page_v2():
+    return render_template('openclaw_config.html')
 
 def _load_openclaw_config_raw():
     if not os.path.exists(OPENCLAW_CONFIG_PATH):
@@ -52,6 +61,126 @@ def _iter_models(config):
             if not isinstance(m, dict):
                 continue
             yield provider_name, m
+
+
+def _to_float_or_none(v):
+    if v is None:
+        return None
+    if isinstance(v, (int, float)):
+        return float(v)
+    s = str(v).strip()
+    if not s:
+        return None
+    try:
+        return float(s)
+    except Exception:
+        return None
+
+
+def _to_int_or_none(v):
+    if v is None:
+        return None
+    if isinstance(v, bool):
+        return None
+    if isinstance(v, int):
+        return v
+    if isinstance(v, float):
+        return int(v)
+    s = str(v).strip()
+    if not s:
+        return None
+    try:
+        return int(float(s))
+    except Exception:
+        return None
+
+
+def _normalize_input_list(v):
+    if v is None:
+        return None
+    if isinstance(v, list):
+        out = []
+        for x in v:
+            sx = str(x).strip()
+            if sx:
+                out.append(sx)
+        return out
+    s = str(v).strip()
+    if not s:
+        return None
+    return [x.strip() for x in s.split(',') if x.strip()]
+
+
+def _resolve_provider_field(data, primary_key, alias_key):
+    if primary_key in data:
+        return data.get(primary_key)
+    return data.get(alias_key)
+
+
+def _upsert_provider_meta(provider_section, data):
+    if not isinstance(provider_section, dict):
+        provider_section = {}
+    provider_base_url = _resolve_provider_field(data, 'providerBaseUrl', 'baseUrl')
+    provider_api = _resolve_provider_field(data, 'providerApi', 'api')
+    provider_api_key = _resolve_provider_field(data, 'providerApiKey', 'apiKey')
+
+    if provider_base_url is not None:
+        provider_section['baseUrl'] = str(provider_base_url).strip()
+    elif 'baseUrl' not in provider_section:
+        provider_section['baseUrl'] = ''
+
+    if provider_api is not None:
+        provider_section['api'] = str(provider_api).strip() or 'openai-completions'
+    elif not isinstance(provider_section.get('api'), str) or not provider_section.get('api'):
+        provider_section['api'] = 'openai-completions'
+
+    if provider_api_key is not None:
+        key_text = str(provider_api_key).strip()
+        if key_text:
+            provider_section['apiKey'] = key_text
+    elif 'apiKey' not in provider_section:
+        provider_section['apiKey'] = ''
+
+    models_list = provider_section.get('models')
+    if not isinstance(models_list, list):
+        provider_section['models'] = []
+    return provider_section
+
+
+def _build_model_entry(data, fallback_name=''):
+    model_id = (data.get('id') or '').strip()
+    name = (data.get('name') or '').strip() or fallback_name or model_id
+    reasoning = bool(data.get('reasoning', False))
+    input_types = _normalize_input_list(data.get('input'))
+    context_window = _to_int_or_none(data.get('contextWindow'))
+    max_tokens = _to_int_or_none(data.get('maxTokens'))
+    cost_input = _to_float_or_none((data.get('cost') or {}).get('input') if isinstance(data.get('cost'), dict) else data.get('costInput'))
+    cost_output = _to_float_or_none((data.get('cost') or {}).get('output') if isinstance(data.get('cost'), dict) else data.get('costOutput'))
+    cost_cache_read = _to_float_or_none((data.get('cost') or {}).get('cacheRead') if isinstance(data.get('cost'), dict) else data.get('costCacheRead'))
+    cost_cache_write = _to_float_or_none((data.get('cost') or {}).get('cacheWrite') if isinstance(data.get('cost'), dict) else data.get('costCacheWrite'))
+
+    item = {
+        'id': model_id,
+        'name': name,
+        'reasoning': reasoning,
+    }
+    if input_types is not None:
+        item['input'] = input_types
+    if context_window is not None:
+        item['contextWindow'] = context_window
+    if max_tokens is not None:
+        item['maxTokens'] = max_tokens
+    if any(x is not None for x in [cost_input, cost_output, cost_cache_read, cost_cache_write]):
+        item['cost'] = {}
+        if cost_input is not None:
+            item['cost']['input'] = cost_input
+        if cost_output is not None:
+            item['cost']['output'] = cost_output
+        if cost_cache_read is not None:
+            item['cost']['cacheRead'] = cost_cache_read
+        if cost_cache_write is not None:
+            item['cost']['cacheWrite'] = cost_cache_write
+    return item
 
 
 def _openclaw_agents_dir():
@@ -294,21 +423,50 @@ def api_openclaw_models_list():
     default_id, _ = _get_default_model_id(models_section)
 
     providers = []
+    provider_configs = {}
     models = []
     providers_map = models_section.get('providers') or {}
     if isinstance(providers_map, dict):
         providers = list(providers_map.keys())
+        for provider_name, provider_data in providers_map.items():
+            p = provider_data if isinstance(provider_data, dict) else {}
+            api_key = str(p.get('apiKey') or '')
+            provider_configs[provider_name] = {
+                'baseUrl': p.get('baseUrl') or '',
+                'api': p.get('api') or 'openai-completions',
+                'hasApiKey': bool(api_key.strip()),
+                'apiKeyMasked': ('*' * max(0, len(api_key.strip()) - 4) + api_key.strip()[-4:]) if api_key.strip() else '',
+            }
 
     for provider_name, m in _iter_models(config):
+        cost = m.get('cost') if isinstance(m.get('cost'), dict) else {}
         models.append({
             'provider': provider_name,
             'id': m.get('id', ''),
             'name': m.get('name', m.get('id', '')),
             'reasoning': bool(m.get('reasoning', False)),
+            'input': m.get('input') if isinstance(m.get('input'), list) else [],
+            'cost': {
+                'input': cost.get('input'),
+                'output': cost.get('output'),
+                'cacheRead': cost.get('cacheRead'),
+                'cacheWrite': cost.get('cacheWrite'),
+            },
+            'contextWindow': m.get('contextWindow'),
+            'maxTokens': m.get('maxTokens'),
+            'providerBaseUrl': (provider_configs.get(provider_name) or {}).get('baseUrl', ''),
+            'providerApi': (provider_configs.get(provider_name) or {}).get('api', 'openai-completions'),
+            'providerHasApiKey': (provider_configs.get(provider_name) or {}).get('hasApiKey', False),
+            'providerApiKeyMasked': (provider_configs.get(provider_name) or {}).get('apiKeyMasked', ''),
             'default': bool(default_id and m.get('id') == default_id),
         })
 
-    return api_ok({'providers': providers, 'defaultModelId': default_id, 'models': models})
+    return api_ok({
+        'providers': providers,
+        'providerConfigs': provider_configs,
+        'defaultModelId': default_id,
+        'models': models
+    })
 
 
 @openclaw_bp.route('/api/openclaw/models/add', methods=['POST'])
@@ -317,7 +475,6 @@ def api_openclaw_models_add():
     provider = (data.get('provider') or '').strip() or 'default'
     model_id = (data.get('id') or '').strip()
     name = (data.get('name') or '').strip()
-    reasoning = bool(data.get('reasoning', False))
 
     if not model_id:
         return api_error('Missing model id', status=400)
@@ -335,6 +492,7 @@ def api_openclaw_models_add():
         return api_error('配置文件格式错误', status=500)
 
     provider_section = providers_map.setdefault(provider, {})
+    provider_section = _upsert_provider_meta(provider_section, data)
     models_list = provider_section.setdefault('models', [])
     if not isinstance(models_list, list):
         return api_error('配置文件格式错误', status=500)
@@ -343,14 +501,84 @@ def api_openclaw_models_add():
         if isinstance(m, dict) and (m.get('id') or '').strip() == model_id:
             return api_error('Model already exists', status=409)
 
-    models_list.append({
-        'id': model_id,
-        'name': name or model_id,
-        'reasoning': reasoning,
-    })
+    entry = _build_model_entry(data, fallback_name=name or model_id)
+    models_list.append(entry)
+    provider_section['models'] = models_list
+    providers_map[provider] = provider_section
+    models_section['providers'] = providers_map
+    config['models'] = models_section
 
     _save_openclaw_config_raw(config)
     return api_ok({'provider': provider, 'id': model_id})
+
+
+@openclaw_bp.route('/api/openclaw/models/update', methods=['POST'])
+def api_openclaw_models_update():
+    data = request.get_json(silent=True) or {}
+    provider = (data.get('provider') or '').strip() or 'default'
+    model_id = (data.get('id') or '').strip()
+    new_model_id = (data.get('newId') or '').strip() or model_id
+    if not model_id:
+        return api_error('Missing model id', status=400)
+    if not new_model_id:
+        return api_error('Missing new model id', status=400)
+
+    try:
+        config = _load_openclaw_config_raw()
+    except FileNotFoundError as e:
+        return api_error(str(e), status=404)
+    except json.JSONDecodeError:
+        return api_error('配置文件解析失败', status=500)
+
+    models_section = config.setdefault('models', {})
+    providers_map = models_section.setdefault('providers', {})
+    if not isinstance(providers_map, dict):
+        return api_error('配置文件格式错误', status=500)
+
+    provider_section = providers_map.get(provider) or {}
+    if not isinstance(provider_section, dict):
+        return api_error('Provider not found', status=404)
+    provider_section = _upsert_provider_meta(provider_section, data)
+    models_list = provider_section.get('models') or []
+    if not isinstance(models_list, list):
+        return api_error('配置文件格式错误', status=500)
+
+    target_idx = -1
+    for idx, m in enumerate(models_list):
+        if isinstance(m, dict) and (m.get('id') or '').strip() == model_id:
+            target_idx = idx
+            break
+    if target_idx < 0:
+        return api_error('Model not found', status=404)
+
+    for idx, m in enumerate(models_list):
+        if idx == target_idx:
+            continue
+        if isinstance(m, dict) and (m.get('id') or '').strip() == new_model_id:
+            return api_error('Model id already exists', status=409)
+
+    current = models_list[target_idx] if isinstance(models_list[target_idx], dict) else {}
+    merge_data = dict(current)
+    merge_data.update(data)
+    merge_data['id'] = new_model_id
+    if 'name' not in data and isinstance(current.get('name'), str) and current.get('name').strip():
+        merge_data['name'] = current.get('name').strip()
+    updated_entry = _build_model_entry(merge_data, fallback_name=new_model_id)
+    models_list[target_idx] = updated_entry
+
+    default_id, default_key = _get_default_model_id(models_section)
+    if default_id == model_id and new_model_id != model_id:
+        if default_key:
+            models_section[default_key] = new_model_id
+        else:
+            models_section['defaultModelId'] = new_model_id
+
+    provider_section['models'] = models_list
+    providers_map[provider] = provider_section
+    models_section['providers'] = providers_map
+    config['models'] = models_section
+    _save_openclaw_config_raw(config)
+    return api_ok({'provider': provider, 'id': new_model_id})
 
 
 @openclaw_bp.route('/api/openclaw/models/remove', methods=['POST'])

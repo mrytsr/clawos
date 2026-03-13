@@ -105,6 +105,15 @@ app.register_blueprint(file_bp)
 app.register_blueprint(model_config_bp)
 register_term_socketio(socketio, terminal_root_dir=config.ROOT_DIR)
 
+@app.after_request
+def add_default_headers(resp):
+    try:
+        if not resp.headers.get('X-Content-Type-Options'):
+            resp.headers['X-Content-Type-Options'] = 'nosniff'
+    except Exception:
+        pass
+    return resp
+
 
 @app.errorhandler(Exception)
 def handle_unhandled_exception(e):

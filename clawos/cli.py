@@ -155,6 +155,18 @@ def main():
     @_click.option('--app-dir', type=_click.Path(file_okay=False, dir_okay=True, resolve_path=True))
     @_click.option('--python', 'python_bin', type=_click.Path(dir_okay=False, resolve_path=True))
     def start(app_dir, python_bin):
+        if os.name == 'nt':
+            _ensure_data_dir_and_password()
+            app_dir = _detect_app_dir(app_dir)
+            if not python_bin:
+                python_bin = _sys.executable
+            app_py = os.path.join(app_dir, 'app.py')
+            _click.echo(f'访问地址: http://localhost:{config.SERVER_PORT}')
+            pwd = _load_password()
+            if pwd:
+                _click.echo(f'登录密码: {pwd}')
+            raise SystemExit(_subprocess.call([python_bin, app_py], cwd=app_dir))
+
         if not os.path.exists(_service_path()):
             _click.echo('未检测到 service，正在安装...')
             _install_service_internal(app_dir=app_dir, python_bin=python_bin)

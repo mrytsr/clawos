@@ -1065,6 +1065,10 @@ function downloadFile(path, opts) {
     var name = getDownloadDisplayName(p, o.name || '');
     var openInNewTab = !!o.openInNewTab;
     var url = '/download/' + encodePathForUrl(p);
+    var doDownload = function() {
+        if (openInNewTab) window.open(url, '_blank', 'noopener');
+        else window.location.href = url;
+    };
 
     var headers = (typeof window.authHeaders === 'function') ? window.authHeaders() : null;
     var fetchOpts = headers ? { headers: headers } : undefined;
@@ -1089,23 +1093,16 @@ function downloadFile(path, opts) {
             if (info && (info.mtime || info.modified)) lines.push((typeof I18n !== 'undefined' ? I18n.t('common.modified') : 'Modified') + '：' + String(info.mtime || info.modified));
             lines.push((typeof I18n !== 'undefined' ? I18n.t('common.path') : 'Path') + '：' + p);
 
-            SwalConfirm('批量操作确认', lines.join('\n'), function() { performBatchOp(); }, 'warning');
-            if (!ok) return;
-
-            if (openInNewTab) window.open(url, '_blank', 'noopener');
-            else window.location.href = url;
+            SwalConfirm(typeof I18n !== 'undefined' ? I18n.t('download.confirm_title') : 'Confirm Download?', lines.join('\n'), doDownload, 'warning');
         })
         .catch(function() {
             var sizeText = getFileSizeTextFromDom(p);
             var lines = [];
-            lines.push('确认下载？');
+            lines.push(typeof I18n !== 'undefined' ? I18n.t('download.confirm_title') : 'Confirm Download?');
             if (name) lines.push('名称：' + name);
             if (sizeText) lines.push('大小：' + sizeText);
             lines.push('路径：' + p);
-            SwalConfirm('批量操作确认', lines.join('\n'), function() { performBatchOp(); }, 'warning');
-            if (!ok) return;
-            if (openInNewTab) window.open(url, '_blank', 'noopener');
-            else window.location.href = url;
+            SwalConfirm(typeof I18n !== 'undefined' ? I18n.t('download.confirm_title') : 'Confirm Download?', lines.join('\n'), doDownload, 'warning');
         });
 }
 

@@ -1202,13 +1202,7 @@ function renderOpenclawChannelsCard(channels) {
 
 window.loadOpenclawConfig = function() {
     window.refreshServiceInstallState('openclaw');
-    let container = null;
-    const botDrawer = document.getElementById('botDrawer');
-    const botPanel = document.getElementById('botConfigPanel');
-    if (botDrawer && botDrawer.classList.contains('open') && botPanel && botPanel.style.display !== 'none') {
-        container = document.getElementById('botOpenclawConfigContainer');
-    }
-    if (!container) container = document.getElementById('openclawConfigContainer') || document.getElementById('botOpenclawConfigContainer');
+    const container = document.getElementById('openclawConfigContainer') || document.getElementById('botOpenclawConfigContainer');
     if (container) container.innerHTML = '<div style="text-align:center;padding:40px;color:#666;">🔄 加载中...</div>';
     
     fetch('/api/openclaw/status', { headers: authHeaders() })
@@ -1765,6 +1759,8 @@ window.openclawRemoveChannel = function(channelName) {
     });
 };
 
+window.__openclawModelsPayload = window.__openclawModelsPayload || null;
+
 window.loadOpenclawModels = function() {
     let container = document.getElementById('botOpenclawModelsContainer');
     if (!container) return;
@@ -1774,6 +1770,7 @@ window.loadOpenclawModels = function() {
         .then(function(data) {
             const payload = apiData(data);
             if (!payload || !container) return;
+            window.__openclawModelsPayload = payload;
             const models = payload.models || [];
             const defaultModelId = payload.defaultModelId || '';
             let html = '';
@@ -1786,11 +1783,20 @@ window.loadOpenclawModels = function() {
             }
             models.forEach(function(m, idx) {
                 const isDefault = !!m.default || (defaultModelId && m.id === defaultModelId);
-                html += '<div style="padding:10px 12px;' + (idx < models.length - 1 ? 'border-bottom:1px solid #eee;' : '') + 'display:flex;align-items:center;justify-content:space-between;gap:12px;">';
+                const providerApi = m.providerApi || 'openai-completions';
+                const providerBaseUrl = m.providerBaseUrl || '';
+                const providerApiKeyMasked = m.providerApiKeyMasked || '';
+                const inputTypes = Array.isArray(m.input) ? m.input.join(', ') : '';
+                const cw = (m.contextWindow === null || typeof m.contextWindow === 'undefined') ? '-' : String(m.contextWindow);
+                const mt = (m.maxTokens === null || typeof m.maxTokens === 'undefined') ? '-' : String(m.maxTokens);
+                const cost = m.cost || {};
+                const costText = 'in:' + (cost.input ?? '-') + ' out:' + (cost.output ?? '-') + ' cr:' + (cost.cacheRead ?? '-') + ' cw:' + (cost.cacheWrite ?? '-');
+                html += '<div style="padding:10px 12px;' + (idx < models.length - 1 ? 'border-bottom:1px solid #eee;' : '') + 'display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">';
                 html += '<div style="min-width:0;">';
                 html += '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">';
                 html += '<span style="font-weight:600;font-size:14px;">' + escapeHtml(m.name || m.id || '-') + '</span>';
                 html += '<span style="font-size:11px;padding:1px 6px;border-radius:999px;background:#ddf4ff;color:#0969da;">' + escapeHtml(m.provider || '-') + '</span>';
+                html += '<span style="font-size:11px;padding:1px 6px;border-radius:999px;background:#f6f8fa;color:#57606a;">' + escapeHtml(providerApi) + '</span>';
                 if (m.reasoning) {
                     html += '<span style="font-size:11px;padding:1px 6px;border-radius:999px;background:#fff8c5;color:#9a6700;">reasoning</span>';
                 }
@@ -1798,7 +1804,12 @@ window.loadOpenclawModels = function() {
                     html += '<span style="font-size:11px;padding:1px 6px;border-radius:999px;background:#dafbe1;color:#1a7f37;">默认</span>';
                 }
                 html += '</div>';
-                html += '<div style="font-family:ui-monospace;font-size:12px;color:#57606a;word-break:break-all;">' + escapeHtml(m.id || '-') + '</div>';
+                html += '<div style="font-family:ui-monospace;font-size:12px;color:#57606a;word-break:break-all;margin-top:4px;">' + escapeHtml(m.id || '-') + '</div>';
+                html += '<div style="font-size:12px;color:#57606a;margin-top:4px;word-break:break-all;">baseUrl: ' + escapeHtml(providerBaseUrl || '-') + '</div>';
+                html += '<div style="font-size:12px;color:#57606a;margin-top:2px;">apiKey: ' + escapeHtml(providerApiKeyMasked || '-') + '</div>';
+                html += '<div style="font-size:12px;color:#57606a;margin-top:2px;">input: ' + escapeHtml(inputTypes || '-') + '</div>';
+                html += '<div style="font-size:12px;color:#57606a;margin-top:2px;">contextWindow: ' + escapeHtml(cw) + ' | maxTokens: ' + escapeHtml(mt) + '</div>';
+                html += '<div style="font-size:12px;color:#57606a;margin-top:2px;">cost: ' + escapeHtml(costText) + '</div>';
                 html += '</div>';
                 html += '<div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">';
                 if (isDefault) {
@@ -1806,6 +1817,7 @@ window.loadOpenclawModels = function() {
                 } else {
                     html += '<button onclick="openclawSetDefaultModel(' + JSON.stringify(m.id || '') + ')" style="background:#2da44e;border:none;border-radius:6px;color:#fff;padding:6px 10px;cursor:pointer;font-size:12px;">设为默认</button>';
                 }
+                html += '<button onclick="openOpenclawEditModelModal(' + JSON.stringify(m.provider || '') + ',' + JSON.stringify(m.id || '') + ')" style="background:#0969da;border:none;border-radius:6px;color:#fff;padding:6px 10px;cursor:pointer;font-size:12px;">编辑</button>';
                 html += '<button onclick="openclawRemoveModel(' + JSON.stringify(m.provider || '') + ',' + JSON.stringify(m.id || '') + ')" style="background:#cf222e;border:none;border-radius:6px;color:#fff;padding:6px 10px;cursor:pointer;font-size:12px;">删除</button>';
                 html += '</div>';
                 html += '</div>';
@@ -1868,73 +1880,179 @@ window.openclawRemoveModel = function(provider, modelId) {
         });
 };
 
-window.openOpenclawAddModelModal = function() {
-    if (!(window.SwalGitHub && typeof window.SwalGitHub.fire === 'function')) {
-        alert('弹窗组件未加载');
-        return;
+function __openclawModelDialog(mode, current, onSubmit) {
+    const payload = window.__openclawModelsPayload || {};
+    const providers = Array.isArray(payload.providers) ? payload.providers : [];
+    const providerOptions = providers.map(function(p) { return '<option value="' + escapeHtml(p) + '"></option>'; }).join('');
+    const isEdit = mode === 'edit';
+    const cost = (current && current.cost) || {};
+    const inputCsv = current && Array.isArray(current.input) ? current.input.join(',') : '';
+    const provider = (current && current.provider) || 'default';
+    const providerBaseUrl = (current && current.providerBaseUrl) || '';
+    const providerApi = (current && current.providerApi) || 'openai-completions';
+    const providerApiKeyMasked = (current && current.providerApiKeyMasked) || '';
+    const overlay = document.createElement('div');
+    overlay.id = 'openclawModelDialogOverlay';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.42);z-index:26000;display:flex;align-items:center;justify-content:center;padding:16px;';
+    const panel = document.createElement('div');
+    panel.style.cssText = 'background:#fff;border-radius:12px;width:min(920px,100%);max-height:90vh;overflow:auto;box-shadow:0 18px 44px rgba(0,0,0,0.25);';
+    panel.innerHTML =
+        '<div style="padding:14px 18px;border-bottom:1px solid #eaeef2;display:flex;justify-content:space-between;align-items:center;">' +
+        '<div style="font-size:16px;font-weight:600;">' + (isEdit ? '编辑模型' : '添加模型') + '</div>' +
+        '<button id="openclawModelDialogClose" style="border:none;background:none;font-size:24px;line-height:1;cursor:pointer;color:#57606a;">×</button>' +
+        '</div>' +
+        '<div style="padding:16px 18px;display:grid;grid-template-columns:1fr 1fr;gap:14px;">' +
+        '<div style="font-size:13px;color:#57606a;">Provider</div>' +
+        '<div style="font-size:13px;color:#57606a;">Model</div>' +
+        '<div style="border:1px solid #d0d7de;border-radius:10px;padding:12px;">' +
+        '<div style="font-size:12px;color:#57606a;margin-bottom:6px;">Provider Name</div>' +
+        '<input id="openclawModelProviderInput" ' + (isEdit ? 'readonly' : '') + ' list="openclawModelProviderList" style="width:100%;padding:8px 10px;border:1px solid #d0d7de;border-radius:8px;box-sizing:border-box;" value="' + escapeHtml(provider) + '">' +
+        '<datalist id="openclawModelProviderList">' + providerOptions + '</datalist>' +
+        '<div style="font-size:12px;color:#57606a;margin:10px 0 6px;">baseUrl</div>' +
+        '<input id="openclawModelBaseUrlInput" style="width:100%;padding:8px 10px;border:1px solid #d0d7de;border-radius:8px;box-sizing:border-box;" value="' + escapeHtml(providerBaseUrl) + '">' +
+        '<div style="font-size:12px;color:#57606a;margin:10px 0 6px;">api</div>' +
+        '<select id="openclawModelApiInput" style="width:100%;padding:8px 10px;border:1px solid #d0d7de;border-radius:8px;box-sizing:border-box;">' +
+        '<option value="openai-completions"' + (providerApi === 'openai-completions' ? ' selected' : '') + '>openai-completions</option>' +
+        '<option value="anthropic"' + (providerApi === 'anthropic' ? ' selected' : '') + '>anthropic</option>' +
+        '</select>' +
+        '<div style="font-size:12px;color:#57606a;margin:10px 0 6px;">apiKey' + (isEdit && providerApiKeyMasked ? '（当前: ' + escapeHtml(providerApiKeyMasked) + '）' : '') + '</div>' +
+        '<input id="openclawModelApiKeyInput" placeholder="' + (isEdit ? '留空不修改' : 'OPENROUTER_API_KEY / sk-xxxx') + '" style="width:100%;padding:8px 10px;border:1px solid #d0d7de;border-radius:8px;box-sizing:border-box;">' +
+        '</div>' +
+        '<div style="border:1px solid #d0d7de;border-radius:10px;padding:12px;">' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">' +
+        '<div><div style="font-size:12px;color:#57606a;margin-bottom:6px;">Model ID</div><input id="openclawModelIdInput" style="width:100%;padding:8px 10px;border:1px solid #d0d7de;border-radius:8px;box-sizing:border-box;" value="' + escapeHtml((current && current.id) || '') + '"></div>' +
+        '<div><div style="font-size:12px;color:#57606a;margin-bottom:6px;">Name</div><input id="openclawModelNameInput" style="width:100%;padding:8px 10px;border:1px solid #d0d7de;border-radius:8px;box-sizing:border-box;" value="' + escapeHtml((current && current.name) || '') + '"></div>' +
+        '<div><div style="font-size:12px;color:#57606a;margin-bottom:6px;">contextWindow</div><input id="openclawModelContextWindowInput" style="width:100%;padding:8px 10px;border:1px solid #d0d7de;border-radius:8px;box-sizing:border-box;" value="' + escapeHtml(String((current && current.contextWindow) ?? '')) + '"></div>' +
+        '<div><div style="font-size:12px;color:#57606a;margin-bottom:6px;">maxTokens</div><input id="openclawModelMaxTokensInput" style="width:100%;padding:8px 10px;border:1px solid #d0d7de;border-radius:8px;box-sizing:border-box;" value="' + escapeHtml(String((current && current.maxTokens) ?? '')) + '"></div>' +
+        '</div>' +
+        '<div style="font-size:12px;color:#57606a;margin:10px 0 6px;">input（逗号分隔）</div>' +
+        '<input id="openclawModelInputTypesInput" style="width:100%;padding:8px 10px;border:1px solid #d0d7de;border-radius:8px;box-sizing:border-box;" value="' + escapeHtml(inputCsv) + '">' +
+        '<div style="font-size:12px;color:#57606a;margin:10px 0 6px;">cost</div>' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">' +
+        '<input id="openclawModelCostInput" placeholder="input" style="width:100%;padding:8px 10px;border:1px solid #d0d7de;border-radius:8px;box-sizing:border-box;" value="' + escapeHtml(String(cost.input ?? '')) + '">' +
+        '<input id="openclawModelCostOutput" placeholder="output" style="width:100%;padding:8px 10px;border:1px solid #d0d7de;border-radius:8px;box-sizing:border-box;" value="' + escapeHtml(String(cost.output ?? '')) + '">' +
+        '<input id="openclawModelCostCacheRead" placeholder="cacheRead" style="width:100%;padding:8px 10px;border:1px solid #d0d7de;border-radius:8px;box-sizing:border-box;" value="' + escapeHtml(String(cost.cacheRead ?? '')) + '">' +
+        '<input id="openclawModelCostCacheWrite" placeholder="cacheWrite" style="width:100%;padding:8px 10px;border:1px solid #d0d7de;border-radius:8px;box-sizing:border-box;" value="' + escapeHtml(String(cost.cacheWrite ?? '')) + '">' +
+        '</div>' +
+        '<label style="display:flex;align-items:center;gap:8px;margin-top:10px;font-size:13px;color:#24292f;"><input id="openclawModelReasoningInput" type="checkbox"' + ((current && current.reasoning) ? ' checked' : '') + ' /> reasoning</label>' +
+        '</div>' +
+        '</div>' +
+        '<div id="openclawModelDialogError" style="color:#cf222e;font-size:13px;padding:0 18px 10px;display:none;"></div>' +
+        '<div style="padding:12px 18px;border-top:1px solid #eaeef2;display:flex;gap:8px;justify-content:flex-end;">' +
+        '<button id="openclawModelDialogCancel" style="padding:8px 14px;border:1px solid #d0d7de;border-radius:8px;background:#fff;cursor:pointer;">取消</button>' +
+        '<button id="openclawModelDialogSubmit" style="padding:8px 14px;border:none;border-radius:8px;background:#0969da;color:#fff;cursor:pointer;">' + (isEdit ? '保存' : '添加') + '</button>' +
+        '</div>';
+    overlay.appendChild(panel);
+    document.body.appendChild(overlay);
+    function closeDialog() {
+        const el = document.getElementById('openclawModelDialogOverlay');
+        if (el) el.remove();
     }
-    window.SwalGitHub.fire({
-        title: '添加模型',
-        html: '<div style="text-align:left;">' +
-            '<div style="font-size:12px;color:#57606a;margin-bottom:6px;">Provider</div>' +
-            '<input id="openclawModelProviderInput" class="swal2-input" placeholder="default / openai / anthropic" style="width:100%;box-sizing:border-box;" value="default">' +
-            '<div style="font-size:12px;color:#57606a;margin-bottom:6px;">Model ID</div>' +
-            '<input id="openclawModelIdInput" class="swal2-input" placeholder="gpt-4.1 / claude-3.5-sonnet" style="width:100%;box-sizing:border-box;">' +
-            '<div style="font-size:12px;color:#57606a;margin-bottom:6px;">显示名称（可留空）</div>' +
-            '<input id="openclawModelNameInput" class="swal2-input" placeholder="Display Name" style="width:100%;box-sizing:border-box;">' +
-            '<label style="display:flex;align-items:center;gap:8px;margin-top:10px;font-size:13px;color:#24292f;">' +
-            '<input id="openclawModelReasoningInput" type="checkbox" /> reasoning' +
-            '</label>' +
-            '</div>',
-        focusConfirm: false,
-        showCancelButton: true,
-        confirmButtonText: '添加',
-        cancelButtonText: '取消',
-        preConfirm: function() {
-            const pEl = document.getElementById('openclawModelProviderInput');
+    function setError(msg) {
+        const e = document.getElementById('openclawModelDialogError');
+        if (!e) return;
+        e.style.display = msg ? 'block' : 'none';
+        e.textContent = msg || '';
+    }
+    const closeBtn = document.getElementById('openclawModelDialogClose');
+    const cancelBtn = document.getElementById('openclawModelDialogCancel');
+    if (closeBtn) closeBtn.onclick = closeDialog;
+    if (cancelBtn) cancelBtn.onclick = closeDialog;
+    overlay.addEventListener('click', function(ev) { if (ev.target === overlay) closeDialog(); });
+    const submitBtn = document.getElementById('openclawModelDialogSubmit');
+    if (submitBtn) {
+        submitBtn.onclick = function() {
+            const providerEl = document.getElementById('openclawModelProviderInput');
+            const baseUrlEl = document.getElementById('openclawModelBaseUrlInput');
+            const apiKeyEl = document.getElementById('openclawModelApiKeyInput');
+            const apiEl = document.getElementById('openclawModelApiInput');
             const idEl = document.getElementById('openclawModelIdInput');
-            const nEl = document.getElementById('openclawModelNameInput');
-            const rEl = document.getElementById('openclawModelReasoningInput');
-            const provider = (pEl && pEl.value ? pEl.value : '').trim() || 'default';
+            const nameEl = document.getElementById('openclawModelNameInput');
+            const inputEl = document.getElementById('openclawModelInputTypesInput');
+            const cwEl = document.getElementById('openclawModelContextWindowInput');
+            const mtEl = document.getElementById('openclawModelMaxTokensInput');
+            const cInEl = document.getElementById('openclawModelCostInput');
+            const cOutEl = document.getElementById('openclawModelCostOutput');
+            const cCrEl = document.getElementById('openclawModelCostCacheRead');
+            const cCwEl = document.getElementById('openclawModelCostCacheWrite');
+            const reasonEl = document.getElementById('openclawModelReasoningInput');
             const modelId = (idEl && idEl.value ? idEl.value : '').trim();
-            const name = (nEl && nEl.value ? nEl.value : '').trim();
-            const reasoning = !!(rEl && rEl.checked);
             if (!modelId) {
-                window.SwalGitHub.showValidationMessage('请输入 Model ID');
-                return false;
+                setError('请输入 Model ID');
+                return;
             }
-            return { provider: provider, id: modelId, name: name, reasoning: reasoning };
-        }
-    }).then(function(res) {
-        if (!res || !res.isConfirmed || !res.value) return;
+            const data = {
+                provider: (providerEl && providerEl.value ? providerEl.value : '').trim() || 'default',
+                providerBaseUrl: (baseUrlEl && baseUrlEl.value ? baseUrlEl.value : '').trim(),
+                providerApiKey: (apiKeyEl && apiKeyEl.value ? apiKeyEl.value : '').trim(),
+                providerApi: (apiEl && apiEl.value ? apiEl.value : '').trim() || 'openai-completions',
+                id: isEdit ? ((current && current.id) || '') : modelId,
+                newId: isEdit ? modelId : undefined,
+                name: (nameEl && nameEl.value ? nameEl.value : '').trim(),
+                reasoning: !!(reasonEl && reasonEl.checked),
+                input: (inputEl && inputEl.value ? inputEl.value : '').split(',').map(function(s) { return s.trim(); }).filter(Boolean),
+                contextWindow: (cwEl && cwEl.value ? cwEl.value : '').trim() || null,
+                maxTokens: (mtEl && mtEl.value ? mtEl.value : '').trim() || null,
+                costInput: (cInEl && cInEl.value ? cInEl.value : '').trim() || null,
+                costOutput: (cOutEl && cOutEl.value ? cOutEl.value : '').trim() || null,
+                costCacheRead: (cCrEl && cCrEl.value ? cCrEl.value : '').trim() || null,
+                costCacheWrite: (cCwEl && cCwEl.value ? cCwEl.value : '').trim() || null
+            };
+            setError('');
+            onSubmit(data, closeDialog, setError);
+        };
+    }
+}
+
+window.openOpenclawAddModelModal = function() {
+    __openclawModelDialog('add', null, function(data, closeDialog, setError) {
         fetch('/api/openclaw/models/add', {
             method: 'POST',
             headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders()),
-            body: JSON.stringify(res.value)
-        })
-            .then(function(r) { return r.json(); })
-            .then(function(data) {
-                if (!data || !data.success) {
-                    const msg = (data && data.error && data.error.message) ? data.error.message : '添加失败';
-                    alert(msg);
-                    return;
-                }
-                if (typeof window.loadOpenclawModels === 'function') window.loadOpenclawModels();
-            })
-            .catch(function(err) {
-                console.error(err);
-                alert('添加失败');
-            });
+            body: JSON.stringify(data)
+        }).then(function(r) { return r.json(); }).then(function(resp) {
+            if (!resp || !resp.success) {
+                const msg = (resp && resp.error && resp.error.message) ? resp.error.message : '添加失败';
+                setError(msg);
+                return;
+            }
+            closeDialog();
+            if (typeof window.loadOpenclawModels === 'function') window.loadOpenclawModels();
+        }).catch(function(err) {
+            console.error(err);
+            setError('添加失败');
+        });
     });
 };
-window.openOpenclawModal = function() {
-    if (typeof window.openBotModal === 'function') {
-        window.openBotModal();
-        if (typeof window.switchBotTab === 'function') window.switchBotTab('config');
+
+window.openOpenclawEditModelModal = function(provider, modelId) {
+    const payload = window.__openclawModelsPayload || {};
+    const models = Array.isArray(payload.models) ? payload.models : [];
+    const current = models.find(function(m) {
+        return (m.provider || '') === (provider || '') && (m.id || '') === (modelId || '');
+    });
+    if (!current) {
+        alert('模型不存在');
         return;
     }
-    Drawer.open('openclawModal');
-    loadOpenclawConfig();
+    __openclawModelDialog('edit', current, function(data, closeDialog, setError) {
+        fetch('/api/openclaw/models/update', {
+            method: 'POST',
+            headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders()),
+            body: JSON.stringify(data)
+        }).then(function(r) { return r.json(); }).then(function(resp) {
+            if (!resp || !resp.success) {
+                const msg = (resp && resp.error && resp.error.message) ? resp.error.message : '保存失败';
+                setError(msg);
+                return;
+            }
+            closeDialog();
+            if (typeof window.loadOpenclawModels === 'function') window.loadOpenclawModels();
+        }).catch(function(err) {
+            console.error(err);
+            setError('保存失败');
+        });
+    });
 };
 
 // ========== OpenClaw Cron 管理函数 ==========
