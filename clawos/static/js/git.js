@@ -551,12 +551,8 @@ window.__gitHomePath = '/root';
 
 // 打开文件到代码编辑器（新窗口）
 function __gitOpenFileEditor(fullPath) {
-    // 提取相对于 /root 的路径
-    let relPath = fullPath;
-    if (fullPath.startsWith('/root/')) {
-        relPath = fullPath.slice(6); // 去掉 /root/
-    }
-    const url = '/edit/' + encodeURIComponent(relPath);
+    const absPath = String(fullPath || '').replace(/\\/g, '/');
+    const url = '/edit?path=' + encodeURIComponent(absPath);
     window.open(url, '_blank');
 }
 

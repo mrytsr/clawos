@@ -219,7 +219,7 @@
     <div class="editor-container">
         <div class="floating-buttons">
             <button class="editor-btn" onclick="openAiPanel()" title="AI 生成代码">✨</button>
-            <button class="editor-btn" onclick="TerminalLib.open('{{ current_dir }}', '{{ file_path }}')" title="终端">📺</button>
+            <button class="editor-btn" onclick="TerminalLib.open({{ current_dir|tojson }}, {{ display_path|tojson }})" title="终端">📺</button>
             <button class="editor-btn" onclick="undo()">↩</button>
             <button class="editor-btn" onclick="redo()">↪</button>
             <button class="editor-btn" onclick="saveFile()">💾</button>
@@ -293,7 +293,8 @@
         });
 
         var __baseFilename = {{ filename|tojson }};
-        var __relPath = {{ file_path|tojson }};
+        var __savePath = {{ file_path|tojson }};
+        var __displayPath = {{ display_path|tojson }};
         var __editorHasFocus = false;
         var __currentLine = 0;
         var __dirty = false;
@@ -302,14 +303,9 @@
         var __rafPending = false;
         var __refClipboard = null;
 
-        function __isSafeRelPath(p) {
+        function __hasUsableFilePath(p) {
             if (typeof p !== 'string') return false;
-            var s = p.replace(/\\/g, '/').trim();
-            if (!s) return false;
-            if (s.indexOf(':') !== -1) return false;
-            if (s.startsWith('/') || s.startsWith('\\')) return false;
-            if (s === '.' || s.startsWith('./') || s.startsWith('../') || s.indexOf('/../') !== -1) return false;
-            return true;
+            return !!p.trim();
         }
 
         function __updateRefBtnState() {
@@ -319,9 +315,9 @@
                 __refBtn.title = '无打开文件';
                 return;
             }
-            if (!__isSafeRelPath(__relPath)) {
+            if (!__hasUsableFilePath(__displayPath)) {
                 __refBtn.disabled = true;
-                __refBtn.title = 'root-dir 解析失败';
+                __refBtn.title = '文件路径无效';
                 return;
             }
             if (__dirty) {
@@ -396,7 +392,7 @@
             if (line > 0) __currentLine = line;
             if (__titleEl) __titleEl.textContent = (__baseFilename || 'title.txt') + ':' + (__currentLine || 0);
             __updateRefBtnState();
-            return __relPath + ':' + (__currentLine || 0);
+            return __displayPath + ':' + (__currentLine || 0);
         }
 
         function __initReferenceCopy() {
@@ -440,7 +436,7 @@
             const content = editor.getValue();
             const statusDiv = document.getElementById('saveStatus');
 
-            fetch('/save_file/{{ file_path|urlencode }}', {
+            fetch('/save_file?path=' + encodeURIComponent(__savePath), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'

@@ -1,4 +1,6 @@
 import os
+import re
+from urllib.parse import unquote
 
 from flask import Blueprint, jsonify, redirect, render_template, request, url_for
 
@@ -7,23 +9,42 @@ import config
 
 edit_bp = Blueprint('edit', __name__)
 
+_WIN_DRIVE_ABS_RE = re.compile(r'^[A-Za-z]:[\\/]')
+_WIN_UNC_ABS_RE = re.compile(r'^(?:\\\\|//)[^\\/]+[\\/][^\\/]+')
+
 
 def _get_root_dir():
     return os.path.normpath(config.ROOT_DIR)
 
 
+def _normalize_absolute_path(path):
+    raw_path = unquote(path or '').strip()
+    if not raw_path:
+        return None
+
+    if os.name == 'nt':
+        if _WIN_UNC_ABS_RE.match(raw_path):
+            return os.path.normpath(raw_path.replace('/', '\\'))
+        if _WIN_DRIVE_ABS_RE.match(raw_path):
+            return os.path.normpath(raw_path.replace('/', '\\'))
+        return None
+
+    if raw_path.startswith('/'):
+        return os.path.normpath(raw_path)
+    return None
+
+
+def _to_url_path(path):
+    return os.path.normpath(path).replace('\\', '/')
+
+
 def _resolve_file_path(path):
-    root_dir = _get_root_dir()
-    p = (path or '').lstrip('/\\').replace('\\', '/')
-    full_path = os.path.normpath(os.path.join(root_dir, p))
-    try:
-        if os.path.commonpath([root_dir, full_path]) != root_dir:
-            return None, None, "非法路径"
-    except Exception:
-        return None, None, "非法路径"
+    full_path = _normalize_absolute_path(path)
+    if not full_path:
+        return None, "仅支持绝对路径"
     if not os.path.exists(full_path):
-        return None, None, "文件不存在"
-    return root_dir, full_path, None
+        return None, "文件不存在"
+    return full_path, None
 
 
 def _read_text_file(full_path):
@@ -35,37 +56,48 @@ def _read_text_file(full_path):
             return f.read(), 'gbk'
 
 
-@edit_bp.route('/edit/<path:path>')
-def edit_file(path):
-    root_dir, full_path, err = _resolve_file_path(path)
+@edit_bp.route('/edit')
+def edit_file():
+    path = request.args.get('path', '')
+    full_path, err = _resolve_file_path(path)
     if err:
-        return err, 403 if err == "非法路径" else 404
+        return err, 400 if err == "仅支持绝对路径" else 404
     if os.path.isdir(full_path):
-        return redirect(url_for('browser.browse', path=path))
+        root_dir = _get_root_dir()
+        try:
+            rel_path = os.path.relpath(full_path, root_dir).replace('\\', '/')
+            if os.path.commonpath([root_dir, full_path]) == root_dir:
+                return redirect(url_for('browser.browse', path='' if rel_path == '.' else rel_path))
+        except Exception:
+            pass
+        return "不能编辑目录", 400
 
     content, _enc = _read_text_file(full_path)
     _, ext = os.path.splitext(full_path)
     ext_lower = ext.lower()
-    current_dir = os.path.dirname((path or '').replace('\\', '/'))
+    current_dir = os.path.dirname(full_path)
     filename = os.path.basename(full_path)
+    file_path = _to_url_path(full_path)
 
     return render_template(
         'code_editor.html',
         content=content,
         filename=filename,
-        file_path=(path or '').replace('\\', '/'),
+        file_path=file_path,
+        display_path=full_path,
         current_dir=current_dir,
         extension=ext_lower,
-        ROOT_DIR=root_dir,
+        ROOT_DIR=_get_root_dir(),
         os=os,
     )
 
 
-@edit_bp.route('/save_file/<path:path>', methods=['POST'])
-def save_file(path):
-    root_dir, full_path, err = _resolve_file_path(path)
+@edit_bp.route('/save_file', methods=['POST'])
+def save_file():
+    path = request.args.get('path', '')
+    full_path, err = _resolve_file_path(path)
     if err:
-        return jsonify({'success': False, 'message': err}), 403 if err == "非法路径" else 404
+        return jsonify({'success': False, 'message': err}), 400 if err == "仅支持绝对路径" else 404
     if os.path.isdir(full_path):
         return jsonify({'success': False, 'message': '不能保存目录'}), 400
 
@@ -78,8 +110,7 @@ def save_file(path):
         os.makedirs(os.path.dirname(full_path), exist_ok=True)
         with open(full_path, 'w', encoding='utf-8', newline='') as f:
             f.write(content)
-        rel = os.path.relpath(full_path, root_dir).replace('\\', '/')
-        return jsonify({'success': True, 'message': '保存成功', 'path': rel})
+        return jsonify({'success': True, 'message': '保存成功', 'path': _to_url_path(full_path)})
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
 

@@ -71,6 +71,7 @@ def view_file(path):
             rendered_html=rendered_html,
             filename=os.path.basename(full_path),
             file_path=path,
+            edit_path=full_path.replace('\\', '/'),
             current_dir=os.path.dirname(path),
         )
     if mime_type and (mime_type.startswith('image') or ext_lower in file_utils.IMAGE_EXTENSIONS):
@@ -112,6 +113,7 @@ def view_file(path):
             content=content,
             filename=os.path.basename(full_path),
             file_path=path,
+            edit_path=full_path.replace('\\', '/'),
             current_dir=os.path.dirname(path),
             extension=ext_lower,
             truncated=truncated,

@@ -69,7 +69,7 @@ function handleFileByMethod(path, name, method) {
     } else if (method === 'preview-json') {
         window.open('/json/editor?path=' + encodeURIComponent(path), '_blank', 'noopener');
     } else if (method === 'edit-code') {
-        window.open('/edit/' + encodeURIComponent(path), '_blank', 'noopener');
+        window.open('/edit?path=' + encodeURIComponent(toAbsoluteEditPath(path)), '_blank', 'noopener');
     } else if (method === 'edit-yaml') {
         window.open('/yaml/editor?path=' + encodeURIComponent(path), '_blank', 'noopener');
     } else if (method === 'edit-md') {
@@ -731,7 +731,7 @@ function initDragUploadAndPaste() {
 
 function openEditor(path) {
     if (!path) return;
-    window.location.href = '/edit/' + encodePathForUrl(path);
+    window.location.href = '/edit?path=' + encodeURIComponent(toAbsoluteEditPath(path));
 }
 
 function isArchiveName(name) {
@@ -814,6 +814,23 @@ function extractArchiveHere(path, name) {
 function encodePathForUrl(path) {
     var p = (path || '').replace(/\\/g, '/');
     return encodeURIComponent(p).replace(/%2F/g, '/');
+}
+
+function isAbsolutePath(path) {
+    var p = String(path || '').trim();
+    return /^[A-Za-z]:[\\/]/.test(p) || /^(\\\\|\/\/)/.test(p) || p.startsWith('/');
+}
+
+function toAbsoluteEditPath(path) {
+    var p = String(path || '').trim();
+    if (!p) return '';
+    if (isAbsolutePath(p)) return p.replace(/\\/g, '/');
+    var rootEl = document.getElementById('rootDir');
+    var rootDir = rootEl ? String(rootEl.value || '').trim() : '';
+    if (!rootDir) return p.replace(/\\/g, '/');
+    var base = rootDir.replace(/\\/g, '/').replace(/\/+$/, '');
+    var rel = p.replace(/\\/g, '/').replace(/^\/+/, '');
+    return base ? (base + '/' + rel) : rel;
 }
 
 function getFileExt(name) {
@@ -1171,7 +1188,7 @@ function copyToClipboard(text) {
 }
 
 function editFile(path) {
-    window.location.href = '/edit/' + encodePathForUrl(path);
+    window.location.href = '/edit?path=' + encodeURIComponent(toAbsoluteEditPath(path));
 }
 
 // 添加到对话

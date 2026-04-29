@@ -34,7 +34,7 @@
         <a href="#" class="back-btn" onclick="history.back(); return false;">←</a>
         <h1 style="margin: 0; font-size: 0.95rem; flex-grow: 1; text-align: center; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ filename }}</h1>
         <div class="header-buttons">
-            <a href="{{ url_for('edit.edit_file', path=file_path) }}" class="edit-btn">✏️</a>
+            <a href="#" onclick='window.location.href="{{ url_for("edit.edit_file") }}?path=" + encodeURIComponent({{ (edit_path if edit_path is defined else file_path)|tojson }}); return false;' class="edit-btn">✏️</a>
             <a href="{{ url_for('file.download_file', path=file_path) }}" class="download-btn">📥</a>
         </div>
     </div>
