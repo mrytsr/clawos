@@ -758,6 +758,7 @@ window.openMainMenuModal = function() {
             { action: 'ollama', icon: '🦙', key: 'menu.ollama' },
             { action: 'clash', icon: '🌐', key: 'menu.clash' },
             { action: 'frp', icon: '🔗', key: 'menu.frp' },
+            { action: 'hermes', icon: '☤', key: 'menu.hermes' },
             { action: 'openclaw', icon: '🤖', key: 'menu.openclaw' },
             { action: 'picoclaw', icon: '🦞', key: 'menu.picoclaw' },
             { action: 'nanobot', icon: '🐱', key: 'menu.nanobot' },
@@ -878,6 +879,8 @@ window.handleMainMenu = function(action) {
         openConfigModal();
     } else if (action === 'pkg') {
         window.openPkgDrawer();
+    } else if (action === 'hermes') {
+        window.open('/hermes_config', '_blank');
     } else if (action === 'openclaw') {
         window.open('/openclaw_config', '_blank');
     } else if (action === 'picoclaw') {

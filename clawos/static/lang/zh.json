@@ -30,6 +30,7 @@
     "ollama": "Ollama",
     "clash": "Clash代理",
     "frp": "FRP内网穿透",
+    "hermes": "Hermes配置",
     "openclaw": "OpenClaw",
     "picoclaw": "PicoClaw配置",
     "nanobot": "NanoBot配置",

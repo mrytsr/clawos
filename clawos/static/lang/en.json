@@ -30,6 +30,7 @@
     "ollama": "Ollama",
     "clash": "Clash Proxy",
     "frp": "FRP Tunnel",
+    "hermes": "Hermes Config",
     "openclaw": "OpenClaw",
     "picoclaw": "PicoClaw Config",
     "nanobot": "NanoBot Config",
