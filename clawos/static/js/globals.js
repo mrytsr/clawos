@@ -767,7 +767,7 @@ window.openMainMenuModal = function() {
         ];
         c.innerHTML = items.map(function(item) {
             var text = (typeof I18n !== 'undefined' && I18n.t) ? I18n.t(item.key) : item.key;
-            return '<div class="modal-item menu-item" data-action="' + item.action + '"><span style="margin-right:12px;">' + item.icon + '</span>' + text + '</div>';
+            return '<div class="modal-item menu-item" data-action="' + item.action + '"><span class="menu-icon">' + item.icon + '</span><span class="menu-text">' + text + '</span></div>';
         }).join('');
         c.querySelectorAll('.menu-item[data-action]').forEach(function(el) {
             el.addEventListener('click', function(e) {

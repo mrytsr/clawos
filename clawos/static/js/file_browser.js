@@ -713,6 +713,26 @@ function initDragUploadAndPaste() {
     if (window.__dragUploadInited) return;
     window.__dragUploadInited = true;
 
+    function dragItemsContainDirectory(items) {
+        if (!items || typeof items.length !== 'number') return false;
+        for (var i = 0; i < items.length; i++) {
+            var item = items[i];
+            if (!item || item.kind !== 'file') continue;
+            var entry = null;
+            try {
+                if (typeof item.getAsEntry === 'function') {
+                    entry = item.getAsEntry();
+                } else if (typeof item.webkitGetAsEntry === 'function') {
+                    entry = item.webkitGetAsEntry();
+                }
+            } catch (e) {
+                entry = null;
+            }
+            if (entry && entry.isDirectory) return true;
+        }
+        return false;
+    }
+
     var dragCounter = 0;
     window.addEventListener('dragenter', function(e) {
         if (!e || !e.dataTransfer) return;
@@ -732,11 +752,16 @@ function initDragUploadAndPaste() {
     });
     window.addEventListener('drop', function(e) {
         if (!e || !e.dataTransfer) return;
+        var items = e.dataTransfer.items;
         var files = e.dataTransfer.files;
         if (!files || files.length === 0) return;
         e.preventDefault();
         dragCounter = 0;
         showDragUploadOverlay(false);
+        if (dragItemsContainDirectory(items)) {
+            showToast('检测到文件夹，请先打包成压缩包再尝试', 'warning');
+            return;
+        }
         openDragUploadDrawer(files);
     });
 
