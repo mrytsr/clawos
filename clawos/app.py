@@ -19,6 +19,7 @@ from ctrl.edit_ctrl import edit_bp
 from ctrl.file_ctrl import file_bp
 from ctrl.model_config_ctrl import model_config_bp
 from ctrl.git_ctrl import git_bp
+from ctrl.hermes_ctrl import hermes_bp
 from ctrl.clash_ctrl import clash_bp
 from ctrl.cron_ctrl import cron_bp
 from ctrl.db_ctrl import db_bp
@@ -86,6 +87,7 @@ app.register_blueprint(auth_bp)
 app.register_blueprint(api_bp)
 app.register_blueprint(batch_bp)
 app.register_blueprint(git_bp)
+app.register_blueprint(hermes_bp)
 app.register_blueprint(system_bp)
 app.register_blueprint(frp_bp)
 app.register_blueprint(clash_bp)

@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hermes Config</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/lib/codemirror/codemirror.min.css">
+    <link rel="stylesheet" href="/static/lib/codemirror/theme/dracula.min.css">
+    <script src="/static/lib/codemirror/codemirror.min.js"></script>
+    <script src="/static/lib/codemirror/mode/yaml/yaml.min.js"></script>
+    <script src="/static/js/i18n.js"></script>
+    <script src="/static/js/globals.js"></script>
+    <script src="/static/js/task_poller.js"></script>
+    <script src="/static/js/hermes_config.js"></script>
+</head>
+<body style="padding:20px;">
+    <div class="container" style="height:calc(100vh - 40px);display:flex;flex-direction:column;">
+        <div class="breadcrumb" style="position:sticky;top:0;z-index:10;">
+            <div class="breadcrumb-left" style="gap:10px;">
+                <a href="/" style="text-decoration:none;">Back</a>
+                <span style="font-weight:600;">Hermes Config</span>
+                <span id="hermesConfigPathHint" style="font-size:12px;color:#57606a;">~/.hermes/config.yaml</span>
+            </div>
+            <div class="breadcrumb-right" style="gap:10px;">
+                <button id="hermesInstallBtn" style="display:none;background:#2da44e;border:none;border-radius:6px;color:#fff;padding:6px 10px;cursor:pointer;font-size:13px;">Install</button>
+                <button id="hermesUninstallBtn" style="display:none;background:#cf222e;border:none;border-radius:6px;color:#fff;padding:6px 10px;cursor:pointer;font-size:13px;">Uninstall</button>
+                <button id="hermesReloadBtn" style="background:none;border:1px solid #d0d7de;border-radius:8px;font-size:16px;cursor:pointer;padding:6px 10px;" title="Refresh">🔄</button>
+                <button id="hermesSaveBtn" style="background:#0969da;border:none;border-radius:6px;color:#fff;padding:6px 10px;cursor:pointer;font-size:13px;">Save</button>
+            </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:320px 1fr;gap:16px;flex:1;min-height:0;padding-top:16px;">
+            <div style="display:flex;flex-direction:column;gap:12px;min-height:0;overflow:auto;">
+                <div style="border:1px solid #d0d7de;border-radius:10px;background:#fff;padding:14px;">
+                    <div style="font-size:13px;font-weight:600;margin-bottom:10px;">安装状态</div>
+                    <div id="hermesInstallStateBox" style="font-size:13px;line-height:1.7;color:#24292f;">加载中...</div>
+                </div>
+
+                <div style="border:1px solid #d0d7de;border-radius:10px;background:#fff;padding:14px;">
+                    <div style="font-size:13px;font-weight:600;margin-bottom:10px;">配置摘要</div>
+                    <div id="hermesSummaryBox" style="font-size:12px;line-height:1.7;color:#24292f;">加载中...</div>
+                </div>
+
+                <div style="border:1px solid #d0d7de;border-radius:10px;background:#fff;padding:14px;">
+                    <div style="font-size:13px;font-weight:600;margin-bottom:10px;">说明</div>
+                    <div style="font-size:12px;color:#57606a;line-height:1.7;">
+                        <div>页面数据源固定为 `~/.hermes/config.yaml`。</div>
+                        <div>编辑器保存前会先做 YAML 解析校验。</div>
+                        <div>安装按钮按官方安装脚本执行。</div>
+                        <div>卸载按钮会保留 `~/.hermes/config.yaml`。</div>
+                    </div>
+                </div>
+            </div>
+
+            <div style="display:flex;flex-direction:column;min-height:0;border:1px solid #d0d7de;border-radius:10px;background:#fff;">
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid #d8dee4;">
+                    <div style="font-size:13px;font-weight:600;">YAML 配置</div>
+                    <div id="hermesEditorMeta" style="font-size:12px;color:#57606a;"></div>
+                </div>
+                <textarea id="hermesConfigEditor"></textarea>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
