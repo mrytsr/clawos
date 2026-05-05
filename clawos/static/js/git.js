@@ -108,6 +108,8 @@ function __gitListCss() {
         '.git-link-btn { border:0; background:#f6f8fa; color:#0969da; padding:4px 10px; cursor:pointer; font-size:12px; line-height:18px; }' +
         '.git-link-btn + .git-link-btn { border-left:1px solid #d0d7de; }' +
         '.git-link-btn:hover { background:#ddf4ff; }' +
+        '.git-link-btn[disabled] { color:#8c959f; background:#f6f8fa; cursor:not-allowed; opacity:0.7; }' +
+        '.git-link-btn[disabled]:hover { background:#f6f8fa; }' +
         '.git-diff-btn { border:1px solid #d0d7de; background:#fff; border-radius:6px; padding:4px 10px; cursor:pointer; font-size:12px; }' +
         '.git-diff-btn:hover { background:#f6f8fa; }' +
         '.git-pull-btn { border:1px solid #d0d7de; background:#fff; border-radius:6px; padding:4px 10px; cursor:pointer; font-size:12px; }' +
@@ -193,6 +195,49 @@ function __gitBindPushButton(repoPath) {
     btn.addEventListener('click', function() {
         __gitPushChangesWithRemoteFlow(repoPath, { btn: btn, hint: hint });
     });
+}
+
+function __gitDoCommit(repoPath) {
+    const headers = authHeaders ? (authHeaders() || {}) : {};
+    headers['Content-Type'] = 'application/json';
+
+    if (typeof window.showTaskListener === 'function') {
+        window.showTaskListener(typeof I18n !== 'undefined' ? I18n.t('common.processing') : 'Processing...');
+    }
+
+    fetch('/api/git/commit-changes', {
+        method: 'POST',
+        headers: headers,
+        body: JSON.stringify({ path: String(repoPath || '') })
+    })
+        .then(function(r) { return r.json(); })
+        .then(function(resp) {
+            const payload = apiData(resp);
+            if (typeof window.hideTaskListener === 'function') {
+                window.hideTaskListener();
+            }
+            if (!payload) {
+                const msg = resp?.error?.message || 'Commit failed';
+                throw new Error(msg);
+            }
+            if (payload.status === 'clean') {
+                if (typeof showToast === 'function') showToast(typeof I18n !== 'undefined' ? I18n.t('git.no_changes') : 'No changes to commit', 'warning');
+                return;
+            }
+            if (payload.committed) {
+                if (typeof showToast === 'function') showToast('Commit 成功', 'success');
+                window.loadGitList(repoPath);
+                return;
+            }
+            throw new Error(payload.message || 'Commit failed');
+        })
+        .catch(function(e) {
+            if (typeof window.hideTaskListener === 'function') {
+                window.hideTaskListener();
+            }
+            const msg = e?.message || 'Commit failed';
+            if (typeof showToast === 'function') showToast(msg, 'error');
+        });
 }
 
 function __gitBindDiffButton(repoPath) {
@@ -318,6 +363,44 @@ function __gitFetchRemotes(repoPath) {
             const remotes = payload.remotes;
             if (!Array.isArray(remotes)) return [];
             return remotes.filter(function(r) { return typeof r === 'string' && r.trim(); });
+        });
+}
+
+function __gitSyncRemoteButtons(repoPath) {
+    const pullBtn = document.getElementById('gitPullBtn');
+    const pushBtn = document.getElementById('gitPushBtn');
+    if (!pullBtn && !pushBtn) return;
+
+    if (pullBtn) {
+        pullBtn.disabled = true;
+        pullBtn.title = '检查 remote 中...';
+    }
+    if (pushBtn) {
+        pushBtn.disabled = true;
+        pushBtn.title = '检查 remote 中...';
+    }
+
+    __gitFetchRemotes(repoPath)
+        .then(function(remotes) {
+            const hasRemote = Array.isArray(remotes) && remotes.length > 0;
+            if (pullBtn) {
+                pullBtn.disabled = !hasRemote;
+                pullBtn.title = hasRemote ? '' : '当前仓库未配置 remote';
+            }
+            if (pushBtn) {
+                pushBtn.disabled = !hasRemote;
+                pushBtn.title = hasRemote ? '' : '当前仓库未配置 remote';
+            }
+        })
+        .catch(function() {
+            if (pullBtn) {
+                pullBtn.disabled = true;
+                pullBtn.title = '获取 remote 失败';
+            }
+            if (pushBtn) {
+                pushBtn.disabled = true;
+                pushBtn.title = '获取 remote 失败';
+            }
         });
 }
 
@@ -879,11 +962,13 @@ window.loadGitList = function(specificRepoPath) {
                     '<div class="git-link-group">' +
                     '<button type="button" class="git-link-btn" onclick="__gitDoDiff(' + repoPathArg + ');">diff</button>' +
                     '<button type="button" class="git-link-btn" onclick="__gitDoCheckout(' + repoPathArg + ');">checkout</button>' +
-                    '<button type="button" class="git-link-btn" onclick="__gitDoPull(' + repoPathArg + ');">pull</button>' +
-                    '<button type="button" class="git-link-btn" onclick="__gitDoPush(' + repoPathArg + ');">push</button>' +
+                    '<button type="button" class="git-link-btn" onclick="__gitDoPull(' + repoPathArg + ');" id="gitPullBtn" disabled>pull</button>' +
+                    '<button type="button" class="git-link-btn" onclick="__gitDoCommit(' + repoPathArg + ');">commit</button>' +
+                    '<button type="button" class="git-link-btn" onclick="__gitDoPush(' + repoPathArg + ');" id="gitPushBtn" disabled>push</button>' +
                     '</div>' +
                     '</div>';
                 __gitSetDrawerTitle(titleHtml);
+                __gitSyncRemoteButtons(specificRepoPath);
 
                 const headerHtml = '<div style="padding:12px 12px 8px;"><div id="gitDiffFilesBox"></div></div>';
                 const diffMeta = { has_changes: hasChanges, change_info: changeInfo };
@@ -938,11 +1023,13 @@ window.loadGitList = function(specificRepoPath) {
                     '<div class="git-link-group">' +
                     '<button type="button" class="git-link-btn" onclick="__gitDoDiff(' + repoPathArg + ');">diff</button>' +
                     '<button type="button" class="git-link-btn" onclick="__gitDoCheckout(' + repoPathArg + ');">checkout</button>' +
-                    '<button type="button" class="git-link-btn" onclick="__gitDoPull(' + repoPathArg + ');">pull</button>' +
-                    '<button type="button" class="git-link-btn" onclick="__gitDoPush(' + repoPathArg + ');">push</button>' +
+                    '<button type="button" class="git-link-btn" onclick="__gitDoPull(' + repoPathArg + ');" id="gitPullBtn" disabled>pull</button>' +
+                    '<button type="button" class="git-link-btn" onclick="__gitDoCommit(' + repoPathArg + ');">commit</button>' +
+                    '<button type="button" class="git-link-btn" onclick="__gitDoPush(' + repoPathArg + ');" id="gitPushBtn" disabled>push</button>' +
                     '</div>' +
                     '</div>';
                 __gitSetDrawerTitle(titleHtml);
+                __gitSyncRemoteButtons(repoPath);
 
                 const headerHtml = '<div style="padding:12px 12px 8px;"><div id="gitDiffFilesBox"></div></div>';
                 const diffMeta = { has_changes: hasChanges, change_info: changeInfo };

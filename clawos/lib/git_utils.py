@@ -761,6 +761,33 @@ def git_checkout_all(repo_path):
         return None
 
 
+def git_init_repo(repo_path):
+    try:
+        if not os.path.isdir(repo_path):
+            return None
+
+        result = _run_git(repo_path, ['init', '--initial-branch=master'], timeout=30)
+        if result.returncode == 0:
+            return result
+
+        output = ((result.stderr or '') + '\n' + (result.stdout or '')).lower()
+        if '--initial-branch' not in output and 'unknown option' not in output and 'unrecognized option' not in output:
+            return result
+
+        fallback = _run_git(repo_path, ['init'], timeout=30)
+        if fallback.returncode != 0:
+            return fallback
+
+        try:
+            _run_git(repo_path, ['symbolic-ref', 'HEAD', 'refs/heads/master'], timeout=10)
+        except Exception:
+            pass
+        return fallback
+    except Exception as e:
+        print(f"Error initializing git repo in {repo_path}: {e}")
+        return None
+
+
 def list_git_remotes(repo_path):
     try:
         if not _is_git_repo(repo_path):

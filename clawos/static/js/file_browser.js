@@ -119,6 +119,7 @@ function openCurrentFolderMenu(ev) {
         { label: typeof I18n !== 'undefined' ? I18n.t('folder_menu.copy') : 'Copy', icon: '📋', action: function() { handleMenuAction('copyPath'); }, actionParams: path },
         { label: typeof I18n !== 'undefined' ? I18n.t('folder_menu.link') : 'Create symlink', icon: '🔗', action: function() { handleMenuAction('link'); }, actionParams: path },
         { label: typeof I18n !== 'undefined' ? I18n.t('folder_menu.terminal') : 'Open in terminal', icon: '📺', action: function() { handleMenuAction('terminal'); }, actionParams: path },
+        { label: 'Git init', icon: '🌿', action: function() { handleMenuAction('gitInit'); }, actionParams: path },
         { label: typeof I18n !== 'undefined' ? I18n.t('folder_menu.compress') : 'Compress', icon: '🗜️', action: function() { handleMenuAction('newArchive'); }, actionParams: path }
     ];
 
@@ -219,6 +220,9 @@ function handleMenuAction(action) {
             case 'newArchive':
                 openArchiveCreateDialog([window.currentItemPath], getParentDir(window.currentItemPath));
                 break;
+            case 'gitInit':
+                initGitRepo(window.currentItemPath);
+                break;
         }
     }, 50);
 }
@@ -236,6 +240,33 @@ function getParentDir(path) {
 function getCurrentBrowsePath() {
     var el = document.getElementById('currentBrowsePath');
     return el ? normalizeRelPath(el.value || '') : '';
+}
+
+function initGitRepo(path) {
+    var targetPath = toAbsoluteEditPath(path);
+    if (!targetPath) {
+        showToast('路径无效', 'error');
+        return;
+    }
+    fetch('/api/git/init', {
+        method: 'POST',
+        headers: Object.assign({ 'Content-Type': 'application/json' }, (typeof authHeaders === 'function' ? authHeaders() : {})),
+        body: JSON.stringify({ path: targetPath })
+    })
+        .then(function(r) { return r.json().catch(function() { return null; }); })
+        .then(function(data) {
+            if (data && data.success) {
+                showToast((data.data && data.data.message) || 'Git 初始化成功', 'success');
+                if (typeof window.refreshFileList === 'function') {
+                    window.refreshFileList();
+                }
+                return;
+            }
+            showToast((data && (data.message || (data.error && data.error.message))) || 'Git 初始化失败', 'error');
+        })
+        .catch(function() {
+            showToast('Git 初始化失败', 'error');
+        });
 }
 
 var __pinState = { dir: '', byName: {} };
@@ -1733,6 +1764,9 @@ function showFileSmallMenu(path, name, isDir, triggerElement) {
 
     menuItems.push({ label: typeof I18n !== 'undefined' ? I18n.t('file_menu.link') : 'Create symlink', icon: '🔗', action: function() { handleMenuAction('link'); }, actionParams: currentPath });
     menuItems.push({ label: typeof I18n !== 'undefined' ? I18n.t('file_menu.terminal') : 'Open in terminal', icon: '📺', action: function() { handleMenuAction('terminal'); }, actionParams: currentPath });
+    if (isDir) {
+        menuItems.push({ label: 'Git init', icon: '🌿', action: function() { handleMenuAction('gitInit'); }, actionParams: currentPath });
+    }
     menuItems.push({ label: typeof I18n !== 'undefined' ? I18n.t('file_menu.delete') : 'Delete', icon: '🗑️', action: function() { handleMenuAction('delete'); }, actionParams: currentPath, danger: true });
 
     // 使用 SmallMenu 渲染（居中显示，带遮罩）

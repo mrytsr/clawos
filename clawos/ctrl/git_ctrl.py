@@ -11,6 +11,87 @@ from lib import git_utils
 git_bp = Blueprint('git', __name__)
 
 
+def _resolve_git_target_path(path):
+    if path:
+        root_dir = os.path.normpath(config.ROOT_DIR)
+        candidate = os.path.normpath(path)
+        if candidate.startswith(root_dir):
+            full_path = candidate
+        else:
+            full_path = os.path.normpath(os.path.join(config.ROOT_DIR, path))
+    else:
+        full_path = config.ROOT_DIR
+
+    if not full_path.startswith(os.path.normpath(config.ROOT_DIR)):
+        return None
+    return full_path
+
+
+def _auto_commit_repo(full_path):
+    porcelain = git_utils.get_git_status_porcelain(full_path)
+    if porcelain is None:
+        return None, api_error('Not a git repository', status=400)
+    if not porcelain.strip():
+        return None, api_ok({'status': 'clean'})
+
+    stage_result = git_utils.git_stage_all(full_path)
+    if not stage_result or stage_result.returncode != 0:
+        err = (stage_result.stderr if stage_result else '') or ''
+        return None, api_error(('git add failed: ' + err.strip())[:400], status=500)
+
+    diff_text = git_utils.get_git_staged_diff_text(full_path, max_chars=20000) or ''
+    if not diff_text.strip():
+        return None, api_ok({'status': 'clean'})
+
+    system_prompt = (
+        '你是一个为 Git 生成 commit message 的助手。'
+        '只输出一行中文提交说明，不要包含引号，不要换行，不要 Markdown。'
+        '长度不超过 72 个字符。'
+    )
+    question = '根据下面的 git diff（已 stage），生成最合适的一行 commit message：\n\n' + diff_text
+
+    commit_msg = None
+    try:
+        client = AiClient()
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": question}
+        ]
+        commit_msg = client.chat(messages)
+    except Exception as e:
+        print(f"AI 生成 commit message 失败: {e}")
+        commit_msg = None
+
+    msg = str(commit_msg or '').strip()
+    msg = msg.splitlines()[0].strip() if msg else ''
+    if (msg.startswith('"') and msg.endswith('"')) or (msg.startswith("'") and msg.endswith("'")):
+        msg = msg[1:-1].strip()
+    if not msg:
+        msg = '更新变更'
+    if len(msg) > 72:
+        msg = msg[:72].rstrip()
+
+    commit_result = git_utils.git_commit(full_path, msg)
+    if not commit_result:
+        return None, api_error('git commit failed', status=500)
+    if commit_result.returncode != 0:
+        out = (commit_result.stdout or '') + '\n' + (commit_result.stderr or '')
+        lowered = out.lower()
+        if 'nothing to commit' in lowered or 'no changes' in lowered:
+            return None, api_ok({'status': 'clean'})
+        return None, api_error(('git commit failed: ' + out.strip())[:400], status=500)
+
+    head_hash = ''
+    try:
+        head_result = git_utils._run_git(full_path, ['rev-parse', 'HEAD'], timeout=10)
+        if head_result.returncode == 0:
+            head_hash = (head_result.stdout or '').strip()
+    except Exception:
+        head_hash = ''
+
+    return {'commit_msg': msg, 'commit_hash': head_hash}, None
+
+
 @git_bp.route('/api/git/list')
 def api_git_list():
     result = git_utils.get_all_git_repos_info()
@@ -171,79 +252,15 @@ def api_git_push_changes():
     path = payload.get('path') or request.args.get('path', '')
     remote = payload.get('remote') or request.args.get('remote', '')
 
-    if path:
-        root_dir = os.path.normpath(config.ROOT_DIR)
-        candidate = os.path.normpath(path)
-        if candidate.startswith(root_dir):
-            full_path = candidate
-        else:
-            full_path = os.path.normpath(os.path.join(config.ROOT_DIR, path))
-    else:
-        full_path = config.ROOT_DIR
-
-    if not full_path.startswith(os.path.normpath(config.ROOT_DIR)):
+    full_path = _resolve_git_target_path(path)
+    if not full_path:
         return api_error('Invalid path', status=403)
 
-    porcelain = git_utils.get_git_status_porcelain(full_path)
-    if porcelain is None:
-        return api_error('Not a git repository', status=400)
-    if not porcelain.strip():
-        return api_ok({'status': 'clean'})
-
-    stage_result = git_utils.git_stage_all(full_path)
-    if not stage_result or stage_result.returncode != 0:
-        err = (stage_result.stderr if stage_result else '') or ''
-        return api_error(('git add failed: ' + err.strip())[:400], status=500)
-
-    diff_text = git_utils.get_git_staged_diff_text(full_path, max_chars=20000) or ''
-    if not diff_text.strip():
-        return api_ok({'status': 'clean'})
-
-    system_prompt = (
-        '你是一个为 Git 生成 commit message 的助手。'
-        '只输出一行中文提交说明，不要包含引号，不要换行，不要 Markdown。'
-        '长度不超过 72 个字符。'
-    )
-    question = '根据下面的 git diff（已 stage），生成最合适的一行 commit message：\n\n' + diff_text
-
-    commit_msg = None
-    try:
-        client = AiClient()
-        messages = [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": question}
-        ]
-        commit_msg = client.chat(messages)
-    except Exception as e:
-        print(f"AI 生成 commit message 失败: {e}")
-        commit_msg = None
-
-    msg = str(commit_msg or '').strip()
-    msg = msg.splitlines()[0].strip() if msg else ''
-    if (msg.startswith('"') and msg.endswith('"')) or (msg.startswith("'") and msg.endswith("'")):
-        msg = msg[1:-1].strip()
-    if not msg:
-        msg = '更新变更'
-    if len(msg) > 72:
-        msg = msg[:72].rstrip()
-
-    commit_result = git_utils.git_commit(full_path, msg)
-    if not commit_result:
-        return api_error('git commit failed', status=500)
-    if commit_result.returncode != 0:
-        out = (commit_result.stdout or '') + '\n' + (commit_result.stderr or '')
-        lowered = out.lower()
-        if 'nothing to commit' in lowered or 'no changes' in lowered:
-            return api_ok({'status': 'clean'})
-        return api_error(('git commit failed: ' + out.strip())[:400], status=500)
-
-    head_hash = ''
-    try:
-        head_result = git_utils._run_git(full_path, ['rev-parse', 'HEAD'], timeout=10)
-        if head_result.returncode == 0:
-            head_hash = (head_result.stdout or '').strip()
-    except Exception:
-        head_hash = ''
+    commit_payload, commit_error = _auto_commit_repo(full_path)
+    if commit_error is not None:
+        return commit_error
+    msg = commit_payload.get('commit_msg') or ''
+    head_hash = commit_payload.get('commit_hash') or ''
 
     push_result = git_utils.git_push(full_path, remote=remote)
     if not push_result:
@@ -253,6 +270,26 @@ def api_git_push_changes():
         return api_error(('git push failed: ' + out.strip())[:400], status=500)
 
     return api_ok({'pushed': True, 'commit_msg': msg, 'commit_hash': head_hash})
+
+
+@git_bp.route('/api/git/commit-changes', methods=['POST'])
+def api_git_commit_changes():
+    payload = request.get_json(silent=True) or {}
+    path = payload.get('path') or request.args.get('path', '')
+
+    full_path = _resolve_git_target_path(path)
+    if not full_path:
+        return api_error('Invalid path', status=403)
+
+    commit_payload, commit_error = _auto_commit_repo(full_path)
+    if commit_error is not None:
+        return commit_error
+
+    return api_ok({
+        'committed': True,
+        'commit_msg': commit_payload.get('commit_msg') or '',
+        'commit_hash': commit_payload.get('commit_hash') or '',
+    })
 
 
 @git_bp.route('/api/git/pull', methods=['POST'])
@@ -311,6 +348,38 @@ def api_git_checkout():
         return api_error(('git checkout failed: ' + out)[:400], status=500)
 
     return api_ok({'ok': True, 'message': '已放弃所有本地更改'})
+
+
+@git_bp.route('/api/git/init', methods=['POST'])
+def api_git_init():
+    payload = request.get_json(silent=True) or {}
+    path = payload.get('path') or request.args.get('path', '')
+
+    if path:
+        root_dir = os.path.normpath(config.ROOT_DIR)
+        candidate = os.path.normpath(path)
+        if candidate.startswith(root_dir):
+            full_path = candidate
+        else:
+            full_path = os.path.normpath(os.path.join(config.ROOT_DIR, path))
+    else:
+        full_path = config.ROOT_DIR
+
+    if not full_path.startswith(os.path.normpath(config.ROOT_DIR)):
+        return api_error('Invalid path', status=403)
+    if not os.path.isdir(full_path):
+        return api_error('Directory not found', status=404)
+    if os.path.exists(os.path.join(full_path, '.git')):
+        return api_ok({'ok': True, 'message': '当前文件夹已是 Git 仓库', 'repoPath': full_path, 'branch': 'master'})
+
+    result = git_utils.git_init_repo(full_path)
+    if not result:
+        return api_error('git init failed', status=500)
+    if result.returncode != 0:
+        out = (result.stderr or result.stdout or '').strip()
+        return api_error(('git init failed: ' + out)[:400], status=500)
+
+    return api_ok({'ok': True, 'message': 'Git 初始化成功，默认分支为 master', 'repoPath': full_path, 'branch': 'master'})
 
 
 @git_bp.route('/api/git/diff-numstat')
