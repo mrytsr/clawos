@@ -154,11 +154,6 @@ def require_auth():
         return None
     if request.path.startswith('/@vite'):
         return None
-    host = (request.host or '').split(':')[0].lower()
-    if host in ('localhost', '127.0.0.1'):
-        return None
-    if (request.remote_addr or '') in ('127.0.0.1', '::1'):
-        return None
     if _is_request_authed():
         return None
 

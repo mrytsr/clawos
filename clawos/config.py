@@ -1,3 +1,4 @@
+import json as _json
 import os
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -15,7 +16,6 @@ PIN_FILE = os.path.join(DATA_DIR, 'pin.json')
 
 _AUTH_FILE = os.path.join(DATA_DIR, 'clawos_password.json')
 if os.path.exists(_AUTH_FILE):
-    import json as _json
     AUTH_PASSWORD = _json.load(open(_AUTH_FILE))['password']
 else:
     AUTH_PASSWORD = os.getenv('AUTH_PASSWORD', '')
