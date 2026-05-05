@@ -183,6 +183,7 @@ def api_hermes_config():
                 'absoluteConfigPath': HERMES_CONFIG_PATH,
                 'exists': os.path.exists(HERMES_CONFIG_PATH),
                 'rawText': text,
+                'config': config,
                 'summary': _build_hermes_summary(config),
                 'installState': _check_hermes_installed(),
             })
@@ -207,6 +208,7 @@ def api_hermes_config():
         'saved': True,
         'configPath': '~/.hermes/config.yaml',
         'absoluteConfigPath': HERMES_CONFIG_PATH,
+        'config': parsed,
         'summary': _build_hermes_summary(parsed),
     })
 
