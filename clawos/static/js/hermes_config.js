@@ -68,6 +68,24 @@
         }).join('');
     }
 
+    function apiHeaders(json) {
+        var headers = typeof authHeaders === 'function' ? (authHeaders() || {}) : {};
+        if (json) headers['Content-Type'] = 'application/json';
+        return headers;
+    }
+
+    function apiFetch(url, options) {
+        return fetch(url, options || {})
+            .then(function(r) { return r.json(); })
+            .then(function(resp) {
+                var payload = apiData(resp);
+                if (!payload) {
+                    throw new Error((resp && resp.error && resp.error.message) || '请求失败');
+                }
+                return payload;
+            });
+    }
+
     function renderHermesConfigTab(payload) {
         var container = document.getElementById('hermesConfigContainer');
         if (!container) return;
@@ -126,38 +144,58 @@
     function renderHermesModelsTab(payload) {
         var container = document.getElementById('hermesModelsContainer');
         if (!container) return;
-        var cfg = payload && payload.config ? payload.config : {};
-        var summary = payload && payload.summary ? payload.summary : {};
-        var customProviders = Array.isArray(cfg.custom_providers) ? cfg.custom_providers : [];
+        var modelsPayload = payload && payload.models ? payload.models : null;
+        var defaultModel = modelsPayload && modelsPayload.defaultModel ? modelsPayload.defaultModel : { default: '', provider: '', base_url: '', api_key_masked: '' };
+        var customProviders = modelsPayload && Array.isArray(modelsPayload.providers) ? modelsPayload.providers : [];
 
         var html = '';
         html += '<div style="margin-bottom:16px;">';
-        html += '<div style="font-size:13px;color:#666;margin-bottom:8px;padding-left:4px;">默认模型</div>';
+        html += '<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:8px;padding-left:4px;">';
+        html += '<div style="font-size:13px;color:#666;">默认模型</div>';
+        html += '<button onclick="openHermesDefaultModelDialog()" style="background:#0969da;border:none;border-radius:6px;color:#fff;padding:6px 10px;cursor:pointer;font-size:12px;">编辑当前模型</button>';
+        html += '</div>';
         html += '<div style="background:#fff;border:1px solid #d0d7de;border-radius:8px;overflow:hidden;">';
         html += renderKeyValueRows([
-            { label: 'model.default', value: escapeHtml(summary.model && summary.model.default || '-') },
-            { label: 'model.provider', value: escapeHtml(summary.model && summary.model.provider || '-') },
-            { label: 'model.base_url', value: escapeHtml(summary.model && summary.model.base_url || '-') }
+            { label: 'model.default', value: escapeHtml(defaultModel.default || '-') },
+            { label: 'model.provider', value: escapeHtml(defaultModel.provider || '-') },
+            { label: 'model.base_url', value: escapeHtml(defaultModel.base_url || '-') },
+            { label: 'model.api_key', value: escapeHtml(defaultModel.api_key_masked || '-') }
         ]);
         html += '</div></div>';
 
         html += '<div style="margin-bottom:16px;">';
-        html += '<div style="font-size:13px;color:#666;margin-bottom:8px;padding-left:4px;">自定义 Providers</div>';
+        html += '<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:8px;padding-left:4px;">';
+        html += '<div style="font-size:13px;color:#666;">自定义 Providers</div>';
+        html += '<button onclick="openHermesAddProviderDialog()" style="background:#2da44e;border:none;border-radius:6px;color:#fff;padding:6px 10px;cursor:pointer;font-size:12px;">+ 添加</button>';
+        html += '</div>';
         html += '<div style="background:#fff;border:1px solid #d0d7de;border-radius:8px;overflow:hidden;">';
         if (!customProviders.length) {
             html += '<div style="padding:12px;color:#57606a;font-size:13px;">暂无自定义 Providers</div>';
         } else {
             customProviders.forEach(function(item, idx) {
                 var border = idx < customProviders.length - 1 ? 'border-bottom:1px solid #eee;' : '';
+                var isActive = (defaultModel.default || '') === (item && item.model || '') && (defaultModel.base_url || '') === (item && item.base_url || '');
                 html += '<div style="padding:12px;' + border + '">';
                 html += '<div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;">';
                 html += '<div style="min-width:0;">';
+                html += '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">';
                 html += '<div style="font-weight:600;font-size:14px;word-break:break-all;">' + escapeHtml(item && item.name || '-') + '</div>';
-                html += '<div style="font-size:12px;color:#57606a;margin-top:4px;word-break:break-all;">' + escapeHtml(item && item.base_url || '-') + '</div>';
+                if (isActive) {
+                    html += '<span style="font-size:11px;padding:1px 6px;border-radius:999px;background:#dafbe1;color:#1a7f37;">当前</span>';
+                }
                 html += '</div>';
-                html += '<div style="font-size:12px;color:#57606a;text-align:right;flex-shrink:0;">';
-                html += '<div>model: ' + escapeHtml(item && item.model || '-') + '</div>';
-                html += '<div>api_key: ' + escapeHtml(maskSecret(item && item.api_key || '')) + '</div>';
+                html += '<div style="font-size:12px;color:#57606a;margin-top:4px;word-break:break-all;">' + escapeHtml(item && item.base_url || '-') + '</div>';
+                html += '<div style="font-size:12px;color:#57606a;margin-top:4px;">model: ' + escapeHtml(item && item.model || '-') + '</div>';
+                html += '<div style="font-size:12px;color:#57606a;margin-top:2px;">api_key: ' + escapeHtml(item && item.api_key_masked || '-') + '</div>';
+                html += '</div>';
+                html += '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end;flex-shrink:0;">';
+                if (isActive) {
+                    html += '<span style="font-size:12px;padding:6px 10px;border-radius:6px;background:#dafbe1;color:#1a7f37;">当前</span>';
+                } else {
+                    html += '<button onclick="setHermesProviderAsDefault(' + JSON.stringify(item && item.name || '') + ')" style="background:#2da44e;border:none;border-radius:6px;color:#fff;padding:6px 10px;cursor:pointer;font-size:12px;">设为当前</button>';
+                }
+                html += '<button onclick="openHermesEditProviderDialog(' + JSON.stringify(item && item.name || '') + ')" style="background:#0969da;border:none;border-radius:6px;color:#fff;padding:6px 10px;cursor:pointer;font-size:12px;">编辑</button>';
+                html += '<button onclick="removeHermesProvider(' + JSON.stringify(item && item.name || '') + ')" style="background:#cf222e;border:none;border-radius:6px;color:#fff;padding:6px 10px;cursor:pointer;font-size:12px;">删除</button>';
                 html += '</div>';
                 html += '</div>';
                 html += '</div>';
@@ -166,6 +204,206 @@
         html += '</div></div>';
 
         container.innerHTML = html;
+    }
+
+    function refreshHermesModelsFromApi() {
+        return apiFetch('/api/hermes/models', { headers: apiHeaders(false) })
+            .then(function(modelsPayload) {
+                currentConfigPayload = currentConfigPayload || {};
+                currentConfigPayload.models = modelsPayload;
+                renderHermesModelsTab(currentConfigPayload);
+                return modelsPayload;
+            });
+    }
+
+    function showDialogError(dialogId, msg) {
+        var el = document.getElementById(dialogId);
+        if (!el) return;
+        el.style.display = msg ? 'block' : 'none';
+        el.textContent = msg || '';
+    }
+
+    function createHermesDialog(title, bodyHtml, submitLabel, onSubmit) {
+        var overlay = document.createElement('div');
+        overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.42);z-index:26000;display:flex;align-items:center;justify-content:center;padding:16px;';
+        var errorId = 'hermesDialogError_' + String(Date.now()) + '_' + Math.floor(Math.random() * 1000);
+        var panel = document.createElement('div');
+        panel.style.cssText = 'background:#fff;border-radius:12px;width:min(720px,100%);max-height:90vh;overflow:auto;box-shadow:0 18px 44px rgba(0,0,0,0.25);';
+        panel.innerHTML =
+            '<div style="padding:14px 18px;border-bottom:1px solid #eaeef2;display:flex;justify-content:space-between;align-items:center;">'
+            + '<div style="font-size:16px;font-weight:600;">' + escapeHtml(title) + '</div>'
+            + '<button data-role="close" style="border:none;background:none;font-size:24px;line-height:1;cursor:pointer;color:#57606a;">×</button>'
+            + '</div>'
+            + '<div style="padding:16px 18px;">' + bodyHtml + '</div>'
+            + '<div id="' + errorId + '" style="display:none;color:#cf222e;font-size:13px;padding:0 18px 10px;"></div>'
+            + '<div style="padding:12px 18px;border-top:1px solid #eaeef2;display:flex;gap:8px;justify-content:flex-end;">'
+            + '<button data-role="cancel" style="padding:8px 14px;border:1px solid #d0d7de;border-radius:8px;background:#fff;cursor:pointer;">取消</button>'
+            + '<button data-role="submit" style="padding:8px 14px;border:none;border-radius:8px;background:#0969da;color:#fff;cursor:pointer;">' + escapeHtml(submitLabel || '保存') + '</button>'
+            + '</div>';
+        overlay.appendChild(panel);
+        document.body.appendChild(overlay);
+        function closeDialog() { overlay.remove(); }
+        overlay.addEventListener('click', function(ev) { if (ev.target === overlay) closeDialog(); });
+        var closeBtn = panel.querySelector('[data-role="close"]');
+        var cancelBtn = panel.querySelector('[data-role="cancel"]');
+        var submitBtn = panel.querySelector('[data-role="submit"]');
+        if (closeBtn) closeBtn.onclick = closeDialog;
+        if (cancelBtn) cancelBtn.onclick = closeDialog;
+        if (submitBtn) {
+            submitBtn.onclick = function() {
+                showDialogError(errorId, '');
+                onSubmit(function(msg) { showDialogError(errorId, msg); }, closeDialog);
+            };
+        }
+    }
+
+    function getHermesModelsPayload() {
+        return currentConfigPayload && currentConfigPayload.models ? currentConfigPayload.models : { defaultModel: {}, providers: [] };
+    }
+
+    function openHermesDefaultModelDialog() {
+        var current = getHermesModelsPayload().defaultModel || {};
+        createHermesDialog(
+            '编辑当前模型',
+            '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">'
+                + '<div><div style="font-size:12px;color:#57606a;margin-bottom:6px;">默认模型</div><input id="hermesDefaultModelInput" style="width:100%;padding:8px 10px;border:1px solid #d0d7de;border-radius:8px;box-sizing:border-box;" value="' + escapeHtml(current.default || '') + '"></div>'
+                + '<div><div style="font-size:12px;color:#57606a;margin-bottom:6px;">Provider</div><input id="hermesDefaultProviderInput" style="width:100%;padding:8px 10px;border:1px solid #d0d7de;border-radius:8px;box-sizing:border-box;" value="' + escapeHtml(current.provider || '') + '"></div>'
+                + '<div style="grid-column:1 / span 2;"><div style="font-size:12px;color:#57606a;margin-bottom:6px;">Base URL</div><input id="hermesDefaultBaseUrlInput" style="width:100%;padding:8px 10px;border:1px solid #d0d7de;border-radius:8px;box-sizing:border-box;" value="' + escapeHtml(current.base_url || '') + '"></div>'
+                + '<div style="grid-column:1 / span 2;"><div style="font-size:12px;color:#57606a;margin-bottom:6px;">API Key' + (current.api_key_masked ? '（当前已设置）' : '') + '</div><input id="hermesDefaultApiKeyInput" type="password" placeholder="留空则保留现有值" style="width:100%;padding:8px 10px;border:1px solid #d0d7de;border-radius:8px;box-sizing:border-box;"></div>'
+                + '</div>',
+            '保存',
+            function(setError, closeDialog) {
+                var defaultEl = document.getElementById('hermesDefaultModelInput');
+                var providerEl = document.getElementById('hermesDefaultProviderInput');
+                var baseUrlEl = document.getElementById('hermesDefaultBaseUrlInput');
+                var apiKeyEl = document.getElementById('hermesDefaultApiKeyInput');
+                var payload = {
+                    default: defaultEl ? defaultEl.value.trim() : '',
+                    provider: providerEl ? providerEl.value.trim() : '',
+                    base_url: baseUrlEl ? baseUrlEl.value.trim() : '',
+                    api_key: apiKeyEl ? apiKeyEl.value.trim() : ''
+                };
+                if (!payload.default) {
+                    setError('请输入默认模型');
+                    return;
+                }
+                apiFetch('/api/hermes/models/save_default', {
+                    method: 'POST',
+                    headers: apiHeaders(true),
+                    body: JSON.stringify(payload)
+                }).then(function(modelsPayload) {
+                    currentConfigPayload = currentConfigPayload || {};
+                    currentConfigPayload.models = modelsPayload;
+                    closeDialog();
+                    loadHermesConfig();
+                    if (typeof showToast === 'function') showToast('默认模型已保存', 'success');
+                }).catch(function(err) {
+                    setError(err && err.message ? err.message : '保存失败');
+                });
+            }
+        );
+    }
+
+    function openHermesProviderDialog(mode, current) {
+        var isEdit = mode === 'edit';
+        var item = current || {};
+        createHermesDialog(
+            isEdit ? '编辑 Provider' : '添加 Provider',
+            '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">'
+                + '<div><div style="font-size:12px;color:#57606a;margin-bottom:6px;">名称</div><input id="hermesProviderNameInput" style="width:100%;padding:8px 10px;border:1px solid #d0d7de;border-radius:8px;box-sizing:border-box;" value="' + escapeHtml(item.name || '') + '"></div>'
+                + '<div><div style="font-size:12px;color:#57606a;margin-bottom:6px;">模型</div><input id="hermesProviderModelInput" style="width:100%;padding:8px 10px;border:1px solid #d0d7de;border-radius:8px;box-sizing:border-box;" value="' + escapeHtml(item.model || '') + '"></div>'
+                + '<div style="grid-column:1 / span 2;"><div style="font-size:12px;color:#57606a;margin-bottom:6px;">Base URL</div><input id="hermesProviderBaseUrlInput" style="width:100%;padding:8px 10px;border:1px solid #d0d7de;border-radius:8px;box-sizing:border-box;" value="' + escapeHtml(item.base_url || '') + '"></div>'
+                + '<div style="grid-column:1 / span 2;"><div style="font-size:12px;color:#57606a;margin-bottom:6px;">API Key' + (isEdit && item.api_key_masked ? '（当前已设置）' : '') + '</div><input id="hermesProviderApiKeyInput" type="password" placeholder="' + (isEdit ? '留空则保留现有值' : 'sk-xxxx') + '" style="width:100%;padding:8px 10px;border:1px solid #d0d7de;border-radius:8px;box-sizing:border-box;"></div>'
+                + '</div>',
+            isEdit ? '保存' : '添加',
+            function(setError, closeDialog) {
+                var nameEl = document.getElementById('hermesProviderNameInput');
+                var modelEl = document.getElementById('hermesProviderModelInput');
+                var baseUrlEl = document.getElementById('hermesProviderBaseUrlInput');
+                var apiKeyEl = document.getElementById('hermesProviderApiKeyInput');
+                var payload = {
+                    name: nameEl ? nameEl.value.trim() : '',
+                    model: modelEl ? modelEl.value.trim() : '',
+                    base_url: baseUrlEl ? baseUrlEl.value.trim() : '',
+                    api_key: apiKeyEl ? apiKeyEl.value.trim() : ''
+                };
+                if (!payload.name) {
+                    setError('请输入 provider 名称');
+                    return;
+                }
+                if (!payload.model) {
+                    setError('请输入模型名称');
+                    return;
+                }
+                var url = '/api/hermes/models/add';
+                if (isEdit) {
+                    url = '/api/hermes/models/update';
+                    payload.originalName = item.name || '';
+                }
+                apiFetch(url, {
+                    method: 'POST',
+                    headers: apiHeaders(true),
+                    body: JSON.stringify(payload)
+                }).then(function(modelsPayload) {
+                    currentConfigPayload = currentConfigPayload || {};
+                    currentConfigPayload.models = modelsPayload;
+                    closeDialog();
+                    loadHermesConfig();
+                    if (typeof showToast === 'function') showToast(isEdit ? 'Provider 已保存' : 'Provider 已添加', 'success');
+                }).catch(function(err) {
+                    setError(err && err.message ? err.message : (isEdit ? '保存失败' : '添加失败'));
+                });
+            }
+        );
+    }
+
+    function openHermesAddProviderDialog() {
+        openHermesProviderDialog('add', null);
+    }
+
+    function openHermesEditProviderDialog(name) {
+        var providers = getHermesModelsPayload().providers || [];
+        var current = providers.find(function(item) { return (item && item.name || '') === (name || ''); });
+        if (!current) {
+            if (typeof showToast === 'function') showToast('Provider 不存在', 'error');
+            return;
+        }
+        openHermesProviderDialog('edit', current);
+    }
+
+    function setHermesProviderAsDefault(name) {
+        var providerName = String(name || '').trim();
+        if (!providerName) return;
+        apiFetch('/api/hermes/models/set_default', {
+            method: 'POST',
+            headers: apiHeaders(true),
+            body: JSON.stringify({ name: providerName })
+        }).then(function(modelsPayload) {
+            currentConfigPayload = currentConfigPayload || {};
+            currentConfigPayload.models = modelsPayload;
+            loadHermesConfig();
+            if (typeof showToast === 'function') showToast('已切换当前模型', 'success');
+        }).catch(function(err) {
+            if (typeof showToast === 'function') showToast(err && err.message ? err.message : '切换失败', 'error');
+        });
+    }
+
+    function removeHermesProvider(name) {
+        var providerName = String(name || '').trim();
+        if (!providerName) return;
+        if (!window.confirm('确定删除 provider ' + providerName + ' 吗？')) return;
+        apiFetch('/api/hermes/models/remove', {
+            method: 'POST',
+            headers: apiHeaders(true),
+            body: JSON.stringify({ name: providerName })
+        }).then(function(modelsPayload) {
+            currentConfigPayload = currentConfigPayload || {};
+            currentConfigPayload.models = modelsPayload;
+            loadHermesConfig();
+            if (typeof showToast === 'function') showToast('Provider 已删除', 'success');
+        }).catch(function(err) {
+            if (typeof showToast === 'function') showToast(err && err.message ? err.message : '删除失败', 'error');
+        });
     }
 
     function renderHermesToolsetsTab(payload) {
@@ -268,10 +506,27 @@
                     throw new Error((resp && resp.error && resp.error.message) || '加载失败');
                 }
                 currentConfigPayload = payload;
+                payload.models = {
+                    defaultModel: {
+                        default: payload.summary && payload.summary.model ? payload.summary.model.default : '',
+                        provider: payload.summary && payload.summary.model ? payload.summary.model.provider : '',
+                        base_url: payload.summary && payload.summary.model ? payload.summary.model.base_url : '',
+                        api_key_masked: payload.config && payload.config.model && payload.config.model.api_key ? '******' : ''
+                    },
+                    providers: Array.isArray(payload.config && payload.config.custom_providers) ? payload.config.custom_providers.map(function(item) {
+                        return {
+                            name: item && item.name || '',
+                            model: item && item.model || '',
+                            base_url: item && item.base_url || '',
+                            api_key_masked: item && item.api_key ? '******' : ''
+                        };
+                    }) : []
+                };
                 renderInstallState(payload.installState || {});
                 renderAllPanels(payload);
                 setEditorText(payload.rawText || '');
                 setMetaText((payload.exists ? '已加载' : '未找到配置文件') + ' · ' + (payload.configPath || '~/.hermes/config.yaml'));
+                refreshHermesModelsFromApi().catch(function() {});
             })
             .catch(function(err) {
                 renderAllPanels(null);
@@ -419,4 +674,9 @@
 
     window.loadHermesConfig = loadHermesConfig;
     window.switchHermesTab = switchHermesTab;
+    window.openHermesAddProviderDialog = openHermesAddProviderDialog;
+    window.openHermesEditProviderDialog = openHermesEditProviderDialog;
+    window.setHermesProviderAsDefault = setHermesProviderAsDefault;
+    window.removeHermesProvider = removeHermesProvider;
+    window.openHermesDefaultModelDialog = openHermesDefaultModelDialog;
 })();

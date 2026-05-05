@@ -54,6 +54,60 @@ def _save_hermes_config_text(text):
     return parsed
 
 
+def _save_hermes_config_data(data):
+    if data is None:
+        data = {}
+    if not isinstance(data, dict):
+        raise ValueError('配置文件顶层必须是对象')
+    os.makedirs(HERMES_HOME, exist_ok=True)
+    with open(HERMES_CONFIG_PATH, 'w', encoding='utf-8', newline='\n') as f:
+        yaml.safe_dump(data, f, allow_unicode=True, sort_keys=False)
+    return data
+
+
+def _ensure_dict(value):
+    return value if isinstance(value, dict) else {}
+
+
+def _ensure_list(value):
+    return value if isinstance(value, list) else []
+
+
+def _normalize_hermes_provider_item(item):
+    data = item if isinstance(item, dict) else {}
+    return {
+        'name': str(data.get('name') or '').strip(),
+        'model': str(data.get('model') or '').strip(),
+        'base_url': str(data.get('base_url') or '').strip(),
+        'api_key': str(data.get('api_key') or '').strip(),
+    }
+
+
+def _get_hermes_models_payload(config):
+    cfg = config if isinstance(config, dict) else {}
+    model_cfg = _ensure_dict(cfg.get('model'))
+    providers = []
+    for item in _ensure_list(cfg.get('custom_providers')):
+        normalized = _normalize_hermes_provider_item(item)
+        if not normalized['name'] and not normalized['model'] and not normalized['base_url'] and not normalized['api_key']:
+            continue
+        providers.append({
+            'name': normalized['name'],
+            'model': normalized['model'],
+            'base_url': normalized['base_url'],
+            'api_key_masked': '******' if normalized['api_key'] else '',
+        })
+    return {
+        'defaultModel': {
+            'default': str(model_cfg.get('default') or '').strip(),
+            'provider': str(model_cfg.get('provider') or '').strip(),
+            'base_url': str(model_cfg.get('base_url') or '').strip(),
+            'api_key_masked': '******' if str(model_cfg.get('api_key') or '').strip() else '',
+        },
+        'providers': providers,
+    }
+
+
 def _get_shell_runner():
     if os.name != 'nt':
         bash = shutil.which('bash') or '/bin/bash'
@@ -211,6 +265,154 @@ def api_hermes_config():
         'config': parsed,
         'summary': _build_hermes_summary(parsed),
     })
+
+
+@hermes_bp.route('/api/hermes/models', methods=['GET'])
+def api_hermes_models():
+    try:
+        config = _load_hermes_config_data()
+        return api_ok(_get_hermes_models_payload(config))
+    except Exception as e:
+        return api_error(str(e), status=500)
+
+
+@hermes_bp.route('/api/hermes/models/save_default', methods=['POST'])
+def api_hermes_models_save_default():
+    payload = request.get_json(silent=True) or {}
+    default_name = str(payload.get('default') or '').strip()
+    provider_name = str(payload.get('provider') or '').strip()
+    base_url = str(payload.get('base_url') or '').strip()
+    api_key = str(payload.get('api_key') or '').strip()
+    if not default_name:
+        return api_error('缺少默认模型', status=400)
+    try:
+        config = _load_hermes_config_data()
+        model_cfg = _ensure_dict(config.get('model'))
+        model_cfg['default'] = default_name
+        model_cfg['provider'] = provider_name or 'custom'
+        model_cfg['base_url'] = base_url
+        if api_key:
+            model_cfg['api_key'] = api_key
+        elif 'api_key' not in model_cfg:
+            model_cfg['api_key'] = ''
+        config['model'] = model_cfg
+        _save_hermes_config_data(config)
+        return api_ok(_get_hermes_models_payload(config))
+    except Exception as e:
+        return api_error(str(e), status=500)
+
+
+@hermes_bp.route('/api/hermes/models/set_default', methods=['POST'])
+def api_hermes_models_set_default():
+    payload = request.get_json(silent=True) or {}
+    name = str(payload.get('name') or '').strip()
+    if not name:
+        return api_error('缺少 provider 名称', status=400)
+    try:
+        config = _load_hermes_config_data()
+        providers = [_normalize_hermes_provider_item(it) for it in _ensure_list(config.get('custom_providers'))]
+        target = next((it for it in providers if it['name'] == name), None)
+        if not target:
+            return api_error('provider 不存在', status=404)
+        model_cfg = _ensure_dict(config.get('model'))
+        model_cfg['default'] = target['model']
+        model_cfg['provider'] = 'custom'
+        model_cfg['base_url'] = target['base_url']
+        model_cfg['api_key'] = target['api_key']
+        config['model'] = model_cfg
+        _save_hermes_config_data(config)
+        return api_ok(_get_hermes_models_payload(config))
+    except Exception as e:
+        return api_error(str(e), status=500)
+
+
+@hermes_bp.route('/api/hermes/models/add', methods=['POST'])
+def api_hermes_models_add():
+    payload = request.get_json(silent=True) or {}
+    item = _normalize_hermes_provider_item(payload)
+    if not item['name']:
+        return api_error('缺少 provider 名称', status=400)
+    if not item['model']:
+        return api_error('缺少模型名称', status=400)
+    try:
+        config = _load_hermes_config_data()
+        providers = [_normalize_hermes_provider_item(it) for it in _ensure_list(config.get('custom_providers'))]
+        if any(it['name'] == item['name'] for it in providers):
+            return api_error('provider 已存在', status=400)
+        providers.append(item)
+        config['custom_providers'] = providers
+        _save_hermes_config_data(config)
+        return api_ok(_get_hermes_models_payload(config))
+    except Exception as e:
+        return api_error(str(e), status=500)
+
+
+@hermes_bp.route('/api/hermes/models/update', methods=['POST'])
+def api_hermes_models_update():
+    payload = request.get_json(silent=True) or {}
+    original_name = str(payload.get('originalName') or '').strip()
+    item = _normalize_hermes_provider_item(payload)
+    if not original_name:
+        return api_error('缺少原 provider 名称', status=400)
+    if not item['name']:
+        return api_error('缺少 provider 名称', status=400)
+    if not item['model']:
+        return api_error('缺少模型名称', status=400)
+    try:
+        config = _load_hermes_config_data()
+        providers = [_normalize_hermes_provider_item(it) for it in _ensure_list(config.get('custom_providers'))]
+        original_item = None
+        found = False
+        for idx, existing in enumerate(providers):
+            if existing['name'] != original_name:
+                continue
+            found = True
+            original_item = dict(existing)
+            if item['name'] != original_name and any(it['name'] == item['name'] for it in providers):
+                return api_error('provider 已存在', status=400)
+            providers[idx] = item
+            break
+        if not found:
+            return api_error('provider 不存在', status=404)
+        config['custom_providers'] = providers
+
+        model_cfg = _ensure_dict(config.get('model'))
+        if original_item and str(model_cfg.get('default') or '').strip() == str(original_item.get('model') or '').strip():
+            model_cfg['default'] = item['model']
+        if original_item and str(model_cfg.get('base_url') or '').strip() == str(original_item.get('base_url') or '').strip():
+            model_cfg['base_url'] = item['base_url']
+        if original_item and str(model_cfg.get('api_key') or '').strip() == str(original_item.get('api_key') or '').strip():
+            model_cfg['api_key'] = item['api_key']
+        config['model'] = model_cfg
+
+        _save_hermes_config_data(config)
+        return api_ok(_get_hermes_models_payload(config))
+    except Exception as e:
+        return api_error(str(e), status=500)
+
+
+@hermes_bp.route('/api/hermes/models/remove', methods=['POST'])
+def api_hermes_models_remove():
+    payload = request.get_json(silent=True) or {}
+    name = str(payload.get('name') or '').strip()
+    if not name:
+        return api_error('缺少 provider 名称', status=400)
+    try:
+        config = _load_hermes_config_data()
+        providers = [_normalize_hermes_provider_item(it) for it in _ensure_list(config.get('custom_providers'))]
+        target = next((it for it in providers if it['name'] == name), None)
+        new_providers = [it for it in providers if it['name'] != name]
+        if len(new_providers) == len(providers):
+            return api_error('provider 不存在', status=404)
+        config['custom_providers'] = new_providers
+        model_cfg = _ensure_dict(config.get('model'))
+        if target and str(model_cfg.get('default') or '').strip() == str(target.get('model') or '').strip():
+            model_cfg['provider'] = ''
+        config['model'] = model_cfg
+        _save_hermes_config_data(config)
+        return api_ok(_get_hermes_models_payload(config))
+    except Exception as e:
+        return api_error(str(e), status=500)
 
 
 @hermes_bp.route('/api/hermes/install', methods=['POST'])
