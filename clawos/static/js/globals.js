@@ -745,6 +745,12 @@ window.openMainMenuModal = function() {
     var c = document.getElementById('mainMenuItems');
     if (c) {
         var items = [
+            { action: 'hermes', icon: '☤', key: 'menu.hermes' },
+            { action: 'openclaw', icon: '🤖', key: 'menu.openclaw' },
+            { action: 'picoclaw', icon: '🦞', key: 'menu.picoclaw' },
+            { action: 'nanobot', icon: '🐱', key: 'menu.nanobot' },
+            { action: 'nullclaw', icon: '⚡', key: 'menu.nullclaw' },
+            { action: 'zeroclaw', icon: '💎', key: 'menu.zeroclaw' },
             { action: 'process', icon: '📊', key: 'menu.process' },
             { action: 'gpu', icon: '🖥️', key: 'menu.gpu' },
             { action: 'pkg', icon: '📦', key: 'menu.pkg' },
@@ -757,13 +763,7 @@ window.openMainMenuModal = function() {
             { action: 'cron', icon: '⏰', key: 'menu.cron' },
             { action: 'ollama', icon: '🦙', key: 'menu.ollama' },
             { action: 'clash', icon: '🌐', key: 'menu.clash' },
-            { action: 'frp', icon: '🔗', key: 'menu.frp' },
-            { action: 'hermes', icon: '☤', key: 'menu.hermes' },
-            { action: 'openclaw', icon: '🤖', key: 'menu.openclaw' },
-            { action: 'picoclaw', icon: '🦞', key: 'menu.picoclaw' },
-            { action: 'nanobot', icon: '🐱', key: 'menu.nanobot' },
-            { action: 'nullclaw', icon: '⚡', key: 'menu.nullclaw' },
-            { action: 'zeroclaw', icon: '💎', key: 'menu.zeroclaw' }
+            { action: 'frp', icon: '🔗', key: 'menu.frp' }
         ];
         c.innerHTML = items.map(function(item) {
             var text = (typeof I18n !== 'undefined' && I18n.t) ? I18n.t(item.key) : item.key;
