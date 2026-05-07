@@ -397,6 +397,7 @@ if __name__ == '__main__':
             port=config.SERVER_PORT,
             debug=config.SERVER_DEBUG,
             use_reloader=config.SERVER_USE_RELOADER,
+            allow_unsafe_werkzeug=True,
         )
     except KeyboardInterrupt:
         pass
