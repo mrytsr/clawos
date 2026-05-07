@@ -23,7 +23,7 @@
         init: function() {
             var savedLang = null;
             try { savedLang = localStorage.getItem('clawos_lang'); } catch (e) {}
-            var defaultLang = savedLang || 'en';
+            var defaultLang = savedLang || 'zh';
             this.setLang(defaultLang);
         },
 
@@ -32,7 +32,7 @@
          */
         setLang: function(lang) {
             if (this.supportedLangs.indexOf(lang) === -1) {
-                lang = 'en';
+                lang = 'zh';
             }
             this.lang = lang;
             try { localStorage.setItem('clawos_lang', lang); } catch (e) {}
