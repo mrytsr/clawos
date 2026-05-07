@@ -9,7 +9,7 @@ webServer.addr = "127.0.0.1"
 webServer.port = 17401
 
 [[proxies]]
-name = "6002"
+name = "122f3c90-0e05-4e59-bbc6-7c02d1a56b59"
 type = "tcp"
 localIP = "127.0.0.1"
 localPort = 6002

@@ -242,16 +242,12 @@ def _load_frpc_mapping_summary():
             proxy_type = str((proxy or {}).get('type') or 'tcp').strip().lower() or 'tcp'
             local_ip = str((proxy or {}).get('localIP') or '127.0.0.1').strip() or '127.0.0.1'
             local_port = (proxy or {}).get('localPort')
-            remote_port = (proxy or {}).get('remotePort')
             status_item = status_map.get(name) or {}
             actual_remote = str(status_item.get('remote_addr') or '').strip()
             actual_local = str(status_item.get('local_addr') or '').strip()
             if actual_remote:
                 remote_text = actual_remote
                 access_url = _status_url_from_remote(proxy_type, actual_remote)
-            elif server_addr and remote_port:
-                remote_text = f'{server_addr}:{remote_port}'
-                access_url = _status_url_from_remote(proxy_type, remote_text)
             else:
                 remote_text = '-'
                 access_url = ''
@@ -288,6 +284,9 @@ def _print_frpc_mapping_summary(prefix):
     if not items:
         _frpc_log('未在 frpc.toml 中发现代理映射')
         return
+    runtime = summary.get('runtime') or {}
+    if runtime.get('ok') is False:
+        _frpc_log('frpc status 获取失败: ' + str(runtime.get('reason') or '未知错误'))
     for item in items:
         _frpc_log(
             f'映射 {item.get("name")}: 本地 {item.get("local")} -> 远程 {item.get("remote")} '
@@ -295,8 +294,12 @@ def _print_frpc_mapping_summary(prefix):
         )
 
 
+def get_frpc_public_status():
+    return _load_frpc_mapping_summary()
+
+
 def get_frpc_public_urls():
-    summary = _load_frpc_mapping_summary()
+    summary = get_frpc_public_status()
     urls = []
     seen = set()
     for item in summary.get('items') or []:
@@ -437,6 +440,7 @@ app.extensions['frpc_runtime'] = {
     'set_autostart': _set_frpc_autostart,
     'get_config': _load_frpc_server_config,
     'get_mapping_summary': _load_frpc_mapping_summary,
+    'get_public_status': get_frpc_public_status,
 }
 
 

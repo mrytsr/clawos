@@ -87,19 +87,137 @@ def main():
             return ''
         return os.path.abspath(os.path.dirname(p))
 
-    def _load_frpc_public_urls(app_dir=None):
+    def _frp_bin_dir():
+        return os.path.join(_root_dir, 'bin')
+
+    def _frpc_config_path():
+        return os.path.join(_frp_bin_dir(), 'frpc.toml')
+
+    def _frpc_binary_path():
+        system_name = (_platform.system() or '').lower()
+        if system_name.startswith('win'):
+            return os.path.join(_frp_bin_dir(), 'frpc-win.exe')
+        if system_name.startswith('darwin'):
+            return os.path.join(_frp_bin_dir(), 'frpc-mac')
+        return os.path.join(_frp_bin_dir(), 'frpc-linux')
+
+    def _status_url_from_remote(remote_addr):
+        text = str(remote_addr or '').strip()
+        if not text:
+            return ''
+        if '://' in text:
+            return text
+        return 'http://' + text
+
+    def _parse_frpc_toml_for_cli(content):
+        text = content or ''
+        proxies = []
+        current = None
+        proxy_header_re = _re.compile(r'^\s*\[\[proxies\]\]\s*$')
+        kv_re = {
+            'name': _re.compile(r'^\s*name\s*=\s*"([^"]*)"\s*$'),
+            'type': _re.compile(r'^\s*type\s*=\s*"([^"]*)"\s*$'),
+            'localIP': _re.compile(r'^\s*localIP\s*=\s*"([^"]*)"\s*$'),
+            'localPort': _re.compile(r'^\s*localPort\s*=\s*(\d+)\s*$'),
+        }
+        for line in text.splitlines():
+            if proxy_header_re.match(line):
+                if current:
+                    proxies.append(current)
+                current = {}
+                continue
+            if current is None:
+                continue
+            for key, rx in kv_re.items():
+                matched = rx.match(line)
+                if matched:
+                    current[key] = matched.group(1)
+        if current:
+            proxies.append(current)
+        return proxies
+
+    def _load_frpc_status_map():
+        frpc_path = _frpc_binary_path()
+        config_path = _frpc_config_path()
+        if not os.path.exists(frpc_path):
+            return {'ok': False, 'reason': 'frpc 可执行文件不存在: ' + frpc_path, 'items': {}}
+        if not os.path.exists(config_path):
+            return {'ok': False, 'reason': 'frpc.toml 不存在: ' + config_path, 'items': {}}
+        kwargs = {
+            'cwd': _frp_bin_dir(),
+            'capture_output': True,
+            'text': True,
+            'encoding': 'utf-8',
+            'errors': 'replace',
+            'timeout': 10,
+        }
+        if os.name == 'nt' and hasattr(_subprocess, 'CREATE_NO_WINDOW'):
+            kwargs['creationflags'] = _subprocess.CREATE_NO_WINDOW
         try:
-            target_dir = _detect_app_dir(app_dir)
-            if target_dir not in sys.path:
-                sys.path.insert(0, target_dir)
-            import importlib as _importlib
-            _app_mod = _importlib.import_module('app')
-            getter = getattr(_app_mod, 'get_frpc_public_urls', None)
-            if callable(getter):
-                return getter() or []
-        except Exception:
-            return []
-        return []
+            result = _subprocess.run([frpc_path, '-c', config_path, 'status'], **kwargs)
+        except Exception as e:
+            return {'ok': False, 'reason': str(e), 'items': {}}
+        if result.returncode != 0:
+            reason = (result.stderr or result.stdout or '').strip() or ('退出码 ' + str(result.returncode))
+            return {'ok': False, 'reason': reason, 'items': {}}
+        items = {}
+        for raw_line in (result.stdout or '').splitlines():
+            line = (raw_line or '').strip()
+            if not line or line.startswith('Proxy Status') or line in {'TCP', 'UDP', 'HTTP', 'HTTPS', 'STCP', 'XTCP', 'SUDP'}:
+                continue
+            if line.startswith('Name ') or line.startswith('Name\t'):
+                continue
+            parts = _re.split(r'\s{2,}', line)
+            if len(parts) < 4:
+                continue
+            name = str(parts[0] or '').strip()
+            if not name:
+                continue
+            items[name] = {
+                'name': name,
+                'status': str(parts[1] or '').strip(),
+                'local_addr': str(parts[2] or '').strip(),
+                'remote_addr': str(parts[-1] or '').strip(),
+            }
+        return {'ok': True, 'items': items}
+
+    def _load_frpc_public_urls(app_dir=None):
+        summary = _load_frpc_public_summary(app_dir=app_dir)
+        urls = []
+        for item in summary.get('items') or []:
+            url = str((item or {}).get('url') or '').strip()
+            if url:
+                urls.append(url)
+        return urls
+
+    def _load_frpc_public_summary(app_dir=None):
+        try:
+            config_path = _frpc_config_path()
+            if not os.path.exists(config_path):
+                return {'runtime': {'ok': False, 'reason': 'frpc.toml 不存在: ' + config_path}, 'items': []}
+            with open(config_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+            proxies = _parse_frpc_toml_for_cli(content)
+            status_summary = _load_frpc_status_map()
+            status_map = status_summary.get('items') or {}
+            items = []
+            for proxy in proxies:
+                name = str((proxy or {}).get('name') or '-').strip() or '-'
+                local_ip = str((proxy or {}).get('localIP') or '127.0.0.1').strip() or '127.0.0.1'
+                local_port = str((proxy or {}).get('localPort') or '').strip()
+                runtime_item = status_map.get(name) or {}
+                remote_addr = str(runtime_item.get('remote_addr') or '').strip()
+                local_addr = str(runtime_item.get('local_addr') or '').strip() or ((local_ip + ':' + local_port) if local_port else local_ip)
+                items.append({
+                    'name': name,
+                    'local': local_addr,
+                    'remote': remote_addr or '-',
+                    'url': _status_url_from_remote(remote_addr),
+                    'status': str(runtime_item.get('status') or '').strip(),
+                })
+            return {'runtime': status_summary, 'items': items}
+        except Exception as e:
+            return {'runtime': {'ok': False, 'reason': str(e)}, 'items': []}
 
     def _detect_app_dir(app_dir):
         if app_dir:
@@ -184,6 +302,18 @@ def main():
         _print_install_service_hint()
         raise SystemExit(1)
 
+    def _run_foreground_app(app_dir=None, python_bin=None):
+        _ensure_data_dir_and_password()
+        app_dir = _detect_app_dir(app_dir)
+        if not python_bin:
+            python_bin = _sys.executable
+        app_py = os.path.join(app_dir, 'app.py')
+        _click.echo(f'访问地址: http://localhost:{config.SERVER_PORT}')
+        pwd = _load_password()
+        if pwd:
+            _click.echo(f'登录密码: {pwd}')
+        raise SystemExit(_subprocess.call([python_bin, app_py], cwd=app_dir))
+
     @_click.group(context_settings={'help_option_names': ['-h', '--help']})
     @_click.version_option(version=_load_version(), prog_name='clawos')
     def clawos():
@@ -198,16 +328,7 @@ def main():
     @_click.option('--python', 'python_bin', type=_click.Path(dir_okay=False, resolve_path=True))
     def start(app_dir, python_bin):
         if os.name == 'nt':
-            _ensure_data_dir_and_password()
-            app_dir = _detect_app_dir(app_dir)
-            if not python_bin:
-                python_bin = _sys.executable
-            app_py = os.path.join(app_dir, 'app.py')
-            _click.echo(f'访问地址: http://localhost:{config.SERVER_PORT}')
-            pwd = _load_password()
-            if pwd:
-                _click.echo(f'登录密码: {pwd}')
-            raise SystemExit(_subprocess.call([python_bin, app_py], cwd=app_dir))
+            _run_foreground_app(app_dir=app_dir, python_bin=python_bin)
 
         if not os.path.exists(_service_path()):
             _click.echo('未检测到 service，正在安装...')
@@ -223,6 +344,12 @@ def main():
             return
         _click.echo('启动失败，请检查日志: journalctl --user -u clawos -e', err=True)
         raise SystemExit(1)
+
+    @clawos.command()
+    @_click.option('--app-dir', type=_click.Path(file_okay=False, dir_okay=True, resolve_path=True))
+    @_click.option('--python', 'python_bin', type=_click.Path(dir_okay=False, resolve_path=True))
+    def run(app_dir, python_bin):
+        _run_foreground_app(app_dir=app_dir, python_bin=python_bin)
 
     @clawos.command()
     def stop():
@@ -248,7 +375,10 @@ def main():
         _click.echo(f'访问端口: {config.SERVER_PORT}')
         _click.echo('')
 
+        public_summary = _load_frpc_public_summary()
         public_urls = _load_frpc_public_urls()
+        runtime = public_summary.get('runtime') or {}
+        runtime_reason = str(runtime.get('reason') or '').strip()
 
         if not _systemd_supported():
             _click.echo('运行状态: 直接启动模式')
@@ -257,6 +387,9 @@ def main():
                 _click.echo('')
                 for url in public_urls:
                     _click.echo(f'公网 Running on: {url}')
+            elif runtime.get('ok') is False and runtime_reason:
+                _click.echo('')
+                _click.echo(f'FRP 状态获取失败: {runtime_reason}')
             pwd = _load_password()
             if pwd:
                 _click.echo('')
@@ -270,6 +403,9 @@ def main():
                 _click.echo('')
                 for url in public_urls:
                     _click.echo(f'公网 Running on: {url}')
+            elif runtime.get('ok') is False and runtime_reason:
+                _click.echo('')
+                _click.echo(f'FRP 状态获取失败: {runtime_reason}')
             _click.echo('')
             _print_install_service_hint()
             pwd = _load_password()
@@ -286,6 +422,9 @@ def main():
                 _click.echo('')
                 for url in public_urls:
                     _click.echo(f'公网 Running on: {url}')
+            elif runtime.get('ok') is False and runtime_reason:
+                _click.echo('')
+                _click.echo(f'FRP 状态获取失败: {runtime_reason}')
         else:
             _click.echo('运行状态: 未运行')
 

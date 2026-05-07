@@ -2521,6 +2521,8 @@ function __renderFrpConfigInto(containerId) {
             const cfg = payload.config || {};
             const svc = payload.service || {};
             const proxies = Array.isArray(cfg.proxies) ? cfg.proxies : [];
+            const runtime = cfg.runtime || {};
+            const runtimeReason = runtime && runtime.reason ? String(runtime.reason) : '';
 
             const svcAvailable = !!svc.available;
             const svcName = escapeHtml(String((svc.id || 'frpc.service')));
@@ -2578,6 +2580,11 @@ function __renderFrpConfigInto(containerId) {
             html += '<button onclick="openFrpProxyDrawer()" style="padding:4px 8px;border-radius:6px;border:1px solid #d0d7de;background:#fff;cursor:pointer;font-size:12px;">+ 添加</button>';
             html += '</div>';
             html += '<div style="background:#fff;border:1px solid #d0d7de;border-radius:8px;overflow:hidden;">';
+            if (runtime && runtime.ok === false && runtimeReason) {
+                html += '<div style="padding:10px 12px;background:#fff8c5;border-bottom:1px solid #eee;color:#9a6700;font-size:12px;">';
+                html += 'frpc status 获取失败：' + escapeHtml(runtimeReason);
+                html += '</div>';
+            }
 
             if (!cfg.present) {
                 const msg = cfg.error ? ('读取失败：' + escapeHtml(String(cfg.error))) : 'FRP 配置文件不存在';
