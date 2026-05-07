@@ -14,9 +14,13 @@ def current_frpc_binary_path(base_dir):
     bin_dir = frp_bin_dir(base_dir)
     if name.startswith('win'):
         return os.path.join(bin_dir, 'frpc-win.exe')
-    if name.startswith('darwin'):
-        return os.path.join(bin_dir, 'frpc-mac')
-    return os.path.join(bin_dir, 'frpc-linux')
+    path = os.path.join(bin_dir, 'frpc-mac' if name.startswith('darwin') else 'frpc-linux')
+    try:
+        if os.path.exists(path):
+            os.chmod(path, 0o755)
+    except Exception:
+        pass
+    return path
 
 
 def current_frpc_config_path(base_dir):
