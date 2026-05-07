@@ -44,6 +44,25 @@ function __fmtInt(n) {
     return String(Math.round(v));
 }
 
+window.killProcess = function(pid, onDone) {
+    const done = typeof onDone === 'function' ? onDone : function() {};
+    __postJson('/api/process/kill/' + encodeURIComponent(String(pid)), {})
+        .then(function(data) {
+            const payload = apiData(data);
+            const message = (payload && payload.message) ? payload.message : '结束进程成功';
+            if (typeof window.showToast === 'function') {
+                window.showToast(message, 'success');
+            }
+            done(true, payload);
+        })
+        .catch(function(err) {
+            if (typeof window.showToast === 'function') {
+                window.showToast('结束进程失败: ' + err.message, 'error');
+            }
+            done(false, null);
+        });
+};
+
 window.loadProcessList = function() {
     var loadingText = (typeof I18n !== 'undefined' ? I18n.t('common.loading_ellipsis') : 'Loading...');
     const container = __setContainerHtml('processListContainer', __loadingHtml(loadingText));
@@ -126,24 +145,11 @@ window.loadProcessList = function() {
                     e.preventDefault();
                     const pid = parseInt(btn.getAttribute('data-pid') || '0', 10);
                     if (!pid) return;
-                    SwalConfirm('结束进程', '确认结束进程 PID ' + pid + '?', function() { killProcess(pid); }, 'warning');
-                    if (!ok) return;
-                    fetch('/api/process/kill/' + encodeURIComponent(String(pid)), { method: 'POST', headers: authHeaders() })
-                        .then(function(r) { return r.json(); })
-                        .then(function(data) {
-                            const payload = apiData(data);
-                            if (payload?.message) {
-                                window.showToast(payload.message, payload.success ? 'success' : 'error');
-                            } else if (payload?.success) {
-                                window.showToast('结束进程成功', 'success');
-                            } else {
-                                window.showToast('结束进程失败', 'error');
-                            }
-                            window.loadProcessList();
-                        })
-                        .catch(function(err) {
-                            window.showToast('结束进程失败: ' + err.message, 'error');
+                    SwalConfirm('结束进程', '确认结束进程 PID ' + pid + '?', function() {
+                        window.killProcess(pid, function(ok) {
+                            if (ok) window.loadProcessList();
                         });
+                    }, 'warning');
                 });
             });
         })
@@ -183,19 +189,13 @@ window.openProcessDetailModal = function(pid) {
             if (refreshBtn) refreshBtn.addEventListener('click', function() { window.openProcessDetailModal(pid); });
             const killBtn = document.getElementById('procDetailKillBtn');
             if (killBtn) killBtn.addEventListener('click', function() {
-                SwalConfirm('结束进程', '确认结束进程 PID ' + pid + '?', function() { killProcess(pid); }, 'warning');
-                if (!ok) return;
-                fetch('/api/process/kill/' + encodeURIComponent(String(pid)), { method: 'POST', headers: authHeaders() })
-                    .then(function(r) { return r.json(); })
-                    .then(function(data) {
-                        const payload = apiData(data);
-                        if (payload && payload.message && typeof window.showToast === 'function') window.showToast(payload.message, 'success');
+                SwalConfirm('结束进程', '确认结束进程 PID ' + pid + '?', function() {
+                    window.killProcess(pid, function(ok) {
+                        if (!ok) return;
                         Drawer.close('processDetailModal');
                         window.loadProcessList();
-                    })
-                    .catch(function() {
-                        if (typeof window.showToast === 'function') window.showToast('结束失败', 'error');
                     });
+                }, 'warning');
             });
         })
         .catch(function() {
@@ -524,6 +524,11 @@ function __systemdControl(service, action, scope) {
     if (typeof window.showTaskListener === 'function') window.showTaskListener('正在执行 ' + act + ' …');
     __postJson('/api/systemd/control', { service: svc, action: act, scope: scp })
         .then(function(data) {
+            if (!apiSuccess(data)) {
+                if (typeof window.hideTaskListener === 'function') window.hideTaskListener();
+                if (typeof window.showToast === 'function') window.showToast(apiMessage(data) || '操作失败', 'error');
+                return;
+            }
             const payload = apiData(data);
             const taskId = payload && payload.taskId ? payload.taskId : null;
             if (!taskId || !window.TaskPoller || typeof window.TaskPoller.start !== 'function') {
@@ -635,6 +640,14 @@ window.loadSystemdList = function() {
         .then(function(data) {
             if (!container) return;
             const userData = apiData(data) || { services: [] };
+            if (userData && userData.supported === false) {
+                container.innerHTML = __emptyHtml(userData.message || '当前平台不支持 systemd');
+                document.getElementById('systemdUserCount').textContent = '0';
+                document.getElementById('systemdSystemCount').textContent = '0';
+                window._systemdData = { user: [], system: [] };
+                window._systemdSystemLoaded = true;
+                return;
+            }
             const userServices = Array.isArray(userData.services) ? userData.services : [];
             
             // 更新计数
@@ -688,6 +701,12 @@ window.switchSystemdTab = function(scope) {
             .then(r => r.json())
             .then(function(sysData) {
                 const systemData = apiData(sysData) || { services: [] };
+                if (systemData && systemData.supported === false) {
+                    window._systemdData.system = [];
+                    window._systemdSystemLoaded = true;
+                    document.getElementById('systemdSystemCount').textContent = '0';
+                    return;
+                }
                 const systemServices = Array.isArray(systemData.services) ? systemData.services : [];
                 window._systemdData.system = systemServices;
                 window._systemdSystemLoaded = true;
@@ -2484,9 +2503,9 @@ window.openClashModal = function() { Drawer.open('clashModal'); };
 window.closeClashModal = function() { Drawer.close('clashModal'); };
 
 // FRP管理
-window.loadFrpConfig = function() {
-    window.refreshServiceInstallState('frp');
-    const container = document.getElementById('frpContainer');
+function __renderFrpConfigInto(containerId) {
+    const targetId = containerId || 'frpContainer';
+    const container = document.getElementById(targetId);
     if (!container) return;
     container.innerHTML = '<div style="text-align:center;padding:40px;color:#666;">🔄 加载中...</div>';
     
@@ -2516,26 +2535,42 @@ window.loadFrpConfig = function() {
 
             let html = '';
 
-            html += '<div style="margin-bottom:16px;">';
-            html += '<div style="font-size:13px;color:#666;margin-bottom:8px;padding-left:4px;">服务状态</div>';
-            html += '<div style="background:#fff;border:1px solid #d0d7de;border-radius:8px;overflow:hidden;">';
-            html += '<div style="padding:12px;display:flex;justify-content:space-between;align-items:center;">';
-            html += '<span style="font-weight:500;">' + svcName + '</span>';
-            html += '<span id="frpServiceStatus" style="font-size:12px;">' + svcText + '</span>';
-            html += '</div>';
-            html += '<div style="padding:0 12px 12px;display:flex;gap:8px;">';
-            html += '<button id="frpStartBtn" onclick="frpcControl(\'start\')" style="flex:1;padding:8px;border-radius:6px;border:1px solid #d0d7de;background:#fff;cursor:pointer;font-size:13px;">▶ 启动</button>';
-            html += '<button id="frpStopBtn" onclick="frpcControl(\'stop\')" style="flex:1;padding:8px;border-radius:6px;border:1px solid #d0d7de;background:#fff;cursor:pointer;font-size:13px;">⏹ 停止</button>';
-            html += '<button id="frpRestartBtn" onclick="frpcControl(\'restart\')" style="flex:1;padding:8px;border-radius:6px;border:1px solid #d0d7de;background:#fff;cursor:pointer;font-size:13px;">🔄 重启</button>';
-            html += '</div>';
-            html += '</div></div>';
+            if (targetId === 'frpContainer') {
+                html += '<div style="margin-bottom:16px;">';
+                html += '<div style="font-size:13px;color:#666;margin-bottom:8px;padding-left:4px;">服务状态</div>';
+                html += '<div style="background:#fff;border:1px solid #d0d7de;border-radius:8px;overflow:hidden;">';
+                html += '<div style="padding:12px;display:flex;justify-content:space-between;align-items:center;">';
+                html += '<span style="font-weight:500;">' + svcName + '</span>';
+                html += '<span id="frpServiceStatus" style="font-size:12px;">' + svcText + '</span>';
+                html += '</div>';
+                html += '<div style="padding:0 12px 12px;display:flex;gap:8px;">';
+                html += '<button id="frpStartBtn" onclick="frpcControl(\'start\')" style="flex:1;padding:8px;border-radius:6px;border:1px solid #d0d7de;background:#fff;cursor:pointer;font-size:13px;">▶ 启动</button>';
+                html += '<button id="frpStopBtn" onclick="frpcControl(\'stop\')" style="flex:1;padding:8px;border-radius:6px;border:1px solid #d0d7de;background:#fff;cursor:pointer;font-size:13px;">⏹ 停止</button>';
+                html += '<button id="frpRestartBtn" onclick="frpcControl(\'restart\')" style="flex:1;padding:8px;border-radius:6px;border:1px solid #d0d7de;background:#fff;cursor:pointer;font-size:13px;">🔄 重启</button>';
+                html += '</div>';
+                html += '</div></div>';
 
-            html += '<div style="margin-bottom:16px;">';
-            html += '<div style="font-size:13px;color:#666;margin-bottom:8px;padding-left:4px;">服务端</div>';
-            html += '<div style="background:#fff;border:1px solid #d0d7de;border-radius:8px;overflow:hidden;">';
-            html += '<div style="padding:10px 12px;border-bottom:1px solid #eee;display:flex;justify-content:space-between;"><span style="color:#666;">地址</span><span style="font-family:monospace;">' + serverAddrSafe + '</span></div>';
-            html += '<div style="padding:10px 12px;display:flex;justify-content:space-between;"><span style="color:#666;">端口</span><span>' + serverPortSafe + '</span></div>';
-            html += '</div></div>';
+                html += '<div style="margin-bottom:16px;">';
+                html += '<div style="font-size:13px;color:#666;margin-bottom:8px;padding-left:4px;">服务端</div>';
+                html += '<div style="background:#fff;border:1px solid #d0d7de;border-radius:8px;overflow:hidden;">';
+                html += '<div style="padding:10px 12px;border-bottom:1px solid #eee;display:flex;justify-content:space-between;"><span style="color:#666;">地址</span><span style="font-family:monospace;">' + serverAddrSafe + '</span></div>';
+                html += '<div style="padding:10px 12px;display:flex;justify-content:space-between;"><span style="color:#666;">端口</span><span>' + serverPortSafe + '</span></div>';
+                html += '</div></div>';
+            } else {
+                html += '<div style="margin-bottom:16px;">';
+                html += '<div style="background:#fff;border:1px solid #d0d7de;border-radius:8px;overflow:hidden;padding:12px;">';
+                html += '<div style="display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap;">';
+                html += '<div style="display:flex;gap:8px;flex-wrap:wrap;">';
+                html += '<button onclick=\'frpcControl("start", ' + JSON.stringify(targetId) + ')\' style="padding:8px 14px;border-radius:6px;border:1px solid #d0d7de;background:#fff;cursor:pointer;font-size:13px;">开启</button>';
+                html += '<button onclick=\'frpcControl("stop", ' + JSON.stringify(targetId) + ')\' style="padding:8px 14px;border-radius:6px;border:1px solid #d0d7de;background:#fff;cursor:pointer;font-size:13px;">停止</button>';
+                html += '</div>';
+                html += '<label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#24292f;cursor:pointer;">';
+                html += '<input type="checkbox" ' + (svc.autostart ? 'checked ' : '') + 'onchange=\'frpcToggleAutostart(this.checked, ' + JSON.stringify(targetId) + ')\' />';
+                html += '<span>自启动</span>';
+                html += '</label>';
+                html += '</div>';
+                html += '</div></div>';
+            }
 
             html += '<div style="margin-bottom:16px;">';
             html += '<div style="font-size:13px;color:#666;margin-bottom:8px;padding-left:4px;display:flex;justify-content:space-between;align-items:center;">';
@@ -2556,8 +2591,11 @@ window.loadFrpConfig = function() {
                     const localIP = p && p.localIP ? String(p.localIP) : '127.0.0.1';
                     const localPort = p && p.localPort ? String(p.localPort) : '-';
                     const remotePort = p && p.remotePort ? String(p.remotePort) : '-';
-                    const localAddr = escapeHtml(localIP + ':' + localPort);
-                    const remoteAddr = escapeHtml((serverAddr === '-' ? '' : serverAddr) + ':' + remotePort);
+                    const runtimeLocal = p && p.runtimeLocal ? String(p.runtimeLocal) : '';
+                    const runtimeRemote = p && p.runtimeRemote ? String(p.runtimeRemote) : '';
+                    const accessUrl = p && p.accessUrl ? String(p.accessUrl) : '';
+                    const localAddr = escapeHtml(runtimeLocal || (localIP + ':' + localPort));
+                    const remoteAddr = escapeHtml(runtimeRemote || ((serverAddr === '-' ? '' : serverAddr) + ':' + remotePort));
                     html += '<div style="padding:10px 12px;' + (idx < proxies.length - 1 ? 'border-bottom:1px solid #eee;' : '') + '">';
                     html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">';
                     html += '<span style="font-weight:500;">' + escapeHtml(name) + '</span>';
@@ -2567,6 +2605,11 @@ window.loadFrpConfig = function() {
                     html += '<span>本地: ' + localAddr + '</span>';
                     html += '<span>远程: ' + remoteAddr + '</span>';
                     html += '</div>';
+                    if (accessUrl) {
+                        html += '<div style="margin-top:4px;font-size:12px;color:#0969da;text-align:right;">';
+                        html += '访问: <a href="' + escapeHtml(accessUrl) + '" target="_blank" rel="noopener noreferrer" style="color:#0969da;text-decoration:none;">' + escapeHtml(accessUrl) + '</a>';
+                        html += '</div>';
+                    }
                     html += '</div>';
                 });
             }
@@ -2576,7 +2619,7 @@ window.loadFrpConfig = function() {
             html += '<div style="margin-bottom:16px;">';
             html += '<div style="font-size:13px;color:#666;margin-bottom:8px;padding-left:4px;">配置</div>';
             html += '<div style="display:flex;gap:8px;">';
-            html += '<button onclick="openFrpInEditor()" style="flex:1;padding:10px;border-radius:8px;border:1px solid #d0d7de;background:#fff;cursor:pointer;">📝 编辑配置</button>';
+            html += '<button onclick="openFrpInEditor(' + JSON.stringify(cfg.path || '') + ')" style="flex:1;padding:10px;border-radius:8px;border:1px solid #d0d7de;background:#fff;cursor:pointer;">📝 编辑配置</button>';
             html += '</div></div>';
 
             container.innerHTML = html;
@@ -2585,6 +2628,15 @@ window.loadFrpConfig = function() {
             console.error(err);
             container.innerHTML = '<div style="text-align:center;padding:40px;color:#cf222e;">加载失败: ' + err.message + '</div>';
         });
+}
+
+window.loadFrpConfigInto = function(containerId) {
+    __renderFrpConfigInto(containerId || 'frpContainer');
+};
+
+window.loadFrpConfig = function() {
+    window.refreshServiceInstallState('frp');
+    __renderFrpConfigInto('frpContainer');
 };
 
 window.frpcRefreshStatus = function() {
@@ -2613,27 +2665,53 @@ window.frpcRefreshStatus = function() {
         });
 };
 
-window.frpcControl = function(action) {
+window.frpcControl = function(action, reloadTargetId) {
     const actions = { 'start': '启动', 'stop': '停止', 'restart': '重启' };
-    SwalConfirm('确认操作', '确定要' + actions[action] + ' FRP 服务吗？', function() { toggleFrp(action); }, 'warning'); return;
-    
-    __postJson('/api/frp/control', { action: action })
+    SwalConfirm('确认操作', '确定要' + actions[action] + ' FRP 服务吗？', function() {
+        __postJson('/api/frp/control', { action: action })
+            .then(function(data) {
+                if (data && data.success) {
+                    SwalAlert('操作成功', 'FRP 服务已' + actions[action], 'success');
+                    window.frpcRefreshStatus();
+                    if (reloadTargetId) window.loadFrpConfigInto(reloadTargetId);
+                    return;
+                }
+                SwalAlert('操作失败', actions[action] + '失败: ' + ((data && data.error && data.error.message) || data.message || '未知错误'), 'error');
+            })
+            .catch(function(err) { showToast('请求失败: ' + err.message, 'error'); });
+    }, 'warning');
+};
+
+window.frpcToggleAutostart = function(enabled, reloadTargetId) {
+    fetch('/api/frp/autostart', {
+        method: 'POST',
+        headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders()),
+        body: JSON.stringify({ autostart: !!enabled })
+    })
+        .then(function(r) { return r.json(); })
         .then(function(data) {
             if (data && data.success) {
-                SwalAlert('操作成功', 'FRP 服务已' + actions[action], 'success');
-                window.frpcRefreshStatus();
+                if (typeof showToast === 'function') showToast('自启动已' + (enabled ? '开启' : '关闭'), 'success');
+                if (reloadTargetId) window.loadFrpConfigInto(reloadTargetId);
                 return;
             }
-            SwalAlert('操作失败', actions[action] + '失败: ' + ((data && (data.message || data.error)) || '未知错误'), 'error');
+            if (typeof showToast === 'function') showToast(((data && data.error && data.error.message) || '保存失败'), 'error');
         })
-        .catch(function(err) { showToast('请求失败: ' + err.message, 'error'); });
+        .catch(function(err) {
+            if (typeof showToast === 'function') showToast('请求失败: ' + err.message, 'error');
+        });
 };
 
 window.openFrpModal = function() { Drawer.open('frpModal'); };
 window.closeFrpModal = function() { Drawer.close('frpModal'); };
 
-window.openFrpInEditor = function() {
-    window.open('/json/editor?path=/usr/local/frp/frpc.toml', '_blank', 'noopener');
+window.openFrpInEditor = function(configPath) {
+    var path = String(configPath || '').trim();
+    if (!path) {
+        if (typeof showToast === 'function') showToast('FRP 配置路径不存在', 'warning');
+        return;
+    }
+    window.open('/edit?path=' + encodeURIComponent(path.replace(/\\/g, '/')), '_blank', 'noopener');
 };
 
 window.openClashInEditor = function() {

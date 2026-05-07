@@ -5,7 +5,7 @@ import tarfile
 import tempfile
 import platform
 
-from flask import Blueprint, request
+from flask import Blueprint, current_app, request
 
 from ctrl import api_error, api_ok
 from ctrl.task_ctrl import create_task, update_task
@@ -14,6 +14,27 @@ import requests
 
 
 frp_bp = Blueprint('frp', __name__)
+BASE_DIR = os.path.dirname(os.path.dirname(__file__))
+FRP_PACKS_DIR = os.path.join(BASE_DIR, 'bin')
+FRPC_CONFIG_PATH = os.path.join(FRP_PACKS_DIR, 'frpc.toml')
+
+
+def _current_system_key():
+    name = (platform.system() or '').lower()
+    if name.startswith('win'):
+        return 'win'
+    if name.startswith('darwin'):
+        return 'mac'
+    return 'linux'
+
+
+def _current_frpc_binary_path():
+    key = _current_system_key()
+    if key == 'win':
+        return os.path.join(FRP_PACKS_DIR, 'frpc-win.exe')
+    if key == 'mac':
+        return os.path.join(FRP_PACKS_DIR, 'frpc-mac')
+    return os.path.join(FRP_PACKS_DIR, 'frpc-linux')
 
 
 def _arch_linux_name():
@@ -39,9 +60,19 @@ def _run_shell(task_id, cmd: str, timeout=None):
 
 
 def _frp_install_state():
-    bin_path = '/usr/local/frp/frpc'
+    bin_path = _current_frpc_binary_path()
     installed = os.path.exists(bin_path) or _systemctl_user_show('frpc.service').get('available')
     return {'installed': bool(installed), 'bin_path': bin_path}
+
+
+def _get_embedded_runtime_api():
+    try:
+        ext = current_app.extensions.get('frpc_runtime') or {}
+        if isinstance(ext, dict):
+            return ext
+    except Exception:
+        pass
+    return {}
 
 
 @frp_bp.route('/api/frp/install_state')
@@ -50,6 +81,7 @@ def api_frp_install_state():
 
 
 def _ensure_frpc_service(task_id):
+    bin_path = _current_frpc_binary_path()
     unit_dir = os.path.expanduser('~/.config/systemd/user')
     os.makedirs(unit_dir, exist_ok=True)
     unit_path = os.path.join(unit_dir, 'frpc.service')
@@ -60,7 +92,7 @@ def _ensure_frpc_service(task_id):
         '',
         '[Service]',
         'Type=simple',
-        'ExecStart=/usr/local/frp/frpc -c /usr/local/frp/frpc.toml',
+        f'ExecStart={bin_path} -c {FRPC_CONFIG_PATH}',
         'Restart=on-failure',
         'RestartSec=2',
         '',
@@ -76,8 +108,8 @@ def _ensure_frpc_service(task_id):
 
 
 def _ensure_frpc_config():
-    cfg_path = '/usr/local/frp/frpc.toml'
-    os.makedirs('/usr/local/frp', exist_ok=True)
+    cfg_path = FRPC_CONFIG_PATH
+    os.makedirs(FRP_PACKS_DIR, exist_ok=True)
     if os.path.exists(cfg_path):
         return
     content = '\n'.join([
@@ -198,7 +230,7 @@ def _parse_frpc_toml(content: str):
 
 @frp_bp.route('/api/frp/config')
 def api_frp_config():
-    frp_config_path = '/usr/local/frp/frpc.toml'
+    frp_config_path = FRPC_CONFIG_PATH
     try:
         if not os.path.exists(frp_config_path):
             return api_error('FRP 配置文件不存在')
@@ -213,10 +245,11 @@ def api_frp_config():
 
 @frp_bp.route('/api/frp/config', methods=['POST'])
 def api_frp_config_save():
-    frp_config_path = '/usr/local/frp/frpc.toml'
+    frp_config_path = FRPC_CONFIG_PATH
     try:
         data = request.get_json()
         content = data.get('content', '')
+        os.makedirs(FRP_PACKS_DIR, exist_ok=True)
 
         with open(frp_config_path, 'w', encoding='utf-8') as f:
             f.write(content)
@@ -228,7 +261,7 @@ def api_frp_config_save():
 
 @frp_bp.route('/api/frp/state')
 def api_frp_state():
-    frp_config_path = '/usr/local/frp/frpc.toml'
+    frp_config_path = FRPC_CONFIG_PATH
     config_info = {'present': False, 'path': frp_config_path}
     try:
         if os.path.exists(frp_config_path):
@@ -245,7 +278,34 @@ def api_frp_state():
     except Exception as e:
         config_info = {'present': False, 'path': frp_config_path, 'error': str(e)}
 
-    service = _systemctl_user_show('frpc.service')
+    runtime_api = _get_embedded_runtime_api()
+    get_state = runtime_api.get('get_state') if isinstance(runtime_api, dict) else None
+    get_mapping_summary = runtime_api.get('get_mapping_summary') if isinstance(runtime_api, dict) else None
+    if callable(get_state):
+        service = get_state()
+    else:
+        service = _systemctl_user_show('frpc.service')
+    if callable(get_mapping_summary):
+        summary = get_mapping_summary() or {}
+        items = summary.get('items') or []
+        proxy_map = {str(item.get('name') or '').strip(): item for item in items if str(item.get('name') or '').strip()}
+        merged_proxies = []
+        for proxy in config_info.get('proxies') or []:
+            name = str((proxy or {}).get('name') or '').strip()
+            runtime_item = proxy_map.get(name) or {}
+            merged = dict(proxy or {})
+            if runtime_item.get('remote'):
+                merged['runtimeRemote'] = runtime_item.get('remote')
+            if runtime_item.get('url'):
+                merged['accessUrl'] = runtime_item.get('url')
+            if runtime_item.get('local'):
+                merged['runtimeLocal'] = runtime_item.get('local')
+            if runtime_item.get('status'):
+                merged['runtimeStatus'] = runtime_item.get('status')
+            merged_proxies.append(merged)
+        if merged_proxies:
+            config_info['proxies'] = merged_proxies
+        config_info['runtime'] = summary.get('runtime') or {}
     return api_ok({'config': config_info, 'service': service})
 
 
@@ -258,6 +318,30 @@ def api_frp_control():
     if action not in {'start', 'stop', 'restart'}:
         return api_error('Invalid action', status=400)
 
+    runtime_api = _get_embedded_runtime_api()
+    get_state = runtime_api.get('get_state') if isinstance(runtime_api, dict) else None
+    start_fn = runtime_api.get('start') if isinstance(runtime_api, dict) else None
+    stop_fn = runtime_api.get('stop') if isinstance(runtime_api, dict) else None
+
+    if action == 'start' and callable(start_fn):
+        ok, message = start_fn()
+        if ok:
+            return api_ok({'ok': True, 'service': get_state() if callable(get_state) else None})
+        return api_error(message or '启动失败', status=500)
+    if action == 'stop' and callable(stop_fn):
+        ok, message = stop_fn()
+        if ok:
+            return api_ok({'ok': True, 'service': get_state() if callable(get_state) else None})
+        return api_error(message or '停止失败', status=500)
+    if action == 'restart' and callable(stop_fn) and callable(start_fn):
+        ok, message = stop_fn()
+        if not ok:
+            return api_error(message or '停止失败', status=500)
+        ok, message = start_fn()
+        if ok:
+            return api_ok({'ok': True, 'service': get_state() if callable(get_state) else None})
+        return api_error(message or '启动失败', status=500)
+
     result = systemd_utils.control_systemd_service('frpc.service', action)
     if isinstance(result, dict) and result.get('success'):
         return api_ok({'ok': True, 'service': _systemctl_user_show('frpc.service')})
@@ -265,6 +349,25 @@ def api_frp_control():
     if isinstance(result, dict):
         message = result.get('message')
     return api_error(message or 'Error', status=500)
+
+
+@frp_bp.route('/api/frp/autostart', methods=['POST'])
+def api_frp_autostart():
+    data = request.get_json(silent=True) or {}
+    enabled = bool(data.get('autostart', False))
+    runtime_api = _get_embedded_runtime_api()
+    setter = runtime_api.get('set_autostart') if isinstance(runtime_api, dict) else None
+    getter = runtime_api.get('get_state') if isinstance(runtime_api, dict) else None
+    if not callable(setter):
+        return api_error('FRP runtime unavailable', status=500)
+    try:
+        saved = setter(enabled)
+        return api_ok({
+            'autostart': bool(saved.get('autostart', False)),
+            'service': getter() if callable(getter) else None,
+        })
+    except Exception as e:
+        return api_error(str(e), status=500)
 
 
 @frp_bp.route('/api/frp/install', methods=['POST'])
@@ -307,11 +410,11 @@ def api_frp_install():
                         break
                 if not frpc_member:
                     raise RuntimeError('frpc not found in archive')
-                os.makedirs('/usr/local/frp', exist_ok=True)
+                os.makedirs(FRP_PACKS_DIR, exist_ok=True)
                 extracted = tar.extractfile(frpc_member)
                 if not extracted:
                     raise RuntimeError('extract frpc failed')
-                out_path = '/usr/local/frp/frpc'
+                out_path = _current_frpc_binary_path()
                 with open(out_path, 'wb') as f:
                     f.write(extracted.read())
                 os.chmod(out_path, 0o755)
@@ -366,11 +469,11 @@ def api_frp_reinstall():
                         break
                 if not frpc_member:
                     raise RuntimeError('frpc not found in archive')
-                os.makedirs('/usr/local/frp', exist_ok=True)
+                os.makedirs(FRP_PACKS_DIR, exist_ok=True)
                 extracted = tar.extractfile(frpc_member)
                 if not extracted:
                     raise RuntimeError('extract frpc failed')
-                out_path = '/usr/local/frp/frpc'
+                out_path = _current_frpc_binary_path()
                 with open(out_path, 'wb') as f:
                     f.write(extracted.read())
                 os.chmod(out_path, 0o755)
@@ -405,17 +508,7 @@ def _do_uninstall(task_id):
         _run_shell(task_id, 'systemctl --user daemon-reload', timeout=20)
     except Exception:
         pass
-    for p in ['/usr/local/frp/frpc', '/usr/local/frp/frpc.toml']:
-        try:
-            if os.path.exists(p):
-                os.remove(p)
-        except Exception:
-            pass
-    try:
-        if os.path.isdir('/usr/local/frp'):
-            os.rmdir('/usr/local/frp')
-    except Exception:
-        pass
+    # Keep packaged binaries/config under bin; uninstall here only removes service wiring.
 
 
 @frp_bp.route('/api/frp/uninstall', methods=['POST'])

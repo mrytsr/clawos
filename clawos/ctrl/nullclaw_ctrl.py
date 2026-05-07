@@ -10,6 +10,7 @@ import threading
 from flask import Blueprint, jsonify, request, current_app, send_from_directory
 
 import config
+from lib import systemd_utils
 
 nullclaw_bp = Blueprint('nullclaw', __name__)
 
@@ -80,21 +81,28 @@ def update_nullclaw_key():
 @nullclaw_bp.route('/api/nullclaw/restart', methods=['POST'])
 def restart_nullclaw():
     """重启nullclaw服务"""
+    if not systemd_utils.is_systemd_supported():
+        return jsonify({"success": False, "message": systemd_utils.systemd_unavailable_message()})
     try:
-        os.system('systemctl --user restart nullclaw 2>/dev/null')
-        return jsonify({"success": True, "message": "已发送重启指令"})
+        result = systemd_utils.control_systemd_service('nullclaw', 'restart')
+        if result.get('success'):
+            return jsonify({"success": True, "message": "已发送重启指令"})
+        return jsonify({"success": False, "message": result.get('message') or '重启失败'})
     except Exception as e:
         return jsonify({"success": False, "message": str(e)})
 
 @nullclaw_bp.route('/api/nullclaw/status', methods=['GET'])
 def get_nullclaw_status():
     """获取nullclaw服务状态"""
-    import subprocess
+    if not systemd_utils.is_systemd_supported():
+        return jsonify({"success": False, "status": "unsupported", "error": systemd_utils.systemd_unavailable_message()})
     try:
-        result = subprocess.run(['systemctl', '--user', 'is-active', 'nullclaw'], 
-                              capture_output=True, text=True)
-        status = result.stdout.strip()
-        return jsonify({"success": True, "status": status})
+        services = systemd_utils.list_systemd_services('user')
+        items = services.get('services') or []
+        target = next((item for item in items if item.get('name') in {'nullclaw', 'nullclaw.service'}), None)
+        if not target:
+            return jsonify({"success": True, "status": "inactive"})
+        return jsonify({"success": True, "status": target.get('active') or target.get('status') or 'unknown'})
     except Exception as e:
         return jsonify({"success": False, "status": "unknown", "error": str(e)})
 

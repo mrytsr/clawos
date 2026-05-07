@@ -11,6 +11,7 @@ import config
 
 def main():
     import json as _json
+    import platform as _platform
     import secrets as _secrets
     import subprocess as _subprocess
     import sys as _sys
@@ -54,6 +55,9 @@ def main():
     def _service_path():
         return os.path.join(os.path.expanduser('~'), '.config', 'systemd', 'user', 'clawos.service')
 
+    def _systemd_supported():
+        return (_platform.system() == 'Linux') and (os.name != 'nt')
+
     def _installed_app_dir():
         try:
             import app as _app
@@ -63,6 +67,20 @@ def main():
         if not p:
             return ''
         return os.path.abspath(os.path.dirname(p))
+
+    def _load_frpc_public_urls(app_dir=None):
+        try:
+            target_dir = _detect_app_dir(app_dir)
+            if target_dir not in sys.path:
+                sys.path.insert(0, target_dir)
+            import importlib as _importlib
+            _app_mod = _importlib.import_module('app')
+            getter = getattr(_app_mod, 'get_frpc_public_urls', None)
+            if callable(getter):
+                return getter() or []
+        except Exception:
+            return []
+        return []
 
     def _detect_app_dir(app_dir):
         if app_dir:
@@ -199,12 +217,35 @@ def main():
         _ensure_data_dir_and_password()
         _click.echo('=== ClawOS 状态 ===')
         _click.echo(f'配置目录: {config.DATA_DIR}')
-        _click.echo('日志命令: journalctl --user -u clawos -f')
+        if _systemd_supported():
+            _click.echo('日志命令: journalctl --user -u clawos -f')
+        else:
+            _click.echo('日志命令: 当前平台无 systemd，请查看当前启动终端输出')
         _click.echo(f'访问端口: {config.SERVER_PORT}')
         _click.echo('')
 
+        public_urls = _load_frpc_public_urls()
+
+        if not _systemd_supported():
+            _click.echo('运行状态: 直接启动模式')
+            _click.echo(f'访问地址: http://localhost:{config.SERVER_PORT}')
+            if public_urls:
+                _click.echo('')
+                for url in public_urls:
+                    _click.echo(f'公网 Running on: {url}')
+            pwd = _load_password()
+            if pwd:
+                _click.echo('')
+                _click.echo(f'登录密码: {pwd}')
+            return
+
         if not os.path.exists(_service_path()):
             _click.echo('运行状态: 未安装 service')
+            _click.echo(f'访问地址: http://localhost:{config.SERVER_PORT}')
+            if public_urls:
+                _click.echo('')
+                for url in public_urls:
+                    _click.echo(f'公网 Running on: {url}')
             _click.echo('')
             _print_install_service_hint()
             pwd = _load_password()
@@ -217,6 +258,10 @@ def main():
         if r.returncode == 0:
             _click.echo('运行状态: 运行中')
             _click.echo(f'访问地址: http://localhost:{config.SERVER_PORT}')
+            if public_urls:
+                _click.echo('')
+                for url in public_urls:
+                    _click.echo(f'公网 Running on: {url}')
         else:
             _click.echo('运行状态: 未运行')
 

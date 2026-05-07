@@ -27,3 +27,4 @@ SERVER_USE_RELOADER = os.getenv('SERVER_USE_RELOADER', '0') in {'1', 'true', 'Tr
 
 # 文件打开方式配置
 FILE_OPEN_CONFIG_FILE = os.path.join(DATA_DIR, 'file_open_config.json')
+FRP_SERVER_CONFIG_FILE = os.path.join(DATA_DIR, 'frp_server_config.json')

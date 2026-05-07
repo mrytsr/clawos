@@ -762,8 +762,7 @@ window.openMainMenuModal = function() {
             { action: 'disk', icon: '💾', key: 'menu.disk' },
             { action: 'cron', icon: '⏰', key: 'menu.cron' },
             { action: 'ollama', icon: '🦙', key: 'menu.ollama' },
-            { action: 'clash', icon: '🌐', key: 'menu.clash' },
-            { action: 'frp', icon: '🔗', key: 'menu.frp' }
+            { action: 'clash', icon: '🌐', key: 'menu.clash' }
         ];
         c.innerHTML = items.map(function(item) {
             var text = (typeof I18n !== 'undefined' && I18n.t) ? I18n.t(item.key) : item.key;
@@ -843,8 +842,35 @@ window.openConfigModal = function() {
         var currentPath = window.currentPath || '/root';
         pathEl.textContent = currentPath.replace(/^\/root/, '~');
     }
+    if (typeof window.switchConfigTab === 'function') {
+        window.switchConfigTab('general');
+    }
 };
 window.logoutAuth = function() { window.location.href = '/logout'; };
+
+window.switchConfigTab = function(tab) {
+    var activeTab = (tab || 'general') === 'frp' ? 'frp' : 'general';
+    var panels = {
+        general: document.getElementById('configGeneralPanel'),
+        frp: document.getElementById('configFrpPanel')
+    };
+    Object.keys(panels).forEach(function(key) {
+        if (panels[key]) {
+            panels[key].style.display = key === activeTab ? 'block' : 'none';
+        }
+    });
+    var tabs = Array.prototype.slice.call(document.querySelectorAll('[data-config-tab]'));
+    tabs.forEach(function(el) {
+        var active = el && el.dataset && el.dataset.configTab === activeTab;
+        el.classList.toggle('active', active);
+        el.style.borderBottomColor = active ? '#0969da' : 'transparent';
+        el.style.color = active ? '#24292f' : '#57606a';
+        el.style.fontWeight = active ? '600' : '400';
+    });
+    if (activeTab === 'frp' && typeof window.loadFrpConfigInto === 'function') {
+        window.loadFrpConfigInto('configFrpContainer');
+    }
+};
 
 window.actionToModalMap = {
     'git': { modal: 'gitModal', load: 'loadGitList', open: 'openGitModal' },
@@ -856,7 +882,6 @@ window.actionToModalMap = {
     'docker': { modal: 'dockerModal', load: 'loadDockerTabs', open: 'openDockerModal' },
     'systemd': { modal: 'systemdModal', load: 'loadSystemdList', open: 'openSystemdModal' },
     'clash': { modal: 'clashModal', load: 'loadClashConfigEnhanced', open: 'openClashModal' },
-    'frp': { modal: 'frpModal', load: 'loadFrpConfig', open: 'openFrpModal' },
     'cron': { url: '/cron/manager', target: '_blank' },
     'db': { url: '/db/manager', target: '_blank' },
     'disk': { modal: 'diskModal', load: 'loadDiskList', open: 'openDiskModal' },

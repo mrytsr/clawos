@@ -8,6 +8,8 @@ import os
 import toml
 from flask import Blueprint, jsonify, request, current_app, send_from_directory
 
+from lib import systemd_utils
+
 zeroclaw_bp = Blueprint('zeroclaw', __name__)
 
 ZEROCLAW_CONFIG_PATH = os.path.expanduser('~/.zeroclaw/config.toml')
@@ -55,23 +57,29 @@ def set_zeroclaw_config():
 @zeroclaw_bp.route('/api/zeroclaw/restart', methods=['POST'])
 def restart_zeroclaw():
     """重启zeroclaw服务"""
-    import subprocess
+    if not systemd_utils.is_systemd_supported():
+        return jsonify({"success": False, "message": systemd_utils.systemd_unavailable_message()})
     try:
-        subprocess.run(['systemctl', '--user', 'restart', 'zeroclaw'], 
-                     capture_output=True, text=True)
-        return jsonify({"success": True, "message": "已发送重启指令"})
+        result = systemd_utils.control_systemd_service('zeroclaw', 'restart')
+        if result.get('success'):
+            return jsonify({"success": True, "message": "已发送重启指令"})
+        return jsonify({"success": False, "message": result.get('message') or '重启失败'})
     except Exception as e:
         return jsonify({"success": False, "message": str(e)})
 
 @zeroclaw_bp.route('/api/zeroclaw/status', methods=['GET'])
 def get_zeroclaw_status():
     """获取zeroclaw服务状态"""
-    import subprocess
+    if not systemd_utils.is_systemd_supported():
+        return jsonify({"success": False, "status": "unsupported", "error": systemd_utils.systemd_unavailable_message(), "active": False})
     try:
-        result = subprocess.run(['systemctl', '--user', 'is-active', 'zeroclaw'], 
-                              capture_output=True, text=True)
-        status = result.stdout.strip()
-        return jsonify({"success": True, "status": status, "active": status == "active"})
+        services = systemd_utils.list_systemd_services('user')
+        items = services.get('services') or []
+        target = next((item for item in items if item.get('name') in {'zeroclaw', 'zeroclaw.service'}), None)
+        if not target:
+            return jsonify({"success": True, "status": "inactive", "active": False})
+        status = target.get('active') or target.get('status') or 'unknown'
+        return jsonify({"success": True, "status": status, "active": str(target.get('active') or '').lower() == 'active'})
     except Exception as e:
         return jsonify({"success": False, "status": "unknown", "error": str(e), "active": False})
 

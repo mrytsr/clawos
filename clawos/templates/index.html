@@ -1799,65 +1799,76 @@
             <div class="drawer-title" data-i18n="settings.drawer_title">⚙️ Settings</div>
             <button class="drawer-close-btn" onclick="closeConfigModal()">&times;</button>
         </div>
-        <div class="drawer-content" style="padding: 16px;">
-            <!-- 界面卡片 -->
-            <div class="config-card">
-                <div class="config-card-title" data-i18n="settings.appearance">Appearance</div>
-                <div class="config-card-row">
-                    <span class="config-card-label" data-i18n="settings.language">Language</span>
-                    <select id="langSelect" onchange="changeLanguage(this.value)" style="padding: 6px 12px; border-radius: 6px; border: 1px solid #d0d7de; font-size: 13px; cursor: pointer;">
-                        <option value="zh">中文</option>
-                        <option value="en">English</option>
-                        <option value="ja">日本語</option>
-                    </select>
+        <div class="drawer-content" style="padding: 0;">
+            <div style="display:flex;border-bottom:1px solid #d0d7de;background:#f6f8fa;">
+                <button class="bot-tab active" data-config-tab="general" onclick="switchConfigTab('general')" style="flex:1;padding:10px;border:none;background:transparent;font-size:13px;color:#57606a;cursor:pointer;border-bottom:2px solid transparent;">通用</button>
+                <button class="bot-tab" data-config-tab="frp" onclick="switchConfigTab('frp')" style="flex:1;padding:10px;border:none;background:transparent;font-size:13px;color:#57606a;cursor:pointer;border-bottom:2px solid transparent;">公网端口映射</button>
+            </div>
+
+            <div id="configGeneralPanel" style="display:block;padding:16px;">
+                <!-- 界面卡片 -->
+                <div class="config-card">
+                    <div class="config-card-title" data-i18n="settings.appearance">Appearance</div>
+                    <div class="config-card-row">
+                        <span class="config-card-label" data-i18n="settings.language">Language</span>
+                        <select id="langSelect" onchange="changeLanguage(this.value)" style="padding: 6px 12px; border-radius: 6px; border: 1px solid #d0d7de; font-size: 13px; cursor: pointer;">
+                            <option value="zh">中文</option>
+                            <option value="en">English</option>
+                            <option value="ja">日本語</option>
+                        </select>
+                    </div>
+                    <div class="config-card-row">
+                        <span class="config-card-label" data-i18n="settings.fontSize">Font Size</span>
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <input type="range" id="fontSizeSlider" class="font-size-slider" min="12" max="24" value="14" onchange="updateFontSize(this.value)" style="width: 120px;">
+                            <span id="fontSizeValue" style="font-size: 13px; color: #666; min-width: 36px;">14px</span>
+                        </div>
+                    </div>
+                    <div id="fontPreview" class="font-preview" style="font-size: var(--global-font-size, 14px); margin-top: 8px;" data-i18n="settings.fontPreview">Preview abc ABC 123</div>
                 </div>
-                <div class="config-card-row">
-                    <span class="config-card-label" data-i18n="settings.fontSize">Font Size</span>
-                    <div style="display: flex; align-items: center; gap: 12px;">
-                        <input type="range" id="fontSizeSlider" class="font-size-slider" min="12" max="24" value="14" onchange="updateFontSize(this.value)" style="width: 120px;">
-                        <span id="fontSizeValue" style="font-size: 13px; color: #666; min-width: 36px;">14px</span>
+                
+                <!-- 文件管理卡片 -->
+                <div class="config-card">
+                    <div class="config-card-title" data-i18n="nav.files">Files</div>
+                    <div class="config-card-row">
+                        <span class="config-card-label" data-i18n="fileBrowser.openWith">Open With</span>
+                        <button class="config-card-btn" onclick="window.open('/file-open-config', '_blank')" data-i18n="common.manage">Manage</button>
+                    </div>
+                    <div class="config-card-row">
+                        <span class="config-card-label" data-i18n="fileBrowser.currentPath">Current Path</span>
+                        <span id="configCurrentPath" style="font-size: 12px; color: #666; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">/root</span>
                     </div>
                 </div>
-                <div id="fontPreview" class="font-preview" style="font-size: var(--global-font-size, 14px); margin-top: 8px;" data-i18n="settings.fontPreview">Preview abc ABC 123</div>
-            </div>
-            
-            <!-- 文件管理卡片 -->
-            <div class="config-card">
-                <div class="config-card-title" data-i18n="nav.files">Files</div>
-                <div class="config-card-row">
-                    <span class="config-card-label" data-i18n="fileBrowser.openWith">Open With</span>
-                    <button class="config-card-btn" onclick="window.open('/file-open-config', '_blank')" data-i18n="common.manage">Manage</button>
+                
+                <!-- 工具卡片 -->
+                <div class="config-card">
+                    <div class="config-card-title" data-i18n="common.tools">🔧 Tools</div>
+                    <div class="config-card-row">
+                        <span class="config-card-label" data-i18n="system.clash.title">Clash Proxy</span>
+                        <button class="config-card-btn" onclick="closeConfigModal(); setTimeout(openClashModal, 300);" data-i18n="common.settings">Settings</button>
+                    </div>
+                    <div class="config-card-row">
+                        <span class="config-card-label" data-i18n="tools.email_config">Email Config</span>
+                        <button class="config-card-btn" onclick="window.open('/email-config', '_blank')" data-i18n="common.manage">Manage</button>
+                    </div>
+                    <div class="config-card-row">
+                        <span class="config-card-label" data-i18n="model_config.title">AI Model Config</span>
+                        <button class="config-card-btn" onclick="window.open('/ai/model-config', '_blank')" data-i18n="common.manage">Manage</button>
+                    </div>
                 </div>
-                <div class="config-card-row">
-                    <span class="config-card-label" data-i18n="fileBrowser.currentPath">Current Path</span>
-                    <span id="configCurrentPath" style="font-size: 12px; color: #666; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">/root</span>
-                </div>
-            </div>
-            
-            <!-- 工具卡片 -->
-            <div class="config-card">
-                <div class="config-card-title" data-i18n="common.tools">🔧 Tools</div>
-                <div class="config-card-row">
-                    <span class="config-card-label" data-i18n="system.clash.title">Clash Proxy</span>
-                    <button class="config-card-btn" onclick="closeConfigModal(); setTimeout(openClashModal, 300);" data-i18n="common.settings">Settings</button>
-                </div>
-                <div class="config-card-row">
-                    <span class="config-card-label" data-i18n="tools.email_config">Email Config</span>
-                    <button class="config-card-btn" onclick="window.open('/email-config', '_blank')" data-i18n="common.manage">Manage</button>
-                </div>
-                <div class="config-card-row">
-                    <span class="config-card-label" data-i18n="model_config.title">AI Model Config</span>
-                    <button class="config-card-btn" onclick="window.open('/ai/model-config', '_blank')" data-i18n="common.manage">Manage</button>
+                
+                <!-- 账户卡片 -->
+                <div class="config-card">
+                    <div class="config-card-title" data-i18n="account.title">👤 Account</div>
+                    <div class="config-card-row">
+                        <span class="config-card-label" data-i18n="account.logout_label">Logout</span>
+                        <button class="config-card-btn config-card-btn-danger" onclick="logoutAuth()" data-i18n="account.logout_action">Logout</button>
+                    </div>
                 </div>
             </div>
-            
-            <!-- 账户卡片 -->
-            <div class="config-card">
-                <div class="config-card-title" data-i18n="account.title">👤 Account</div>
-                <div class="config-card-row">
-                    <span class="config-card-label" data-i18n="account.logout_label">Logout</span>
-                    <button class="config-card-btn config-card-btn-danger" onclick="logoutAuth()" data-i18n="account.logout_action">Logout</button>
-                </div>
+
+            <div id="configFrpPanel" style="display:none;padding:16px;">
+                <div id="configFrpContainer"></div>
             </div>
         </div>
     </div>

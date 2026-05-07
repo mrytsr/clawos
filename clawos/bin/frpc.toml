@@ -1,0 +1,16 @@
+
+serverAddr = "us.afrp.net"
+serverPort = 7000
+auth.method = "token"
+auth.token = "afrp.net"
+user = "utjx"
+
+webServer.addr = "127.0.0.1"
+webServer.port = 17401
+
+[[proxies]]
+name = "6002"
+type = "tcp"
+localIP = "127.0.0.1"
+localPort = 6002
+remotePort = 0

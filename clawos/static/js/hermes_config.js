@@ -45,13 +45,13 @@
 
     function renderInstallState(state) {
         var installed = !!(state && state.installed);
-        var shell = state && state.shell ? state.shell : 'none';
+        var shell = state && state.shell ? state.shell : 'python-native';
         var installBtn = document.getElementById('hermesInstallBtn');
         var uninstallBtn = document.getElementById('hermesUninstallBtn');
         if (installBtn) {
             installBtn.style.display = installed ? 'none' : 'inline-block';
-            installBtn.disabled = shell === 'none';
-            installBtn.title = shell === 'none' ? '未找到可用的 bash/WSL 环境' : '';
+            installBtn.disabled = false;
+            installBtn.title = '';
         }
         if (uninstallBtn) {
             uninstallBtn.style.display = installed ? 'inline-block' : 'none';
@@ -104,8 +104,10 @@
         html += renderKeyValueRows([
             { label: '状态', value: state.installed ? '<span style="color:#2da44e;">已安装</span>' : '<span style="color:#cf222e;">未安装</span>' },
             { label: '执行环境', value: escapeHtml(state.shell || '-') },
+            { label: '平台', value: escapeHtml(state.platform || '-') },
             { label: '配置文件', value: state.config_exists ? '存在' : '缺失' },
-            { label: '仓库目录', value: state.repo_exists ? '存在' : '缺失' }
+            { label: '仓库目录', value: state.repo_exists ? '存在' : '缺失' },
+            { label: '虚拟环境', value: state.venv_exists ? '存在' : '缺失' }
         ]);
         html += '</div></div>';
 

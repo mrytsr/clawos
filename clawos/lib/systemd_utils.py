@@ -1,7 +1,17 @@
 import os
 import re
+import shutil
 import subprocess
+import platform
 from datetime import datetime
+
+
+def is_systemd_supported():
+    return platform.system() == 'Linux' and bool(shutil.which('systemctl'))
+
+
+def systemd_unavailable_message():
+    return '当前平台不支持 systemd，仅 Linux 且已安装 systemctl 时可用'
 
 
 def list_systemd_services(scope='user'):
@@ -10,6 +20,13 @@ def list_systemd_services(scope='user'):
     Args:
         scope: 'user' or 'system'
     """
+    if not is_systemd_supported():
+        return {
+            'success': True,
+            'supported': False,
+            'message': systemd_unavailable_message(),
+            'services': [],
+        }
     try:
         cmd = ['systemctl']
         if scope == 'user':
@@ -84,7 +101,7 @@ def list_systemd_services(scope='user'):
                     'scope': scope
                 })
 
-        return {'success': True, 'services': services}
+        return {'success': True, 'supported': True, 'services': services}
     except Exception as e:
         return {'success': False, 'message': str(e)}
 
@@ -97,6 +114,8 @@ def control_systemd_service(service, action, scope='user'):
         action: start/stop/restart/enable/disable
         scope: 'user' or 'system'
     """
+    if not is_systemd_supported():
+        return {'success': False, 'supported': False, 'message': systemd_unavailable_message()}
     import time
     try:
         cmd = ['systemctl']
@@ -137,6 +156,8 @@ def get_service_config_path(service, scope='user'):
         service: 服务名
         scope: 'user' or 'system'
     """
+    if not is_systemd_supported():
+        return {'success': False, 'supported': False, 'message': systemd_unavailable_message()}
     try:
         cmd = ['systemctl']
         if scope == 'user':
