@@ -6,6 +6,7 @@ import re
 import subprocess
 import threading
 import time
+import uuid
 
 
 from flask import Flask, jsonify, request
@@ -89,6 +90,43 @@ def _status_url_from_remote(proxy_type, remote_addr):
     if kind in {'http', 'https', 'tcp'}:
         return f'http://{text}'
     return text
+
+
+def _rewrite_frpc_proxy_names_with_uuid():
+    config_path = _current_frpc_config_path()
+    if not os.path.exists(config_path):
+        return {'ok': False, 'reason': 'frpc.toml not found', 'updated': 0}
+    try:
+        with open(config_path, 'r', encoding='utf-8') as f:
+            lines = f.readlines()
+        name_re = re.compile(r'^(\s*name\s*=\s*)"[^"]*"\s*$')
+        in_proxy = False
+        updated = 0
+        new_lines = []
+        for line in lines:
+            stripped = line.strip()
+            if stripped == '[[proxies]]':
+                in_proxy = True
+                new_lines.append(line)
+                continue
+            if in_proxy:
+                matched = name_re.match(line)
+                if matched:
+                    new_name = str(uuid.uuid4())
+                    newline = '\r\n' if line.endswith('\r\n') else '\n'
+                    new_lines.append(f'{matched.group(1)}"{new_name}"{newline}')
+                    updated += 1
+                    in_proxy = False
+                    continue
+                if stripped.startswith('[[') or stripped.startswith('['):
+                    in_proxy = False
+            new_lines.append(line)
+        if updated:
+            with open(config_path, 'w', encoding='utf-8', newline='') as f:
+                f.writelines(new_lines)
+        return {'ok': True, 'updated': updated}
+    except Exception as e:
+        return {'ok': False, 'reason': str(e), 'updated': 0}
 
 
 def _load_frpc_server_config():
@@ -320,6 +358,13 @@ def _start_embedded_frpc():
         _frpc_log('启动失败: frpc.toml 不存在: ' + config_path)
         return False, 'frpc.toml not found'
     try:
+        rewrite_result = _rewrite_frpc_proxy_names_with_uuid()
+        if not rewrite_result.get('ok'):
+            reason = rewrite_result.get('reason') or 'rewrite proxy name failed'
+            _frpc_log('启动失败: 写入 UUID name 失败: ' + reason)
+            return False, reason
+        if rewrite_result.get('updated'):
+            _frpc_log(f'已写入 {rewrite_result.get("updated")} 个 UUID 代理名')
         if os.name != 'nt':
             os.chmod(frpc_path, 0o755)
         kwargs = {
