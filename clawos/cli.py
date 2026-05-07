@@ -10,8 +10,10 @@ import config
 
 
 def main():
+    import importlib.metadata as _metadata
     import json as _json
     import platform as _platform
+    import re as _re
     import secrets as _secrets
     import subprocess as _subprocess
     import sys as _sys
@@ -57,6 +59,23 @@ def main():
 
     def _systemd_supported():
         return (_platform.system() == 'Linux') and (os.name != 'nt')
+
+    def _load_version():
+        try:
+            return _metadata.version('clawos')
+        except Exception:
+            pass
+
+        pyproject_path = os.path.abspath(os.path.join(_root_dir, '..', 'pyproject.toml'))
+        try:
+            with open(pyproject_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+            match = _re.search(r'^\s*version\s*=\s*"([^"]+)"\s*$', content, flags=_re.MULTILINE)
+            if match:
+                return match.group(1).strip()
+        except Exception:
+            pass
+        return 'unknown'
 
     def _installed_app_dir():
         try:
@@ -166,8 +185,13 @@ def main():
         raise SystemExit(1)
 
     @_click.group(context_settings={'help_option_names': ['-h', '--help']})
+    @_click.version_option(version=_load_version(), prog_name='clawos')
     def clawos():
         pass
+
+    @clawos.command()
+    def version():
+        _click.echo(_load_version())
 
     @clawos.command()
     @_click.option('--app-dir', type=_click.Path(file_okay=False, dir_okay=True, resolve_path=True))
