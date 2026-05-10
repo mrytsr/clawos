@@ -99,10 +99,30 @@ def main():
 
     def _load_frpc_public_summary(app_dir=None):
         try:
-            config_path = frp_utils.current_frpc_config_path(_root_dir)
-            if not os.path.exists(config_path):
-                return {'runtime': {'ok': False, 'reason': 'frpc.toml 不存在: ' + config_path}, 'items': []}
-            return frp_utils.load_frpc_mapping_summary(_root_dir)
+            cfg = {}
+            try:
+                if os.path.exists(config.FRP_SERVER_CONFIG_FILE):
+                    with open(config.FRP_SERVER_CONFIG_FILE, 'r', encoding='utf-8') as f:
+                        raw = _json.load(f)
+                    if isinstance(raw, dict):
+                        cfg = raw
+            except Exception:
+                cfg = {}
+            token, profile = frp_utils.resolve_chml_profile(cfg.get('chml_p'))
+            p = (profile or {}).get('p')
+            remote_addr = (profile or {}).get('remote') or (cfg.get('public_addr') or '')
+            pid = cfg.get('last_pid')
+            running = False
+            if pid:
+                try:
+                    import psutil as _psutil
+                    running = bool(_psutil.pid_exists(int(pid)))
+                except Exception:
+                    running = True
+            reason = ''
+            if not running:
+                reason = str(cfg.get('last_error') or '未运行')
+            return frp_utils.build_chml_mapping_summary(config.SERVER_PORT, p, remote_addr, running, pid=pid, reason=reason)
         except Exception as e:
             return {'runtime': {'ok': False, 'reason': str(e)}, 'items': []}
 

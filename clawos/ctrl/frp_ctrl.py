@@ -7,6 +7,7 @@ import platform
 
 from flask import Blueprint, current_app, request
 
+import config
 from ctrl import api_error, api_ok
 from ctrl.task_ctrl import create_task, update_task
 from lib import systemd_utils
@@ -261,50 +262,31 @@ def api_frp_config_save():
 
 @frp_bp.route('/api/frp/state')
 def api_frp_state():
-    frp_config_path = FRPC_CONFIG_PATH
-    config_info = {'present': False, 'path': frp_config_path}
-    try:
-        if os.path.exists(frp_config_path):
-            with open(frp_config_path, 'r', encoding='utf-8') as f:
-                content = f.read()
-            parsed = _parse_frpc_toml(content)
-            config_info = {
-                'present': True,
-                'path': frp_config_path,
-                'serverAddr': parsed.get('serverAddr'),
-                'serverPort': parsed.get('serverPort'),
-                'proxies': parsed.get('proxies') or [],
-            }
-    except Exception as e:
-        config_info = {'present': False, 'path': frp_config_path, 'error': str(e)}
+    config_info = {'present': True, 'path': ''}
 
     runtime_api = _get_embedded_runtime_api()
     get_state = runtime_api.get('get_state') if isinstance(runtime_api, dict) else None
-    get_mapping_summary = runtime_api.get('get_mapping_summary') if isinstance(runtime_api, dict) else None
+    get_public_status = runtime_api.get('get_public_status') if isinstance(runtime_api, dict) else None
     if callable(get_state):
         service = get_state()
     else:
         service = _systemctl_user_show('frpc.service')
-    if callable(get_mapping_summary):
-        summary = get_mapping_summary() or {}
+    if callable(get_public_status):
+        summary = get_public_status() or {}
         items = summary.get('items') or []
-        proxy_map = {str(item.get('name') or '').strip(): item for item in items if str(item.get('name') or '').strip()}
-        merged_proxies = []
-        for proxy in config_info.get('proxies') or []:
-            name = str((proxy or {}).get('name') or '').strip()
-            runtime_item = proxy_map.get(name) or {}
-            merged = dict(proxy or {})
-            if runtime_item.get('remote'):
-                merged['runtimeRemote'] = runtime_item.get('remote')
-            if runtime_item.get('url'):
-                merged['accessUrl'] = runtime_item.get('url')
-            if runtime_item.get('local'):
-                merged['runtimeLocal'] = runtime_item.get('local')
-            if runtime_item.get('status'):
-                merged['runtimeStatus'] = runtime_item.get('status')
-            merged_proxies.append(merged)
-        if merged_proxies:
-            config_info['proxies'] = merged_proxies
+        config_info['proxies'] = [
+            {
+                'name': item.get('name') or '-',
+                'type': item.get('type') or 'tcp',
+                'localIP': '127.0.0.1',
+                'localPort': config.SERVER_PORT,
+                'runtimeLocal': item.get('local') or '',
+                'runtimeRemote': item.get('remote') or '',
+                'accessUrl': item.get('url') or '',
+                'runtimeStatus': item.get('status') or '',
+            }
+            for item in items
+        ]
         config_info['runtime'] = summary.get('runtime') or {}
     return api_ok({'config': config_info, 'service': service})
 
