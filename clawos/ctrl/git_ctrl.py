@@ -11,6 +11,33 @@ from lib import git_utils
 git_bp = Blueprint('git', __name__)
 
 
+def _ensure_git_identity(repo_path):
+    try:
+        name_r = git_utils._run_git(repo_path, ['config', '--get', 'user.name'], timeout=10)
+        email_r = git_utils._run_git(repo_path, ['config', '--get', 'user.email'], timeout=10)
+        name = (name_r.stdout or '').strip() if name_r and name_r.returncode == 0 else ''
+        email = (email_r.stdout or '').strip() if email_r and email_r.returncode == 0 else ''
+        if name and email:
+            return True, ''
+
+        default_name = 'ClawOS'
+        default_email = 'clawos@localhost'
+
+        if not name:
+            r = git_utils._run_git(repo_path, ['config', 'user.name', default_name], timeout=10)
+            if not r or r.returncode != 0:
+                out = ((r.stderr or '') + '\n' + (r.stdout or '')).strip() if r else ''
+                return False, ('git config user.name failed: ' + out)[:300]
+        if not email:
+            r = git_utils._run_git(repo_path, ['config', 'user.email', default_email], timeout=10)
+            if not r or r.returncode != 0:
+                out = ((r.stderr or '') + '\n' + (r.stdout or '')).strip() if r else ''
+                return False, ('git config user.email failed: ' + out)[:300]
+        return True, ''
+    except Exception as e:
+        return False, str(e)[:300]
+
+
 def _resolve_git_target_path(path):
     if path:
         root_dir = os.path.normpath(config.ROOT_DIR)
@@ -79,6 +106,21 @@ def _auto_commit_repo(full_path):
         lowered = out.lower()
         if 'nothing to commit' in lowered or 'no changes' in lowered:
             return None, api_ok({'status': 'clean'})
+        if (
+            'author identity unknown' in lowered
+            or 'please tell me who you are' in lowered
+            or 'unable to auto-detect email address' in lowered
+        ):
+            ok, reason = _ensure_git_identity(full_path)
+            if ok:
+                retry = git_utils.git_commit(full_path, msg)
+                if retry and retry.returncode == 0:
+                    commit_result = retry
+                else:
+                    out2 = ((retry.stdout or '') + '\n' + (retry.stderr or '')).strip() if retry else ''
+                    return None, api_error(('git commit failed: ' + out2)[:400], status=500)
+            else:
+                return None, api_error(('git commit failed: ' + (reason or out.strip()))[:400], status=500)
         return None, api_error(('git commit failed: ' + out.strip())[:400], status=500)
 
     head_hash = ''
